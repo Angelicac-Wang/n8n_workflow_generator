@@ -1,0 +1,749 @@
+{
+  "metadata": {
+    "id": 8498,
+    "name": "Template 8498",
+    "description": "",
+    "views": 0,
+    "totalViews": 0,
+    "createdAt": "",
+    "extractedAt": "2025-10-14 23:59:10",
+    "source": "https://n8n.io/workflows/8498/",
+    "batch": 3
+  },
+  "workflow": {
+    "id": 8498,
+    "name": "Build Document Q&A API with PDF Vector and Webhooks",
+    "views": 137,
+    "recentViews": 3,
+    "totalViews": 137,
+    "createdAt": "2025-09-12T06:34:09.541Z",
+    "description": "## Overview\nOrganizations struggle to make their document repositories searchable and accessible. Users waste time searching through lengthy PDFs, manuals, and documentation to find specific answers. This workflow creates a powerful API service that instantly answers questions about any document or image, perfect for building customer support chatbots, internal knowledge bases, or interactive documentation systems.\n\n## What You Can Do\nThis workflow creates a RESTful webhook API that accepts questions about documents and returns intelligent, contextual answers. It processes various document formats including PDFs, Word documents, text files, and images using OCR when needed. The system maintains conversation context through session management, caches responses for performance, provides source references with page numbers, handles multiple concurrent requests, and integrates seamlessly with chatbots, support systems, or custom applications.\n\n## Who It's For\nPerfect for developer teams building conversational interfaces, customer support departments creating self-service solutions, technical writers making documentation interactive, organizations with extensive knowledge bases, and SaaS companies wanting to add document Q&A features. Ideal for anyone who needs to make large document repositories instantly searchable through natural language queries.\n\n## The Problem It Solves\nTraditional document search returns entire pages or sections, forcing users to read through irrelevant content to find answers. Support teams repeatedly answer the same questions that are already documented. This template creates an intelligent Q&A system that provides precise, contextual answers to specific questions, reducing support tickets by up to 60% and improving user satisfaction.\n\n## Setup Instructions\n1. Install the PDF Vector community node from n8n marketplace\n2. Configure your PDF Vector API key\n3. Set up the webhook URL for your API endpoint\n4. Configure Redis or database for session management\n5. Set response caching parameters\n6. Test the API with sample documents and questions\n\n## Key Features\n- **RESTful API Interface**: Easy integration with any application\n- **Multi-Format Support**: Handle PDFs, Word docs, text files, and images\n- **OCR Processing**: Extract text from scanned documents and screenshots\n- **Contextual Answers**: Provide relevant responses with source citations\n- **Session Management**: Enable conversational follow-up questions\n- **Response Caching**: Improve performance for frequently asked questions\n- **Analytics Tracking**: Monitor usage patterns and popular queries\n- **Error Handling**: Graceful fallbacks for unsupported documents\n\n## API Usage Example\n```bash\nPOST https://your-n8n-instance.com/webhook/doc-qa\nContent-Type: application/json\n\n{\n  \"documentUrl\": \"https://example.com/user-manual.pdf\",\n  \"question\": \"How do I reset my password?\",\n  \"sessionId\": \"user-123\",\n  \"includePageNumbers\": true\n}\n```\n\n## Customization Options\nAdd authentication and rate limiting for production use, implement multi-document search across entire repositories, create specialized prompts for technical documentation or legal documents, add automatic language detection and translation, build conversation history tracking for better context, integrate with Zendesk, Intercom, or other support systems, and enable direct file upload support for local documents.\n\n**Note:** This workflow uses the PDF Vector community node. Make sure to install it from the n8n community nodes collection before using this template.",
+    "workflow": {
+      "meta": {
+        "instanceId": "placeholder"
+      },
+      "nodes": [
+        {
+          "id": "overview-note",
+          "name": "API Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            50,
+            50
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 350,
+            "height": 160,
+            "content": "## 🤖 Document Q&A API\n\nRESTful service for document intelligence:\n• **Webhook** endpoint accepts documents\n• **AI processes** questions in context\n• **Returns** JSON with answers & citations\n• **Sub-second** response times"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "request-note",
+          "name": "Request Format",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            450,
+            450
+          ],
+          "parameters": {
+            "width": 280,
+            "height": 180,
+            "content": "## 📥 API Request\n\n**POST** to `/document-qa`\n\nBody:\n```json\n{\n  \"question\": \"Your question\",\n  \"maxTokens\": 500,\n  \"file\": <binary>\n}\n```"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "process-note",
+          "name": "Q&A Processing",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            850,
+            450
+          ],
+          "parameters": {
+            "width": 260,
+            "height": 160,
+            "content": "## 🔍 AI Processing\n\nPDF Vector:\n• Parses document\n• Finds relevant sections\n• Generates answer\n• Includes citations\n\n💡 GPT-4 powered"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "response-note",
+          "name": "Response Format",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1150,
+            450
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 260,
+            "height": 180,
+            "content": "## 📤 API Response\n\n```json\n{\n  \"success\": true,\n  \"answer\": \"...\",\n  \"sources\": [...],\n  \"confidence\": 0.95\n}\n```\n\n✅ Production ready!"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "webhook-trigger",
+          "name": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "notes": "API endpoint for document Q&A",
+          "position": [
+            250,
+            300
+          ],
+          "webhookId": "doc-qa-webhook",
+          "parameters": {
+            "path": "doc-qa",
+            "httpMethod": "POST"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "validate-request",
+          "name": "Validate Request",
+          "type": "n8n-nodes-base.code",
+          "notes": "Validate and prepare request",
+          "position": [
+            450,
+            300
+          ],
+          "parameters": {
+            "jsCode": "// Validate incoming request\nconst body = $input.first().json.body;\nconst errors = [];\n\nif (!body.documentUrl && !body.documentId) {\n  errors.push('Either documentUrl or documentId is required');\n}\nif (!body.question) {\n  errors.push('Question is required');\n}\n\n// Generate session ID if not provided\nconst sessionId = body.sessionId || `session-${Date.now()}`;\n\nreturn [{\n  json: {\n    ...body,\n    sessionId,\n    valid: errors.length === 0,\n    errors,\n    timestamp: new Date().toISOString()\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "check-valid",
+          "name": "Valid Request?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            650,
+            300
+          ],
+          "parameters": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.valid }}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "pdfvector-ask",
+          "name": "PDF Vector - Ask Question",
+          "type": "n8n-nodes-pdfvector.pdfVector",
+          "notes": "Get answer from document",
+          "position": [
+            850,
+            250
+          ],
+          "parameters": {
+            "url": "={{ $json.documentUrl }}",
+            "prompt": "Answer the following question about this document or image: {{ $json.question }}",
+            "resource": "document",
+            "inputType": "url",
+            "operation": "ask"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "format-success",
+          "name": "Format Success Response",
+          "type": "n8n-nodes-base.code",
+          "notes": "Prepare successful response",
+          "position": [
+            1050,
+            250
+          ],
+          "parameters": {
+            "jsCode": "// Prepare successful response\nconst answer = $json.answer;\nconst request = $node['Validate Request'].json;\n\n// Calculate confidence score based on answer length and keywords\nlet confidence = 0.8; // Base confidence\nif (answer.length > 100) confidence += 0.1;\nif (answer.toLowerCase().includes('specifically') || answer.toLowerCase().includes('according to')) confidence += 0.1;\nconfidence = Math.min(confidence, 1.0);\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      answer,\n      confidence,\n      sessionId: request.sessionId,\n      documentUrl: request.documentUrl,\n      question: request.question\n    },\n    metadata: {\n      processedAt: new Date().toISOString(),\n      responseTime: Date.now() - new Date(request.timestamp).getTime(),\n      creditsUsed: 1\n    }\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "format-error",
+          "name": "Format Error Response",
+          "type": "n8n-nodes-base.code",
+          "notes": "Prepare error response",
+          "position": [
+            850,
+            350
+          ],
+          "parameters": {
+            "jsCode": "// Prepare error response\nconst errors = $json.errors || ['An error occurred processing your request'];\n\nreturn [{\n  json: {\n    success: false,\n    errors,\n    message: 'Invalid request',\n    timestamp: new Date().toISOString()\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "webhook-response",
+          "name": "Send Response",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "notes": "Send API response",
+          "position": [
+            1250,
+            300
+          ],
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ JSON.stringify($json) }}",
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1
+        }
+      ],
+      "connections": {
+        "Webhook": {
+          "main": [
+            [
+              {
+                "node": "Validate Request",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Valid Request?": {
+          "main": [
+            [
+              {
+                "node": "PDF Vector - Ask Question",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Format Error Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Validate Request": {
+          "main": [
+            [
+              {
+                "node": "Valid Request?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Error Response": {
+          "main": [
+            [
+              {
+                "node": "Send Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Success Response": {
+          "main": [
+            [
+              {
+                "node": "Send Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "PDF Vector - Ask Question": {
+          "main": [
+            [
+              {
+                "node": "Format Success Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 11,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 4
+        },
+        "n8n-nodes-pdfvector.pdfVector": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        }
+      }
+    },
+    "user": {
+      "name": "PDF Vector",
+      "username": "pdfvector",
+      "bio": "A fully featured PDF APIs for developers - Parse any PDF or Word document, extract structured data, and access millions of academic papers - all through simple APIs.",
+      "verified": true,
+      "links": [
+        "https://www.pdfvector.com"
+      ],
+      "avatar": "https://gravatar.com/avatar/c3284f6b75ccb280de2edf5a173c7f761f64ea1b1f9114ff2ef4c4b72f980675?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "🏭",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "🧬",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "🤬",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "🔗",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "⚙️",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "💡",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "🏷️",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "🧠",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "🙌",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "🎡",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "🎖",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "✍️",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "🛳",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "🔗",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " 🪢",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "💻",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "📹",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "👏",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "🧠",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "🧰",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "🦄",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "🛵",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 42,
+        "name": "Internal Wiki"
+      },
+      {
+        "id": 48,
+        "name": "AI RAG"
+      },
+      {
+        "id": 51,
+        "name": "Multimodal AI"
+      }
+    ],
+    "image": []
+  }
+}

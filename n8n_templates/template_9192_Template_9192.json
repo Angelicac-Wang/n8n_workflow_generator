@@ -1,0 +1,2091 @@
+{
+  "metadata": {
+    "id": 9192,
+    "name": "Template 9192",
+    "description": "",
+    "views": 0,
+    "totalViews": 0,
+    "createdAt": "",
+    "extractedAt": "2025-10-15 00:00:17",
+    "source": "https://n8n.io/workflows/9192/",
+    "batch": 3
+  },
+  "workflow": {
+    "id": 9192,
+    "name": "Smart Facebook Messenger Chatbot with Gemini AI, Message Batching and History",
+    "views": 1039,
+    "recentViews": 85,
+    "totalViews": 1039,
+    "createdAt": "2025-10-02T12:42:39.709Z",
+    "description": "## 🤖 Facebook Messenger Smart Chatbot – Batch, Format & Notify with n8n Data Table  \n### by Nguyen Thieu Toan\n\n### 🌟 What Is This Workflow?\n\nThis is a smart chatbot solution built with n8n, designed to integrate seamlessly with Facebook Messenger. It batches incoming messages, formats them for clarity, tracks conversation history, and sends natural replies using AI. Perfect for businesses, customer support, or personal AI agents.\n\n---\n\n### ⚙️ Key Features\n\n- 🔄 **Smart batching**: Groups consecutive user messages to process them in one go, avoiding fragmented replies.\n- 🧠 **Context formatting**: Automatically formats messages to fit Messenger’s structure and length limits.\n- 📋 **Conversation history tracking**: Stores and retrieves chat logs between user and bot using n8n Data Table.\n- 👀 **Seen & Typing effects**: Adds human-like responsiveness with Messenger’s sender actions.\n- 🧩 **AI Agent integration**: Easily connects to GPT, Gemini, or any LLM for natural replies, scheduling, or business logic.\n\n---\n\n### 🚀 How It Works\n\n1. Connects to your Facebook Page via webhook to receive and send messages.\n2. Stores incoming messages in a Data Table called `Batch_messages`, including fields like `user_text`, `bot_rep`, `processed`, etc.\n3. Collects unprocessed messages, sorts them by `id`, and creates a `merged_message` and full `history`.\n4. Sends the `history` to an AI Agent for contextual response generation.\n5. Sends the AI reply back to Messenger with Seen/Typing effects.\n6. Updates the message status to `processed = true` to prevent duplicate handling.\n\n---\n\n### 🛠️ Setup Guide\n\n- Create a Facebook App and Messenger webhook, link it to your Page.\n- Set up the `Batch_messages` Data Table in n8n with required columns.\n- Import the workflow or build nodes manually using the tutorial.\n- Configure your API tokens, webhook URLs, and AI Agent endpoint.\n- Deploy the workflow on a public n8n server.\n\n📘 Full tutorial available at:  \n👉 [Smart Chatbot Workflow Guide by Nguyen Thieu Toan](https://nguyenthieutoan.com/share-n8n-workflow-facebook-messenger-smart-chatbot-use-message-batching-table-data)\n\n---\n\n### 💡 Pro Tips\n\n- Customize the AI prompt and persona to match your business tone.\n- Add scheduling, lead capture, or CRM integration using n8n’s flexible nodes.\n- Monitor your Data Table regularly to ensure clean message flow and batching.\n\n---\n\n### 👤 About the Creator\n\n**Nguyen Thieu Toan (Nguyễn Thiệu Toàn/Jay Nguyen)** is an expert in AI automation, business optimization, and chatbot development. With a background in marketing and deep knowledge of n8n workflows, Jay helps businesses harness AI to save time, boost performance, and deliver smarter customer experiences.\n\nWebsite: [https://nguyenthieutoan.com](https://nguyenthieutoan.com/)\n",
+    "workflow": {
+      "meta": {
+        "instanceId": "735886904af210643f438394a538e64374f0cb4ab13fd94d97005987482d652a",
+        "templateId": "9192"
+      },
+      "nodes": [
+        {
+          "id": "183a6046-1115-401e-8510-5390fac643b8",
+          "name": "Google Gemini Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+          "position": [
+            3008,
+            2112
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "98cdc87a-0f97-4ce2-8a05-f9fad4fbb47c",
+          "name": "Is Max ID?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            2256,
+            1840
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "loose"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "c4f1518c-2d3d-4e7e-bc61-dd8bf02a34b4",
+                  "operator": {
+                    "type": "number",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.id }}",
+                  "rightValue": "={{ $('Insert To Process').first().json.id }}"
+                }
+              ]
+            },
+            "looseTypeValidation": true
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "c9ef8f13-7f91-49bf-99bb-a06c540ba680",
+          "name": "Send Typing",
+          "type": "n8n-nodes-base.httpRequest",
+          "onError": "continueRegularOutput",
+          "position": [
+            2784,
+            1696
+          ],
+          "parameters": {
+            "url": "=https://graph.facebook.com/v23.0/{{ $('Set Context').item.json.page_id }}/messages",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Set Context').item.json.user_id }}\"\n  },\n  \"sender_action\": \"typing_on\"\n}\n",
+            "sendBody": true,
+            "sendQuery": true,
+            "specifyBody": "json",
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "access_token",
+                  "value": "={{ $('Set Context').first().json.page_token }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "66b05dc9-67f2-42dd-9535-0358801055fc",
+          "name": "Is message?",
+          "type": "n8n-nodes-base.if",
+          "onError": "continueRegularOutput",
+          "position": [
+            640,
+            1744
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "3f975e97-e281-4add-825e-f168f9ec6d50",
+                  "operator": {
+                    "type": "string",
+                    "operation": "exists",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.body.entry[0].messaging[0].message.text }}",
+                  "rightValue": ""
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "945a574e-6013-4828-b53e-227cc1f5e72f",
+          "name": "Is from page?",
+          "type": "n8n-nodes-base.if",
+          "onError": "continueRegularOutput",
+          "position": [
+            864,
+            1744
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "22aba732-f39d-473f-9336-6e9f0fdfd9ff",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "exists",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.body.entry[0].messaging[0].message.is_echo }}",
+                  "rightValue": ""
+                },
+                {
+                  "id": "5c2fa5c6-2c3a-4988-8635-d3984d864a87",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.body.entry[0].messaging[0].message.is_echo }}",
+                  "rightValue": "true"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "ba78b201-6798-4ceb-8ef3-f5446a33db47",
+          "name": "Confirm Webhook",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [
+            640,
+            1552
+          ],
+          "parameters": {
+            "options": {},
+            "respondWith": "text",
+            "responseBody": "={{ $json.query[\"hub.challenge\"] }}"
+          },
+          "typeVersion": 1.4
+        },
+        {
+          "id": "aa1438a6-b174-4f28-b49b-2d5453a804d9",
+          "name": "Facebook Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            416,
+            1648
+          ],
+          "webhookId": "b12c5f3e-a7d7-4f0e-bd18-7b40f7c5f0d3",
+          "parameters": {
+            "path": "nguyenthieutoan-facebook-page",
+            "options": {},
+            "responseMode": "responseNode",
+            "multipleMethods": true
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "9611d38c-5115-460e-b9cf-1183913e93bf",
+          "name": "Seen",
+          "type": "n8n-nodes-base.httpRequest",
+          "onError": "continueRegularOutput",
+          "position": [
+            1312,
+            1648
+          ],
+          "parameters": {
+            "url": "=https://graph.facebook.com/v23.0/{{ $json.page_id }}/messages",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.user_id }}\"\n  },\n  \"sender_action\": \"mark_seen\"\n} ",
+            "sendBody": true,
+            "sendQuery": true,
+            "specifyBody": "json",
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "access_token",
+                  "value": "={{ $json.page_token }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "0ac00a0d-a627-4b67-8cd7-893aa6ad5181",
+          "name": "Send Text",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            3728,
+            1872
+          ],
+          "parameters": {
+            "url": "=https://graph.facebook.com/v23.0/{{ $('Set Context').first().json.page_id }}/messages",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Set Context').first().json.user_id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": {{JSON.stringify($('Format for Facebook Output').item.json.text)}}\n  }\n}",
+            "sendBody": true,
+            "sendQuery": true,
+            "specifyBody": "json",
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "access_token",
+                  "value": "={{ $('Set Context').first().json.page_token }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "71f74233-caf5-4ddd-b3b7-1f872338539c",
+          "name": "Set Context",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1088,
+            1744
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "={\n\"user_id\":\"{{ $json.body.entry[0].messaging[0].sender.id }}\",\n\"user_text\":\"{{ $json.body.entry[0].messaging[0].message.text }}\",\n\"page_id\":\"{{ $json.body.entry[0].id }}\",\n\"page_token\":\"<YOUR_TOKEN>\"\n}\n"
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "fa878cbb-e5e2-43ed-8daf-be71b0555282",
+          "name": "Wait 3s",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            1536,
+            1840
+          ],
+          "webhookId": "bec8714e-5c19-4ff8-9644-f8ba6e8ecdfd",
+          "parameters": {},
+          "typeVersion": 1.1
+        },
+        {
+          "id": "5291b6a6-0151-4282-af9f-32f637ccb61c",
+          "name": "Insert To Process",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            1312,
+            1840
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "user_id": "={{ $json.user_id }}",
+                "processed": false,
+                "user_text": "={{ $json.user_text }}"
+              },
+              "schema": [
+                {
+                  "id": "user_id",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "user_id",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "user_text",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "user_text",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "bot_rep",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "bot_rep",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "processed",
+                  "type": "boolean",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "processed",
+                  "defaultMatch": false
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "nXPDtd1UiwqvIoh8",
+              "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8",
+              "cachedResultName": "Batch_messages"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "a1140766-f895-4713-9911-e6aead996b83",
+          "name": "Get unprocessed message",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            1760,
+            1840
+          ],
+          "parameters": {
+            "limit": 10,
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "user_id",
+                  "keyValue": "={{ $json.user_id }}"
+                },
+                {
+                  "keyName": "processed",
+                  "condition": "isFalse"
+                }
+              ]
+            },
+            "matchType": "allConditions",
+            "operation": "get",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "nXPDtd1UiwqvIoh8",
+              "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8",
+              "cachedResultName": "Batch_messages"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c253735c-1ab2-4cbb-891e-ffb08101c63b",
+          "name": "Process Merged Message",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            3088,
+            1888
+          ],
+          "parameters": {
+            "text": "={{ $('Get Max ID + Merged Mess').first().json.merged_message }}",
+            "options": {
+              "systemMessage": "=# Persona\nYou are Jenix, the personal AI assistant for Nguyễn Thiệu Toàn. Your primary role is to act as a specialized consultant, advising potential clients on the AI and Automation services he provides.\n\n# Core Directives\n1.  *Consult on Services:* Your main goal is to understand the customer's needs and advise them on how Nguyễn Thiệu Toàn's services can help. The core services include:\n    a. *Automation Solutions for Businesses:* Providing custom automation workflows using platforms like n8n and other AI-powered tools.\n    b. *AI & Automation Training:* Offering training programs for individuals and companies on leveraging AI and automation.\n2.  *Facilitate Scheduling:* If a potential client expresses strong interest or has complex questions that require direct expertise, proactively offer to schedule a consultation with Nguyễn Thiệu Toàn.\n\n# Conversational Flow\n1.  *Opening Message:* In the very first message of a new conversation (when chat history is empty), you MUST introduce yourself. The introduction should be similar to this: \"Chào anh/chị, em là Jenix, trợ lý AI của anh Nguyễn Thiệu Toàn. Em có thể giúp anh/chị giải đáp các thắc mắc về dịch vụ và giải pháp Tự động hóa & AI ạ.\"\n2.  *Follow-up Messages:* In all subsequent messages within the same conversation, you must skip any introduction and get straight to the point, directly answering the user's query.\n\n# Constraints & Rules\n1.  *Extreme Brevity:* Your responses (after the opening message) must be concise and directly address the user's core question. Eliminate all filler words.\n2.  *Language and Addressing (Vietnamese):* You must adhere strictly to the following conversational protocol:\n    -   Address the customer as \"anh\" or \"chị\".\n    -   Refer to yourself as \"em\".\n\n# Tone of Voice\n-   *Clever & Witty:* Employ a smart and slightly humorous tone.\n-   *Friendly & Approachable:* Maintain a warm, welcoming, and helpful demeanor.\n-   *Efficient:* Your style should convey competence and respect for the customer's time.\n\n# Output Format\n-   Your entire output must be formatted in *Facebook Markdown*.\n\n# Context\n-   *Chat History:* The following JSON object contains the previous messages in this conversation. Use this history to maintain context and determine if you should deliver the opening message.\n{{JSON.stringify($json.history) }}"
+            },
+            "promptType": "define",
+            "needsFallback": true
+          },
+          "retryOnFail": true,
+          "typeVersion": 2.2,
+          "waitBetweenTries": 100
+        },
+        {
+          "id": "36bfb457-dd1f-4e40-892d-954582980ef3",
+          "name": "Update Page Rep",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            3936,
+            1952
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "bot_rep": "={{ $('Process Merged Message').first().json.output }}"
+              },
+              "schema": [
+                {
+                  "id": "user_id",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "user_id",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "user_text",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "user_text",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "bot_rep",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "bot_rep",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "processed",
+                  "type": "boolean",
+                  "display": true,
+                  "removed": true,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "processed",
+                  "defaultMatch": false
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "user_id",
+                  "keyValue": "={{ $('Set Context').first().json.user_id }}"
+                },
+                {
+                  "keyValue": "={{ $('Get Max ID + Merged Mess').first().json.id }}"
+                }
+              ]
+            },
+            "matchType": "allConditions",
+            "operation": "update",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "nXPDtd1UiwqvIoh8",
+              "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8",
+              "cachedResultName": "Batch_messages"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "af7ae4cc-fa6d-4825-b64a-51219ab37aa2",
+          "name": "Update FALSE to TRUE",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            3936,
+            1792
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "processed": true
+              },
+              "schema": [
+                {
+                  "id": "user_id",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "user_id",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "user_text",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "user_text",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "bot_rep",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "bot_rep",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "processed",
+                  "type": "boolean",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "processed",
+                  "defaultMatch": false
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "user_id",
+                  "keyValue": "={{ $('Set Context').first().json.user_id }}"
+                },
+                {
+                  "keyName": "processed",
+                  "condition": "isFalse"
+                }
+              ]
+            },
+            "matchType": "allConditions",
+            "operation": "update",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "nXPDtd1UiwqvIoh8",
+              "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8",
+              "cachedResultName": "Batch_messages"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d397a1c2-ca12-49de-8926-3467d180300c",
+          "name": "Format for Facebook Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3536,
+            1872
+          ],
+          "parameters": {
+            "jsCode": "const MAX_LEN = 2000;\n\n/* === Get input === */\nlet text = ($input.first().json.output || \"\").trim();\nif (!text) return [];\n\n/* --- Fix escape JSON: đổi \\\\n, \\\\\\n thành \\n thật --- */\ntext = text.replace(/\\\\+/g, '\\\\');   // gộp nhiều \\ thành 1\ntext = text.replace(/\\\\n/g, '\\n');   // đổi thành newline thật\n\n/* ---------- 1) Markdown → Facebook Markdown ---------- */\nfunction mdToFacebook(md){\n  let s = md;\n\n  // code block → giữ nguyên\n  s = s.replace(/```([\\s\\S]*?)```/g, (m,p1)=>`\\`\\`\\n${p1.trim()}\\n\\`\\`\\``);\n\n  // inline code\n  s = s.replace(/`([^`]+)`/g, (m,p1)=>`\\`${p1}\\``);\n\n  // bold (**text**) → *text*\n  s = s.replace(/\\*\\*([^*]+)\\*\\*/g, '*$1*');\n\n  // italic (_text_) → giữ nguyên\n\n  // underline & strike → bỏ\n  s = s.replace(/__([^_]+)__/g, '$1');\n  s = s.replace(/~~([^~]+)~~/g, '$1');\n\n  // headers → bold\n  s = s.replace(/^(#{1,6})\\s+(.+)$/gm, (m, hashes, content)=>`*${content.trim()}*`);\n\n  // list markers → bullet list Messenger\n  s = s.replace(/^[\\-\\*\\+]\\s+(.+)$/gm, '* $1');\n\n  // links → giữ text\n  s = s.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, (m,txt,url)=>txt);\n\n  return s.trim();\n}\n\n/* ---------- 2) HTML → Facebook Markdown ---------- */\nfunction htmlToFbMarkdown(input){\n  let s = input;\n\n  s = s.replace(/<br\\s*\\/?>/gi, '\\n');\n\n  // headers → bold\n  s = s.replace(/<h[1-6][^>]*>([\\s\\S]*?)<\\/h[1-6]>/gi, (m, inner)=>`*${inner.trim()}*`);\n\n  // bold / italic\n  s = s.replace(/<\\/?strong[^>]*>/gi, '*');\n  s = s.replace(/<\\/?b[^>]*>/gi, '*');\n  s = s.replace(/<\\/?em[^>]*>/gi, '_');\n  s = s.replace(/<\\/?i[^>]*>/gi, '_');\n\n  // paragraphs/divs → newline\n  s = s.replace(/<\\/?(p|div)[^>]*>/gi, '\\n');\n\n  // lists → bullet\n  s = s.replace(/<li[^>]*>/gi, '* ').replace(/<\\/li>/gi, '\\n');\n  s = s.replace(/<\\/?(ul|ol)[^>]*>/gi, '');\n\n  // remove all other tags\n  s = s.replace(/<\\/?[^>]+>/g, '');\n\n  return s.trim();\n}\n\n/* ---------- 3) Normalize content ---------- */\nfunction normalizeToFacebookMarkdown(input){\n  const looksLikeMd = /(^|\\s)[*_`~]|^#{1,6}\\s|```/.test(input);\n  let s = looksLikeMd ? mdToFacebook(input) : htmlToFbMarkdown(input);\n\n  // collapse nhiều newline thành 1\n  s = s.replace(/\\n{3,}/g, '\\n\\n');\n\n  // xoá ký tự \"\\\" thừa còn sót\n  s = s.replace(/\\\\+/g, '');\n\n  return s.trim();\n}\n\n/* ---------- 4) Split by newlines (smart split) ---------- */\nfunction splitMarkdownSmart(text, maxLen) {\n  const lines = text.split('\\n');\n  const chunks = [];\n  let buffer = '';\n\n  for (const line of lines) {\n    if ((buffer + line + '\\n').length > maxLen) {\n      if (buffer.trim()) chunks.push(buffer.trim());\n      buffer = line + '\\n';\n    } else {\n      buffer += line + '\\n';\n    }\n  }\n\n  if (buffer.trim()) chunks.push(buffer.trim());\n\n  return chunks.map(c => c.replace(/\\n+$/,''));\n}\n\n/* ===== Run ===== */\nconst normalized = normalizeToFacebookMarkdown(text);\nconst chunks = splitMarkdownSmart(normalized, MAX_LEN);\n\nreturn chunks.map(c => ({ json: { text: c } }));\n"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "633ae695-402b-4ce5-b303-5e7403dc7ce4",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            368,
+            1008
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 848,
+            "height": 1264,
+            "content": "## 📥 Facebook Webhook & Initial Message Preprocessing\n\nThis section handles the connection and preprocessing of messages from your Facebook Page via webhook:\n\n- **Facebook Webhook:** Listens for incoming events from the Facebook Page. Make sure to configure your webhook URL in the Facebook Developer Console as:  \n  `https://n8n.nguyenthieutoan.com/webhook/nguyenthieutoan-facebook-page`\n\n- **Confirm Webhook:** Handles Facebook's verification (GET) requests, responding with the required `hub.challenge` for proper webhook setup.\n\n- **Is message?** Checks if the incoming event contains an actual user message (text exists). Filters out irrelevant events to focus only on new messages.\n\n- **Is from page?** Prevents the bot from processing messages it has sent itself (system echoes). Only processes new incoming user messages, not page's own replies.\n\n- **Set Context:** Extracts important context (user ID, message text, page ID, page token) and creates a structured JSON object. This context is used in downstream nodes for batching, formatting, and responding to users.\n\n\n**Recommendation**:  \nCarefully connect all nodes as shown for seamless Facebook integration, anti-echo logic, and robust message context extraction.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "7a2d3e40-921b-4f3e-b744-6de691988fb1",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1248,
+            1008
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 1184,
+            "height": 1264,
+            "content": "## 🗃️ Message Batching & History Aggregation (n8n Data Table)\n\nThis section enables smart batching, merging, and history generation for incoming messages using n8n Data Table:\n\n- **Insert To Process:**  \n  Adds each incoming user message to the `Batch_messages` Data Table. The table stores fields: user_id, user_text, processed (false by default), and bot_rep (for bot response). All messages for each user are thus tracked and easily queried.\n\n- **Wait 3s:**  \n  Introduces a short delay (3 seconds) to allow any additional rapid user messages to arrive. This enables efficient batching—capturing all related messages before processing.\n\n- **Get unprocessed message:**  \n  Retrieves up to 10 messages from the same user that are not yet marked as processed. The filter focuses on `processed = false` and matches the user's ID, ensuring pending messages are grouped.\n\n- **Get Max ID + Merged Mess + History:**  \n  This node sorts the batch by ID (ascending), merges all user message texts into one unified string (`merged_message`), and generates a chat history array with both user messages and bot replies. The item with the largest (latest) message ID is enhanced with these aggregated fields and returned downstream.\n\n- **Is Max ID?**  \n  Checks if the current message is the latest (max ID) in the batch. Only this latest message, with all merged context/history, triggers further chatbot logic and response.\n\n\n**How it works:**  \nIncoming messages are queued and intelligently grouped. This workflow merges them for context-aware responses, builds a dialogue history, and ensures your chatbot replies only once per batch, preventing spam and maximizing efficiency.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "7b74805b-56d7-42dd-9f86-e00fac90f0cc",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2464,
+            1008
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 976,
+            "height": 1264,
+            "content": "## 🧠 AI Processing & Enhanced Interaction (LLM & AI Agent Node)\n\nThis section handles the core chatbot intelligence and interactive effects:\n\n- **Send Typing:**  \n  Immediately triggers the Messenger \"typing...\" indicator via Facebook's API when a user sends a message. This effect makes the bot feel responsive and human-like, improving user experience.\n\n- **Process Merged Message (AI Agent Node):**  \n  Uses an AI Agent node (with Google Gemini/Gemini Pro) to process the batched and merged user message.  \n  - **Persona & System Prompt:** The AI operates as \"Jenix\", personal assistant for Nguyễn Thiệu Toàn, providing smart, friendly, and concise consulting responses about AI Automation services.\n  - **Conversation Flow:** Automatically delivers a friendly self-introduction in the very first message (if history is empty), then switches to ultra-efficient Q&A in later replies (using conversation history to detect context).\n  - **Strict Output Format:** Responses are always delivered in Facebook Markdown, using Vietnamese language with the correct professional yet approachable tone.\n  - **Extensibility:** Though basic LLM nodes (LMChat, httpRequest, etc.) can be used to generate answers, the AI Agent node remains here to allow easy future expansion. Example features:  \n    - Calendar checking  \n    - Automated scheduling  \n    - Advanced context-aware consulting  \n    - Custom bot actions\n  - **History-aware:** The node leverages full chat history, enabling multi-turn, contextually rich conversations.\n\n\n**Why use AI Agent here?**  \nThis approach lets workflow creators or users easily extend chatbot capability (e.g. schedule a meeting, check availability, or answer domain-specific queries) by simply adding steps to the AI Agent node—future-proof and ready for advanced features!\n\n\n**Best Practice:**  \nUse this node for the main consulting logic and response formatting. Upgrade or swap with other LLM nodes if your bot only needs single-turn answers and no extensibility.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b3c91dc3-d19b-4f7d-9677-2f34a578590e",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3472,
+            1008
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 624,
+            "height": 1264,
+            "content": "## 📤 Deliver Response & Update Batching Status (Finalize Batch)\n\nThis final group of nodes ensures the response reaches the user and all batch records are properly updated:\n\n- **Send Text:**  \n  Posts the chatbot's reply (after Facebook formatting) back to Messenger using the Facebook API. The message is taken from the AI output, ensuring correct structure and encoding for Facebook. Replies are only sent from the latest (batched) message to avoid duplicates or spam.\n\n- **Update Page Rep:**  \n  Updates the bot reply (`bot_rep`) field in the corresponding Data Table row for this user and message ID. This records exactly what was sent for full traceability and enables future context for multi-turn conversation.\n\n- **Update FALSE to TRUE:**  \n  Marks all unprocessed batched messages (`processed = false`) for this user as processed (`processed = true`) in the Data Table. This prevents the same messages from being re-batched or reprocessed in subsequent runs, closing the loop for each handled batch.\n\n**Best Practice:**  \n- This stage ensures every step is reliably logged: replies are sent, bot responses are saved in your session log, and no unprocessed messages linger in the queue.\n- By structuring the Data Table this way, your workflow supports seamless multi-turn context, easier debugging, and robust prevention of repeated responses.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "ac913ab6-1fb1-4abf-bae0-9d7a7db5fbb3",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            368,
+            240
+          ],
+          "parameters": {
+            "color": 2,
+            "width": 848,
+            "height": 736,
+            "content": "## 🛠️ Facebook App & Messenger Webhook Setup Guide\n\n**Step 1: Create Facebook App**\n- Go to [Facebook Developers Console](https://developers.facebook.com/).\n- Click **“Create App”**, choose **“Business”** type (recommended for Messenger).\n- Complete basic info and submit.\n\n\n**Step 2: Configure Messenger Product**\n- In your App dashboard, select **“Add Product”** and choose **“Messenger”**.\n- In **Messenger Settings**, scroll to **“Webhooks”** section.\n\n\n**Step 3: Set Up Webhook**\n- Click **“Add Callback URL”**.\n- Paste your webhook URL:  \n  `https://n8n.nguyenthieutoan.com/webhook/nguyenthieutoan-facebook-page`\n- Enter your **Verify Token** (choose any custom secure string, e.g., `jenixToken2025`).\n- Select all message event permissions.\n\n\n**Step 4: Subscribe to Page Events**\n- Scroll down and select your Facebook Page to subscribe webhook events.\n- Ensure **“messages”**, **“messaging_postbacks”**, and related permissions are checked.\n\n\n**Step 5: Add Page Access Token**\n- Generate a **Page Access Token** under your Page settings.\n- Store this token securely for use in your n8n workflow.\n\n----\n\n**Quick Tips:**\n- Make sure your webhook URL is public and HTTPS-enabled.\n- Double-check Page and App settings for correct permissions.\n- For debugging, use Facebook’s Webhook Diagnostics panel.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "536f5f3e-6a86-46a8-a215-edb22a977173",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3472,
+            240
+          ],
+          "parameters": {
+            "color": 2,
+            "width": 624,
+            "height": 736,
+            "content": "## 📑 Data Table Setup: Batch_messages\n\nTo prepare your workflow for efficient message batching and logging, open the Data tables section in the n8n UI sidebar and create a new table named `Batch_messages`.\n\nFor the column setup, you need to add these fields:\n\n- `id`: This is the auto-increment primary key for each message row.\n- `user_id`: Stores the Facebook user ID so you can identify who sent each message.\n- `user_text`: Keeps the actual content of the user's message.\n- `bot_rep`: Holds the bot's reply sent back to the user after processing.\n- `processed`: This boolean indicates whether the message has already been processed (true/false).\n- `createdAt` and `updatedAt`: These are automatically generated by n8n and show when the message was originally created and last updated.\n\nWhen creating columns, pick the appropriate data type for each field—String for text/user ID/replies, Boolean for processed status. Time fields are set up by the system.\n\nBefore you finish, always check that your field names and types are correct for reliability. Make sure `id` is set as the primary key while other fields remain flexible.\n\nWith this setup, your Data Table will allow easy management and transparent tracking of all user-bot message exchanges, perfectly supporting smart batching, status updates, and workflow troubleshooting.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "452fdb7f-16d2-4a8a-be73-07764edff67a",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1248,
+            240
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 2192,
+            "height": 736,
+            "content": "## 📝 Facebook Message Chatbot - Smart Batch, Format & Notify with n8n Data Table - Nguyen Thieu Toan\n\n**What is This Workflow?**\nThis n8n workflow is a smart chatbot solution, designed for seamless integration with Facebook Messenger. Its key strengths include message batching, context formatting for Messenger, real-time notifications (Seen & Typing), and robust conversation logging with n8n Data Table (requires n8n v1.113.0+).\n\n**How Does It Work?**\n- Connects to a Facebook Page via webhook for two-way messaging.\n- Groups and merges consecutive user messages (batching) to optimize conversation flow and prevent spam.\n- Formats both questions and replies for ideal delivery on Messenger, meeting all length and structure requirements.\n- Utilizes the Data Table feature for advanced context tracking, batching, and history management.\n- Sends Seen/Typing indicators for a human-like chat experience.\n- Supports easy expansion with AI Agent or LLM for natural language responses, scheduling, or other business automation needs.\n\n\n**Quick Setup Steps**\n- Prepare a Facebook App and Messenger webhook, linking your Page and configuring callback URLs.\n- Set up your `Batch_messages` Data Table with columns for user/bot texts, statuses, and timestamps.\n- Import the workflow or create nodes as outlined in the full tutorial.\n- Plug in your API tokens and webhook URLs.\n- Start your n8n workflow on a public server.\n\n\n**Detailed instructions and troubleshooting:**  \nSee the complete guide at:  \n[https://nguyenthieutoan.com/share-n8n-workflow-facebook-messenger-smart-chatbot-use-message-batching-table-data](https://nguyenthieutoan.com/share-n8n-workflow-facebook-messenger-smart-chatbot-use-message-batching-table-data)\n\n\n**Extra Tips:**  \n- Customize the AI prompt and persona for your business domain.\n- Add logic for scheduling, calendar integration, lead collection, or any feature using n8n’s flexible node system.\n- Regularly monitor Data Table logs for clean batching and message flow.\n\n\n**About Author Nguyen Thieu Toan?**\nNguyen Thieu Toan (Nguyễn Thiệu Toàn/Jay Nguyen) is an expert in AI automation, business optimization, and chatbot development. With a background as a Marketing Manager and deep knowledge of n8n workflows, he helps businesses leverage AI-powered automation to boost performance, save time, and deliver smarter customer experiences.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "a921c1dc-41b2-4c38-9e84-c6f08539c1e7",
+          "name": "Get Max ID + Merged Mess",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1984,
+            1840
+          ],
+          "parameters": {
+            "jsCode": "// Lấy danh sách input\nconst inputItems = items;\n\n// Nếu danh sách rỗng, trả về rỗng\nif (inputItems.length === 0) {\n  return [];\n}\n\n// Sắp xếp theo id tăng dần\nconst sortedItems = [...inputItems].sort((a, b) => a.json.id - b.json.id);\n\n// Tạo merged_message từ các user_text không null\nconst mergedMessage = sortedItems\n  .map(item => item.json.user_text)\n  .filter(text => text !== null && text !== undefined)\n  .join(' ');\n\n// Tìm item có id lớn nhất\nlet maxItem = sortedItems[sortedItems.length - 1];\n\n// Thêm các trường vào item lớn nhất\nmaxItem.json.merged_message = mergedMessage;\n// Trả về item có id lớn nhất kèm merged_message và history\nreturn [maxItem];\n"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "ee91ce2f-72fa-4db4-93cd-cfcfab96b8b2",
+          "name": "Get history message",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            2736,
+            1888
+          ],
+          "parameters": {
+            "limit": 10,
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "user_id",
+                  "keyValue": "={{ $('Set Context').item.json.user_id }}"
+                },
+                {
+                  "keyName": "processed",
+                  "condition": "isTrue"
+                }
+              ]
+            },
+            "matchType": "allConditions",
+            "operation": "get",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "nXPDtd1UiwqvIoh8",
+              "cachedResultUrl": "/projects/mYtIzVb8cWfhFOhJ/datatables/nXPDtd1UiwqvIoh8",
+              "cachedResultName": "Batch_messages"
+            }
+          },
+          "typeVersion": 1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "b6229500-13d6-4c68-864b-74dba5be32ee",
+          "name": "Merge History",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2912,
+            1888
+          ],
+          "parameters": {
+            "jsCode": "// Lấy danh sách input\nconst inputItems = items;\n\n// Nếu danh sách rỗng, trả về rỗng\nif (inputItems.length === 0) {\n  return [];\n}\n\n// Sắp xếp theo id tăng dần\nconst sortedItems = [...inputItems].sort((a, b) => a.json.id - b.json.id);\n\n// Tạo lịch sử chat gồm từng lượt chat user-bot riêng biệt\nconst historyArray = sortedItems.map(item => {\n  const userText = item.json.user_text;\n  const botRep = item.json.bot_rep;\n  const entries = [];\n\n  if (userText !== null && userText !== undefined) {\n    entries.push({ role: 'user', text: userText });\n  }\n  if (botRep !== null && botRep !== undefined) {\n    entries.push({ role: 'bot', text: botRep });\n  }\n\n  return entries; // array of {role, text}\n}).flat(); // làm phẳng mảng lồng nhau\n\n// Bọc toàn bộ vào một trường history\nreturn [\n  {\n    json: {\n      history: historyArray\n    }\n  }\n];\n"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "a5b3d1ad-e827-48ad-8dbc-9d67e651e392",
+          "name": "Groq Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+          "position": [
+            3152,
+            2112
+          ],
+          "parameters": {
+            "model": "groq/compound",
+            "options": {}
+          },
+          "typeVersion": 1
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "Wait 3s": {
+          "main": [
+            [
+              {
+                "node": "Get unprocessed message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send Text": {
+          "main": [
+            [
+              {
+                "node": "Update Page Rep",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Update FALSE to TRUE",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Is Max ID?": {
+          "main": [
+            [
+              {
+                "node": "Send Typing",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Get history message",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            []
+          ]
+        },
+        "Is message?": {
+          "main": [
+            [
+              {
+                "node": "Is from page?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send Typing": {
+          "main": [
+            []
+          ]
+        },
+        "Set Context": {
+          "main": [
+            [
+              {
+                "node": "Insert To Process",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Seen",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Is from page?": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Set Context",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge History": {
+          "main": [
+            [
+              {
+                "node": "Process Merged Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Groq Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Process Merged Message",
+                "type": "ai_languageModel",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Update Page Rep": {
+          "main": [
+            []
+          ]
+        },
+        "Facebook Webhook": {
+          "main": [
+            [
+              {
+                "node": "Confirm Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Is message?",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Confirm Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Insert To Process": {
+          "main": [
+            [
+              {
+                "node": "Wait 3s",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get history message": {
+          "main": [
+            [
+              {
+                "node": "Merge History",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Process Merged Message": {
+          "main": [
+            [
+              {
+                "node": "Format for Facebook Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get unprocessed message": {
+          "main": [
+            [
+              {
+                "node": "Get Max ID + Merged Mess",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get Max ID + Merged Mess": {
+          "main": [
+            [
+              {
+                "node": "Is Max ID?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Google Gemini Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Process Merged Message",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format for Facebook Output": {
+          "main": [
+            [
+              {
+                "node": "Send Text",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 29,
+    "workflowInfo": {
+      "nodeCount": 28,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 3
+        },
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.dataTable": {
+          "count": 5
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 7
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 3
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatGroq": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatGoogleGemini": {
+          "count": 1
+        }
+      }
+    },
+    "user": {
+      "name": "Nguyen Thieu Toan",
+      "username": "nguyenthieutoan",
+      "bio": "An AI Automation consultant and system builder specializing in business workflow optimization with n8n. As the Founder of GenStaff, Toan empowers teams to automate complex processes using no-code/low-code tools and AI Agents, making operations smarter and more efficient. He actively shares expertise and tutorials about n8n, AI, and automation on his blog and social channels.",
+      "verified": true,
+      "links": [
+        "https://nguyenthieutoan.com"
+      ],
+      "avatar": "https://gravatar.com/avatar/7141eae597e5b2df502a89ec82a34a51fa2138a7b108ebfec95f50f383b37be7?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "🧬",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "📈",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "✍️",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "🧾",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "🛳",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " 🪢",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "📜",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "💡",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "🎨",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "📱",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "🧰",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "🦄",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "📈",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "📈",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "🎡",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "✨",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "🤟",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "🛵",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "🏭",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "🧬",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "🤬",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "🔗",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "⚙️",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "💡",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "🏷️",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "🧠",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "🙌",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "🎡",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "🎖",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "🏭",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "📈",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "📡",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "🧾",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "🔗",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "⚙️",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "💡",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "📱",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "📹",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "🧰",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "📈",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "📈",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "🎡",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "🎖",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "🛵",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "✍️",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "🛳",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "🔗",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " 🪢",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "💻",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "📹",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "👏",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "🧠",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "🧰",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "🦄",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "🛵",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1262,
+        "icon": "file:google.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatgooglegemini/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Google Gemini Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNDggNDgiPjxkZWZzPjxwYXRoIGlkPSJhIiBkPSJNNDQuNSAyMEgyNHY4LjVoMTEuOEMzNC43IDMzLjkgMzAuMSAzNyAyNCAzN2MtNy4yIDAtMTMtNS44LTEzLTEzczUuOC0xMyAxMy0xM2MzLjEgMCA1LjkgMS4xIDguMSAyLjlsNi40LTYuNEMzNC42IDQuMSAyOS42IDIgMjQgMiAxMS44IDIgMiAxMS44IDIgMjRzOS44IDIyIDIyIDIyYzExIDAgMjEtOCAyMS0yMiAwLTEuMy0uMi0yLjctLjUtNCIvPjwvZGVmcz48Y2xpcFBhdGggaWQ9ImIiPjx1c2UgeGxpbms6aHJlZj0iI2EiIG92ZXJmbG93PSJ2aXNpYmxlIi8+PC9jbGlwUGF0aD48cGF0aCBmaWxsPSIjRkJCQzA1IiBkPSJNMCAzN1YxMWwxNyAxM3oiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im0wIDExIDE3IDEzIDctNi4xTDQ4IDE0VjBIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiMzNEE4NTMiIGQ9Im0wIDM3IDMwLTIzIDcuOSAxTDQ4IDB2NDhIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiM0Mjg1RjQiIGQ9Ik00OCA0OCAxNyAyNGwtNC0zIDM1LTEweiIgY2xpcC1wYXRoPSJ1cmwoI2IpIi8+PC9zdmc+"
+        },
+        "displayName": "Google Gemini Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1263,
+        "icon": "file:groq.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatgroq/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Groq Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgaWQ9IkxheWVyXzIiCiAgIHZpZXdCb3g9IjAgMCA0OTkuOTk5OTkgNDk5Ljk5OTk5IgogICB2ZXJzaW9uPSIxLjEiCiAgIHdpZHRoPSI1MDAiCiAgIGhlaWdodD0iNTAwIgogICB4bWw6c3BhY2U9InByZXNlcnZlIgogICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzCiAgICAgaWQ9ImRlZnM0IiAvPjxnCiAgICAgaWQ9IlBBR0VTIj48Y2lyY2xlCiAgICAgICBzdHlsZT0iZmlsbDojZjU0ZjM1O2ZpbGwtb3BhY2l0eToxO3N0cm9rZS13aWR0aDoxLjEzNjIyIgogICAgICAgaWQ9InBhdGg0IgogICAgICAgY3g9IjI1MCIKICAgICAgIGN5PSIyNTAiCiAgICAgICByPSIyNTAiIC8+PHBhdGgKICAgICAgIGQ9Ik0gMjUwLjUzNjY0LDk3LjEyMjk5NCBDIDE5Mi43MTkzMSw5Ni41ODg2MzggMTQ1LjQ4MjIyLDE0Mi45NzA3NSAxNDQuOTQ3ODYsMjAwLjc4ODA4IGMgLTAuNTM0MzQsNTcuODE3MzMgNDUuODQ3NzcsMTA1LjA1NDQyIDEwMy42NjUxLDEwNS41ODg3NyBoIDM2LjMzNjIxIHYgLTM5LjIyMTc0IGggLTM0LjQxMjUzIGMgLTM2LjEyMjQ4LDAuNDI3NSAtNjUuNzI1OCwtMjguNTM0NjIgLTY2LjE1MzI5LC02NC42NTcwOCAtMC40Mjc0OSwtMzYuMTIyNDggMjguNTM0NjMsLTY1LjcyNTgxIDY0LjY1NzA4LC02Ni4xNTMzIGggMS40OTYyMSBjIDM2LjEyMjQ4LDAgNjUuNDA1MiwyOS4yODI3MiA2NS41MTIwNyw2NS40MDUyIHYgMCA5Ni4zOTc4MyAwIGMgMCwzNS44MDE4NyAtMjkuMTc1ODUsNjQuOTc3NzMgLTY0Ljg3MDgzLDY1LjQwNTIxIC0xNy4wOTk0MSwtMC4xMDY4OCAtMzMuNDUwNzEsLTcuMDUzNTEgLTQ1LjUyNzE3LC0xOS4xMjk5NSBsIC0yNy43ODY1LDI3Ljc4NjUxIGMgMTkuMjM2ODEsMTkuMzQzNyA0NS4zMTMzOSwzMC4zNTE0MyA3Mi41NjU1NiwzMC42NzIwNSBoIDEuMzg5MzMgYyA1Ny4wNjkyNCwtMC44NTQ5NyAxMDIuOTE3LC00Ny4xMzAyMiAxMDMuMjM3NiwtMTA0LjE5OTQ1IFYgMTk5LjI5MTg5IEMgMzUzLjY2NzM5LDE0Mi40MzYzOSAzMDcuMjg1MjcsOTcuMTIyOTk0IDI1MC41MzY2NCw5Ny4xMjI5OTQgWiIKICAgICAgIHN0eWxlPSJmaWxsOiNmZmZmZmY7c3Ryb2tlLXdpZHRoOjBweCIKICAgICAgIGlkPSJwYXRoMS0zIiAvPjwvZz48L3N2Zz4K"
+        },
+        "displayName": "Groq Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1315,
+        "icon": "fa:table",
+        "name": "n8n-nodes-base.dataTable",
+        "codex": {
+          "data": {
+            "alias": [
+              "data",
+              "table",
+              "knowledge",
+              "data table",
+              "table",
+              "sheet"
+            ],
+            "details": "Data table",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.datatable/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Development"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\",\"transform\"]",
+        "defaults": {
+          "name": "Data table"
+        },
+        "iconData": {
+          "icon": "table",
+          "type": "icon"
+        },
+        "displayName": "Data table",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 31,
+        "name": "Content Creation"
+      },
+      {
+        "id": 51,
+        "name": "Multimodal AI"
+      }
+    ],
+    "image": []
+  }
+}

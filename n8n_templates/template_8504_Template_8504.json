@@ -1,0 +1,649 @@
+{
+  "metadata": {
+    "id": 8504,
+    "name": "Template 8504",
+    "description": "",
+    "views": 0,
+    "totalViews": 0,
+    "createdAt": "",
+    "extractedAt": "2025-10-14 23:59:11",
+    "source": "https://n8n.io/workflows/8504/",
+    "batch": 3
+  },
+  "workflow": {
+    "id": 8504,
+    "name": "Extract & Validate Legal Citations from Documents with PDF Vector AI",
+    "views": 88,
+    "recentViews": 1,
+    "totalViews": 88,
+    "createdAt": "2025-09-12T06:43:14.771Z",
+    "description": "Legal professionals spend countless hours manually checking citations and building citation indexes for briefs, memoranda, and legal opinions. This workflow automates the extraction, validation, and analysis of legal citations from any legal document, including scanned court documents, photographed case files, and image-based legal materials (PDFs, JPGs, PNGs).\n\n**Target Audience:** Attorneys, paralegals, legal researchers, judicial clerks, law students, and legal writing professionals who need to extract, validate, and manage legal citations efficiently across multiple jurisdictions.\n\n**Problem Solved:** Manual citation checking is extremely time-consuming and error-prone. Legal professionals struggle to ensure citation accuracy, verify case law is still good law, and build comprehensive citation indexes. This template automates the entire citation management process while ensuring compliance with citation standards like Bluebook format.\n\n**Setup Instructions:**\n1. Configure Google Drive credentials for secure legal document access\n2. Install the PDF Vector community node from the n8n marketplace\n3. Configure PDF Vector API credentials\n4. Set up connections to legal databases (Westlaw, LexisNexis if available)\n5. Configure jurisdiction-specific citation rules\n6. Set up validation preferences and citation format standards\n7. Configure citation reporting and export formats\n\n**Key Features:**\n- Automatic retrieval of legal documents from Google Drive\n- OCR support for handwritten annotations and scanned legal documents\n- Comprehensive extraction of case law, statutes, regulations, and academic citations\n- Bluebook citation format validation and standardization\n- Automated Shepardizing to verify cases are still good law\n- Pinpoint citation detection and parenthetical extraction\n- Citation network analysis showing case relationships\n- Support for federal, state, and international law references\n\n**Customization Options:**\n- Set jurisdiction-specific citation rules and formats\n- Configure automated alerts for superseded statutes or overruled cases\n- Customize citation validation criteria and standards\n- Set up integration with legal research platforms (Westlaw, LexisNexis)\n- Configure export formats for different legal document types\n- Add support for specialty legal domains (tax law, patent law, etc.)\n- Set up collaborative citation checking for legal teams\n\n**Implementation Details:**\nThe workflow uses advanced legal domain knowledge to identify and extract citations in various formats across multiple jurisdictions. It processes both digital and scanned documents, validates citations against legal standards, and builds comprehensive citation networks. The system automatically checks citation accuracy and provides detailed reports for legal document preparation.\n\n**Note:** This workflow uses the PDF Vector community node. Make sure to install it from the n8n community nodes collection before using this template.",
+    "workflow": {
+      "meta": {
+        "instanceId": "placeholder"
+      },
+      "nodes": [
+        {
+          "id": "manual-trigger",
+          "name": "Manual Trigger",
+          "type": "n8n-nodes-base.manualTrigger",
+          "notes": "Start citation extraction",
+          "position": [
+            250,
+            300
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "google-drive",
+          "name": "Google Drive - Get Legal Document",
+          "type": "n8n-nodes-base.googleDrive",
+          "notes": "Retrieve document from Drive",
+          "position": [
+            450,
+            300
+          ],
+          "parameters": {
+            "fileId": "={{ $json.fileId }}",
+            "operation": "download"
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "pdfvector-extract",
+          "name": "PDF Vector - Extract Citations",
+          "type": "n8n-nodes-pdfvector.pdfVector",
+          "notes": "Extract all citations",
+          "position": [
+            650,
+            300
+          ],
+          "parameters": {
+            "prompt": "Extract all legal citations from this document or image. Include case citations (with reporter and year), statute citations (with title and section), regulatory citations, and academic citations (with author, title, journal, and year). For each citation, include the surrounding context (1-2 sentences) and page number where it appears. Use OCR if this is a scanned legal document or image.",
+            "schema": "{\"type\":\"object\",\"properties\":{\"documentInfo\":{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"documentType\":{\"type\":\"string\"},\"court\":{\"type\":\"string\"},\"date\":{\"type\":\"string\"},\"docketNumber\":{\"type\":\"string\"}}},\"caseCitations\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"caseName\":{\"type\":\"string\"},\"reporter\":{\"type\":\"string\"},\"volume\":{\"type\":\"string\"},\"page\":{\"type\":\"string\"},\"year\":{\"type\":\"string\"},\"court\":{\"type\":\"string\"},\"context\":{\"type\":\"string\"},\"pageNumber\":{\"type\":\"number\"},\"pinCite\":{\"type\":\"string\"}}}},\"statuteCitations\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"},\"section\":{\"type\":\"string\"},\"subsection\":{\"type\":\"string\"},\"year\":{\"type\":\"string\"},\"context\":{\"type\":\"string\"},\"pageNumber\":{\"type\":\"number\"}}}},\"regulatoryCitations\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"agency\":{\"type\":\"string\"},\"section\":{\"type\":\"string\"},\"context\":{\"type\":\"string\"},\"pageNumber\":{\"type\":\"number\"}}}},\"academicCitations\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"authors\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"journal\":{\"type\":\"string\"},\"volume\":{\"type\":\"string\"},\"page\":{\"type\":\"string\"},\"year\":{\"type\":\"string\"},\"doi\":{\"type\":\"string\"},\"context\":{\"type\":\"string\"},\"pageNumber\":{\"type\":\"number\"}}}},\"otherCitations\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"},\"context\":{\"type\":\"string\"},\"pageNumber\":{\"type\":\"number\"}}}}},\"required\":[\"documentInfo\"],\"additionalProperties\":false}",
+            "resource": "document",
+            "inputType": "file",
+            "operation": "extract",
+            "binaryPropertyName": "data"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "analyze-citations",
+          "name": "Analyze & Validate Citations",
+          "type": "n8n-nodes-base.code",
+          "notes": "Process citation data",
+          "position": [
+            850,
+            300
+          ],
+          "parameters": {
+            "jsCode": "// Process and validate citations\nconst citations = $input.first().json.data;\nconst citationAnalysis = {\n  summary: {\n    totalCitations: 0,\n    caseLaw: citations.caseCitations?.length || 0,\n    statutes: citations.statuteCitations?.length || 0,\n    regulations: citations.regulatoryCitations?.length || 0,\n    academic: citations.academicCitations?.length || 0,\n    other: citations.otherCitations?.length || 0\n  },\n  validation: {\n    invalidCitations: [],\n    warnings: []\n  },\n  academicDOIs: [],\n  citationNetwork: {}\n};\n\n// Calculate total\ncitationAnalysis.summary.totalCitations = \n  citationAnalysis.summary.caseLaw + \n  citationAnalysis.summary.statutes + \n  citationAnalysis.summary.regulations + \n  citationAnalysis.summary.academic + \n  citationAnalysis.summary.other;\n\n// Validate case citations\nif (citations.caseCitations) {\n  citations.caseCitations.forEach((cite, index) => {\n    // Check for required fields\n    if (!cite.reporter || !cite.volume || !cite.page) {\n      citationAnalysis.validation.invalidCitations.push({\n        type: 'case',\n        index,\n        citation: cite.caseName,\n        issue: 'Missing reporter, volume, or page'\n      });\n    }\n    \n    // Build citation network (track which cases cite which)\n    if (!citationAnalysis.citationNetwork[cite.caseName]) {\n      citationAnalysis.citationNetwork[cite.caseName] = {\n        citedIn: [citations.documentInfo.title],\n        pageNumbers: [cite.pageNumber]\n      };\n    }\n  });\n}\n\n// Validate statute citations\nif (citations.statuteCitations) {\n  citations.statuteCitations.forEach((cite, index) => {\n    if (!cite.title || !cite.section) {\n      citationAnalysis.validation.invalidCitations.push({\n        type: 'statute',\n        index,\n        citation: `${cite.title} ${cite.code}`,\n        issue: 'Missing title or section'\n      });\n    }\n  });\n}\n\n// Extract DOIs for academic fetching\nif (citations.academicCitations) {\n  citations.academicCitations.forEach(cite => {\n    if (cite.doi) {\n      citationAnalysis.academicDOIs.push(cite.doi);\n    } else {\n      // Try to construct search query for papers without DOI\n      citationAnalysis.validation.warnings.push({\n        type: 'academic',\n        citation: cite.title,\n        warning: 'No DOI found - manual search may be needed'\n      });\n    }\n  });\n}\n\n// Analyze citation patterns\nconst citationPatterns = {\n  mostCitedCases: [],\n  primaryAuthorities: [],\n  secondaryAuthorities: []\n};\n\n// Identify primary authorities (statutes and binding cases)\ncitationPatterns.primaryAuthorities = [\n  ...citations.statuteCitations?.map(c => `${c.title} ${c.code} § ${c.section}`) || [],\n  ...citations.caseCitations?.filter(c => c.court?.includes('Supreme'))?.map(c => c.caseName) || []\n];\n\n// Identify secondary authorities\ncitationPatterns.secondaryAuthorities = \n  citations.academicCitations?.map(c => `${c.authors}, ${c.title}`) || [];\n\nreturn [{\n  json: {\n    originalData: citations,\n    analysis: citationAnalysis,\n    patterns: citationPatterns,\n    doisToFetch: citationAnalysis.academicDOIs.join(','),\n    processedAt: new Date().toISOString()\n  }\n}];"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "has-dois",
+          "name": "Has Academic DOIs?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1050,
+            300
+          ],
+          "parameters": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.doisToFetch }}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "pdfvector-fetch",
+          "name": "PDF Vector - Fetch Papers",
+          "type": "n8n-nodes-pdfvector.pdfVector",
+          "notes": "Retrieve academic papers",
+          "position": [
+            1250,
+            250
+          ],
+          "parameters": {
+            "ids": "={{ $json.doisToFetch }}",
+            "fields": [
+              "title",
+              "abstract",
+              "authors",
+              "year",
+              "doi",
+              "pdfURL",
+              "totalCitations"
+            ],
+            "resource": "academic",
+            "operation": "fetch"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "generate-report",
+          "name": "Generate Citation Report",
+          "type": "n8n-nodes-base.code",
+          "notes": "Create final report",
+          "position": [
+            1450,
+            300
+          ],
+          "parameters": {
+            "jsCode": "// Generate comprehensive citation report\nconst citationData = $node['Has Academic DOIs?'].json;\nconst academicPapers = $json.publications || [];\n\n// Create citation report\nlet report = `# Legal Citation Analysis Report\\n\\n`;\nreport += `**Document:** ${citationData.originalData.documentInfo.title}\\n`;\nreport += `**Type:** ${citationData.originalData.documentInfo.documentType}\\n`;\nreport += `**Date:** ${citationData.originalData.documentInfo.date}\\n\\n`;\n\nreport += `## Citation Summary\\n\\n`;\nreport += `- **Total Citations:** ${citationData.analysis.summary.totalCitations}\\n`;\nreport += `- **Case Law:** ${citationData.analysis.summary.caseLaw}\\n`;\nreport += `- **Statutes:** ${citationData.analysis.summary.statutes}\\n`;\nreport += `- **Regulations:** ${citationData.analysis.summary.regulations}\\n`;\nreport += `- **Academic:** ${citationData.analysis.summary.academic}\\n`;\nreport += `- **Other:** ${citationData.analysis.summary.other}\\n\\n`;\n\n// Add validation issues\nif (citationData.analysis.validation.invalidCitations.length > 0) {\n  report += `## Citation Issues\\n\\n`;\n  citationData.analysis.validation.invalidCitations.forEach(issue => {\n    report += `- **${issue.type}:** ${issue.citation} - ${issue.issue}\\n`;\n  });\n  report += `\\n`;\n}\n\n// Add case law section\nif (citationData.originalData.caseCitations?.length > 0) {\n  report += `## Case Law Citations\\n\\n`;\n  citationData.originalData.caseCitations.forEach(cite => {\n    report += `### ${cite.caseName}\\n`;\n    report += `- **Citation:** ${cite.volume} ${cite.reporter} ${cite.page} (${cite.year})\\n`;\n    report += `- **Court:** ${cite.court || 'Not specified'}\\n`;\n    report += `- **Context:** ${cite.context}\\n`;\n    report += `- **Page:** ${cite.pageNumber}\\n\\n`;\n  });\n}\n\n// Add statute section\nif (citationData.originalData.statuteCitations?.length > 0) {\n  report += `## Statutory Citations\\n\\n`;\n  citationData.originalData.statuteCitations.forEach(cite => {\n    report += `- **${cite.title} ${cite.code} § ${cite.section}**${cite.subsection ? ` (${cite.subsection})` : ''}\\n`;\n    report += `  - Context: ${cite.context}\\n`;\n    report += `  - Page: ${cite.pageNumber}\\n\\n`;\n  });\n}\n\n// Add academic section with fetched data\nif (citationData.originalData.academicCitations?.length > 0) {\n  report += `## Academic Citations\\n\\n`;\n  citationData.originalData.academicCitations.forEach(cite => {\n    report += `### ${cite.title}\\n`;\n    report += `- **Authors:** ${cite.authors}\\n`;\n    report += `- **Journal:** ${cite.journal}, Vol. ${cite.volume}, p. ${cite.page} (${cite.year})\\n`;\n    \n    // Add fetched paper data if available\n    const fetchedPaper = academicPapers.find(p => p.doi === cite.doi);\n    if (fetchedPaper) {\n      report += `- **Citations:** ${fetchedPaper.totalCitations || 0}\\n`;\n      report += `- **Abstract Available:** Yes\\n`;\n      if (fetchedPaper.pdfURL) {\n        report += `- **Full Text:** [Available](${fetchedPaper.pdfURL})\\n`;\n      }\n    }\n    \n    report += `- **Context:** ${cite.context}\\n`;\n    report += `- **Page:** ${cite.pageNumber}\\n\\n`;\n  });\n}\n\n// Add citation patterns\nreport += `## Citation Analysis\\n\\n`;\nreport += `### Primary Authorities\\n`;\ncitationData.patterns.primaryAuthorities.forEach(auth => {\n  report += `- ${auth}\\n`;\n});\nreport += `\\n### Secondary Authorities\\n`;\ncitationData.patterns.secondaryAuthorities.forEach(auth => {\n  report += `- ${auth}\\n`;\n});\n\nreturn [{\n  json: {\n    report,\n    citationData,\n    academicPapers,\n    exportFormat: 'markdown',\n    generatedAt: new Date().toISOString()\n  }\n}];"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "save-report",
+          "name": "Save Citation Report",
+          "type": "n8n-nodes-base.writeBinaryFile",
+          "notes": "Export report",
+          "position": [
+            1650,
+            300
+          ],
+          "parameters": {
+            "fileName": "citation_report_{{ $now.format('yyyy-MM-dd_HH-mm') }}.md",
+            "fileContent": "={{ $json.report }}"
+          },
+          "typeVersion": 1
+        }
+      ],
+      "connections": {
+        "Manual Trigger": {
+          "main": [
+            [
+              {
+                "node": "Google Drive - Get Legal Document",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Has Academic DOIs?": {
+          "main": [
+            [
+              {
+                "node": "PDF Vector - Fetch Papers",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Generate Citation Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Citation Report": {
+          "main": [
+            [
+              {
+                "node": "Save Citation Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "PDF Vector - Fetch Papers": {
+          "main": [
+            [
+              {
+                "node": "Generate Citation Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Analyze & Validate Citations": {
+          "main": [
+            [
+              {
+                "node": "Has Academic DOIs?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "PDF Vector - Extract Citations": {
+          "main": [
+            [
+              {
+                "node": "Analyze & Validate Citations",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Google Drive - Get Legal Document": {
+          "main": [
+            [
+              {
+                "node": "PDF Vector - Extract Citations",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 8,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 2
+        },
+        "n8n-nodes-base.googleDrive": {
+          "count": 1
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-pdfvector.pdfVector": {
+          "count": 2
+        },
+        "n8n-nodes-base.writeBinaryFile": {
+          "count": 1
+        }
+      }
+    },
+    "user": {
+      "name": "PDF Vector",
+      "username": "pdfvector",
+      "bio": "A fully featured PDF APIs for developers - Parse any PDF or Word document, extract structured data, and access millions of academic papers - all through simple APIs.",
+      "verified": true,
+      "links": [
+        "https://www.pdfvector.com"
+      ],
+      "avatar": "https://gravatar.com/avatar/c3284f6b75ccb280de2edf5a173c7f761f64ea1b1f9114ff2ef4c4b72f980675?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "🏭",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "🧬",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "🤬",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "🔗",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "⚙️",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "💡",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "🏷️",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "🧠",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "🙌",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "🎡",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "🎖",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 46,
+        "icon": "fa:file-export",
+        "name": "n8n-nodes-base.writeBinaryFile",
+        "codex": {
+          "data": {
+            "alias": [
+              "Text",
+              "Save",
+              "Export"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.readwritefile/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Files"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Write Binary File",
+          "color": "#CC2233"
+        },
+        "iconData": {
+          "icon": "file-export",
+          "type": "icon"
+        },
+        "displayName": "Write Binary File",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 58,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDrive",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " 🖥️",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "🧠",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Google Drive"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking ‘Execute workflow’",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 35,
+        "name": "Document Extraction"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}
