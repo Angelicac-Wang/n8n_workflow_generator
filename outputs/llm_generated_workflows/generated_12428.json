@@ -1,0 +1,154 @@
+{
+  "template_id": "12428",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Tenant Complaint Triage",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Complaint",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "tenant-complaint",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Classify Complaint",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-classification",
+            "prompt": "Classify the complaint by urgency and type.",
+            "input": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "High Priority Check",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"urgency\"]}}",
+                  "value2": "high"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Notify via Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "complaints",
+            "text": "High priority complaint received: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Schedule Follow-up",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "time": "={{$json[\"followUpTime\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Acknowledge Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Complaint Received",
+            "text": "Thank you for your complaint. We are looking into it."
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 686,
+    "completion_tokens": 887,
+    "total_tokens": 1573
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:28:04.793381"
+}

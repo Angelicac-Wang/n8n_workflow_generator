@@ -1,0 +1,204 @@
+{
+  "template_id": "10053",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated UGC Video Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "create-ugc-video"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Image (Gemini)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/v2.5/image/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "productPrompt": "={{$json[\"productPrompt\"]}}",
+              "apiKey": "={{$json[\"geminiApiKey\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Image Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { imageBase64: JSON.parse(items[0].json.body).imageBase64 };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Video (SORA 2)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/sora2/video/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "videoPrompt": "={{$json[\"videoPrompt\"]}}",
+              "apiKey": "={{$json[\"openAiApiKey\"]}}",
+              "resolution": "720x1280",
+              "duration": 8
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Poll Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/sora2/video/status",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "queryParameters": [
+              {
+                "name": "jobId",
+                "value": "={{$json[\"jobId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/sora2/video/download",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "queryParameters": [
+              {
+                "name": "jobId",
+                "value": "={{$json[\"jobId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "upload": {
+              "fileName": "product_video.mp4",
+              "fileContent": "={{$json[\"videoFile\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "A1",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              [
+                "={{$json[\"productPrompt\"]}}",
+                "={{$json[\"videoUrl\"]}}",
+                "Completed",
+                "={{new Date().toISOString()}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1101,
+    "completion_tokens": 1259,
+    "total_tokens": 2360
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:25:44.155886"
+}

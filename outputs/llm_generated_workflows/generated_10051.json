@@ -1,0 +1,143 @@
+{
+  "template_id": "10051",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to generate podcast ideas, scripts, and audio automatically.",
+    "workflowPlan": {
+      "name": "Podcast on Autopilot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "podcast-topic"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Podcast Idea Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-5/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Generate a podcast idea based on the topic: {{$json[\"body\"][\"topic\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Podcast Script Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/v1/claude/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Expand the following podcast idea into a 60-second script: {{$json[\"choices\"][0][\"text\"]}}",
+              "max_tokens": 300
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_ANTHROPIC_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Text-to-Speech",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "text": "{{$json[\"choices\"][0][\"text\"]}}",
+              "voice": "en_us_male"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_ELEVENLABS_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Email Automation",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Your Podcast Episode",
+            "text": "Attached is your podcast episode.",
+            "attachments": [
+              {
+                "content": "{{$json[\"audio\"]}}",
+                "type": "audio/mpeg",
+                "filename": "podcast.mp3"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 884,
+    "completion_tokens": 905,
+    "total_tokens": 1789
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:25:34.677066"
+}

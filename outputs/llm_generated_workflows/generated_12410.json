@@ -1,0 +1,134 @@
+{
+  "template_id": "12410",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Reddit to Telegram Viral Post Summarizer",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Daily 8 AM Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "getRedditPosts",
+          "label": "Get Reddit Viral Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.reddit.com/r/{{subreddit}}/new.json?limit=50",
+            "authentication": "oAuth2Api",
+            "responseFormat": "json",
+            "options": {
+              "batchSize": 1
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "filterPosts",
+          "label": "Filter Viral Posts",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"data\"][\"ups\"]}}",
+                  "operation": "larger",
+                  "value2": 500
+                },
+                {
+                  "value1": "={{$json[\"data\"][\"ups\"]}}",
+                  "operation": "larger",
+                  "value2": 70
+                },
+                {
+                  "value1": "={{Date.now() - new Date($json[\"data\"][\"created_utc\"] * 1000).getTime()}}",
+                  "operation": "smaller",
+                  "value2": 86400000
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "summarizePosts",
+          "label": "AI Summarizer",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "body": {
+              "prompt": "Summarize the following Reddit post: {{$json[\"data\"][\"title\"]}}",
+              "max_tokens": 200
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendToTelegram",
+          "label": "Send to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "7917193308",
+            "text": "Summary: {{$json[\"choices\"][0][\"text\"]}}\nLink: {{$json[\"data\"][\"url\"]}}",
+            "parseMode": "Markdown"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "getRedditPosts"
+        },
+        {
+          "from": "getRedditPosts",
+          "to": "filterPosts"
+        },
+        {
+          "from": "filterPosts",
+          "to": "summarizePosts",
+          "outputIndex": 1
+        },
+        {
+          "from": "summarizePosts",
+          "to": "sendToTelegram"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1455,
+    "completion_tokens": 873,
+    "total_tokens": 2328
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:27:56.656839"
+}

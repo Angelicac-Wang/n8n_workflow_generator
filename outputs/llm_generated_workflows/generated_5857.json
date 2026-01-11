@@ -1,0 +1,146 @@
+{
+  "template_id": "5857",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for building a smart AI chat assistant using OpenAI's GPT-4o.",
+    "workflowPlan": {
+      "name": "AI Chat Assistant with GPT-4o",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check File Upload",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"file\"] !== undefined}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Convert Image to Base64",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const file = items[0].json.file;\nconst base64 = Buffer.from(file.data, 'binary').toString('base64');\nreturn [{ json: { base64 } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Image with GPT-4o",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/analyze",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "body": {
+              "base64": "={{$json[\"base64\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Chat with GPT-4o",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "body": {
+              "messages": "={{[{role: 'system', content: 'You are a helpful assistant.'}, {role: 'user', content: $json[\"text\"]}]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond to User",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 805,
+    "completion_tokens": 916,
+    "total_tokens": 1721
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:26:10.927394"
+}

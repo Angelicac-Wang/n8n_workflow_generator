@@ -1,0 +1,135 @@
+{
+  "template_id": "2559",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Data Visualization with SQL Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Information Extractor",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Extract user's question from input"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "SQL Agent",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "query": "SELECT * FROM your_table WHERE condition = true",
+            "credentials": "PostgreSQL Credentials"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Text Classifier",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Determine if a chart is needed"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Chart Definition",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Generate a chart definition",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Quickchart.io URL",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Append chart definition to Quickchart.io URL"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Set Response",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "response": "SQL Agent response with chart"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 966,
+    "completion_tokens": 752,
+    "total_tokens": 1718
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:39:35.395880"
+}

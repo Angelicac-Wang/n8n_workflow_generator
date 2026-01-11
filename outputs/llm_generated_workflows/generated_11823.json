@@ -1,0 +1,164 @@
+{
+  "template_id": "11823",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Video Metadata Extraction & YouTube Auto-Upload with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Video Intake",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "video-intake"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Metadata",
+          "nodeType": "n8n-nodes-base.extractMetadata",
+          "typeVersion": 1,
+          "params": {
+            "filePropertyName": "videoFile"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Content Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/generate",
+            "method": "POST",
+            "body": {
+              "metadata": "={{$json[\"metadata\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "openaiApi": "OpenAI API"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Thumbnail Processing",
+          "nodeType": "n8n-nodes-base.thumbnailProcessing",
+          "typeVersion": 1,
+          "params": {
+            "filePropertyName": "thumbnailFile"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "YouTube Upload",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "uploadVideo",
+            "videoTitle": "={{$json[\"title\"]}}",
+            "videoDescription": "={{$json[\"description\"]}}",
+            "videoTags": "={{$json[\"tags\"]}}",
+            "videoCategory": "={{$json[\"category\"]}}",
+            "videoFile": "={{$binary[\"videoFile\"]}}",
+            "thumbnailFile": "={{$binary[\"thumbnailFile\"]}}",
+            "publishAt": "={{$json[\"publishTime\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post-Upload Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/playlists",
+            "method": "POST",
+            "body": {
+              "snippet": {
+                "playlistId": "={{$json[\"playlistId\"]}}",
+                "videoId": "={{$json[\"videoId\"]}}"
+              }
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "googleApi": "Google API"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Notification",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Video Uploaded Successfully",
+            "body": "Your video has been uploaded successfully. Video URL: {{$json[\"videoUrl\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1097,
+    "completion_tokens": 1016,
+    "total_tokens": 2113
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:03:05.334762"
+}

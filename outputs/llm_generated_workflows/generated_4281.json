@@ -1,0 +1,163 @@
+{
+  "template_id": "4281",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Real Estate Intelligence Tracker",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "real-estate-tracker",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Bright Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/v1/scrape",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"zone\": \"YOUR_ZONE_NAME\", \"url\": \"YOUR_TARGET_URL\" }"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Convert to Text",
+          "nodeType": "n8n-nodes-base.llmChain",
+          "typeVersion": 1,
+          "params": {
+            "model": "basic-llm-chain",
+            "input": "={{$json[\"html\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Structured Data Extraction",
+          "nodeType": "n8n-nodes-base.informationExtractor",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "input": "={{$json[\"text\"]}}",
+            "fields": [
+              "price",
+              "address",
+              "area",
+              "type"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Disk",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "/local/path/real_estate_data.json",
+            "data": "={{$json}}",
+            "fileFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Webhook Notification",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "url": "https://your-webhook-url.com",
+            "responseMode": "onReceived",
+            "jsonParameters": true,
+            "bodyParametersJson": "={{$json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1282,
+    "completion_tokens": 969,
+    "total_tokens": 2251
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:08:23.836229"
+}

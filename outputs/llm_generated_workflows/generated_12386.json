@@ -1,0 +1,152 @@
+{
+  "template_id": "12386",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate the discovery of trending topics, content generation, and publishing to WordPress.",
+    "workflowPlan": {
+      "name": "Automated Blog Post Creation and Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Discover Trends",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.perplexity.ai/trends",
+            "method": "GET",
+            "authentication": "perplexityApiAuth",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Queue Topics",
+          "nodeType": "googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:F",
+            "data": [
+              {
+                "Topic": "={{$json[\"topic\"]}}",
+                "is_generated": "false"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Content",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.perplexity.ai/generate",
+            "method": "POST",
+            "authentication": "perplexityApiAuth",
+            "body": {
+              "topic": "={{$json[\"topic\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Draft",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://your-site.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "authentication": "wordpressApiAuth",
+            "body": {
+              "title": "={{$json[\"title\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "status": "draft",
+              "author": "authorId"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Image",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.huggingface.co/models/FLUX",
+            "method": "POST",
+            "authentication": "huggingfaceApiAuth",
+            "body": {
+              "text": "={{$json[\"content\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Attach Media",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://your-site.com/wp-json/wp/v2/media",
+            "method": "POST",
+            "authentication": "wordpressApiAuth",
+            "body": {
+              "file": "={{$json[\"image\"]}}",
+              "post": "={{$json[\"postId\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 826,
+    "completion_tokens": 900,
+    "total_tokens": 1726
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:27:09.414126"
+}

@@ -1,0 +1,108 @@
+{
+  "template_id": "3904",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn Company Search and Scoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Search LinkedIn Companies",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.linkedin.com/v2/companySearch",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "queryParameters": [
+              {
+                "name": "keywords",
+                "value": "target industry, location, company size"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Filter Companies",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "all": [
+                {
+                  "value1": "={{$json[\"followerCount\"]}}",
+                  "operation": "greaterThan",
+                  "value2": "1000"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Score with AI",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.ghostgenius.com/score",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "bodyParameters": [
+              {
+                "name": "companyData",
+                "value": "={{$json}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Add to Google Sheets",
+          "nodeType": "googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 822,
+    "completion_tokens": 551,
+    "total_tokens": 1373
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:04:18.906385"
+}

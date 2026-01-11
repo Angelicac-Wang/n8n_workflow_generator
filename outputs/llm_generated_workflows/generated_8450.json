@@ -1,0 +1,196 @@
+{
+  "template_id": "8450",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Keyword Performance Tracker",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Configure Apify Credentials",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "apifyApiKey",
+                  "value": "YOUR_APIFY_API_KEY"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Reddit Scraper",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/trudax~reddit-scraper-lite/run-sync-get-dataset-items",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer {{$json[\"apifyApiKey\"]}}"
+              }
+            },
+            "body": {
+              "searches": [
+                "keyword1",
+                "keyword2"
+              ],
+              "searchComments": true,
+              "sort": "top",
+              "timePeriod": "month",
+              "maxItems": 50,
+              "maxPostCount": 25
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Instagram Scraper",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/apify~instagram-scraper/run-sync-get-dataset-items",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer {{$json[\"apifyApiKey\"]}}"
+              }
+            },
+            "body": {
+              "directUrls": [
+                "https://www.instagram.com/explore/tags/hashtag1/"
+              ],
+              "resultsType": "posts",
+              "onlyPostsNewerThan": "7 days",
+              "resultsLimit": 15
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "TikTok Scraper",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/clockworks~tiktok-scraper/run-sync-get-dataset-items",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer {{$json[\"apifyApiKey\"]}}"
+              }
+            },
+            "body": {
+              "hashtags": [
+                "hashtag1",
+                "hashtag2"
+              ],
+              "resultsPerPage": 20,
+              "oldestPostDateUnified": "7 days"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Calculate Engagement Scores",
+          "nodeType": "code",
+          "params": {
+            "functionCode": "return items.map(item => { /* scoring logic here */ return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate HTML Report",
+          "nodeType": "code",
+          "params": {
+            "functionCode": "return [{ json: { html: '<html>Report Content</html>' } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            "method": "POST",
+            "authentication": {
+              "type": "oAuth2",
+              "properties": {
+                "credentials": "YOUR_GMAIL_OAUTH2_CREDENTIALS"
+              }
+            },
+            "body": {
+              "raw": "base64EncodedEmailContent"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1872,
+    "completion_tokens": 1132,
+    "total_tokens": 3004
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:34:41.351809"
+}

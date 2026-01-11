@@ -1,0 +1,248 @@
+{
+  "template_id": "11243",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Personal Inbox Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerOn": "newEmail",
+            "includeAttachments": false
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Whitelist",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-whitelist-sheet-id",
+            "range": "Sheet1!A:C"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Whitelist",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"from\"]}}",
+                  "operation": "in",
+                  "value2": "={{$node[\"Get Whitelist\"].json[\"email\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Calendar Replies",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"subject\"]}}",
+                  "operation": "notContains",
+                  "value2": "Accepted"
+                },
+                {
+                  "value1": "={{$json[\"subject\"]}}",
+                  "operation": "notContains",
+                  "value2": "Declined"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Analyze the intent of this email: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Schedule Meeting",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendar": "your-calendar-id",
+            "start": "={{$json[\"startTime\"]}}",
+            "end": "={{$json[\"endTime\"]}}",
+            "summary": "Meeting with {{$json[\"from\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Confirmation Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "Meeting Confirmation",
+            "body": "Your meeting has been scheduled. Here is the link: {{$json[\"link\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "your-chat-id",
+            "text": "A new meeting has been scheduled with {{$json[\"from\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Auto Reply",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "Thank you for your response",
+            "body": "Thank you for reaching out. If you have further questions, feel free to ask."
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Needs Review",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "3d"
+          },
+          "position": {
+            "x": 1200,
+            "y": 600
+          }
+        },
+        {
+          "id": "11",
+          "label": "Follow-up Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "Following up on your inquiry",
+            "body": "We noticed you haven't responded. Please let us know how we can assist you further."
+          },
+          "position": {
+            "x": 1400,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "10",
+          "outputIndex": 2
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1216,
+    "completion_tokens": 1534,
+    "total_tokens": 2750
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:45:51.732759"
+}

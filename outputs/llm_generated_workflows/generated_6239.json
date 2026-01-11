@@ -1,0 +1,144 @@
+{
+  "template_id": "6239",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn Job Search and Alert",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive - Read Resume",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "mimeType='application/pdf'",
+            "returnAll": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets - Read Job Filters",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "JobFilters!A1:E"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "LinkedIn API - Search Jobs",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/jobSearch",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "keywords",
+                "value": "={{$json[\"keywords\"]}}"
+              },
+              {
+                "name": "location",
+                "value": "={{$json[\"location\"]}}"
+              }
+            ],
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI API - Match Resume",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "bodyParameters": {
+              "prompt": "Match this resume with job description: {{$json[\"jobDescription\"]}}",
+              "resume": "={{$json[\"resumeContent\"]}}"
+            },
+            "authentication": "headerAuth"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets - Update Job Results",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "JobResults!A1",
+            "data": "={{$json[\"matchedJobs\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Telegram - Send Job Alerts",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your-telegram-chat-id",
+            "text": "New job matches found: {{$json[\"matchedJobs\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 911,
+    "completion_tokens": 881,
+    "total_tokens": 1792
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:28:50.738466"
+}

@@ -1,0 +1,204 @@
+{
+  "template_id": "5230",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Powered Blog Automation for WordPress V2",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduler",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch RSS Feeds",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://rss-feed-url.com",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Recent Articles",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter(item => new Date(item.json.pubDate) > new Date(Date.now() - 24 * 60 * 60 * 1000));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Classify Articles",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Classify this article for relevance to AI, robotics, or tech policy: {{article}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Blog Title",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate five long-tail SEO blog title ideas for this article: {{article}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Blog Outline",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Create a blog outline with H1 and H2 headers for this title: {{title}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Full Article",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate a full-length article based on this outline: {{outline}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate SEO Metadata",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate SEO metadata for this article: {{article}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Create Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.leonardo.ai/generate-image",
+            "method": "POST",
+            "body": {
+              "theme": "{{blogTheme}}"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Publish to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "body": {
+              "title": "{{title}}",
+              "content": "{{article}}",
+              "status": "publish",
+              "meta": "{{metadata}}",
+              "featured_media": "{{imageUrl}}"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1570,
+    "completion_tokens": 1261,
+    "total_tokens": 2831
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:18:04.047510"
+}

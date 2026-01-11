@@ -1,0 +1,136 @@
+{
+  "template_id": "4359",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Proposal Generator - Sales Automation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "proposal-form",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Integration",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"prompt\": \"Generate a proposal based on the following client information: {{ $json }}\", \"max_tokens\": 1500 }"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Drive - Copy Template",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "copyFile",
+            "fileId": "your-template-file-id",
+            "options": {
+              "copyName": "Proposal for {{ $json.clientName }}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Slides - Populate Template",
+          "nodeType": "n8n-nodes-base.googleSlides",
+          "typeVersion": 1,
+          "params": {
+            "operation": "updatePresentation",
+            "presentationId": "{{ $node[\"Google Drive - Copy Template\"].json[\"id\"] }}",
+            "updates": [
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{ $json.proposalContent }}",
+                    "matchCase": true
+                  },
+                  "replaceText": "{{ $node[\"OpenAI Integration\"].json[\"choices\"][0][\"text\"] }}"
+                }
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Gmail - Send Proposal",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendEmail",
+            "to": "{{ $json.clientEmail }}",
+            "subject": "Your Customized Proposal",
+            "body": "Dear {{ $json.clientName }},\n\nPlease find attached your customized proposal.\n\nBest regards,\nYour Company",
+            "attachments": [
+              {
+                "url": "https://drive.google.com/file/d/{{ $node[\"Google Drive - Copy Template\"].json[\"id\"] }}/view?usp=sharing"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1055,
+    "completion_tokens": 874,
+    "total_tokens": 1929
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:09:09.855563"
+}

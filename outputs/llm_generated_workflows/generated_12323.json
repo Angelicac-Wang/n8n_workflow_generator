@@ -1,0 +1,158 @@
+{
+  "template_id": "12323",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to automate resume screening and scoring using Notion and OpenAI.",
+    "workflowPlan": {
+      "name": "Screen Resumes & Save Candidate Scores to Notion",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "On New Candidate",
+          "nodeType": "n8n-nodes-base.notionTrigger",
+          "typeVersion": 1,
+          "params": {
+            "databaseId": "your_candidates_db_id",
+            "watchFor": "create"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Duplicate",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"AI Comments\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Download Resume",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"Resume File\"]}}",
+            "responseFormat": "file",
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Text",
+          "nodeType": "n8n-nodes-base.extractText",
+          "typeVersion": 1,
+          "params": {
+            "fileFormat": "autoDetect"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Job Description",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "databaseId": "your_jobs_db_id"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Analyze Candidate",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "You are a Senior Technical Recruiter. Analyze the following resume text against the job description and requirements. Score the candidate on skills, experience, and stability. Provide a fit score (0-100), a one-line summary, detected skills, and a detailed analysis.",
+            "input": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Notion Entry",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "databaseId": "your_candidates_db_id",
+            "pageId": "={{$json[\"id\"]}}",
+            "properties": {
+              "AI Comments": "={{$json[\"analysis\"]}}",
+              "Resume Score": "={{$json[\"score\"]}}",
+              "Top Skills Detected": "={{$json[\"skills\"]}}",
+              "One Line Summary": "={{$json[\"summary\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1120,
+    "completion_tokens": 985,
+    "total_tokens": 2105
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:24:21.706729"
+}

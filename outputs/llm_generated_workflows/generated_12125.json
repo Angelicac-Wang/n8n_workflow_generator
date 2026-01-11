@@ -1,0 +1,83 @@
+{
+  "template_id": "12125",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Simple Profile Picture Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate APIs",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const userInput = ''; // Custom seed\nconst gender = Math.random() > 0.5 ? 'male' : 'female';\nconst seed = userInput || Math.floor(Math.random() * 100000);\nconst apis = [\n  `https://avatars.dicebear.com/api/male/${seed}.svg`,\n  `https://avatars.dicebear.com/api/female/${seed}.svg`,\n  `https://api.multiavatar.com/${seed}.png`,\n  `https://joeschmoe.io/api/v1/${gender}/${seed}`\n];\nconst avatarUrls = apis.map(api => ({ url: api }));\nreturn [{ json: { seed, gender, avatarUrls } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate HTML",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const { seed, gender, avatarUrls } = items[0].json;\nlet html = `<html><head><style>\n  .gallery { display: flex; flex-wrap: wrap; }\n  .avatar { margin: 10px; text-align: center; }\n  img { width: 100px; height: 100px; }\n</style></head><body>\n<h1>Avatar Gallery</h1>\n<p>Seed: ${seed}, Gender: ${gender}</p>\n<div class='gallery'>`;\navatarUrls.forEach(({ url }) => {\n  html += `<div class='avatar'>\n    <img src='${url}' alt='Avatar'/>\n    <a href='${url}' download>Download</a>\n  </div>`;\n});\nhtml += '</div></body></html>';\nreturn [{ json: { html } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Respond with HTML",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"html\"]}}",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 943,
+    "completion_tokens": 768,
+    "total_tokens": 1711
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:16:25.841963"
+}

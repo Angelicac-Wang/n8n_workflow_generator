@@ -1,0 +1,167 @@
+{
+  "template_id": "10256",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Job Matcher & Resume Customizer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "LinkedIn Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.linkedin.com/jobs/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "keywords",
+                "value": "Main Job Title, Alternate Title 1, Alternate Title 2, Alternate Title 3"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Compare Datasets",
+          "nodeType": "n8n-nodes-base.compareDatasets",
+          "typeVersion": 1,
+          "params": {
+            "input1": "={{$node[\"LinkedIn Scraper\"].json}}",
+            "input2": "={{$node[\"Google Sheets\"].json}}",
+            "output": "newItems"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Download Resume",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "your-resume-file-id"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "LLM Job Matching",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://mistral.cloud/api/job-matching",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "resume",
+                "value": "={{$node[\"Download Resume\"].binary}}"
+              },
+              {
+                "name": "jobDetails",
+                "value": "={{$node[\"Compare Datasets\"].json}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$node[\"LLM Job Matching\"].json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Digest Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "Daily Job Matches Digest",
+            "html": "={{$node[\"LLM Job Matching\"].json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1042,
+    "completion_tokens": 986,
+    "total_tokens": 2028
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:30:35.266068"
+}

@@ -1,0 +1,181 @@
+{
+  "template_id": "11394",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated AI Content Marketer for Shopify",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "shopName",
+                  "value": "my-store"
+                },
+                {
+                  "name": "blogId",
+                  "value": "your-blog-id"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Product Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://{{shopName}}.myshopify.com/admin/api/2023-01/products.json",
+            "method": "GET",
+            "authentication": "shopifyApi",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Log Product Data to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "={{$json[\"id\"]}}",
+                "={{$json[\"title\"]}}",
+                "={{$json[\"body_html\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Blog Post with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/v1/generate",
+            "method": "POST",
+            "authentication": "openRouterApi",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "body": {
+              "model": "DeepSeek",
+              "input": "Generate an SEO-friendly blog post based on the following product details: Title: {{$json[\"title\"]}}, Description: {{$json[\"body_html\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Parse AI Output",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const output = JSON.parse(items[0].json.output);\nreturn [{ json: { title: output.title, content: output.content } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload Draft to Shopify",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://{{shopName}}.myshopify.com/admin/api/2023-01/blogs/{{blogId}}/articles.json",
+            "method": "POST",
+            "authentication": "shopifyApi",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "body": {
+              "article": {
+                "title": "={{$json[\"title\"]}}",
+                "body_html": "={{$json[\"content\"]}}",
+                "status": "draft"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email Notification",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "subject": "New Blog Posts Ready for Review",
+            "text": "Your new blog posts have been drafted and are ready for review in Shopify.",
+            "to": "your-email@example.com"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 998,
+    "completion_tokens": 1138,
+    "total_tokens": 2136
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:48:58.329092"
+}

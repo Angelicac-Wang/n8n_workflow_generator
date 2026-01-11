@@ -1,0 +1,179 @@
+{
+  "template_id": "12193",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for generating e-commerce product mockups.",
+    "workflowPlan": {
+      "name": "E-commerce Product Mockup Generator",
+      "nodes": [
+        {
+          "id": "webhook_1",
+          "label": "Receive Product Image",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "product-image-upload",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "if_1",
+          "label": "Check Input Type",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"body\"][\"imageUrl\"] !== undefined}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "httpRequest_1",
+          "label": "Download Image from URL",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"imageUrl\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "removeBg_1",
+          "label": "Remove Background",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.remove.bg/v1.0/removebg",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "binaryPropertyName": "data",
+              "json": {
+                "image_file_b64": "={{$binary.data}}"
+              }
+            },
+            "headerParametersJson": {
+              "X-Api-Key": "YOUR_REMOVE_BG_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "openAI_1",
+          "label": "Generate Mockup",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "json": {
+                "prompt": "Generate a luxury e-commerce mockup for {{$json[\"body\"][\"productName\"]}}",
+                "image": "={{$binary.data}}"
+              }
+            },
+            "headerParametersJson": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "googleDrive_1",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"body\"][\"productName\"]}}_mockup.png",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "respondText_1",
+          "label": "Send Response",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "Mockup generated and uploaded successfully."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "webhook_1",
+          "to": "if_1"
+        },
+        {
+          "from": "if_1",
+          "to": "httpRequest_1",
+          "outputIndex": 0
+        },
+        {
+          "from": "httpRequest_1",
+          "to": "removeBg_1"
+        },
+        {
+          "from": "if_1",
+          "to": "removeBg_1",
+          "outputIndex": 1
+        },
+        {
+          "from": "removeBg_1",
+          "to": "openAI_1"
+        },
+        {
+          "from": "openAI_1",
+          "to": "googleDrive_1"
+        },
+        {
+          "from": "googleDrive_1",
+          "to": "respondText_1"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1009,
+    "completion_tokens": 1128,
+    "total_tokens": 2137
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:19:04.970668"
+}

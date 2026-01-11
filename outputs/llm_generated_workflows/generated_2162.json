@@ -1,0 +1,101 @@
+{
+  "template_id": "2162",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to handle WhatsApp Business messages.",
+    "workflowPlan": {
+      "name": "WhatsApp Business Custom Reply Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Verify Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "GET",
+            "path": "verify-webhook",
+            "responseMode": "onReceived",
+            "responseData": "string",
+            "responseString": "query.challenge"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Respond Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "respond-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check User Message",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "json": [
+                {
+                  "value1": "={{$json[\"entry\"][0][\"changes\"][0][\"value\"][\"messages\"][0][\"type\"]}}",
+                  "operation": "equal",
+                  "value2": "text"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Custom Reply",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v13.0/{{your_phone_number_id}}/messages",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"messaging_product\": \"whatsapp\", \"to\": \"{{$json[\"entry\"][0][\"changes\"][0][\"value\"][\"messages\"][0][\"from\"]}}\", \"text\": {\"body\": \"Thank you for your message!\"}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 717,
+    "completion_tokens": 647,
+    "total_tokens": 1364
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:32:08.581069"
+}

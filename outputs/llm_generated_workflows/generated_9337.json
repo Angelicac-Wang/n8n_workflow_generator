@@ -1,0 +1,190 @@
+{
+  "template_id": "9337",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Generated Viral Video Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Upload Image",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "upload-image",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseType": "json"
+            },
+            "options": {
+              "binaryData": true
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert to JSON",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const prompt = $json[\"prompt\"];\nconst image = $binary[\"image\"] ? `data:image/${image.mimeType.split('/')[1]};base64,${image.data.toString('base64')}` : null;\nreturn [{ json: { prompt, images: image ? [image] : [] } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Sora 2 Generation Request to Defapi.org API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.defapi.org/api/sora2/gen",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"prompt\"]}}"
+                },
+                {
+                  "name": "images",
+                  "value": "={{$json[\"images\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait for Processing Completion",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": {
+              "value": 10,
+              "unit": "seconds"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Obtain the generated status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.defapi.org/api/task/query",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "task_id",
+                  "value": "={{$json[\"task_id\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check if Image Generation is Complete",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "operation": "equal",
+                  "value2": "success"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Format and Display Results",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "video_url",
+                  "value": "={{$json[\"data\"][\"result\"][\"video\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2108,
+    "completion_tokens": 1121,
+    "total_tokens": 3229
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:38:54.848543"
+}

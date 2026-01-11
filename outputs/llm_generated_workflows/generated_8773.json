@@ -1,0 +1,228 @@
+{
+  "template_id": "8773",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Sales Lead Qualification",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Lead Contact Form",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "questions": [
+              {
+                "name": "name",
+                "type": "string",
+                "label": "Name"
+              },
+              {
+                "name": "email",
+                "type": "string",
+                "label": "Email"
+              },
+              {
+                "name": "project",
+                "type": "string",
+                "label": "What do you want to build?"
+              },
+              {
+                "name": "budget",
+                "type": "string",
+                "label": "Budget"
+              },
+              {
+                "name": "start_time",
+                "type": "string",
+                "label": "Desired Start Time"
+              },
+              {
+                "name": "job_role",
+                "type": "string",
+                "label": "Job Role"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Score Lead",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/score",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "name": "={{$json[\"name\"]}}",
+              "email": "={{$json[\"email\"]}}",
+              "project": "={{$json[\"project\"]}}",
+              "budget": "={{$json[\"budget\"]}}",
+              "start_time": "={{$json[\"start_time\"]}}",
+              "job_role": "={{$json[\"job_role\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Lead Scoring Switch",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "value": "={{$json[\"score\"]}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "hot"
+              },
+              {
+                "operation": "equal",
+                "value": "mid"
+              },
+              {
+                "operation": "equal",
+                "value": "cold"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calendar Booking Link",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-calendar-booking-link.com",
+            "method": "GET"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Write Placeholder WA Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/write",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "message": "Generate a WhatsApp message for mid lead"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "body": {
+              "phone": "+15551234567",
+              "message": "={{$json[\"message\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Write Follow up Email",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/write",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "email": "Generate a follow-up email for cold lead"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Follow up Email with Gmail",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Thank you for your interest!",
+            "body": "={{$json[\"email\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 2
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1500,
+    "completion_tokens": 1349,
+    "total_tokens": 2849
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:36:57.856167"
+}

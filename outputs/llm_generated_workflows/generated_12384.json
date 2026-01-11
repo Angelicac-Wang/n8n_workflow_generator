@@ -1,0 +1,124 @@
+{
+  "template_id": "12384",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow for automating translation and text-to-speech processes.",
+    "workflowPlan": {
+      "name": "Multilingual Audio Content Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Translation Orchestrator",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "text": "Source content to be translated",
+              "source_language": "en",
+              "target_language": "fr"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Text-to-Speech",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_ELEVENLABS_API_KEY"
+              }
+            },
+            "body": {
+              "text": "Translated text from orchestrator",
+              "voice": "en-US-Wavenet-D"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Audio Quality Validation",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "all": [
+                {
+                  "value1": "{{ $json[\"audio_quality\"] }}",
+                  "operation": "greaterThan",
+                  "value2": 0.9
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Error Handling",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "error",
+                "value": "Audio quality validation failed"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 742,
+    "completion_tokens": 670,
+    "total_tokens": 1412
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:26:54.617681"
+}

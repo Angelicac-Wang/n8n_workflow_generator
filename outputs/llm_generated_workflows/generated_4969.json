@@ -1,0 +1,177 @@
+{
+  "template_id": "4969",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated TikTok Video Content Pipeline",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 0,
+                  "minute": 0,
+                  "weekday": "*",
+                  "dayOfMonth": "*",
+                  "month": "*"
+                },
+                {
+                  "hour": 6,
+                  "minute": 0,
+                  "weekday": "*",
+                  "dayOfMonth": "*",
+                  "month": "*"
+                },
+                {
+                  "hour": 12,
+                  "minute": 0,
+                  "weekday": "*",
+                  "dayOfMonth": "*",
+                  "month": "*"
+                },
+                {
+                  "hour": 18,
+                  "minute": 0,
+                  "weekday": "*",
+                  "dayOfMonth": "*",
+                  "month": "*"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 250,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Video Idea",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "bodyParameters": {
+              "mode": "json",
+              "json": {
+                "model": "gpt-4o-mini",
+                "messages": [
+                  {
+                    "role": "system",
+                    "content": "Generate a creative TikTok video idea."
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 450,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.sisif.ai/v1/video",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "bodyParameters": {
+              "mode": "json",
+              "json": {
+                "prompt": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}",
+                "resolution": "540x960",
+                "duration": 5
+              }
+            }
+          },
+          "position": {
+            "x": 650,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.sisif.ai/v1/video/status",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "queryParameters": {
+              "mode": "json",
+              "json": {
+                "videoId": "={{$json[\"videoId\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 850,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Process Video Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "videoUrl",
+                  "value": "={{$json[\"videoUrl\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1050,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 873,
+    "completion_tokens": 985,
+    "total_tokens": 1858
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:15:06.952548"
+}

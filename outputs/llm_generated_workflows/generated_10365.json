@@ -1,0 +1,125 @@
+{
+  "template_id": "10365",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to deploy a customizable AI chatbot with integrations.",
+    "workflowPlan": {
+      "name": "AI Chatbot Deployment",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chatbot",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "model": "Gemini",
+            "memory": "Supabase",
+            "context": "RAG"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "SerpAPI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json['query']}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Leads!A1",
+            "data": [
+              [
+                "={{$json['name']}}",
+                "={{$json['email']}}",
+                "={{$json['message']}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "SMTP",
+          "nodeType": "n8n-nodes-base.smtp",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "={{$json['email']}}",
+            "subject": "Thank you for contacting us",
+            "text": "Hello {{$json['name']}},\n\nThank you for reaching out. We will get back to you shortly."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1136,
+    "completion_tokens": 717,
+    "total_tokens": 1853
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:32:13.642712"
+}

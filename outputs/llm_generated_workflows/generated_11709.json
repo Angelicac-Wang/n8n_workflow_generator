@@ -1,0 +1,221 @@
+{
+  "template_id": "11709",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to generate an ICP and retrieve lookalike companies from Handelsregister.",
+    "workflowPlan": {
+      "name": "ICP and Lookalike Companies Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "start",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Collect Base Companies",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "baseCompanyIds",
+                  "value": "123,456,789"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Build Recommendation Request",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "json": [
+                {
+                  "name": "requestPayload",
+                  "value": {
+                    "baseCompanyIds": "={{$json[\"baseCompanyIds\"]}}",
+                    "locationsFilter": [
+                      "de-be",
+                      "de-by",
+                      "de-nw"
+                    ],
+                    "industriesFilter": [
+                      "J62"
+                    ],
+                    "sizesFilter": [
+                      "MICRO",
+                      "SMALL",
+                      "MEDIUM",
+                      "LARGE"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get Lookalikes",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.implisense.com/recommend",
+            "method": "POST",
+            "authentication": {
+              "type": "basicAuth",
+              "credentials": {
+                "user": "your_api_user",
+                "password": "your_api_token"
+              }
+            },
+            "jsonParameters": true,
+            "options": {},
+            "body": "={{$json[\"requestPayload\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Filter & Normalize Results",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"similarityScore\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 0.5
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "List of Companies",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "companyList",
+                  "value": "={{$json[\"filteredCompanies\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate ICP Report",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.llmprovider.com/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "text": "Generate an ICP narrative based on the following features: {{$json[\"termFeatures\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Output Results",
+          "nodeType": "respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "Lookalike Companies: {{$json[\"companyList\"]}}, ICP Report: {{$json[\"icpReport\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 978,
+    "completion_tokens": 1174,
+    "total_tokens": 2152
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:58:03.266019"
+}

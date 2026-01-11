@@ -1,0 +1,214 @@
+{
+  "template_id": "4024",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "BlogBlitz",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 3,
+                  "unit": "hours"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updates": [
+              "message"
+            ],
+            "telegramApi": "Telegram API",
+            "events": {
+              "message": {
+                "text": "/generate"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenRouter - Generate Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/generate",
+            "method": "POST",
+            "body": {
+              "category": "Technology"
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENROUTER_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI - Write Article",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Write a 1500-2500 word article on the topic.",
+              "max_tokens": 3000
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI - Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "body": {
+              "prompt": "Realistic featured image for the article",
+              "size": "1024x768"
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "WordPress - Publish Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "body": {
+              "title": "Generated Title",
+              "content": "Generated Content",
+              "status": "publish",
+              "categories": [
+                3
+              ],
+              "featured_media": "Image ID"
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_WORDPRESS_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Discord Notification",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "YOUR_DISCORD_WEBHOOK_URL",
+            "content": "New blog post published: [Link]"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "text": "New blog post published: [Link]"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1390,
+    "completion_tokens": 1204,
+    "total_tokens": 2594
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:05:54.863759"
+}

@@ -1,0 +1,494 @@
+{
+  "template_id": "12094",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for your request.",
+    "workflowPlan": {
+      "name": "Instant SDR for Inbound Leads",
+      "nodes": [
+        {
+          "id": "webhook_whatsapp",
+          "label": "Incoming Lead WhatsApp",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "webhook-whatsapp",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "webhook_facebook",
+          "label": "Incoming Lead Facebook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "webhook-facebook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "webhook_instagram",
+          "label": "Incoming Lead Instagram",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "webhook-instagram",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "webhook_linkedin",
+          "label": "Incoming Lead LinkedIn",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "webhook-linkedin",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "webhook_website",
+          "label": "Incoming Lead Website",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "webhook-website",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "normalize_whatsapp",
+          "label": "Normalize Lead Data WhatsApp",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return normalizeWhatsAppLeadData();"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "normalize_facebook",
+          "label": "Normalize Lead Data Facebook",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return normalizeFacebookLeadData();"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "normalize_instagram",
+          "label": "Normalize Lead Data Instagram",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return normalizeInstagramLeadData();"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "normalize_linkedin",
+          "label": "Normalize Lead Data LinkedIn",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return normalizeLinkedInLeadData();"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "normalize_website",
+          "label": "Normalize Lead Data Website",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return normalizeWebsiteLeadData();"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "switch_normalized_leads",
+          "label": "Switch Normalized Leads",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "passThrough"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "extract_day_hours",
+          "label": "Extract Day and Hours",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return extractDayAndHours();"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "is_working_day_hour",
+          "label": "Is Working Day and Hour?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"isWorkingTime\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "build_ai_prompt",
+          "label": "Build AI Prompt",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return buildAIPrompt();"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "get_ai_response",
+          "label": "Get AI Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": "={{$json[\"aiPrompt\"]}}",
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "combine_ai_output",
+          "label": "Combine AI Output",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return combineAIOutputWithLeadData();"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "switch_response_channel",
+          "label": "Switch Response Channel",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"sourceChannel\"]}}",
+            "rules": [
+              {
+                "value": "whatsapp"
+              },
+              {
+                "value": "instagram"
+              },
+              {
+                "value": "facebook"
+              },
+              {
+                "value": "linkedin"
+              },
+              {
+                "value": "website"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "send_whatsapp_message",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "body": "={{$json[\"responseMessage\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 100
+          }
+        },
+        {
+          "id": "send_instagram_message",
+          "label": "Send Instagram Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.instagram.com/send",
+            "method": "POST",
+            "body": "={{$json[\"responseMessage\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        },
+        {
+          "id": "send_facebook_message",
+          "label": "Send Facebook Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.facebook.com/send",
+            "method": "POST",
+            "body": "={{$json[\"responseMessage\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "send_linkedin_message",
+          "label": "Send LinkedIn Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/send",
+            "method": "POST",
+            "body": "={{$json[\"responseMessage\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 400
+          }
+        },
+        {
+          "id": "send_email_message",
+          "label": "Send Email Message",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"leadEmail\"]}}",
+            "subject": "Response to your inquiry",
+            "text": "={{$json[\"responseMessage\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 500
+          }
+        },
+        {
+          "id": "finalize_response_status",
+          "label": "Finalize Response Status",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return finalizeResponseStatus();"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "log_to_google_sheets",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A1",
+            "data": "={{$json[\"logData\"]}}"
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "webhook_whatsapp",
+          "to": "normalize_whatsapp"
+        },
+        {
+          "from": "webhook_facebook",
+          "to": "normalize_facebook"
+        },
+        {
+          "from": "webhook_instagram",
+          "to": "normalize_instagram"
+        },
+        {
+          "from": "webhook_linkedin",
+          "to": "normalize_linkedin"
+        },
+        {
+          "from": "webhook_website",
+          "to": "normalize_website"
+        },
+        {
+          "from": "normalize_whatsapp",
+          "to": "switch_normalized_leads"
+        },
+        {
+          "from": "normalize_facebook",
+          "to": "switch_normalized_leads"
+        },
+        {
+          "from": "normalize_instagram",
+          "to": "switch_normalized_leads"
+        },
+        {
+          "from": "normalize_linkedin",
+          "to": "switch_normalized_leads"
+        },
+        {
+          "from": "normalize_website",
+          "to": "switch_normalized_leads"
+        },
+        {
+          "from": "switch_normalized_leads",
+          "to": "extract_day_hours"
+        },
+        {
+          "from": "extract_day_hours",
+          "to": "is_working_day_hour"
+        },
+        {
+          "from": "is_working_day_hour",
+          "to": "build_ai_prompt",
+          "outputIndex": 0
+        },
+        {
+          "from": "build_ai_prompt",
+          "to": "get_ai_response"
+        },
+        {
+          "from": "get_ai_response",
+          "to": "combine_ai_output"
+        },
+        {
+          "from": "combine_ai_output",
+          "to": "switch_response_channel"
+        },
+        {
+          "from": "switch_response_channel",
+          "to": "send_whatsapp_message",
+          "outputIndex": 0
+        },
+        {
+          "from": "switch_response_channel",
+          "to": "send_instagram_message",
+          "outputIndex": 1
+        },
+        {
+          "from": "switch_response_channel",
+          "to": "send_facebook_message",
+          "outputIndex": 2
+        },
+        {
+          "from": "switch_response_channel",
+          "to": "send_linkedin_message",
+          "outputIndex": 3
+        },
+        {
+          "from": "switch_response_channel",
+          "to": "send_email_message",
+          "outputIndex": 4
+        },
+        {
+          "from": "send_whatsapp_message",
+          "to": "finalize_response_status"
+        },
+        {
+          "from": "send_instagram_message",
+          "to": "finalize_response_status"
+        },
+        {
+          "from": "send_facebook_message",
+          "to": "finalize_response_status"
+        },
+        {
+          "from": "send_linkedin_message",
+          "to": "finalize_response_status"
+        },
+        {
+          "from": "send_email_message",
+          "to": "finalize_response_status"
+        },
+        {
+          "from": "finalize_response_status",
+          "to": "log_to_google_sheets"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1054,
+    "completion_tokens": 3141,
+    "total_tokens": 4195
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:14:20.600858"
+}

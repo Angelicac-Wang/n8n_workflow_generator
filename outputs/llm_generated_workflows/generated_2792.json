@@ -1,0 +1,139 @@
+{
+  "template_id": "2792",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Trustpilot Review Scraper and Sentiment Analyzer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Trustpilot Reviews",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://it.trustpilot.com/review/{{company_id}}",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "page",
+                "value": "={{$json[\"page\"]}}"
+              }
+            ],
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 250,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse HTML for Review URLs",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$node[\"Fetch Trustpilot Reviews\"].json[\"body\"]}}",
+            "cssSelector": ".review-url-selector",
+            "returnArray": true
+          },
+          "position": {
+            "x": 450,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Review Details",
+          "nodeType": "n8n-nodes-base.deepSeek",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{$credentials.deepSeekApiKey}}",
+            "data": "={{$node[\"Parse HTML for Review URLs\"].json}}",
+            "fields": [
+              "author",
+              "rating",
+              "date",
+              "title",
+              "text",
+              "totalReviews",
+              "country"
+            ]
+          },
+          "position": {
+            "x": 650,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Sentiment Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{$credentials.openAIApiKey}}",
+            "model": "text-davinci-003",
+            "prompt": "Classify the sentiment of this review text: {{$node[\"Extract Review Details\"].json[\"text\"]}}",
+            "temperature": 0.5,
+            "maxTokens": 60
+          },
+          "position": {
+            "x": 850,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "documentId": "={{$credentials.googleSheetsDocumentId}}",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "={{$node[\"Extract Review Details\"].json[\"author\"]}}",
+                "={{$node[\"Extract Review Details\"].json[\"rating\"]}}",
+                "={{$node[\"Extract Review Details\"].json[\"date\"]}}",
+                "={{$node[\"Extract Review Details\"].json[\"title\"]}}",
+                "={{$node[\"Extract Review Details\"].json[\"text\"]}}",
+                "={{$node[\"Extract Review Details\"].json[\"totalReviews\"]}}",
+                "={{$node[\"Extract Review Details\"].json[\"country\"]}}",
+                "={{$node[\"Sentiment Analysis\"].json[\"choices\"][0][\"text\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1050,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1121,
+    "completion_tokens": 939,
+    "total_tokens": 2060
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:45:31.552921"
+}

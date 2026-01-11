@@ -1,0 +1,119 @@
+{
+  "template_id": "8095",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Outreach Email to New Leads",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Rows",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-sheet-id",
+            "range": "New Leads!A:Z"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"Contacted\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.microsoftOutlook",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMail",
+            "to": "={{$json[\"Email\"]}}",
+            "subject": "Your Custom Subject",
+            "body": "Hello {{$json[\"FirstName\"]}},\n\nThis is your outreach email content."
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Mark as Contacted",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "appendOrUpdate",
+            "sheetId": "your-sheet-id",
+            "range": "New Leads!A:Z",
+            "key": "Email",
+            "data": {
+              "Contacted": "Yes"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1489,
+    "completion_tokens": 662,
+    "total_tokens": 2151
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:33:28.613345"
+}

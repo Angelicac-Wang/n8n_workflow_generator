@@ -1,0 +1,123 @@
+{
+  "template_id": "12189",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Sona-Powered AI Sales Research & Personalized Email Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Read Leads from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_SPREADSHEET_ID",
+            "range": "Sheet1!A:E",
+            "filter": {
+              "field": "Research Status",
+              "operation": "isEmpty"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Enrich Data with Sona API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.sonalabs.com/enrich",
+            "method": "POST",
+            "headers": {
+              "x-api-key": "YOUR_SONA_API_KEY"
+            },
+            "body": {
+              "domain": "={{$json[\"Website Domain\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI-Powered Research with OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.1-mini",
+            "prompt": "Analyze the following company data and generate insights: {{$json}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Personalized Email",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "Email Subject": "Curiosity-driven subject line",
+              "Email Body": "Personalized email body based on AI insights"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "YOUR_SPREADSHEET_ID",
+            "range": "Sheet1!A:G",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2110,
+    "completion_tokens": 707,
+    "total_tokens": 2817
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:18:45.634858"
+}

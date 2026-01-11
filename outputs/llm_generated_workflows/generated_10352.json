@@ -1,0 +1,283 @@
+{
+  "template_id": "10352",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow template for automating travel planning.",
+    "workflowPlan": {
+      "name": "Travel Planning Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "travel-planning",
+            "httpMethod": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "destination",
+                  "value": "={{$json[\"body\"][\"destination\"]}}"
+                },
+                {
+                  "name": "dates",
+                  "value": "={{$json[\"body\"][\"dates\"]}}"
+                },
+                {
+                  "name": "preferences",
+                  "value": "={{$json[\"body\"][\"preferences\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Flights",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.skyscanner.net/apiservices/browsequotes/v1.0",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "destination",
+                "value": "={{$json[\"destination\"]}}"
+              },
+              {
+                "name": "dates",
+                "value": "={{$json[\"dates\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.skyscannerApi}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Hotels",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.booking.com/v1/hotels",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "destination",
+                "value": "={{$json[\"destination\"]}}"
+              },
+              {
+                "name": "dates",
+                "value": "={{$json[\"dates\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.bookingApi}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Activities",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.viator.com/v1/activities",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "destination",
+                "value": "={{$json[\"destination\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.viatorApi}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Weather",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openweathermap.org/data/2.5/weather",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json[\"destination\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.openWeatherMapApi}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 700
+          }
+        },
+        {
+          "id": "7",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { flights: $items(\"3\").map(item => item.json), hotels: $items(\"4\").map(item => item.json), activities: $items(\"5\").map(item => item.json), weather: $items(\"6\").map(item => item.json) };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "AI Build Itinerary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/v1/itinerary",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "data",
+                "value": "={{$json}}"
+              }
+            ],
+            "authentication": "={{$credentials.openRouterApi}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Generate HTML Email",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const itinerary = $json[\"itinerary\"]; return { emailHtml: `<html><body><h1>Your Itinerary</h1><p>${itinerary}</p></body></html>` };"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Email via Gmail",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"body\"][\"email\"]}}",
+            "subject": "Your Travel Itinerary",
+            "html": "={{$json[\"emailHtml\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Message via Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "text": "Your itinerary has been sent to your email.",
+            "channel": "={{$json[\"body\"][\"slackChannel\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "9",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 838,
+    "completion_tokens": 1781,
+    "total_tokens": 2619
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:31:49.235790"
+}

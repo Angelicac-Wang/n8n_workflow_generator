@@ -1,0 +1,247 @@
+{
+  "template_id": "12228",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Intelligent Telegram Bot with Qdrant Knowledge Base",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "New File Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "params": {
+            "pollingInterval": "15m",
+            "folderToWatch": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Text into Chunks",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "batchSize": 3000,
+            "overlap": 300
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Load Document Data",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items;"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI Embeddings",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "operation": "embeddings",
+            "model": "text-embedding-ada-002"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Insert into Qdrant",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "params": {
+            "operation": "insert",
+            "collection": "Test-youtube-adept-ecom"
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Move to Processed Folder",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "move",
+            "fileId": "={{$json[\"id\"]}}",
+            "folderId": "YOUR_PROCESSED_FOLDER_ID"
+          },
+          "position": {
+            "x": 1400,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Telegram Message Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Filter Authorized User",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+                  "operation": "equal",
+                  "value2": "26899549"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "AI Agent Processing",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "operation": "chat",
+            "model": "gpt-4.1"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Qdrant Knowledge Base",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "params": {
+            "operation": "search",
+            "collection": "Test-youtube-adept-ecom"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Conversation Memory",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "memory",
+                  "value": "={{$json[\"message\"][\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Send Response to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 1
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1406,
+    "completion_tokens": 1432,
+    "total_tokens": 2838
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:20:36.720024"
+}

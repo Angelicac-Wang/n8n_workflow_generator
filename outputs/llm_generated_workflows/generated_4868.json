@@ -1,0 +1,93 @@
+{
+  "template_id": "4868",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to extract data from PDF or image invoices in Google Drive and append it to Google Sheets using Mistral OCR.",
+    "workflowPlan": {
+      "name": "Invoice Data Extraction",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "params": {
+            "watchFolder": "Invoices Inbox",
+            "events": [
+              "add"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Mistral OCR",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "method": "POST",
+            "url": "https://api.mistral.com/ocr",
+            "body": {
+              "file": "={{$binary.data}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets Append",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1",
+            "data": "={{$json[\"extractedData\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 826,
+    "completion_tokens": 509,
+    "total_tokens": 1335
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:14:01.191949"
+}

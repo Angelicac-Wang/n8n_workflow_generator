@@ -1,0 +1,193 @@
+{
+  "template_id": "11880",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Content Generation and Scheduling",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 8,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Active Campaigns",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-active-campaigns-sheet-id",
+            "range": "Active Campaigns!A:E",
+            "filter": {
+              "field": "Status",
+              "value": "active"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Trending Topics",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/trending",
+            "method": "GET"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Enrich Campaigns with Trends",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.trends = $node[\"Fetch Trending Topics\"].json; return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Content with Groq AI",
+          "nodeType": "n8n-nodes-base.groqAI",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate content for {{$json[\"Theme\"]}} targeting {{$json[\"Target Audience\"]}} on {{$json[\"Platform\"]}} with trends: {{$json[\"trends\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Calculate Quality Score",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.qualityScore = Math.random() * 10; return item; });"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Append to Daily Content Plan",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-daily-content-plan-sheet-id",
+            "range": "Daily Content Plan!A:G",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Schedule in Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEvent",
+            "calendarId": "primary",
+            "start": "{{$json[\"bestPostingTime\"]}}",
+            "end": "={{new Date(new Date($json[\"bestPostingTime\"]).getTime() + 3600000).toISOString()}}",
+            "title": "{{$json[\"Project Name\"]}} Content Posting",
+            "description": "{{$json[\"caption\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Daily Summary Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "team@example.com",
+            "subject": "Daily Content Plan Summary",
+            "text": "Processed {{$json[\"length\"]}} campaigns with an average quality score of {{$json[\"averageQualityScore\"]}}."
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1311,
+    "completion_tokens": 1240,
+    "total_tokens": 2551
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:04:46.077227"
+}

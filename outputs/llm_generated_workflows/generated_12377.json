@@ -1,0 +1,120 @@
+{
+  "template_id": "12377",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow that automates financial transaction processing using AI models and email distribution.",
+    "workflowPlan": {
+      "name": "Automated Financial Transaction Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Transactions",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.fablebank.com/transactions",
+            "method": "GET",
+            "authentication": "Fable Bank API Key"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Classify Transactions",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/classifications",
+            "method": "POST",
+            "authentication": "OpenAI API Key",
+            "body": {
+              "model": "gpt-4",
+              "input": "{{$json[\"transactions\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Detect Anomalies",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.nvidia.com/nim/anomalies",
+            "method": "POST",
+            "authentication": "NVIDIA NIM API Key",
+            "body": {
+              "data": "{{$json[\"classifiedTransactions\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store Reconciliation Schema",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values/{range}:append",
+            "method": "POST",
+            "authentication": "Google Sheets API Key",
+            "body": {
+              "values": "{{$json[\"reconciliationData\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Report",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            "method": "POST",
+            "authentication": "Gmail API Key",
+            "body": {
+              "raw": "{{$json[\"formattedReport\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 732,
+    "completion_tokens": 700,
+    "total_tokens": 1432
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:26:20.733125"
+}

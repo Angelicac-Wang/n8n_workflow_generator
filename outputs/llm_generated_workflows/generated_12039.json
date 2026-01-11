@@ -1,0 +1,226 @@
+{
+  "template_id": "12039",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow for automating daily real estate market opportunity analysis.",
+    "workflowPlan": {
+      "name": "Real Estate Market Opportunity Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch MLS Data",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.mlsprovider.com/listings",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Public Records",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.publicrecords.com/properties",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Demographic Data",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.demographics.com/data",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Economic Indicators",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.economicindicators.com/data",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 700
+          }
+        },
+        {
+          "id": "5",
+          "label": "Consolidate Data",
+          "nodeType": "set",
+          "params": {
+            "fields": {
+              "mlsData": "={{$node[\"Fetch MLS Data\"].json}}",
+              "publicRecords": "={{$node[\"Fetch Public Records\"].json}}",
+              "demographics": "={{$node[\"Fetch Demographic Data\"].json}}",
+              "economicIndicators": "={{$node[\"Fetch Economic Indicators\"].json}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Investment Analysis with GPT-4",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "prompt": "Analyze the following real estate data for investment opportunities: {{$node[\"Consolidate Data\"].json}}",
+              "max_tokens": 1500
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Calculate ROI",
+          "nodeType": "set",
+          "params": {
+            "fields": {
+              "roi": "={{calculateROI($node[\"Investment Analysis with GPT-4\"].json)}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Validate Opportunities",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$node[\"Calculate ROI\"].json[\"roi\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 10
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Notify Team via Email",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.gmail.com/send",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "to": "team@realestatefirm.com",
+              "subject": "High-Potential Property Alert",
+              "text": "A new high-potential property has been identified. Details: {{$node[\"Investment Analysis with GPT-4\"].json}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Notify Team via Slack",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://slack.com/api/chat.postMessage",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "channel": "#real-estate-alerts",
+              "text": "A new high-potential property has been identified. Details: {{$node[\"Investment Analysis with GPT-4\"].json}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 718,
+    "completion_tokens": 1396,
+    "total_tokens": 2114
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:12:00.196963"
+}

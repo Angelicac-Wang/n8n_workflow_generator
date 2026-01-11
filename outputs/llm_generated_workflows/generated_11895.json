@@ -1,0 +1,253 @@
+{
+  "template_id": "11895",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automate AI video creation from text scripts.",
+    "workflowPlan": {
+      "name": "AI Video Creation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Script via Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "receive-script"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract and Validate Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "script",
+                "type": "string",
+                "value": "={{$json[\"body\"][\"script\"]}}"
+              },
+              {
+                "name": "avatar_id",
+                "type": "string",
+                "value": "={{$json[\"body\"][\"avatar_id\"]}}"
+              },
+              {
+                "name": "voice_id",
+                "type": "string",
+                "value": "={{$json[\"body\"][\"voice_id\"]}}"
+              },
+              {
+                "name": "video_style",
+                "type": "string",
+                "value": "={{$json[\"body\"][\"video_style\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Voiceover with ElevenLabs",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "text": "={{$json[\"script\"]}}",
+              "voice_id": "={{$json[\"voice_id\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_ELEVENLABS_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload Audio to HeyGen",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v1/assets/audio",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "audio_file": "={{$node[\"Generate Voiceover with ElevenLabs\"].json[\"audio_url\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_HEYGEN_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create AI Avatar Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v1/videos",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "avatar_id": "={{$json[\"avatar_id\"]}}",
+              "audio_asset_id": "={{$node[\"Upload Audio to HeyGen\"].json[\"asset_id\"]}}",
+              "style": "={{$json[\"video_style\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_HEYGEN_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Poll for Video Completion",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v1/videos/{{ $node[\"Create AI Avatar Video\"].json[\"video_id\"] }}",
+            "method": "GET",
+            "options": {
+              "pollTimes": 10,
+              "pollInterval": 5000
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_HEYGEN_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Download Finished Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$node[\"Poll for Video Completion\"].json[\"video_url\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Upload Video to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$node[\"Poll for Video Completion\"].json[\"video_title\"]}}.mp4",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Return Video via Webhook",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": {
+              "responseFormat": "file",
+              "binaryPropertyName": "data"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Slack Alert on Error",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "alerts",
+            "text": "Error occurred in AI Video Creation Workflow: {{$json[\"error\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 984,
+    "completion_tokens": 1659,
+    "total_tokens": 2643
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:05:47.291827"
+}

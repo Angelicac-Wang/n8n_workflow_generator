@@ -1,0 +1,278 @@
+{
+  "template_id": "11856",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated LinkedIn Post Creation and Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger",
+          "nodeType": "cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Define Posting Context",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "context",
+                  "value": "AI automation, backend/frontend systems, IT"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Latest Trends",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "AI automation trends"
+              },
+              {
+                "name": "api_key",
+                "value": "YOUR_SERP_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Insights",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter(item => item.json.context.includes('AI'));"
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate LinkedIn Post",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Generate a professional LinkedIn post about AI automation",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Image",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "prompt": "AI automation",
+              "n": 1,
+              "size": "1024x1024"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_IMAGE_GENERATION_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Validate Image and Text",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"image\"]}}",
+                  "operation": "isNotEmpty"
+                },
+                {
+                  "value1": "={{$json[\"post\"]}}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Merge Content",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "content",
+                  "value": "{{$json[\"post\"]}} with image {{$json[\"image\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "Publish to LinkedIn",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/posts",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "author": "urn:li:person:YOUR_PERSON_URN",
+              "lifecycleState": "PUBLISHED",
+              "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                  "shareCommentary": {
+                    "text": "{{$json[\"content\"]}}"
+                  },
+                  "shareMediaCategory": "IMAGE",
+                  "media": [
+                    {
+                      "status": "READY",
+                      "description": {
+                        "text": "AI automation image"
+                      },
+                      "media": "{{$json[\"image\"]}}",
+                      "title": {
+                        "text": "AI Automation"
+                      }
+                    }
+                  ]
+                }
+              },
+              "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+              }
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_LINKEDIN_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 1700,
+            "y": 100
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Email Notification",
+          "nodeType": "smtp",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient-email@example.com",
+            "subject": "LinkedIn Post Status",
+            "text": "Your LinkedIn post was successfully published."
+          },
+          "position": {
+            "x": 1900,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 745,
+    "completion_tokens": 1563,
+    "total_tokens": 2308
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:03:42.433715"
+}

@@ -1,0 +1,154 @@
+{
+  "template_id": "12015",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AgentGatePay Payment Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Buyer Agent Configuration",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "buyer_email",
+                  "value": "buyer@example.com"
+                },
+                {
+                  "name": "buyer_api_key",
+                  "value": "pk_live_abc123..."
+                },
+                {
+                  "name": "budget_usd",
+                  "value": "100"
+                },
+                {
+                  "name": "mandate_ttl_days",
+                  "value": "7"
+                },
+                {
+                  "name": "seller_api_url",
+                  "value": "https://YOUR-N8N.app.n8n.cloud/webhook/YOUR-WEBHOOK-ID"
+                },
+                {
+                  "name": "render_service_url",
+                  "value": "https://your-app.onrender.com"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Seller API Configuration",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "seller_wallet_address",
+                  "value": "0xYourSellerWallet..."
+                },
+                {
+                  "name": "seller_api_key",
+                  "value": "pk_live_xyz789..."
+                },
+                {
+                  "name": "resource_id",
+                  "value": "demo-resource"
+                },
+                {
+                  "name": "resource_price_usd",
+                  "value": "0.01"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Buyer Agent Execution",
+          "nodeType": "webhook",
+          "params": {
+            "httpMethod": "POST",
+            "path": "execute-buyer-agent",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Payment Verification",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.agentgatepay.com/v1/payment/verify",
+            "method": "POST",
+            "body": {
+              "transaction_hash": "={{$json[\"transaction_hash\"]}}",
+              "api_key": "={{$node[\"Buyer Agent Configuration\"].json[\"buyer_api_key\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Resource Delivery",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "={{$node[\"Seller API Configuration\"].json[\"seller_api_url\"]}}",
+            "method": "POST",
+            "body": {
+              "resource_id": "={{$node[\"Seller API Configuration\"].json[\"resource_id\"]}}",
+              "transaction_hash": "={{$json[\"transaction_hash\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2837,
+    "completion_tokens": 845,
+    "total_tokens": 3682
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:10:32.756202"
+}

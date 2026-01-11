@@ -1,0 +1,212 @@
+{
+  "template_id": "2621",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Supabase Document Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch File List from Supabase",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "bucketName": "your-bucket-name",
+            "returnAll": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Compare and Filter Files",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const existingFiles = []; // Retrieve from Supabase 'files' table\nconst newFiles = items.filter(item => !existingFiles.includes(item.json.name) && !item.json.name.endsWith('/'));\nreturn newFiles.map(file => ({ json: file.json }));"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Handle File Downloads",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"downloadUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "fileName": "={{$json[\"name\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "File Type Processing",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"name\"].split('.').pop()}}",
+            "rules": [
+              {
+                "value": "pdf",
+                "operation": "equal"
+              },
+              {
+                "value": "txt",
+                "operation": "equal"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Process PDF",
+          "nodeType": "n8n-nodes-base.pdfExtract",
+          "typeVersion": 1,
+          "params": {
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Process Text",
+          "nodeType": "n8n-nodes-base.textExtract",
+          "typeVersion": 1,
+          "params": {
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Content Chunking",
+          "nodeType": "n8n-nodes-base.textSplitter",
+          "typeVersion": 1,
+          "params": {
+            "chunkSize": 500,
+            "overlap": 50
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Vector Embedding Creation",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEmbedding",
+            "textProperty": "text"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Store Vectorized Data",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "vector_store",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "AI Chatbot Integration",
+          "nodeType": "n8n-nodes-base.chatbot",
+          "typeVersion": 1,
+          "params": {
+            "operation": "query",
+            "query": "={{$json[\"query\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1282,
+    "completion_tokens": 1250,
+    "total_tokens": 2532
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:41:20.391722"
+}

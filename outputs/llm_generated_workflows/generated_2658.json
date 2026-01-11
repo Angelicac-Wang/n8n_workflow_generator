@@ -1,0 +1,150 @@
+{
+  "template_id": "2658",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "API Discovery and Schema Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Services",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Services!A1:D",
+            "filter": {
+              "column": "Status",
+              "value": "pending"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Search API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/customsearch/v1",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json[\"ServiceName\"]}} API documentation"
+              },
+              {
+                "name": "key",
+                "value": "your-google-api-key"
+              },
+              {
+                "name": "cx",
+                "value": "your-search-engine-id"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Web Scraping",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "apify/web-scraper",
+            "input": {
+              "startUrls": [
+                {
+                  "url": "={{$json[\"items\"][0][\"link\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store in Qdrant",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://your-qdrant-instance/collections/your-collection/points",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "points": [
+                {
+                  "id": "={{$json[\"ServiceName\"]}}",
+                  "vector": "={{$json[\"scrapedContentVector\"]}}",
+                  "payload": {
+                    "content": "={{$json[\"scrapedContent\"]}}",
+                    "metadata": "={{$json[\"metadata\"]}}"
+                  }
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Services!A1:D",
+            "key": "ServiceName",
+            "value": "={{$json[\"ServiceName\"]}}",
+            "data": {
+              "Status": "ok"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 964,
+    "completion_tokens": 863,
+    "total_tokens": 1827
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:41:48.536003"
+}

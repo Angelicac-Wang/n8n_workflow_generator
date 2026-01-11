@@ -1,0 +1,296 @@
+{
+  "template_id": "10817",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Shopify to Social Media Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Shopify Trigger",
+          "nodeType": "n8n-nodes-base.shopifyTrigger",
+          "typeVersion": 1,
+          "params": {
+            "resource": "product",
+            "operation": "create"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Product Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { name: $json[\"title\"], price: $json[\"variants\"][0][\"price\"], description: $json[\"body_html\"], url: $json[\"handle\"], image: $json[\"images\"][0][\"src\"], timestamp: new Date().toISOString() };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Caption and Hashtags",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a social media caption and 10 hashtags for a product with the following details: {{$json}}",
+            "model": "text-davinci-003",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Set Configuration",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "accessToken",
+                  "value": "YOUR_FACEBOOK_ACCESS_TOKEN"
+                },
+                {
+                  "name": "instagramBusinessAccountId",
+                  "value": "YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID"
+                },
+                {
+                  "name": "facebookPageId",
+                  "value": "YOUR_FACEBOOK_PAGE_ID"
+                },
+                {
+                  "name": "caption",
+                  "value": "{{$node[\"Generate Caption and Hashtags\"].json[\"caption\"]}}"
+                },
+                {
+                  "name": "hashtags",
+                  "value": "{{$node[\"Generate Caption and Hashtags\"].json[\"hashtags\"]}}"
+                },
+                {
+                  "name": "imageUrl",
+                  "value": "{{$node[\"Parse Product Data\"].json[\"image\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Instagram Media Container",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/{{$json[\"instagramBusinessAccountId\"]}}/media",
+            "method": "POST",
+            "body": {
+              "caption": "{{$json[\"caption\"]}}",
+              "image_url": "{{$json[\"imageUrl\"]}}",
+              "access_token": "{{$json[\"accessToken\"]}}"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait for Processing",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1",
+            "unit": "seconds"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish Instagram Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/{{$json[\"instagramBusinessAccountId\"]}}/media_publish",
+            "method": "POST",
+            "body": {
+              "creation_id": "{{$node[\"Create Instagram Media Container\"].json[\"id\"]}}",
+              "access_token": "{{$json[\"accessToken\"]}}"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download Image for Facebook",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "{{$node[\"Parse Product Data\"].json[\"image\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Post to Facebook Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/{{$json[\"facebookPageId\"]}}/photos",
+            "method": "POST",
+            "body": {
+              "caption": "{{$json[\"caption\"]}}",
+              "access_token": "{{$json[\"accessToken\"]}}"
+            },
+            "attachments": [
+              {
+                "binaryPropertyName": "data",
+                "fileName": "product.jpg"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Merge",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "passThrough",
+            "join": "any"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Log Product Post Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:F",
+            "data": [
+              [
+                "{{$node[\"Parse Product Data\"].json[\"name\"]}}",
+                "{{$node[\"Parse Product Data\"].json[\"price\"]}}",
+                "{{$node[\"Parse Product Data\"].json[\"description\"]}}",
+                "{{$node[\"Parse Product Data\"].json[\"url\"]}}",
+                "{{$node[\"Generate Caption and Hashtags\"].json[\"caption\"]}}",
+                "{{$node[\"Generate Caption and Hashtags\"].json[\"hashtags\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Notify Discord About Post",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "YOUR_DISCORD_WEBHOOK_URL",
+            "content": "New product posted: {{$node[\"Parse Product Data\"].json[\"name\"]}}. Check it out on Instagram and Facebook!"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "7",
+          "to": "10"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 929,
+    "completion_tokens": 1989,
+    "total_tokens": 2918
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:37:31.187543"
+}

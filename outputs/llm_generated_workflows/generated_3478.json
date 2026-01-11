@@ -1,0 +1,127 @@
+{
+  "template_id": "3478",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Content Posting Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:C",
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"Name\"]}}",
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate an engaging Instagram caption for the image",
+            "temperature": 0.7,
+            "maxTokens": 60
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "If Caption",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"Caption\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Facebook Graph API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/your_instagram_account_id/media",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "image_url": "={{$node[\"Google Drive\"].binary.data}}",
+              "caption": "={{$json[\"Caption\"] || $node[\"OpenAI\"].json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 932,
+    "completion_tokens": 741,
+    "total_tokens": 1673
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:58:55.613013"
+}

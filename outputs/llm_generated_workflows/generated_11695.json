@@ -1,0 +1,141 @@
+{
+  "template_id": "11695",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate product listing creation for Shopify using an image and basic input fields.",
+    "workflowPlan": {
+      "name": "Shopify Product Listing Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Product Data",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "product-listing",
+            "responseMode": "onReceived",
+            "responseData": "default"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Upload Image to Imgbb",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.imgbb.com/1/upload",
+            "method": "POST",
+            "bodyParameters": {
+              "key": "YOUR_IMGBB_API_KEY",
+              "image": "={{$binary.data}}"
+            },
+            "options": {
+              "bodyContentType": "form-urlencoded"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Image with Google Gemini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "image_url": "={{$node[\"Upload Image to Imgbb\"].json[\"data\"][\"url\"]}}",
+              "product_name": "={{$json[\"product_name\"]}}",
+              "material_type": "={{$json[\"material_type\"]}}",
+              "details": "={{$json[\"details\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Shopify Product",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-01/products.json",
+            "method": "POST",
+            "jsonParameters": true,
+            "authentication": "shopifyApi",
+            "bodyParametersJson": {
+              "product": {
+                "title": "={{$node[\"Analyze Image with Google Gemini\"].json[\"title\"]}}",
+                "body_html": "={{$node[\"Analyze Image with Google Gemini\"].json[\"description\"]}}",
+                "vendor": "={{$json[\"vendor\"]}}",
+                "product_type": "={{$json[\"product_type\"]}}",
+                "tags": "={{$node[\"Analyze Image with Google Gemini\"].json[\"tags\"]}}",
+                "variants": "={{$json[\"variants\"]}}",
+                "options": "={{$json[\"options\"]}}",
+                "images": [
+                  {
+                    "src": "={{$node[\"Upload Image to Imgbb\"].json[\"data\"][\"url\"]}}",
+                    "alt": "={{$node[\"Analyze Image with Google Gemini\"].json[\"alt_text\"]}}"
+                  }
+                ],
+                "metafields": [
+                  {
+                    "namespace": "global",
+                    "key": "seo_title",
+                    "value": "={{$node[\"Analyze Image with Google Gemini\"].json[\"seo_title\"]}}",
+                    "value_type": "string"
+                  },
+                  {
+                    "namespace": "global",
+                    "key": "seo_description",
+                    "value": "={{$node[\"Analyze Image with Google Gemini\"].json[\"seo_description\"]}}",
+                    "value_type": "string"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 863,
+    "completion_tokens": 1019,
+    "total_tokens": 1882
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:57:37.443212"
+}

@@ -1,0 +1,153 @@
+{
+  "template_id": "10605",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Play Reviews Summary to Slack",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Bundle IDs",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "bundleIds",
+                  "value": "com.example.app1,com.example.app2"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Google Play Reviews",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://play.googleapis.com/v1/reviews",
+            "method": "GET",
+            "authentication": "googleServiceAccount",
+            "queryParameters": [
+              {
+                "name": "bundleId",
+                "value": "={{$json[\"bundleIds\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Store Reviews in Pinecone",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.pinecone.io/vectors/upsert",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "vectors": "={{$json[\"reviews\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Summarize Reviews with OpenAI",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "prompt": "Summarize these reviews: {{$json[\"reviews\"]}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send to Slack",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://slack.com/api/chat.postMessage",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "channel": "#your-slack-channel",
+              "text": "={{$json[\"summary\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Clear Old Reviews",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.pinecone.io/vectors/delete",
+            "method": "POST",
+            "authentication": "apiKey",
+            "body": {
+              "filter": {
+                "date": {
+                  "$lt": "={{$now.minus({\"days\": 7}).toISOString()}}"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 738,
+    "completion_tokens": 854,
+    "total_tokens": 1592
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:35:32.720673"
+}

@@ -1,0 +1,163 @@
+{
+  "template_id": "2139",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Twitter Virtual AI Influencer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Posting",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": "*/6",
+                  "minute": "0-59"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Configure Influencer Profile",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "niche",
+                  "value": "Modern Stoicism"
+                },
+                {
+                  "name": "style",
+                  "value": "Reflective and Inspirational"
+                },
+                {
+                  "name": "inspiration",
+                  "value": "Books, Philosophies"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Tweet Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Generate a tweet about Modern Stoicism in a reflective and inspirational style.",
+              "max_tokens": 280
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Validate Tweet",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"choices\"][0][\"text\"]}}",
+                  "operation": "notEmpty"
+                },
+                {
+                  "value1": "={{$json[\"choices\"][0][\"text\"]}}",
+                  "operation": "regex",
+                  "value2": "^.{1,280}$"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post Tweet",
+          "nodeType": "n8n-nodes-base.twitter",
+          "typeVersion": 1,
+          "params": {
+            "resource": "tweet",
+            "operation": "create",
+            "text": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 977,
+    "completion_tokens": 902,
+    "total_tokens": 1879
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:31:57.943619"
+}

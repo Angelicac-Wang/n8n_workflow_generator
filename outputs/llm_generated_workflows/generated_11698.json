@@ -1,0 +1,143 @@
+{
+  "template_id": "11698",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Content Insights and Trend Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "topic-input",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Expand Topic with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/expand",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"topic\": \"{{$json[\"body\"][\"topic\"]}}\" }",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Reddit Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.reddit.com/search.json",
+            "method": "GET",
+            "queryParametersJson": "{ \"q\": \"{{$json[\"keywords\"]}}\" }"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch X Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.twitter.com/2/tweets/search/recent",
+            "method": "GET",
+            "queryParametersJson": "{ \"query\": \"{{$json[\"keywords\"]}}\" }",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze Content with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": "{ \"content\": \"{{$json[\"content\"]}}\" }",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Synthesize Insights",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/synthesize",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": "{ \"analysis\": \"{{$json[\"analysis\"]}}\" }",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 805,
+    "completion_tokens": 904,
+    "total_tokens": 1709
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:57:43.439265"
+}

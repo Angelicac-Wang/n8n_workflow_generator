@@ -1,0 +1,168 @@
+{
+  "template_id": "3004",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "TikTok Video Automation Tool",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "tiktok-video-automation"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Script",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "prompt": "Generate a high-engagement TikTok script with SEO optimization",
+              "max_tokens": 150
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Voiceover",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "text": "={{$json[\"choices\"][0][\"text\"]}}",
+              "voice": "en_us_male"
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Select Visuals",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.cloudinary.com/v1_1/demo/image/upload",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "tags": "={{$json[\"choices\"][0][\"text\"]}}"
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Assemble Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.creatomate.com/v1/videos",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "script": "={{$json[\"choices\"][0][\"text\"]}}",
+              "voiceover": "={{$json[\"voiceover_url\"]}}",
+              "visuals": "={{$json[\"visuals_url\"]}}"
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Deliver Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.tiktok.com/upload",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "video_url": "={{$json[\"video_url\"]}}"
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 891,
+    "completion_tokens": 1055,
+    "total_tokens": 1946
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:50:29.113829"
+}

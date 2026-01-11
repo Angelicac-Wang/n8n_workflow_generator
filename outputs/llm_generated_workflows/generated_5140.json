@@ -1,0 +1,146 @@
+{
+  "template_id": "5140",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Create a RAG with Qdrant and update single files",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Create Collection",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "QDRANTURL/collections/COLLECTION",
+            "method": "POST",
+            "body": {
+              "vectors": {
+                "size": 768,
+                "distance": "Cosine"
+              }
+            },
+            "authentication": "qdrantApi"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Files from Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "'GOOGLE_DRIVE_FOLDER_ID' in parents"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process File",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function processFile(file) { /* logic to download, extract text, chunk, and embed using OpenAI */ }"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store Embeddings in Qdrant",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "QDRANTURL/collections/COLLECTION/points",
+            "method": "PUT",
+            "body": {
+              "points": "{{ $json.embeddings }}"
+            },
+            "authentication": "qdrantApi"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Single File Update",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function updateFile(fileId) { /* logic to update or delete a specific file in Qdrant */ }"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Chat Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "chat",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "RAG Query",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function queryRAG(question) { /* logic to retrieve documents and generate answers using Google Gemini */ }"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1146,
+    "completion_tokens": 837,
+    "total_tokens": 1983
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:16:11.962047"
+}

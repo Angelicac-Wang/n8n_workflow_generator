@@ -1,0 +1,210 @@
+{
+  "template_id": "12008",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the AI-powered business intelligence agent.",
+    "workflowPlan": {
+      "name": "AI-Powered Business Intelligence Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Cron Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "triggerTimes": [
+              {
+                "mode": "everyDay",
+                "hour": 8,
+                "minute": 0
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "MSSQL Data Fetch",
+          "nodeType": "n8n-nodes-base.mssql",
+          "params": {
+            "query": "SELECT revenue, registeredUsers, totalUsers, adSpend FROM business_metrics"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Analytics Data Fetch",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "params": {
+            "viewId": "YOUR_VIEW_ID",
+            "dateRange": {
+              "startDate": "yesterday",
+              "endDate": "yesterday"
+            },
+            "metrics": [
+              "sessions",
+              "pageviews"
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets Data Fetch",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A1:D10"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "params": {
+            "mode": "mergeByIndex"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Calculate KPIs",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const data = items[0].json;\nconst ROAS = data.revenue / data.adSpend;\nconst CAC = data.adSpend / data.registeredUsers;\nreturn [{ json: { ROAS, CAC, revenue: data.revenue, registeredUsers: data.registeredUsers } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Business Logic Engine",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const data = items[0].json;\nlet agentStatus = 'normal';\nlet agentPriority = 'low';\nconst insights = [];\nif (data.ROAS < 3) {\n  agentStatus = 'alert';\n  agentPriority = 'high';\n  insights.push('ROAS is below threshold');\n}\nreturn [{ json: { ...data, agentStatus, agentPriority, insights } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "AI Reasoning",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Summarize the following business insights and suggest actions: {{JSON.stringify($json.insights)}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Format Notification",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const data = items[0].json;\nreturn [{ json: { message: `Business Update: ROAS: ${data.ROAS}, CAC: ${data.CAC}, Insights: ${data.insights.join(', ')}` } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Notifications",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "to": "founder@example.com",
+            "subject": "Daily Business Intelligence Update",
+            "text": "{{$json.message}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 936,
+    "completion_tokens": 1374,
+    "total_tokens": 2310
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:09:52.292839"
+}

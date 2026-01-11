@@ -1,0 +1,253 @@
+{
+  "template_id": "10111",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the automated n8n workflow for streamlining invoice management.",
+    "workflowPlan": {
+      "name": "Invoice Management Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Daily Check",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Pending Invoices",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourdatabase.com/invoices",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "status",
+                "value": "unpaid"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Overdue Invoices",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "date": [
+                {
+                  "value1": "={{$json[\"dueDate\"]}}",
+                  "operation": "before",
+                  "value2": "={{$now}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Prepare AI Prompt",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "prompt",
+                "value": "Generate a personalized reminder email for invoice ID {{$json[\"invoiceId\"]}} due on {{$json[\"dueDate\"]}} for {{$json[\"clientName\"]}}."
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Agent for Generate Email",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Format Email",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "emailBody",
+                "value": "<html><body>{{$json[\"choices\"][0][\"text\"]}}</body></html>"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email Reminder",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"clientEmail\"]}}",
+            "subject": "Invoice Reminder",
+            "html": "={{$json[\"emailBody\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Webhook Payment Received",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "payment-received"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Payment Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourdatabase.com/invoices/{{$json[\"invoiceId\"]}}",
+            "method": "PATCH",
+            "jsonParameters": true,
+            "body": {
+              "status": "paid",
+              "paymentDate": "={{$now}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Generate Daily Summary",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "summary",
+                "value": "Today's invoice summary: {{$json[\"summaryData\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Summary to Finance Team",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "finance-team@company.com",
+            "subject": "Daily Invoice Summary",
+            "html": "={{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1233,
+    "completion_tokens": 1514,
+    "total_tokens": 2747
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:26:58.133925"
+}

@@ -1,0 +1,96 @@
+{
+  "template_id": "9429",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow template to schedule appointments from phone calls using Twilio, ElevenLabs, and Google Calendar.",
+    "workflowPlan": {
+      "name": "AI Phone Receptionist for Scheduling",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook: Receive User Request",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "/elevenlabs-voice-scheduler",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Calendar Availability",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "availability",
+            "calendarId": "REPLACE ME",
+            "timeMin": "={{$json[\"start_time\"]}}",
+            "timeMax": "={{$json[\"end_time\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Appointment",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendarId": "REPLACE ME",
+            "start": "={{$json[\"start_time\"]}}",
+            "end": "={{$json[\"end_time\"]}}",
+            "summary": "Appointment with {{$json[\"name\"]}}",
+            "description": "Service: {{$json[\"service_type\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Redis Chat Memory",
+          "nodeType": "n8n-nodes-base.redis",
+          "typeVersion": 1,
+          "params": {
+            "operation": "set",
+            "key": "conversation_{{$json[\"call_id\"]}}",
+            "value": "={{JSON.stringify($json)}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1027,
+    "completion_tokens": 591,
+    "total_tokens": 1618
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:40:17.782271"
+}

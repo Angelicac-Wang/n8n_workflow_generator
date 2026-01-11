@@ -1,0 +1,120 @@
+{
+  "template_id": "10488",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan to automate UGC video creation using n8n, OpenAI, and Sora 2.",
+    "workflowPlan": {
+      "name": "Automated UGC Video Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "ugc-video-input",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Prompt Generation",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a detailed video script for a {topic} targeting {audience}.",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send to Sora 2",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.sora2.com/generate-video",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "={{$node[\"OpenAI Prompt Generation\"].json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait for Video Rendering",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": {
+              "value": 300000
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store or Send Video",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Your UGC Video",
+            "text": "Here is your automatically generated UGC video.",
+            "attachments": [
+              {
+                "url": "={{$node[\"Send to Sora 2\"].json[\"videoUrl\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1253,
+    "completion_tokens": 724,
+    "total_tokens": 1977
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:33:58.705039"
+}

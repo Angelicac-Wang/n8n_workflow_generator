@@ -1,0 +1,192 @@
+{
+  "template_id": "3657",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Voiceflow Integration with Order Tracking, Appointment Scheduling, and RAG System",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Order Tracking Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "n8n_order",
+            "httpMethod": "POST",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Order Tracking API Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.ordertracking.com/status",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "orderId",
+                "value": "={{$json[\"orderId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Appointment Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "n8n_appointment",
+            "httpMethod": "POST",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Date Parsing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "Convert the following date to Google Calendar format: {{$json[\"date\"]}}",
+              "max_tokens": 10
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Google Calendar Event",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "calendar": "Primary",
+            "operation": "create",
+            "start": "={{$node[\"OpenAI Date Parsing\"].json[\"choices\"][0][\"text\"]}}",
+            "end": "={{$node[\"OpenAI Date Parsing\"].json[\"choices\"][0][\"text\"]}}",
+            "summary": "Appointment",
+            "description": "Scheduled via Voiceflow"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "RAG Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "n8n_rag",
+            "httpMethod": "POST",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Qdrant Vector Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://qdrant.example.com/search",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "query": "={{$json[\"question\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "OpenAI GPT-4 Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "Based on the following context, answer the question: {{$node[\"Qdrant Vector Search\"].json[\"context\"]}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1507,
+    "completion_tokens": 1239,
+    "total_tokens": 2746
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:01:39.902775"
+}

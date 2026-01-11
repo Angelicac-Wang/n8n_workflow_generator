@@ -1,0 +1,162 @@
+{
+  "template_id": "7036",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for the Automated YouTube Shorts Creator.",
+    "workflowPlan": {
+      "name": "Automated YouTube Shorts Creator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets - Get Video/Music URLs",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:B"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "yt-dlp - Download Video",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "yt-dlp",
+            "arguments": [
+              "-f",
+              "bestvideo[ext=mp4]",
+              "{{ $json[\"videoUrl\"] }}"
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "yt-dlp - Download Music",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "yt-dlp",
+            "arguments": [
+              "-f",
+              "bestaudio[ext=m4a]",
+              "--embed-thumbnail",
+              "{{ $json[\"musicUrl\"] }}"
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "FFmpeg - Merge Video and Music",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "ffmpeg",
+            "arguments": [
+              "-i",
+              "{{ $json[\"videoPath\"] }}",
+              "-i",
+              "{{ $json[\"musicPath\"] }}",
+              "-c:v",
+              "copy",
+              "-c:a",
+              "aac",
+              "-strict",
+              "experimental",
+              "output.mp4"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "YouTube - Upload Video",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "video": "output.mp4",
+            "title": "Generated Short",
+            "description": "Automatically generated YouTube Short",
+            "privacyStatus": "private"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Sheets - Log Upload",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!C:E",
+            "data": [
+              [
+                "{{ $json[\"videoPath\"] }}",
+                "{{ $json[\"youtubeUrl\"] }}",
+                "{{ $now }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 674,
+    "completion_tokens": 916,
+    "total_tokens": 1590
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:30:43.424816"
+}

@@ -1,0 +1,102 @@
+{
+  "template_id": "9986",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Product Video Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Product Data",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.foreplay.co/product-data",
+            "method": "GET",
+            "authentication": "foreplayApiKey"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Creative Prompts",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.google.com/gemini/generate-prompts",
+            "method": "POST",
+            "authentication": "geminiApiKey",
+            "body": {
+              "productData": "={{$node[\"1\"].json}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Video",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.kie.ai/generate-video",
+            "method": "POST",
+            "authentication": "kieApiKey",
+            "body": {
+              "prompt": "={{$node[\"2\"].json}}",
+              "imageUrl": "={{$node[\"1\"].json[\"imageUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Drive",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "method": "POST",
+            "authentication": "googleDriveApiKey",
+            "body": {
+              "name": "product_video.mp4",
+              "parents": [
+                "yourFolderId"
+              ],
+              "media": "={{$node[\"3\"].json[\"videoUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 708,
+    "completion_tokens": 575,
+    "total_tokens": 1283
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:44:10.700046"
+}

@@ -1,0 +1,112 @@
+{
+  "template_id": "5012",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to create an AI Database Assistant with Smart Query's & PostgreSQL Integration.",
+    "workflowPlan": {
+      "name": "AI Database Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "ai-database-assistant",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Main AI Agent",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Interpret the user's request and ensure safety limits are applied.",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "SQL Sub-Agent",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a precise PostgreSQL query based on the interpreted request.",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "PostgreSQL",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "query": "={{$json[\"query\"]}}",
+            "database": "your_database_name",
+            "user": "your_user",
+            "password": "your_password",
+            "host": "your_host",
+            "port": 5432
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 966,
+    "completion_tokens": 652,
+    "total_tokens": 1618
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:15:41.015630"
+}

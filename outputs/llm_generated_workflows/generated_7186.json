@@ -1,0 +1,150 @@
+{
+  "template_id": "7186",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Web Scraper Using Sitemap",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Sitemap URL",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "sitemapUrl",
+                  "value": "https://yourwebsitehere.com/page-sitemap.xml"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Sitemap",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "={{$json[\"sitemapUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse Sitemap",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "const parser = new DOMParser();\nconst xmlDoc = parser.parseFromString(items[0].json[\"body\"], \"text/xml\");\nconst urls = Array.from(xmlDoc.getElementsByTagName(\"loc\")).map(node => node.textContent);\nreturn urls.map(url => ({ json: { url } }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Scrape Page",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "method": "GET",
+            "responseFormat": "string",
+            "headers": {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Extract Content",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "const cheerio = require('cheerio');\nconst $ = cheerio.load(items[0].json[\"body\"]);\nconst title = $('title').text() || $('meta[property=\"og:title\"]').attr('content') || $('h1').first().text();\nconst content = $('body').text();\nreturn [{ json: { title, content } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"title\"]}}.md",
+            "fileContent": "={{\"---\\ntitle: \" + $json[\"title\"] + \"\\n---\\n\" + $json[\"content\"]}}",
+            "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Wait Between Pages",
+          "nodeType": "wait",
+          "params": {
+            "amount": 3,
+            "unit": "seconds"
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1469,
+    "completion_tokens": 994,
+    "total_tokens": 2463
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:31:21.468972"
+}

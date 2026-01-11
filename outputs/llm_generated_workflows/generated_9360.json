@@ -1,0 +1,220 @@
+{
+  "template_id": "9360",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Cinematic AI Video Generation with Sora 2",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "video-generation",
+            "method": "POST",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson",
+            "options": {}
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate Image Format",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"referenceImageFormat\"]}}",
+                  "operation": "in",
+                  "value2": "jpg,png,webp"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/sora2/generate",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "options": {},
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "referenceImage": "={{$json[\"referenceImage\"]}}",
+              "settings": "={{$json[\"settings\"]}}"
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer {{$json[\"apiKey\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/sora2/status",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "options": {},
+            "headers": {
+              "Authorization": "Bearer {{$json[\"apiKey\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Status Decision",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "operation": "equal",
+                  "value2": "completed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "30s"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET",
+            "options": {
+              "responseFormat": "file"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "generated_video.mp4",
+            "fileContent": "={{$node[\"Download Video\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Completion Form",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "Video generation completed. Download link: {{$node[\"Upload to Google Drive\"].json[\"webViewLink\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "4"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1778,
+    "completion_tokens": 1309,
+    "total_tokens": 3087
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:39:35.577655"
+}

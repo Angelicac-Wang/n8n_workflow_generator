@@ -1,0 +1,210 @@
+{
+  "template_id": "10000",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow for creating viral TikTok videos using AI avatars.",
+    "workflowPlan": {
+      "name": "Viral TikTok Video Machine",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi.token}}",
+            "updateTypes": [
+              "message"
+            ],
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Analyze Trends",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.perplexity.ai/analyze",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"message\"][\"text\"]}}"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Script",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Write a 10-second viral TikTok script about {{$json[\"trends\"]}}",
+              "max_tokens": 50
+            },
+            "jsonParameters": true,
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "openApi": "={{$credentials.openApi}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Voiceover",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/generate",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"choices\"][0][\"text\"]}}",
+              "voice": "cloned_voice"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.veed.io/fabric",
+            "method": "POST",
+            "body": {
+              "image_url": "={{$json[\"message\"][\"photo\"][0][\"file_id\"]}}",
+              "audio_url": "={{$json[\"audio_url\"]}}"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Caption",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Create an engaging caption and hashtags for TikTok about {{$json[\"trends\"]}}",
+              "max_tokens": 30
+            },
+            "jsonParameters": true,
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "openApi": "={{$credentials.openApi}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/tiktok/publish",
+            "method": "POST",
+            "body": {
+              "video_url": "={{$json[\"video_url\"]}}",
+              "caption": "={{$json[\"choices\"][0][\"text\"]}}"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$credentials.googleSheets.sheetId}}",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{$json[\"message\"][\"text\"]}}",
+                "={{$json[\"video_url\"]}}",
+                "={{$json[\"choices\"][0][\"text\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1328,
+    "completion_tokens": 1385,
+    "total_tokens": 2713
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:23:52.865706"
+}

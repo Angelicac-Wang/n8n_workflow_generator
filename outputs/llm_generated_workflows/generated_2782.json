@@ -1,0 +1,132 @@
+{
+  "template_id": "2782",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Custom OpenAI Assistant for Travel Agency",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Create OpenAI Assistant",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "action": "createAssistant",
+            "model": "gpt-4o-mini",
+            "assistantName": "Travel with us Assistant",
+            "instructions": "Respond only using the provided document. Stay friendly, brief, and focused on travel-related queries. Ignore irrelevant questions politely.",
+            "apiKey": "={{ $credentials.openAIApiKey }}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Google Doc as PDF",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "YOUR_GOOGLE_DOC_ID",
+            "downloadAs": "pdf",
+            "credentials": "={{ $credentials.googleDriveOAuth2Api }}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload PDF to OpenAI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "action": "uploadFile",
+            "filePurpose": "assistants",
+            "fileContent": "={{ $node[\"Download Google Doc as PDF\"].binary.data }}",
+            "apiKey": "={{ $credentials.openAIApiKey }}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Update Assistant with Document",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "action": "updateAssistant",
+            "assistantId": "={{ $node[\"Create OpenAI Assistant\"].json[\"assistantId\"] }}",
+            "fileId": "={{ $node[\"Upload PDF to OpenAI\"].json[\"fileId\"] }}",
+            "apiKey": "={{ $credentials.openAIApiKey }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message-received"
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond to Chat",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "action": "chat",
+            "assistantId": "={{ $node[\"Create OpenAI Assistant\"].json[\"assistantId\"] }}",
+            "input": "={{ $node[\"Chat Trigger\"].json[\"body\"][\"message\"] }}",
+            "memory": "Window Buffer Memory",
+            "apiKey": "={{ $credentials.openAIApiKey }}"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1095,
+    "completion_tokens": 892,
+    "total_tokens": 1987
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:44:51.245912"
+}

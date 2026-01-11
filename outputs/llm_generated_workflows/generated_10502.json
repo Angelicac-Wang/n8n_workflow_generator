@@ -1,0 +1,170 @@
+{
+  "template_id": "10502",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Video Creation from Text Prompt",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Video Topic",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "video-topic",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Script",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createCompletion",
+            "model": "text-davinci-003",
+            "prompt": "Generate a structured script with scenes for a video about {{$json[\"prompt\"]}}",
+            "maxTokens": 500
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Text to Speech",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "textToSpeech",
+            "text": "{{$node[\"Generate Script\"].json[\"choices\"][0][\"text\"]}}",
+            "voice": "en-US-Wavenet-D"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Search Stock Footage",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pexels.com/videos/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "query",
+                "value": "{{$json[\"prompt\"]}}"
+              },
+              {
+                "name": "per_page",
+                "value": "5"
+              }
+            ],
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_PEXELS_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Download Footage",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "{{$node[\"Search Stock Footage\"].json[\"videos\"][0][\"video_files\"][0][\"link\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Subtitles",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createCompletion",
+            "model": "text-davinci-003",
+            "prompt": "Generate SRT subtitles for the following script: {{$node[\"Generate Script\"].json[\"choices\"][0][\"text\"]}}",
+            "maxTokens": 300
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Store Components",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "video_components.zip",
+            "binaryData": true,
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 806,
+    "completion_tokens": 1034,
+    "total_tokens": 1840
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:34:11.987920"
+}

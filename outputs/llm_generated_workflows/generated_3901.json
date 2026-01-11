@@ -1,0 +1,111 @@
+{
+  "template_id": "3901",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Amazon Search Result Scraping",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get URLs from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "{{WEB_SHEET_ID}}",
+            "range": "A:A"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Raw HTML",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "credentialType": "BRIGHTDATA_TOKEN"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Clean HTML",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { cleanedHtml: $json[\"html\"].replace(/<script.*?>.*?<\\/script>/gi, '').replace(/<style.*?>.*?<\\/style>/gi, '').replace(/<.*?>/gi, '').replace(/\\s+/g, ' ').trim() };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract with LLM",
+          "nodeType": "n8n-nodes-base.langChain",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Extract product details from the following HTML: {{$json[\"cleanedHtml\"]}}",
+            "outputFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save Results",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "{{RESULTS_SHEET_ID}}",
+            "range": "A:E",
+            "data": "={{$json[\"productDetails\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1609,
+    "completion_tokens": 693,
+    "total_tokens": 2302
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:04:10.628641"
+}

@@ -1,0 +1,161 @@
+{
+  "template_id": "6287",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to build an AI email agent with a smart fallback mechanism.",
+    "workflowPlan": {
+      "name": "AI Email Support Agent with Fallback",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "resource": "messages",
+            "operation": "watch",
+            "labelIds": [
+              "INBOX"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Gemini AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"query\": \"{{$json[\"body\"]}}\" }",
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Gemini Response",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"success\"]}}",
+                  "operation": "isFalse"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI GPT Fallback",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"prompt\": \"{{$json[\"body\"]}}\", \"max_tokens\": 150 }",
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email Response",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "resource": "messages",
+            "operation": "send",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "Re: {{$json[\"subject\"]}}",
+            "text": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log Interaction",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              [
+                "={{$json[\"from\"]}}",
+                "={{$json[\"subject\"]}}",
+                "={{$json[\"response\"]}}",
+                "={{$now}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 989,
+    "completion_tokens": 976,
+    "total_tokens": 1965
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:29:00.978156"
+}

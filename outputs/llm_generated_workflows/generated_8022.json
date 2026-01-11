@@ -1,0 +1,241 @@
+{
+  "template_id": "8022",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow plan for automating AI-generated virtual try-on images for a WooCommerce store.",
+    "workflowPlan": {
+      "name": "AI Virtual Try-On Image Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Product Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D",
+            "filter": {
+              "field": "D",
+              "operator": "isEmpty"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Loop Over Products",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/nano-banana",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "modelImageUrl": "={{$json[\"IMAGE MODEL\"]}}",
+              "productImageUrl": "={{$json[\"IMAGE PRODUCT\"]}}",
+              "prompt": "Create a photo of the model wearing the submitted clothing item."
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "httpBasicAuth": {
+                "user": "your-fal-ai-api-key",
+                "password": ""
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Poll for Completion",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 60
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Image Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/nano-banana/status",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "queryParametersJson": {
+              "requestId": "={{$json[\"requestId\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "httpBasicAuth": {
+                "user": "your-fal-ai-api-key",
+                "password": ""
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Download Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"imageUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "options": {}
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"PRODUCT ID\"]}}.jpg",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!D:D",
+            "updateData": [
+              {
+                "range": "={{$json[\"rowIndex\"]}}",
+                "value": "={{$json[\"imageUrl\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update WooCommerce",
+          "nodeType": "n8n-nodes-base.woocommerce",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "resource": "product",
+            "productId": "={{$json[\"PRODUCT ID\"]}}",
+            "updateFields": {
+              "images": [
+                {
+                  "src": "={{$json[\"imageUrl\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1479,
+    "completion_tokens": 1463,
+    "total_tokens": 2942
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:33:16.184552"
+}

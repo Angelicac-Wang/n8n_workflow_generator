@@ -1,0 +1,249 @@
+{
+  "template_id": "10214",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Hotel Receptionist",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-webhook",
+            "responseMode": "onReceived",
+            "responseData": {
+              "statusCode": 200
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Redis Check",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://redis-server/check-model",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "userId",
+                "value": "={{$json[\"body\"][\"contact\"][\"id\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Model Decider",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"Redis Check\"].json[\"modelIndex\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Assign Model",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "modelIndex",
+                "value": "={{Math.floor(Math.random() * 2)}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store Model in Redis",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://redis-server/store-model",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "userId",
+                "value": "={{$json[\"body\"][\"contact\"][\"id\"]}}"
+              },
+              {
+                "name": "modelIndex",
+                "value": "={{$node[\"Assign Model\"].json[\"modelIndex\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Model Selector",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$node[\"Redis Check\"].json[\"modelIndex\"] || $node[\"Assign Model\"].json[\"modelIndex\"]}}",
+                  "operation": "equal",
+                  "value2": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "LangChain AI Agent - Gemini 1",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://gemini1-api/interpret",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "message",
+                "value": "={{$json[\"body\"][\"text\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "LangChain AI Agent - Gemini 2",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://gemini2-api/interpret",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "message",
+                "value": "={{$json[\"body\"][\"text\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Response Delivery",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://whatsapp-api/send-message",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "to",
+                "value": "={{$json[\"body\"][\"contact\"][\"id\"]}}"
+              },
+              {
+                "name": "message",
+                "value": "={{$node[\"LangChain AI Agent - Gemini 1\"].json[\"response\"] || $node[\"LangChain AI Agent - Gemini 2\"].json[\"response\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1763,
+    "completion_tokens": 1440,
+    "total_tokens": 3203
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:29:54.576435"
+}

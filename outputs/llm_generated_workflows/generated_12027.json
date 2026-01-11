@@ -1,0 +1,199 @@
+{
+  "template_id": "12027",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Zoho CRM Deal Forecasting with External Market Factor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Weekly Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 9,
+                  "minute": 0,
+                  "weekday": [
+                    1
+                  ]
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Deals from Zoho CRM",
+          "nodeType": "n8n-nodes-base.zohoCrm",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "deal",
+            "returnAll": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Market Signal",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.alphavantage.co/query",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "function",
+                "value": "TIME_SERIES_INTRADAY"
+              },
+              {
+                "name": "symbol",
+                "value": "SPY"
+              },
+              {
+                "name": "interval",
+                "value": "60min"
+              },
+              {
+                "name": "apikey",
+                "value": "={{$env.ALPHAVANTAGE_API_KEY}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Forecast Metrics",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const deals = items[0].json;\nconst marketData = items[1].json;\n// Calculate forecast metrics here\nreturn items;"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Deal Match Evaluator",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Evaluate the alignment of the deal with current market conditions."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store Forecast in Database",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "forecasts",
+            "columns": [
+              "dealId",
+              "forecastMetrics",
+              "aiInsights"
+            ],
+            "values": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Deal Forecast in Zoho",
+          "nodeType": "n8n-nodes-base.zohoCrm",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "resource": "deal",
+            "updateKey": "id",
+            "updateFields": {
+              "forecastMetrics": "={{$json.forecastMetrics}}",
+              "aiInsights": "={{$json.aiInsights}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Forecast Summary to Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "sales-alerts",
+            "text": "Weekly Deal Forecast Summary: {{$json.summary}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1697,
+    "completion_tokens": 1137,
+    "total_tokens": 2834
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:10:51.017470"
+}

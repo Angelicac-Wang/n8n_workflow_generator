@@ -1,0 +1,235 @@
+{
+  "template_id": "11678",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Procurement Decision Flow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "emailAddress": "orders@example.com",
+            "downloadAttachments": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Invoice Record",
+          "nodeType": "n8n-nodes-base.ocr",
+          "typeVersion": 1,
+          "params": {
+            "filePropertyName": "attachment",
+            "language": "eng"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI-Powered Data Structuring",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Structure the extracted invoice data into order_id, item_code, quantity, customer_name.",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Stock Check",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "lookup",
+            "sheetId": "your-google-sheet-id",
+            "range": "Inventory!A2:D",
+            "lookupColumn": "item_code",
+            "returnColumn": "stock_quantity"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Conditional Flow",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$node[\"3\"].json[\"quantity\"]}}",
+                  "operation": "largerEqual",
+                  "value2": "={{$node[\"4\"].json[\"stock_quantity\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Purchase Requisition",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "PurchaseRequisitions!A2:D",
+            "data": [
+              "={{$node[\"3\"].json[\"order_id\"]}}",
+              "={{$node[\"3\"].json[\"item_code\"]}}",
+              "={{$node[\"3\"].json[\"quantity\"]}}",
+              "={{$node[\"3\"].json[\"customer_name\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Notify Procurement Team",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "procurement@example.com",
+            "subject": "New Purchase Requisition Created",
+            "text": "A new purchase requisition has been created for order ID: {{$node[\"3\"].json[\"order_id\"]}}."
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Create Work Order",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "WorkOrders!A2:D",
+            "data": [
+              "={{$node[\"3\"].json[\"order_id\"]}}",
+              "={{$node[\"3\"].json[\"item_code\"]}}",
+              "={{$node[\"3\"].json[\"quantity\"]}}",
+              "={{$node[\"3\"].json[\"customer_name\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Notify Operations Team",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#operations",
+            "text": "A new work order has been created for order ID: {{$node[\"3\"].json[\"order_id\"]}}."
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Log Actions",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Log!A2:E",
+            "data": [
+              "={{$node[\"3\"].json[\"order_id\"]}}",
+              "={{$node[\"3\"].json[\"item_code\"]}}",
+              "={{$node[\"3\"].json[\"quantity\"]}}",
+              "={{$node[\"5\"].json[\"condition\"] ? 'Work Order' : 'Purchase Requisition'}}",
+              "={{new Date().toISOString()}}"
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "6",
+          "to": "10"
+        },
+        {
+          "from": "8",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1053,
+    "completion_tokens": 1576,
+    "total_tokens": 2629
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:57:11.291334"
+}

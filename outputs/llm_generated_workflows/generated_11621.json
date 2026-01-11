@@ -1,0 +1,229 @@
+{
+  "template_id": "11621",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Stock Market Analysis",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 21,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "marketCheck",
+          "label": "Check Market Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.alpaca.markets/v2/clock",
+            "method": "GET",
+            "authentication": "Custom Auth account"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "fetchData",
+          "label": "Fetch Stock Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.alpaca.markets/v2/stocks/bars",
+            "method": "GET",
+            "authentication": "Custom Auth account",
+            "queryParameters": [
+              {
+                "name": "symbols",
+                "value": "GOOGL,NVDA,META,AMZN,TSLA,MSFT"
+              },
+              {
+                "name": "timeframe",
+                "value": "1Day"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "calculateIndicators",
+          "label": "Calculate Indicators",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const calculateRSI = (data) => { /* RSI calculation logic */ }; const calculateMACD = (data) => { /* MACD calculation logic */ }; return { RSI: calculateRSI(items), MACD: calculateMACD(items) };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "analyzeData",
+          "label": "Analyze with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.xai.com/analyze",
+            "method": "POST",
+            "authentication": "xAI account",
+            "bodyParameters": [
+              {
+                "name": "data",
+                "value": "={{$json}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendEmail",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "Daily Stock Analysis",
+            "text": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "sendTelegram",
+          "label": "Send Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your-telegram-chat-id",
+            "text": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "sendWhatsApp",
+          "label": "Send WhatsApp",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapiwa.com/send",
+            "method": "POST",
+            "authentication": "Rapiwa account 2",
+            "bodyParameters": [
+              {
+                "name": "message",
+                "value": "={{$json}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 600
+          }
+        },
+        {
+          "id": "updateGoogleSheets",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-google-sheet-id",
+            "range": "A1",
+            "valueInputMode": "RAW",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "fetchNews",
+          "label": "Fetch Market News",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://rss.marketnews.com/feed"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "marketCheck"
+        },
+        {
+          "from": "marketCheck",
+          "to": "fetchData"
+        },
+        {
+          "from": "fetchData",
+          "to": "calculateIndicators"
+        },
+        {
+          "from": "calculateIndicators",
+          "to": "analyzeData"
+        },
+        {
+          "from": "analyzeData",
+          "to": "sendEmail"
+        },
+        {
+          "from": "analyzeData",
+          "to": "sendTelegram"
+        },
+        {
+          "from": "analyzeData",
+          "to": "sendWhatsApp"
+        },
+        {
+          "from": "analyzeData",
+          "to": "updateGoogleSheets"
+        },
+        {
+          "from": "trigger",
+          "to": "fetchNews"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1280,
+    "completion_tokens": 1397,
+    "total_tokens": 2677
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:55:27.147672"
+}

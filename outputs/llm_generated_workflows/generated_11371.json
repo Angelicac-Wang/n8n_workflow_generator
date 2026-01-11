@@ -1,0 +1,115 @@
+{
+  "template_id": "11371",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Lead Enrichment & Notification System",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "lead_submission",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Website",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"Website\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Content",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Analyze and summarize the following website content: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Update CRM",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "YOUR_AIRTABLE_BASE_ID",
+            "tableId": "YOUR_TABLE_ID",
+            "fields": {
+              "Name": "={{$json[\"body\"][\"Name\"]}}",
+              "Website": "={{$json[\"body\"][\"Website\"]}}",
+              "AI Insight": "={{$json[\"choices\"][0][\"text\"]}}",
+              "Email": "={{$json[\"body\"][\"Email\"]}}",
+              "Date": "={{$now}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "YOUR_SLACK_CHANNEL",
+            "text": "New lead enriched: {{$json[\"body\"][\"Name\"]}} - {{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 818,
+    "completion_tokens": 720,
+    "total_tokens": 1538
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:48:45.250951"
+}

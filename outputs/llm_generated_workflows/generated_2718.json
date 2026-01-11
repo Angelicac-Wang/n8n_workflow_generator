@@ -1,0 +1,129 @@
+{
+  "template_id": "2718",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automate Instagram DMs with OpenAI GPT and ManyChat.",
+    "workflowPlan": {
+      "name": "Instagram DM Automation with GPT",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Instagram Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "instagram-webhook",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Message",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "message",
+                "value": "={{$json[\"body\"][\"message\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "={{$json[\"message\"]}}",
+              "max_tokens": 150
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Response to ManyChat",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.manychat.com/fb/sending/sendContent",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_MANYCHAT_API_KEY"
+              }
+            },
+            "body": {
+              "subscriber_id": "={{$json[\"body\"][\"subscriber_id\"]}}",
+              "data": {
+                "version": "v2",
+                "content": {
+                  "messages": [
+                    {
+                      "type": "text",
+                      "text": "={{$json[\"choices\"][0][\"text\"]}}"
+                    }
+                  ]
+                }
+              }
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 878,
+    "completion_tokens": 752,
+    "total_tokens": 1630
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:43:21.907140"
+}

@@ -1,0 +1,130 @@
+{
+  "template_id": "3135",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Content Publishing Factory",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Content Idea",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "content-idea"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Content with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Generate tailored social media content for platforms: X, Instagram, Facebook, LinkedIn, Threads, YouTube Shorts based on the idea: {{$node[\"Receive Content Idea\"].json[\"body\"][\"idea\"]}}",
+              "max_tokens": 500
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Images",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pollinations.ai/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "prompt": "Create images for social media content based on the idea: {{$node[\"Receive Content Idea\"].json[\"body\"][\"idea\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send for Approval",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "toEmail": "approver@example.com",
+            "subject": "Social Media Content Approval",
+            "text": "Please review the generated content and images for approval.",
+            "attachments": [
+              {
+                "url": "{{$node[\"Generate Images\"].json[\"imageUrl\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.socialmedia.com/publish",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "content": "{{$node[\"Generate Content with AI\"].json[\"choices\"][0][\"text\"]}}",
+              "images": "{{$node[\"Generate Images\"].json[\"imageUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 976,
+    "completion_tokens": 848,
+    "total_tokens": 1824
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:53:32.895727"
+}

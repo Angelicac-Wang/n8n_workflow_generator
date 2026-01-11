@@ -1,0 +1,200 @@
+{
+  "template_id": "11694",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's the workflow for creating and publishing Instagram Carousels from Slack.",
+    "workflowPlan": {
+      "name": "Instagram Carousel Creation and Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Slack Trigger",
+          "nodeType": "n8n-nodes-base.slackTrigger",
+          "typeVersion": 1,
+          "params": {
+            "event": "message",
+            "channelId": "YOUR_SLACK_CHANNEL_ID"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Research AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Research insights on {{topic}}",
+              "max_tokens": 1500
+            },
+            "authentication": "openaiApi"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Drafting AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Structure research into a carousel format for {{topic}}",
+              "max_tokens": 1500
+            },
+            "authentication": "openaiApi"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Draft to Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "YOUR_SLACK_CHANNEL_ID",
+            "text": "Draft for {{topic}}: {{draft}}",
+            "attachments": [
+              {
+                "text": "Approve?",
+                "callback_id": "approve_draft",
+                "actions": [
+                  {
+                    "name": "approve",
+                    "text": "Approve",
+                    "type": "button",
+                    "value": "approve"
+                  }
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Image Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/nano-banana-pro/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "text": "{{draft}}"
+            },
+            "authentication": "kieAiApi"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Final Review in Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "YOUR_SLACK_CHANNEL_ID",
+            "text": "Final images for {{topic}} ready. Approve to publish.",
+            "attachments": [
+              {
+                "text": "Publish?",
+                "callback_id": "publish_carousel",
+                "actions": [
+                  {
+                    "name": "publish",
+                    "text": "Publish",
+                    "type": "button",
+                    "value": "publish"
+                  }
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish to Instagram",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID/media",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "image_url": "{{image_url}}",
+              "caption": "{{caption}}"
+            },
+            "authentication": "facebookGraphApi"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 922,
+    "completion_tokens": 1208,
+    "total_tokens": 2130
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:57:30.782115"
+}

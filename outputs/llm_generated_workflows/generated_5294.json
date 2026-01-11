@@ -1,0 +1,136 @@
+{
+  "template_id": "5294",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for an AI-powered legal assistant using Telegram, OpenAI, and Pinecone.",
+    "workflowPlan": {
+      "name": "AI Legal Assistant Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updates": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent (OpenAI Model)",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Use RAG to answer legal questions based on provided context."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Pinecone Vector Store",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pinecone.io/vectors/query",
+            "method": "POST",
+            "body": {
+              "query": "={{$json[\"text\"]}}",
+              "topK": 5
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Embeddings",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-embedding-ada-002",
+            "input": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Memory Buffer",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "keepOnlySet": false,
+            "values": [
+              {
+                "name": "conversationContext",
+                "value": "={{$json[\"context\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Telegram Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "={{$json[\"answer\"]}}"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 851,
+    "completion_tokens": 783,
+    "total_tokens": 1634
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:18:32.252100"
+}

@@ -1,0 +1,178 @@
+{
+  "template_id": "12478",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate short-term trading research using MCP signals and AI analysis.",
+    "workflowPlan": {
+      "name": "Automated Trade Idea Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "MCP Data Ingestion",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.mcpdatasource.com/market-data",
+            "method": "GET",
+            "authentication": {
+              "type": "basicAuth",
+              "user": "your_username",
+              "password": "your_password"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Normalize Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Normalize symbols, sectors, and time horizons */ return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Evaluate Momentum and Catalysts",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Evaluate momentum and catalyst strength */ return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Risk and Volatility",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Analyze risk, volatility, and downside exposure */ return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Trade Thesis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Generate a structured trade thesis based on market context, momentum, and risk analysis.",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Assign Confidence and Risk Scores",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Assign confidence score and risk level */ return item; });"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Filter Low-Quality Setups",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"confidenceScore\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 0.5
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Output Trade Ideas",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "json": [
+                {
+                  "tradeIdea": "={{$json[\"tradeThesis\"]}}",
+                  "confidenceScore": "={{$json[\"confidenceScore\"]}}",
+                  "riskLevel": "={{$json[\"riskLevel\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 890,
+    "completion_tokens": 1094,
+    "total_tokens": 1984
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:29:04.253440"
+}

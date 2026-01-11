@@ -1,0 +1,256 @@
+{
+  "template_id": "3912",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Phone Agent for Lead Qualification and Call Scheduling",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "New Lead Trigger",
+          "nodeType": "n8n-nodes-base.googleSheetsTrigger",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-spreadsheet-id",
+            "range": "Sheet1!A1:Z1000"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Send SMS Reminder",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.twilio.com/2010-04-01/Accounts/your-account-id/Messages.json",
+            "method": "POST",
+            "bodyParameters": {
+              "To": "={{$json[\"Phone\"]}}",
+              "From": "your-twilio-number",
+              "Body": "Reminder: Call the new lead in 5 minutes."
+            },
+            "authentication": "basicAuth"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait 5 Minutes",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": 5,
+            "unit": "minutes"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Initiate Call with RetellAI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.retellai.com/calls",
+            "method": "POST",
+            "bodyParameters": {
+              "phoneNumber": "={{$json[\"Phone\"]}}",
+              "agentId": "your-agent-id"
+            },
+            "authentication": "headerAuth"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Inbound Call Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "inbound-call",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Caller in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-spreadsheet-id",
+            "range": "Sheet1!A1:Z1000",
+            "operation": "lookup",
+            "lookupColumn": "Phone",
+            "lookupValue": "={{$json[\"callerNumber\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond to RetellAI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.retellai.com/call-response",
+            "method": "POST",
+            "bodyParameters": {
+              "status": "={{$json[\"exists\"] ? 'success' : 'error'}}",
+              "message": "={{$json[\"exists\"] ? 'Caller found' : 'Caller not found'}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Post-Call Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "post-call",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Filter Analyzed Calls",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"analyzed\"]}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-spreadsheet-id",
+            "range": "Sheet1!A1:Z1000",
+            "operation": "update",
+            "updateColumn": "Phone",
+            "updateValue": "={{$json[\"callerNumber\"]}}",
+            "dataToUpdate": {
+              "Call Summary": "={{$json[\"summary\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "11",
+          "label": "Generate Call Summary",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a summary for the following call: {{$json[\"callData\"]}}",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        },
+        {
+          "id": "12",
+          "label": "Email Call Summary",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "team@example.com",
+            "subject": "Call Summary",
+            "body": "Here is the call summary: {{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1339,
+    "completion_tokens": 1636,
+    "total_tokens": 2975
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:04:57.800525"
+}

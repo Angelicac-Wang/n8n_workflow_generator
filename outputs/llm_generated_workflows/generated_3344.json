@@ -1,0 +1,74 @@
+{
+  "template_id": "3344",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Email Order Processing with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerOn": "newEmail",
+            "subjectFilter": "Inbound Order",
+            "emailFormat": "full"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Extract the following information from the email: PO_NUMBER, EXPECTED_DELIVERY DATE, SKU_ID, QUANTITY.",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D",
+            "data": "={{$node[\"AI Agent\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1082,
+    "completion_tokens": 414,
+    "total_tokens": 1496
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:56:25.032764"
+}

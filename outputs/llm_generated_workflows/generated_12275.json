@@ -1,0 +1,155 @@
+{
+  "template_id": "12275",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to automate enterprise claims cost leakage detection.",
+    "workflowPlan": {
+      "name": "Claims Cost Leakage Detection",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Claims Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.competitor.com/claims",
+            "method": "GET",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Policy Details",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.competitor.com/policy",
+            "method": "GET",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Pricing Rules",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.competitor.com/pricing",
+            "method": "GET",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Data with GPT-4",
+          "nodeType": "chatModel",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "apiKey": "={{ $env.OPENAI_API_KEY }}",
+            "prompt": "Analyze claims data for anomalies and leakage risk."
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send High-Risk Alert",
+          "nodeType": "gmailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "leadership@company.com",
+            "subject": "High-Risk Claims Leakage Detected",
+            "body": "High-risk leakage detected in claims data. Immediate action required."
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post to Slack",
+          "nodeType": "slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#strategy-team",
+            "message": "High-risk claims leakage detected. Check your email for details."
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Audit Report",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "report": "Lower-risk claims leakage compiled for audit."
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 1,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 743,
+    "completion_tokens": 895,
+    "total_tokens": 1638
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:22:17.769623"
+}

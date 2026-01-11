@@ -1,0 +1,203 @@
+{
+  "template_id": "11448",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Comprehensive B2B Lead Management and Outreach",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Load Leads",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "load-leads"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate Leads",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Validate email format, suppression list, geo/GDPR compliance\nreturn items.map(item => {\n  // Add validation logic here\n  return item;\n});"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Enrich Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.enrichment.com",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Score Leads",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Score leads based on criteria\nreturn items.map(item => {\n  // Add scoring logic here\n  return item;\n});"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Outreach Content",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate personalized cold email content with A/B subject testing"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Execute Multichannel Outreach",
+          "nodeType": "n8n-nodes-base.smtpSendEmail",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "={{$json[\"email\"]}}",
+            "subject": "={{$json[\"subject\"]}}",
+            "text": "={{$json[\"emailContent\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Simulate Replies",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Simulate lead replies and classify intent\nreturn items.map(item => {\n  // Add reply simulation logic here\n  return item;\n});"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Route Leads",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"intent\"]}}",
+                  "value2": "Interested"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Log Events",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "query": "INSERT INTO lead_events (event, data) VALUES ($1, $2)",
+            "values": "={{[$json[\"event\"], $json]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#sales",
+            "text": "Daily summary: {{ $json[\"summary\"] }}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2068,
+    "completion_tokens": 1260,
+    "total_tokens": 3328
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:50:14.560417"
+}

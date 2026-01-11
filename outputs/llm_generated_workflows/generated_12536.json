@@ -1,0 +1,144 @@
+{
+  "template_id": "12536",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates the creation of AI-generated selfie videos with famous characters using Google Veo 3.1 APIs, and manages the process using Google Sheets.",
+    "workflowPlan": {
+      "name": "AI-Generated Selfie Videos",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "fetchData",
+          "label": "Fetch Data from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "read",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:E"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "generateVideo",
+          "label": "Generate Video Clip",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.fal.ai/veo3.1/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "={{$json[\"PROMPT\"]}}",
+              "startImage": "={{$json[\"START\"]}}",
+              "endImage": "={{$json[\"LAST\"]}}",
+              "duration": "={{$json[\"DURATION\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "pollStatus",
+          "label": "Poll Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.fal.ai/veo3.1/status",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "queryParametersJson": {
+              "videoId": "={{$json[\"videoId\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "mergeVideos",
+          "label": "Merge Videos",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.fal.ai/ffmpeg/merge",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "videoUrls": "={{$json[\"VIDEO URLS\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "uploadVideo",
+          "label": "Upload Final Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.upload-post.com/upload",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "file": "={{$json[\"finalVideoUrl\"]}}",
+              "platforms": [
+                "YouTube",
+                "TikTok",
+                "Instagram"
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "fetchData"
+        },
+        {
+          "from": "fetchData",
+          "to": "generateVideo"
+        },
+        {
+          "from": "generateVideo",
+          "to": "pollStatus"
+        },
+        {
+          "from": "pollStatus",
+          "to": "mergeVideos"
+        },
+        {
+          "from": "mergeVideos",
+          "to": "uploadVideo"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1806,
+    "completion_tokens": 894,
+    "total_tokens": 2700
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:29:31.223188"
+}

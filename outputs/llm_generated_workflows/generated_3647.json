@@ -1,0 +1,143 @@
+{
+  "template_id": "3647",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Drive to Vector Embeddings",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 3 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Search Folder",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "resource": "file",
+            "query": "parents in 'source-folder-id' and mimeType in ('application/pdf', 'text/plain', 'application/json')"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "resource": "file",
+            "fileId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Text",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const mimeType = $json[\"mimeType\"];\nlet text = \"\";\nif (mimeType === \"application/pdf\") {\n  // Extract text from PDF\n} else if (mimeType === \"text/plain\") {\n  text = $json[\"data\"];\n} else if (mimeType === \"application/json\") {\n  text = JSON.stringify($json[\"data\"]);\n}\nreturn [{ json: { text } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Embeddings OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-embedding-3-small",
+            "text": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Postgres PGVector Store",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "query": "INSERT INTO embeddings (file_id, embedding) VALUES ('{{$json[\"fileId\"]}}', {{$json[\"embedding\"]}})"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Move File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "move",
+            "resource": "file",
+            "fileId": "={{$json[\"id\"]}}",
+            "parentId": "processed-folder-id"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1190,
+    "completion_tokens": 939,
+    "total_tokens": 2129
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:01:03.746100"
+}

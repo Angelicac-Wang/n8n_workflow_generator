@@ -1,0 +1,156 @@
+{
+  "template_id": "11135",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates the blog publishing process using Google Sheets, AI, and WordPress.",
+    "workflowPlan": {
+      "name": "Automated Blog Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1:Z100"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Scheduled Date",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"scheduled_date\"]}}",
+                  "operation": "equal",
+                  "value2": "={{$today}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate AI Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.your-ai-service.com/generate",
+            "method": "POST",
+            "body": {
+              "title": "={{$json[\"title\"]}}",
+              "keywords": "={{$json[\"keywords\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Feature Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.your-image-service.com/create",
+            "method": "POST",
+            "body": {
+              "title": "={{$json[\"title\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-wordpress-site.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "authentication": "basicAuth",
+            "body": {
+              "title": "={{$json[\"title\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "featured_media": "={{$json[\"image_id\"]}}",
+              "status": "publish"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email Notification",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "toEmail": "team@example.com",
+            "subject": "New Blog Post Published",
+            "text": "A new blog post titled '{{$json[\"title\"]}}' has been published. Check it out at {{$json[\"link\"]}}."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1019,
+    "completion_tokens": 959,
+    "total_tokens": 1978
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:43:17.753184"
+}

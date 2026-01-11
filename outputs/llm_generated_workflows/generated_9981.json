@@ -1,0 +1,139 @@
+{
+  "template_id": "9981",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for creating a personal AI assistant on Telegram.",
+    "workflowPlan": {
+      "name": "Personal AI Assistant on Telegram",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "switchNode",
+          "label": "Switch Message Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message\"][\"voice\"] ? \"voice\" : \"text\"}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "text"
+              },
+              {
+                "operation": "equal",
+                "value": "voice"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "whisperTranscription",
+          "label": "Whisper Transcription",
+          "nodeType": "n8n-nodes-base.openAIWhisper",
+          "typeVersion": 1,
+          "params": {
+            "audioPropertyName": "message.voice.file_id"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "aiAgent",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.openAIChat",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.1-mini",
+            "prompt": "={{$json[\"message\"][\"text\"] || $json[\"transcription\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "telegramSendMessage",
+          "label": "Send Message",
+          "nodeType": "n8n-nodes-base.telegramSendMessage",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "memoryNode",
+          "label": "Buffer Memory",
+          "nodeType": "n8n-nodes-base.memory",
+          "typeVersion": 1,
+          "params": {
+            "memorySize": 5
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "switchNode"
+        },
+        {
+          "from": "switchNode",
+          "to": "aiAgent",
+          "outputIndex": 0
+        },
+        {
+          "from": "switchNode",
+          "to": "whisperTranscription",
+          "outputIndex": 1
+        },
+        {
+          "from": "whisperTranscription",
+          "to": "aiAgent"
+        },
+        {
+          "from": "aiAgent",
+          "to": "telegramSendMessage"
+        },
+        {
+          "from": "aiAgent",
+          "to": "memoryNode"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 939,
+    "completion_tokens": 812,
+    "total_tokens": 1751
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:43:59.234616"
+}

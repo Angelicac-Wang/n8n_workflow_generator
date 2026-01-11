@@ -1,0 +1,158 @@
+{
+  "template_id": "11062",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Amazon Price Tracker & Competitor Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduled Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay",
+                  "hour": 8,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets - Load Products",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Products!A1:Z1000"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Loop Products",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Apify Actor - Amazon Scraper",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "your-apify-actor-id",
+            "input": {
+              "productUrl": "={{$json[\"product_url\"]}}",
+              "competitor_url_3": "={{$json[\"competitor_url_3\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "HTTP Request - Fetch Results",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"apifyResultUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "JavaScript - Process Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const price_comp_3 = item?.offers?.[2]?.price || null;\nitem.price_comp_3 = price_comp_3;\nreturn item;"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Google Sheets - Update Prices",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Products!A1:Z1000",
+            "key": "product_id",
+            "value": "={{$json[\"product_id\"]}}",
+            "data": {
+              "price_comp_3": "={{$json[\"price_comp_3\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1066,
+    "completion_tokens": 957,
+    "total_tokens": 2023
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:42:10.555148"
+}

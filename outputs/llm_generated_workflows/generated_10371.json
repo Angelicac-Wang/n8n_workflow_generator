@@ -1,0 +1,152 @@
+{
+  "template_id": "10371",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Crafted Nature Stock Videos to Telegram",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay",
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Video Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://aistudio.google.com/api/generatePrompt",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"theme\": \"nature\", \"length\": 10, \"style\": \"cinematic\" }"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/video/create",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"prompt\": \"{{$json[\"prompt\"]}}\", \"model\": \"sora-2-text-to-video\" }"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/video/status",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "queryParametersJson": "{ \"videoId\": \"{{$json[\"videoId\"]}}\" }"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "{{$json[\"videoUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "options": {}
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "text": "Here is your daily nature video!",
+            "additionalFields": {
+              "sendVideo": true,
+              "video": "={{$binary.data}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1178,
+    "completion_tokens": 924,
+    "total_tokens": 2102
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:32:35.438885"
+}

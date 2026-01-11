@@ -1,0 +1,128 @@
+{
+  "template_id": "10199",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Proactive Customer Health Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get All Deals from HubSpot",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "deal"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Feature Usage from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:Z100"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Calculate Sentiment Score",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "calculate-sentiment",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Convert Sentiment to Score",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.score = calculateScore(item.json.sentiment); return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze for Churn Risk",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "your-llm-model",
+            "prompt": "Evaluate customer risk based on deal age, sentiment score, and usage trends."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Churn Alert",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "team-member@example.com",
+            "subject": "Churn Risk Alert",
+            "text": "Customer is at risk of churning. Please review the details and take action."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1092,
+    "completion_tokens": 771,
+    "total_tokens": 1863
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:29:11.238462"
+}

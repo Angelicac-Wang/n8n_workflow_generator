@@ -1,0 +1,226 @@
+{
+  "template_id": "11886",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Certificate Creation & Verification",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook - Certificate Creation",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "certifications2",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Certification ID",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "CertificationID",
+                  "value": "={{$json[\"name\"].substring(0, 1) + $json[\"surname\"].substring(0, 1) + Date.now().toString().slice(-8)}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Certification ID",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"CertificationID\"]}}",
+                  "operation": "notEqual",
+                  "value2": ""
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Insert Certification",
+          "nodeType": "n8n-nodes-base.database",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "Certifications",
+            "fields": {
+              "columns": [
+                "Name",
+                "Surname",
+                "CertificationID"
+              ],
+              "values": [
+                "={{$json[\"name\"]}}",
+                "={{$json[\"surname\"]}}",
+                "={{$json[\"CertificationID\"]}}"
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pdfgeneratorapi.com/v3/templates/{template_id}/output",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "json": {
+                "Candidate": "={{$json[\"name\"] + ' ' + $json[\"surname\"]}}",
+                "CourseName": "={{$json[\"course\"]}}",
+                "DueDate": "={{new Date().toISOString().split('T')[0]}}",
+                "ID": "={{$json[\"CertificationID\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Email Certificate",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@gmail.com",
+            "toEmail": "={{$json[\"email\"]}}",
+            "subject": "Your Certificate",
+            "text": "Congratulations, please find your certificate attached.",
+            "attachments": "={{$node[\"Generate PDF\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Webhook - Certificate Verification",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "GET",
+            "path": "certificationscheck",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Find Certification By ID",
+          "nodeType": "n8n-nodes-base.database",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "Certifications",
+            "fields": {
+              "columns": [
+                "Name",
+                "Surname"
+              ],
+              "conditions": {
+                "CertificationID": "={{$json[\"id\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Respond with Certification Info",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"Name\"] ? {\"ok\": true, \"name\": $json[\"Name\"], \"surname\": $json[\"Surname\"]} : {\"ok\": false, \"message\": \"Certification ID not found\"}}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1457,
+    "completion_tokens": 1414,
+    "total_tokens": 2871
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:05:10.414494"
+}

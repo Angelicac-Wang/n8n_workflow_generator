@@ -1,0 +1,239 @@
+{
+  "template_id": "8622",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Create Video with HeyGen and Upload to YouTube",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "generate-video",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Format Text",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const title = items[0].json.title;\nconst content = items[0].json.content.replace(/\\n/g, ' ');\nreturn [{ json: { title, content } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set HeyGen Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "x-api-key",
+                  "value": "YOUR_HEYGEN_API_KEY"
+                },
+                {
+                  "name": "avatar_id",
+                  "value": "YOUR_AVATAR_ID"
+                },
+                {
+                  "name": "voice_id",
+                  "value": "YOUR_VOICE_ID"
+                },
+                {
+                  "name": "title",
+                  "value": "={{$json[\"title\"]}}"
+                },
+                {
+                  "name": "content",
+                  "value": "={{$json[\"content\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HeyGen API Call",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v2/videos",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"avatar_id\": \"={{$json[\"avatar_id\"]}}\", \"voice_id\": \"={{$json[\"voice_id\"]}}\", \"title\": \"={{$json[\"title\"]}}\", \"content\": \"={{$json[\"content\"]}}\" }",
+            "headers": [
+              {
+                "name": "x-api-key",
+                "value": "={{$json[\"x-api-key\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait for Processing",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": {
+              "value": 60
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v2/videos/{{$json[\"video_id\"]}}",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "headers": [
+              {
+                "name": "x-api-key",
+                "value": "={{$json[\"x-api-key\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Conditional Check",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "value2": "completed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"video_url\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "options": {}
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "YouTube Upload",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "video": {
+              "title": "={{$json[\"title\"]}}",
+              "description": "Generated by HeyGen",
+              "categoryId": "28",
+              "tags": "AI, Avatar, Video",
+              "privacyStatus": "public"
+            },
+            "videoFile": "={{$binary.data}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "7",
+          "to": "5",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1562,
+    "completion_tokens": 1455,
+    "total_tokens": 3017
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:35:49.756425"
+}

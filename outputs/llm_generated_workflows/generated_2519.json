@@ -1,0 +1,135 @@
+{
+  "template_id": "2519",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automate ETF Comparison",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "ETF"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Excel Data",
+          "nodeType": "n8n-nodes-base.microsoftExcel",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "resource": "worksheet",
+            "worksheetId": "DivComp",
+            "returnAll": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.justetf.com/en/etf-profile.html",
+            "method": "GET",
+            "qs": {
+              "isin": "={{$json[\"ISIN\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTML Extraction",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$json[\"body\"]}}",
+            "cssSelector": {
+              "dividends": ".dividends-selector",
+              "fees": ".fees-selector",
+              "performance5Y": ".performance5Y-selector"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Code Node",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const data = item.json;\n  return {\n    json: {\n      ISIN: data.ISIN,\n      Dividends: data.dividends,\n      Fees: data.fees,\n      Performance5Y: data.performance5Y\n    }\n  };\n});"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Excel",
+          "nodeType": "n8n-nodes-base.microsoftExcel",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "resource": "worksheet",
+            "worksheetId": "DivComp",
+            "updateKey": "ISIN",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 882,
+    "completion_tokens": 820,
+    "total_tokens": 1702
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:38:31.647436"
+}

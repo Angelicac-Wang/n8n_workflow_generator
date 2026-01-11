@@ -1,0 +1,95 @@
+{
+  "template_id": "2433",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Top Podcasts Summary",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "TaddyTopDaily",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.taddy.org/top/daily",
+            "method": "GET",
+            "headers": {
+              "X-USER-ID": "={{$json[\"userId\"]}}",
+              "X-API-KEY": "={{$json[\"apiKey\"]}}"
+            },
+            "queryParameters": {
+              "genre": "={{$json[\"genre\"]}}"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "SummarizePodcasts",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { return { json: { summary: `Summary of ${item.json.title}: ...`, link: item.json.link } }; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "SendEmail",
+          "nodeType": "gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Daily Podcast Summaries",
+            "body": "={{$json[\"summaries\"].map(summary => `<p>${summary.summary}<br><a href=\"${summary.link}\">Listen here</a></p>`).join('')}}",
+            "credentials": "={{$json[\"gmailCredentials\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Schedule",
+          "nodeType": "cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "4",
+          "to": "1"
+        },
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 766,
+    "completion_tokens": 578,
+    "total_tokens": 1344
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:36:47.346757"
+}

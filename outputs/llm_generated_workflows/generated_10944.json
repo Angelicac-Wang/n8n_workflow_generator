@@ -1,0 +1,161 @@
+{
+  "template_id": "10944",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Agent with MCP Server via Evolution API",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "evolution-api-webhook",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Message Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "body.messageType",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "text"
+              },
+              {
+                "operation": "equal",
+                "value": "image"
+              },
+              {
+                "operation": "equal",
+                "value": "audio"
+              },
+              {
+                "operation": "equal",
+                "value": "document"
+              }
+            ],
+            "fallbackOutput": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Base64 to Binary",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "item.binary = { data: { data: item.json.body.mediaBase64, mimeType: item.json.body.mimeType } }; return item;"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Gemini API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/convert",
+            "method": "POST",
+            "body": {
+              "data": "={{$json[\"body\"][\"text\"]}}"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://mcp-server-url/execute",
+            "method": "POST",
+            "body": {
+              "input": "={{$json[\"data\"]}}"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond to User",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://evolution-api-instance/send",
+            "method": "POST",
+            "body": {
+              "message": "={{$json[\"response\"]}}",
+              "to": "={{$json[\"body\"][\"from\"]}}"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 4
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1031,
+    "completion_tokens": 914,
+    "total_tokens": 1945
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:39:35.479466"
+}

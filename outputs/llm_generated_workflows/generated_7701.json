@@ -1,0 +1,259 @@
+{
+  "template_id": "7701",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Stock Market Price Alerts",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Market Hours Trigger",
+          "nodeType": "cron",
+          "params": {
+            "triggerTimes": [
+              {
+                "mode": "everyX",
+                "value": 2,
+                "unit": "minutes",
+                "weekdays": [
+                  "Monday",
+                  "Tuesday",
+                  "Wednesday",
+                  "Thursday",
+                  "Friday"
+                ],
+                "hour": {
+                  "start": 9,
+                  "end": 16
+                }
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read Stock Watchlist",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID_HERE",
+            "range": "Sheet1!A:G"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse Watchlist Data",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "return items.map(item => ({ json: { symbol: item.json.symbol, upper_limit: parseFloat(item.json.upper_limit), lower_limit: parseFloat(item.json.lower_limit), direction: item.json.direction, cooldown_minutes: parseInt(item.json.cooldown_minutes), last_alert_price: parseFloat(item.json.last_alert_price), last_alert_time: new Date(item.json.last_alert_time) } }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Live Stock Price",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.twelvedata.com/price",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "symbol",
+                "value": "={{$json[\"symbol\"]}}"
+              },
+              {
+                "name": "apikey",
+                "value": "YOUR_TWELVE_DATA_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Smart Alert Logic",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "const currentPrice = parseFloat($json[\"price\"]);\nconst lastAlertTime = new Date($json[\"last_alert_time\"]);\nconst cooldownMinutes = $json[\"cooldown_minutes\"];\nconst now = new Date();\nconst timeDiff = (now - lastAlertTime) / (1000 * 60);\nif (timeDiff < cooldownMinutes) return [];\nreturn [{ json: { ...$json, currentPrice } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Alert Conditions",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"currentPrice\"]}}",
+                  "operation": "larger",
+                  "value2": "={{$json[\"upper_limit\"]}}"
+                },
+                {
+                  "value1": "={{$json[\"currentPrice\"]}}",
+                  "operation": "smaller",
+                  "value2": "={{$json[\"lower_limit\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email Alert",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "fromEmail": "your-email@gmail.com",
+            "toEmail": "alert-recipient@gmail.com",
+            "subject": "Stock Alert: {{$json[\"symbol\"]}}",
+            "text": "Alert: {{$json[\"symbol\"]}} crossed the limit. Current Price: {{$json[\"currentPrice\"]}}, Limits: {{$json[\"lower_limit\"]}} - {{$json[\"upper_limit\"]}}."
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Telegram Alert",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "Alert: {{$json[\"symbol\"]}} crossed the limit. Current Price: {{$json[\"currentPrice\"]}}, Limits: {{$json[\"lower_limit\"]}} - {{$json[\"upper_limit\"]}}."
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Alert History",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "update",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID_HERE",
+            "range": "Sheet1!F:G",
+            "key": "symbol",
+            "value": "={{$json[\"symbol\"]}}",
+            "data": [
+              {
+                "name": "last_alert_price",
+                "value": "={{$json[\"currentPrice\"]}}"
+              },
+              {
+                "name": "last_alert_time",
+                "value": "={{new Date().toISOString()}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Alert Status Check",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "return [{ json: { status: 'success' } }];"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Success/Error Notifications",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "fromEmail": "your-email@gmail.com",
+            "toEmail": "your-email@gmail.com",
+            "subject": "Workflow Status: {{$json[\"status\"]}}",
+            "text": "The stock alert workflow executed with status: {{$json[\"status\"]}}."
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "9",
+          "outputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1173,
+    "completion_tokens": 1736,
+    "total_tokens": 2909
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:32:42.757794"
+}

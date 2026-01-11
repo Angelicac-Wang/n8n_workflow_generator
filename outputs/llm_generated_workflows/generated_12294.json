@@ -1,0 +1,279 @@
+{
+  "template_id": "12294",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Content Engine from Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheetsTrigger",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-sheet-id",
+            "range": "Planning!A1:Z1000"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Row(s) in Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-sheet-id",
+            "range": "Planning!A1:Z1000"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Message a Model",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate content pillars based on the following inputs: {{$json}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Code in JavaScript",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const output = items[0].json;\n// Validate and enforce weight distribution\nreturn [{ json: output }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Append Row in Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Pillars!A1:Z1000",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Message a Model7",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a content calendar based on the pillars: {{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Code in JavaScript7",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const calendarData = items[0].json;\n// Normalize data\nreturn [{ json: calendarData }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Append Row in Sheet6",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Calendar!A1:Z1000",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Switch By Format",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "format",
+            "rules": [
+              {
+                "value": "Video",
+                "operation": "equal"
+              },
+              {
+                "value": "Non-Video",
+                "operation": "equal"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Loop Over Items",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Message a Model6",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Create social media post for: {{$json}}"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Code in JavaScript6",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const postData = items[0].json;\n// Format post data\nreturn [{ json: postData }];"
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Append Row in Sheet7",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Posts!A1:Z1000",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        },
+        {
+          "id": "14",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "5s"
+          },
+          "position": {
+            "x": 2800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 899,
+    "completion_tokens": 1722,
+    "total_tokens": 2621
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:23:06.777560"
+}

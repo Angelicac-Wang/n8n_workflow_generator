@@ -1,0 +1,152 @@
+{
+  "template_id": "10212",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Video Generation and TikTok Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "triggerOn": "interval",
+            "interval": "60",
+            "conditions": {
+              "PROMPT": {
+                "operator": "isNotEmpty"
+              },
+              "VIDEO": {
+                "operator": "isEmpty"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate AI Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/v1/video/generate",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "body": {
+              "prompt": "={{$json[\"PROMPT\"]}}",
+              "duration": "={{$json[\"DURATION\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/v1/video/status",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "queryParameters": {
+              "videoId": "={{$node[\"Generate AI Video\"].json[\"videoId\"]}}"
+            },
+            "pollTimes": 60,
+            "pollInterval": 60
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$node[\"Check Video Status\"].json[\"videoUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Title",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Generate an engaging title for: {{$json[\"PROMPT\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload Video to Postiz",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.postiz.com/v1/upload",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "body": {
+              "file": "={{$node[\"Download Video\"].binary[\"data\"]}}",
+              "title": "={{$node[\"Generate Title\"].json[\"text\"]}}",
+              "channelId": "YOUR_TIKTOK_CHANNEL_ID"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1316,
+    "completion_tokens": 952,
+    "total_tokens": 2268
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:29:27.543640"
+}

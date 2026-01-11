@@ -1,0 +1,140 @@
+{
+  "template_id": "11262",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automated multilingual article publishing from RSS feeds to WordPress.",
+    "workflowPlan": {
+      "name": "Multilingual Article Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "RSS Feed Trigger",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "YOUR_RSS_FEED_URL",
+            "interval": "5m"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Scrape Article",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"link\"]}}",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI - Rewrite Article",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_OPENAI_API_KEY",
+            "model": "text-davinci-003",
+            "prompt": "Rewrite the following article: {{$json[\"html\"]}}",
+            "maxTokens": 1500
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI - Translate Article",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_OPENAI_API_KEY",
+            "model": "text-davinci-003",
+            "prompt": "Translate the following text to Spanish and French: {{$json[\"text\"]}}",
+            "maxTokens": 1500
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Replicate - Generate Image",
+          "nodeType": "n8n-nodes-base.replicate",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_REPLICATE_API_KEY",
+            "model": "image-generation-model",
+            "prompt": "Generate a featured image for the article: {{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "WordPress - Publish Post",
+          "nodeType": "n8n-nodes-base.wordpress",
+          "typeVersion": 1,
+          "params": {
+            "url": "YOUR_WORDPRESS_URL",
+            "authentication": "basicAuth",
+            "username": "YOUR_WORDPRESS_USERNAME",
+            "password": "YOUR_WORDPRESS_PASSWORD",
+            "postType": "post",
+            "title": "={{$json[\"title\"]}}",
+            "content": "={{$json[\"translatedText\"]}}",
+            "featuredImage": "={{$json[\"imageUrl\"]}}",
+            "acfFields": {
+              "language": "multilingual",
+              "translations": "={{$json[\"translations\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 857,
+    "completion_tokens": 908,
+    "total_tokens": 1765
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:46:34.977961"
+}

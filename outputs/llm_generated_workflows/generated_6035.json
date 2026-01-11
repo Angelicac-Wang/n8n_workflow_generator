@@ -1,0 +1,119 @@
+{
+  "template_id": "6035",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to create an AI-powered chatbot with weather and news capabilities.",
+    "workflowPlan": {
+      "name": "AI Chatbot with Weather and News",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gemini",
+          "nodeType": "n8n-nodes-base.gemini",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{$credentials.geminiApiKey}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Weather",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.weatherapi.com/v1/current.json",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.weatherApiKey}}"
+              },
+              {
+                "name": "q",
+                "value": "={{$json[\"location\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get News",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://newsapi.org/v2/top-headlines",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "apiKey",
+                "value": "={{$credentials.newsApiKey}}"
+              },
+              {
+                "name": "country",
+                "value": "us"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Example Chat Window",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 986,
+    "completion_tokens": 669,
+    "total_tokens": 1655
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:28:23.246403"
+}

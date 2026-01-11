@@ -1,0 +1,215 @@
+{
+  "template_id": "10174",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Ads Performance Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Daily Check",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Google Ads Data",
+          "nodeType": "n8n-nodes-base.googleAds",
+          "typeVersion": 1,
+          "params": {
+            "resource": "campaign",
+            "operation": "getAll",
+            "returnAll": true,
+            "filters": {
+              "status": "ENABLED"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Performance Analysis",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const scores = items.map(item => {\n  const ctr = item.json.clicks / item.json.impressions;\n  const conversionRate = item.json.conversions / item.json.clicks;\n  const costPerConversion = item.json.cost / item.json.conversions;\n  const volume = item.json.impressions;\n  let score = 0;\n  if (ctr > 0.05) score += 30;\n  else if (ctr > 0.03) score += 20;\n  else if (ctr > 0.015) score += 10;\n  if (conversionRate > 0.1) score += 35;\n  else if (conversionRate > 0.05) score += 25;\n  else if (conversionRate > 0.02) score += 15;\n  if (costPerConversion < 10) score += 25;\n  else if (costPerConversion < 20) score += 15;\n  else if (costPerConversion < 30) score += 5;\n  if (volume > 1000) score += 10;\n  return { ...item.json, score };\n});\nreturn scores.map(score => ({ json: score }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Route by Performance",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "propertyName": "score",
+            "rules": [
+              {
+                "operation": "greaterThanEqual",
+                "value": 75
+              },
+              {
+                "operation": "between",
+                "value1": 55,
+                "value2": 74
+              },
+              {
+                "operation": "between",
+                "value1": 35,
+                "value2": 54
+              },
+              {
+                "operation": "lessThan",
+                "value": 35
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Campaign Dashboard",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Daily Performance",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log All Campaigns",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Campaign Log",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Slack Alerts",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "performance-alerts",
+            "text": "High-performing campaign detected: {{$json[\"name\"]}} with score {{$json[\"score\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Action Plan",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { subject: 'Action Plan for Campaign: ' + $json[\"name\"], body: 'Here is your action plan for campaign: ' + $json[\"name\"] } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Email Performance Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "={{$json[\"subject\"]}}",
+            "text": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "8",
+          "outputIndex": 3
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1386,
+    "completion_tokens": 1521,
+    "total_tokens": 2907
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:28:40.993009"
+}

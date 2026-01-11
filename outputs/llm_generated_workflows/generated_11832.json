@@ -1,0 +1,130 @@
+{
+  "template_id": "11832",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Workflow with Evaluation Framework",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Sentiment Analysis",
+          "nodeType": "n8n-nodes-base.sentimentAnalysis",
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check if Evaluating",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"isEvaluation\"]}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Dataset Row",
+          "nodeType": "n8n-nodes-base.dataTable",
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Output",
+          "nodeType": "n8n-nodes-base.dataTable",
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Set Metrics",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "accuracy",
+                  "value": "={{$json[\"prediction\"] === $json[\"groundTruth\"] ? 1 : 0}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "2",
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 924,
+    "completion_tokens": 674,
+    "total_tokens": 1598
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:03:11.116699"
+}

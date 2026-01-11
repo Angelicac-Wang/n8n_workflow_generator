@@ -1,0 +1,224 @@
+{
+  "template_id": "11726",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Security Vulnerability Remediation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "vulnerability-alert"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Port Context Enrichment",
+          "nodeType": "custom.portNode",
+          "typeVersion": 1,
+          "params": {
+            "query": "serviceMetadata",
+            "vulnerabilityId": "={{$json[\"vulnerabilityId\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Remediation Planning",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "Analyze vulnerability and generate remediation plan with context: {{$json}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Severity-Based Routing",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"severity\"]}}",
+                  "value2": "Critical"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Jira Ticket - Critical",
+          "nodeType": "n8n-nodes-base.jira",
+          "typeVersion": 1,
+          "params": {
+            "project": "YOUR_JIRA_PROJECT",
+            "issueType": "Bug",
+            "summary": "Critical Vulnerability: {{$json[\"title\"]}}",
+            "description": "Details: {{$json}}",
+            "priority": "Highest"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Jira Ticket - High",
+          "nodeType": "n8n-nodes-base.jira",
+          "typeVersion": 1,
+          "params": {
+            "project": "YOUR_JIRA_PROJECT",
+            "issueType": "Bug",
+            "summary": "High Vulnerability: {{$json[\"title\"]}}",
+            "description": "Details: {{$json}}",
+            "priority": "High"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Jira Ticket - Medium/Low",
+          "nodeType": "n8n-nodes-base.jira",
+          "typeVersion": 1,
+          "params": {
+            "project": "YOUR_JIRA_PROJECT",
+            "issueType": "Bug",
+            "summary": "Medium/Low Vulnerability: {{$json[\"title\"]}}",
+            "description": "Details: {{$json}}",
+            "priority": "Medium"
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Claude Code Remediation",
+          "nodeType": "custom.claudeCodeNode",
+          "typeVersion": 1,
+          "params": {
+            "repository": "default-organization/repository",
+            "vulnerabilityDetails": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Slack Notification - Critical",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "critical-alerts",
+            "text": "Critical vulnerability detected and auto-fixed: {{$json[\"title\"]}}. Jira Ticket: {{$json[\"jiraTicket\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Slack Notification - High",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "high-alerts",
+            "text": "High vulnerability detected: {{$json[\"title\"]}}. Jira Ticket: {{$json[\"jiraTicket\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 2
+        },
+        {
+          "from": "5",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "6",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1083,
+    "completion_tokens": 1397,
+    "total_tokens": 2480
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:58:40.786744"
+}

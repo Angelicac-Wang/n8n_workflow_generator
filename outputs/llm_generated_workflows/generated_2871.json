@@ -1,0 +1,160 @@
+{
+  "template_id": "2871",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Contextual Document Processing and Storage",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Retrieve Document from Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "your-file-id",
+            "binaryPropertyName": "document"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Text Content",
+          "nodeType": "n8n-nodes-base.extractText",
+          "typeVersion": 1,
+          "params": {
+            "binaryPropertyName": "document"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Context-Based Chunks",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function splitIntoChunks(text) {\n  // Custom logic to split text into context-based chunks\n  return chunks;\n}\nreturn splitIntoChunks($json[\"text\"]);"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Each Chunk",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Context for Each Chunk",
+          "nodeType": "n8n-nodes-base.agent",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.0-mini",
+            "prompt": "Generate contextual metadata for the following chunk: {{$json[\"chunk\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Prepend Context & Create Embeddings",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "contextualChunk": "{{$json[\"context\"]}} {{$json[\"chunk\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Text Embeddings with Google Gemini",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "textEmbedding",
+            "text": "{{$json[\"contextualChunk\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Store Embeddings in Pinecone",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upsert",
+            "index": "your-index-name",
+            "vectors": "{{$json[\"embeddings\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 958,
+    "completion_tokens": 965,
+    "total_tokens": 1923
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:47:56.352401"
+}

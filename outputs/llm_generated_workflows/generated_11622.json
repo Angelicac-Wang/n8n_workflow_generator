@@ -1,0 +1,200 @@
+{
+  "template_id": "11622",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Lead Generation with Google Maps and Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": "*",
+                  "minute": "0"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read ZIP Codes",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "zip!A:A",
+            "credentials": "Google Sheets"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Read Categories",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "maps categories!A:A",
+            "credentials": "Google Sheets"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Maps API Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "query",
+                "value": "={{$json[\"zip\"]}} {{$json[\"category\"]}}"
+              },
+              {
+                "name": "key",
+                "value": "your-google-maps-api-key"
+              }
+            ],
+            "credentials": "Google MAP"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Process Results",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter(item => item.json.status !== 'N/A').map(item => ({ json: { id: item.json.place_id, name: item.json.name, address: item.json.formatted_address } }));"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "result!A:C",
+            "credentials": "Google Sheets",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Notify via Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "your-telegram-chat-id",
+            "text": "Lead generation process completed successfully.",
+            "credentials": "Telegram Bot API"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "WhatsApp Alert",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapiwa.com/send",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "phone",
+                "value": "your-phone-number"
+              },
+              {
+                "name": "message",
+                "value": "Lead generation process completed successfully."
+              }
+            ],
+            "credentials": "Rapiwa account 2"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1128,
+    "completion_tokens": 1180,
+    "total_tokens": 2308
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:55:35.605682"
+}

@@ -1,0 +1,171 @@
+{
+  "template_id": "9867",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Video to Viral Clips Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "upload-video",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseBody": "Video received successfully."
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/ffmpeg/extract-audio",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "videoUrl",
+                "value": "={{$json[\"body\"][\"videoUrl\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.uploadPostApiToken}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Whisper Transcription",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/whisper/transcriptions",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "audioUrl",
+                "value": "={{$json[\"audioUrl\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.openAiApiToken}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Clip Mining",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/clip-mining",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "transcription",
+                "value": "={{$json[\"transcription\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.googleGeminiCredentials}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Cut & Crop",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/ffmpeg/cut-crop",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "clipData",
+                "value": "={{$json[\"clipData\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.uploadPostApiToken}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Auto-Scheduling",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/schedule",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "clips",
+                "value": "={{$json[\"clips\"]}}"
+              },
+              {
+                "name": "scheduleTime",
+                "value": "20:00"
+              },
+              {
+                "name": "timezone",
+                "value": "Europe/Madrid"
+              }
+            ],
+            "authentication": "={{$credentials.uploadPostApiToken}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1345,
+    "completion_tokens": 1015,
+    "total_tokens": 2360
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:42:57.794408"
+}

@@ -1,0 +1,142 @@
+{
+  "template_id": "3535",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Save Web Articles to Notion",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Message",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "receive-message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Gemini AI Agent",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{ $credentials.googleGemini.apiKey }}",
+            "prompt": "Determine if the message contains a URL to save."
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check URL Presence",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json[\"containsUrl\"] }}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Website Scraper",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.browserless.io/scrape",
+            "method": "POST",
+            "authentication": "={{ $credentials.browserless.apiKey }}",
+            "body": {
+              "url": "={{ $json[\"url\"] }}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Notion",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "databaseId": "={{ $credentials.notion.databaseId }}",
+            "properties": {
+              "Name": "={{ $json[\"title\"] }}",
+              "URL": "={{ $json[\"url\"] }}",
+              "Description": "={{ $json[\"summary\"] }}",
+              "Tags": "={{ $json[\"tags\"] }}",
+              "Publication Date": "={{ $json[\"publicationDate\"] }}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Discord Notification",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "={{ $credentials.discord.webhookUrl }}",
+            "message": "Article saved successfully!"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1506,
+    "completion_tokens": 823,
+    "total_tokens": 2329
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:59:33.466759"
+}

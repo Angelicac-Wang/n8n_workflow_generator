@@ -1,0 +1,134 @@
+{
+  "template_id": "10200",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "DNS Lookup with Google DNS",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "n8n-nodes-base.start",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Form Input",
+          "nodeType": "n8n-nodes-base.form",
+          "params": {
+            "fields": [
+              {
+                "name": "domain",
+                "type": "string",
+                "label": "Domain to Lookup"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split DNS Types",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "batchSize": 1,
+            "items": [
+              "A",
+              "CNAME",
+              "AAAA",
+              "MX",
+              "TXT",
+              "NS"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "DNS Lookup",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://dns.google/resolve",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "name",
+                "value": "={{$json[\"domain\"]}}"
+              },
+              {
+                "name": "type",
+                "value": "={{$json[\"type\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Aggregate Results",
+          "nodeType": "n8n-nodes-base.merge",
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Output",
+          "nodeType": "n8n-nodes-base.respondText",
+          "params": {
+            "text": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 772,
+    "completion_tokens": 667,
+    "total_tokens": 1439
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:29:19.757425"
+}

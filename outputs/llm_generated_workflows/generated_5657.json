@@ -1,0 +1,151 @@
+{
+  "template_id": "5657",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "SEO Content Scraper and Organizer",
+      "nodes": [
+        {
+          "id": "node1",
+          "label": "Website URL Input Form",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "website-url-input"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "node2",
+          "label": "Fetch Website Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "node3",
+          "label": "HTML to Plain Text Cleaner",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "JavaScript",
+            "code": "const cheerio = require('cheerio');\nconst $ = cheerio.load($json[\"body\"]);\nconst text = $('body').text();\nreturn [{ json: { text } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "node4",
+          "label": "Topic Extractor (GPT-5-mini)",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-5-mini",
+            "prompt": "Extract topics from the following text:\n{{$json[\"text\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "node5",
+          "label": "Text Cleanup Formatter",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "JavaScript",
+            "code": "const cleanedText = $json[\"text\"].replace(/###|\\*\\*/g, '');\nreturn [{ json: { cleanedText } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "node6",
+          "label": "Keyword Extractor (GPT-5-mini)",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-5-mini",
+            "prompt": "Generate a list of 90 SEO keywords from the following text:\n{{$json[\"cleanedText\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "node7",
+          "label": "Airtable Data Upsert",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upsert",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "fields": {
+              "Website Name": "={{$json[\"body\"][\"url\"]}}",
+              "Data": "={{$json[\"cleanedText\"]}}",
+              "Keyword": "={{$json[\"keywords\"]}}",
+              "Status": "Todo"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "node1",
+          "to": "node2"
+        },
+        {
+          "from": "node2",
+          "to": "node3"
+        },
+        {
+          "from": "node3",
+          "to": "node4"
+        },
+        {
+          "from": "node4",
+          "to": "node5"
+        },
+        {
+          "from": "node5",
+          "to": "node6"
+        },
+        {
+          "from": "node6",
+          "to": "node7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1033,
+    "completion_tokens": 1014,
+    "total_tokens": 2047
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:22:37.591950"
+}

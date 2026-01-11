@@ -1,0 +1,192 @@
+{
+  "template_id": "10044",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Creating an AI-powered multi-agent system for startup founders and small business owners.",
+    "workflowPlan": {
+      "name": "AI Virtual Executive Team",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp-trigger",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "President Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const message = $json[\"body\"]; let director = \"\"; if (message.includes(\"marketing\")) { director = \"Sales & Marketing Director\"; } else if (message.includes(\"research\")) { director = \"Business Research Director\"; } else if (message.includes(\"accountability\")) { director = \"Accountability Director\"; } else if (message.includes(\"schedule\")) { director = \"Executive Secretary\"; } return { json: { director } };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Sales & Marketing Director",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "market opportunities"
+              },
+              {
+                "name": "api_key",
+                "value": "YOUR_SERPAPI_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Business Research Director",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.perplexity.ai/competitor-analysis",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "query",
+                "value": "competitor analysis"
+              },
+              {
+                "name": "api_key",
+                "value": "YOUR_PERPLEXITY_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Accountability Director",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { json: { message: \"Stay on track! Here's your task reminder.\" } };"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Executive Secretary",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendarId": "primary"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "WhatsApp Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "message",
+                "value": "{{$json[\"message\"]}}"
+              },
+              {
+                "name": "to",
+                "value": "recipient_number"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1253,
+    "completion_tokens": 1149,
+    "total_tokens": 2402
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:25:12.623911"
+}

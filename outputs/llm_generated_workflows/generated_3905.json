@@ -1,0 +1,127 @@
+{
+  "template_id": "3905",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow plan to build a personal assistant using n8n and Google Gemini.",
+    "workflowPlan": {
+      "name": "Personal Assistant with Google Gemini",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "assistant",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Gemini AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "text": "={{$json[\"body\"][\"message\"]}}",
+              "model": "gemini-2.5-pro"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Determine Action",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"action\"]}}",
+                  "operation": "contains",
+                  "value2": "schedule"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Calendar Event",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendar": "Primary",
+            "start": "={{$json[\"startTime\"]}}",
+            "end": "={{$json[\"endTime\"]}}",
+            "summary": "Meeting with Sarah"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Find Contact Email",
+          "nodeType": "n8n-nodes-base.googleContacts",
+          "typeVersion": 1,
+          "params": {
+            "operation": "get",
+            "resource": "contact",
+            "email": "={{$json[\"contactName\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1539,
+    "completion_tokens": 733,
+    "total_tokens": 2272
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:04:25.780107"
+}

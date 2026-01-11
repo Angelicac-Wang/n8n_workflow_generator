@@ -1,0 +1,111 @@
+{
+  "template_id": "5036",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Binance Spot Trading API Interaction",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Binance API Credential",
+          "nodeType": "n8n-nodes-base.credentials",
+          "params": {
+            "credentialType": "Binance API",
+            "name": "Binance API"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Limit Buy Parameter",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "parameters": [
+                {
+                  "name": "symbol",
+                  "value": "BTCUSDT"
+                },
+                {
+                  "name": "quantity",
+                  "value": "0.01"
+                },
+                {
+                  "name": "price",
+                  "value": "30000"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Place Limit Buy Order",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.binance.com/api/v3/order",
+            "method": "POST",
+            "authentication": "hmac",
+            "options": {
+              "bodyContentType": "form-urlencoded"
+            },
+            "bodyParameters": [
+              {
+                "name": "symbol",
+                "value": "={{$json[\"symbol\"]}}"
+              },
+              {
+                "name": "side",
+                "value": "BUY"
+              },
+              {
+                "name": "type",
+                "value": "LIMIT"
+              },
+              {
+                "name": "timeInForce",
+                "value": "GTC"
+              },
+              {
+                "name": "quantity",
+                "value": "={{$json[\"quantity\"]}}"
+              },
+              {
+                "name": "price",
+                "value": "={{$json[\"price\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 743,
+    "completion_tokens": 550,
+    "total_tokens": 1293
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:15:50.501851"
+}

@@ -1,0 +1,125 @@
+{
+  "template_id": "2335",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow monitors a local directory for changes and updates a Qdrant vector store accordingly.",
+    "workflowPlan": {
+      "name": "Sync Local Files with Qdrant Vector Store",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Local File Trigger",
+          "nodeType": "n8n-nodes-base.fileTrigger",
+          "typeVersion": 1,
+          "params": {
+            "path": "/path/to/local/directory",
+            "events": [
+              "add",
+              "change",
+              "unlink"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read File",
+          "nodeType": "n8n-nodes-base.readBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{$json[\"filePath\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Qdrant Upsert",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://qdrant-instance-url/collections/your-collection/points",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "points": [
+                {
+                  "id": "={{$json[\"fileName\"]}}",
+                  "vector": "={{$json[\"fileContent\"]}}",
+                  "payload": {
+                    "fileName": "={{$json[\"fileName\"]}}"
+                  }
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Qdrant Delete",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://qdrant-instance-url/collections/your-collection/points/delete",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "filter": {
+                "must": [
+                  {
+                    "key": "fileName",
+                    "match": {
+                      "value": "={{$json[\"fileName\"]}}"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 809,
+    "completion_tokens": 691,
+    "total_tokens": 1500
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:34:39.520773"
+}

@@ -1,0 +1,166 @@
+{
+  "template_id": "4459",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube Comments Analysis and Reporting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D",
+            "watchForChanges": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Filter Pending Videos",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"Status\"]}}",
+                  "operation": "equal",
+                  "value2": "Pending"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch YouTube Comments",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "part",
+                "value": "snippet"
+              },
+              {
+                "name": "videoId",
+                "value": "={{$json[\"YouTube Video ID\"]}}"
+              },
+              {
+                "name": "maxResults",
+                "value": "100"
+              },
+              {
+                "name": "order",
+                "value": "relevance"
+              },
+              {
+                "name": "key",
+                "value": "your-youtube-api-key"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Sentiment Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Analyze the following YouTube comments for sentiment, themes, questions, feedback, and actionable insights: {{$json[\"items\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Email Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@gmail.com",
+            "toEmail": "recipient-email@example.com",
+            "subject": "YouTube Comments Analysis Report",
+            "html": "<h1>YouTube Comments Analysis Report</h1><p>Video: {{$json[\"Video Title\"]}}</p><p>Analysis: {{$json[\"analysis\"]}}</p>"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheet Status",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!D:D",
+            "data": [
+              {
+                "value": "Mail Sent"
+              }
+            ],
+            "key": "ID",
+            "keyValue": "={{$json[\"ID\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1513,
+    "completion_tokens": 987,
+    "total_tokens": 2500
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:10:07.115308"
+}

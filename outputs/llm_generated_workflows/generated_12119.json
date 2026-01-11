@@ -1,0 +1,166 @@
+{
+  "template_id": "12119",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Trend-style Celebrity Selfie Videos",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "celebrity-selfie",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Prompts with GPT-4",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Generate optimized prompts for realistic selfie composition with the provided images.",
+              "max_tokens": 100
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Selfie Images",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.seeddream.ai/v4.5/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "{{$node[\"Generate Prompts with GPT-4\"].json[\"choices\"][0][\"text\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_SEEDDREAM_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save Images to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "CelebritySelfies",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "{{$json[\"image_url\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Transition Videos",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kling.ai/v1/videos",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "images": [
+                "{{$node[\"Generate Selfie Images\"].json[\"image1_url\"]}}",
+                "{{$node[\"Generate Selfie Images\"].json[\"image2_url\"]}}"
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_KLING_AI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Videos to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "CelebrityVideos",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "{{$json[\"video_url\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 807,
+    "completion_tokens": 1013,
+    "total_tokens": 1820
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:15:31.323237"
+}

@@ -1,0 +1,118 @@
+{
+  "template_id": "4966",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for a Document-Aware WhatsApp AI Bot for Customer Support using Google Docs.",
+    "workflowPlan": {
+      "name": "WhatsApp AI Assistant with Google Docs",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp-webhook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Docs Read",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "documentId": "YOUR_DOCUMENT_ID",
+            "operation": "getContent"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Merge the document content with today's date and the user's question to craft a custom AI prompt."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v13.0/YOUR_PHONE_NUMBER_ID/messages",
+            "method": "POST",
+            "body": {
+              "messaging_product": "whatsapp",
+              "to": "={{$json[\"from\"]}}",
+              "type": "text",
+              "text": {
+                "body": "={{$json[\"response\"]}}"
+              }
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "data": "={{[$json[\"from\"], $json[\"question\"], $json[\"response\"]]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1028,
+    "completion_tokens": 728,
+    "total_tokens": 1756
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:14:49.559834"
+}

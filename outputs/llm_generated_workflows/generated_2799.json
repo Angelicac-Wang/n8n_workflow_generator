@@ -1,0 +1,166 @@
+{
+  "template_id": "2799",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Topic Monitoring and Summarization",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduler",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 1
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "RSS Read",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"rss_url\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Sheets - Check Duplicates",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "lookup",
+            "sheetId": "your_google_sheet_id",
+            "range": "Articles!A:C",
+            "lookupColumn": "A",
+            "lookupValue": "={{$json[\"link\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI - Assess Relevance",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Is this article relevant? {{$json[\"contentSnippet\"]}}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Jina AI - Extract Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.jina.ai/extract",
+            "method": "POST",
+            "body": {
+              "url": "={{$json[\"link\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Slack - Post Summary",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your_slack_channel",
+            "text": "Summary: {{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Google Sheets - Store Metadata",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Articles!A:C",
+            "data": [
+              {
+                "values": [
+                  "={{$json[\"link\"]}}",
+                  "={{$json[\"title\"]}}",
+                  "={{$json[\"summary\"]}}"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 970,
+    "completion_tokens": 967,
+    "total_tokens": 1937
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:45:45.824278"
+}

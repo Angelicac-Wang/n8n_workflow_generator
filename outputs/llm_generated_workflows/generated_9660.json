@@ -1,0 +1,195 @@
+{
+  "template_id": "9660",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Authentication Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Register User Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "register-user",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Hash Password",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const crypto = require('crypto');\nconst salt = crypto.randomBytes(16).toString('hex');\nconst hash = crypto.createHmac('sha512', salt).update($json[\"password\"]).digest('hex');\nreturn [{ json: { password_hash: hash, salt: salt, email: $json[\"email\"], username: $json[\"username\"] } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create User Record",
+          "nodeType": "n8n-nodes-base.dataTable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "users",
+            "columns": [
+              "email",
+              "username",
+              "password_hash",
+              "salt"
+            ],
+            "values": [
+              "={{$json[\"email\"]}}",
+              "={{$json[\"username\"]}}",
+              "={{$json[\"password_hash\"]}}",
+              "={{$json[\"salt\"]}}"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Login Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "login",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Verify Password",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const crypto = require('crypto');\nconst user = $json[\"user\"];\nconst hash = crypto.createHmac('sha512', user.salt).update($json[\"password\"]).digest('hex');\nif (hash === user.password_hash) {\n  return [{ json: { valid: true, user: user } }];\n} else {\n  return [{ json: { valid: false } }];\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate JWT",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const jwt = require('jsonwebtoken');\nconst accessToken = jwt.sign({ id: $json[\"user\"].id }, process.env.ACCESS_SECRET, { expiresIn: '15m' });\nconst refreshToken = jwt.sign({ id: $json[\"user\"].id }, process.env.REFRESH_SECRET, { expiresIn: '7d' });\nreturn [{ json: { accessToken: accessToken, refreshToken: refreshToken, user: $json[\"user\"] } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Verify Token Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "verify-token",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Verify JWT",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const jwt = require('jsonwebtoken');\ntry {\n  const decoded = jwt.verify($json[\"access_token\"], process.env.ACCESS_SECRET);\n  return [{ json: { valid: true, decoded: decoded } }];\n} catch (err) {\n  return [{ json: { valid: false } }];\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Refresh Token Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "refresh",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 800
+          }
+        },
+        {
+          "id": "10",
+          "label": "Refresh JWT",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const jwt = require('jsonwebtoken');\ntry {\n  const decoded = jwt.verify($json[\"refresh_token\"], process.env.REFRESH_SECRET);\n  const newAccessToken = jwt.sign({ id: decoded.id }, process.env.ACCESS_SECRET, { expiresIn: '15m' });\n  return [{ json: { accessToken: newAccessToken } }];\n} catch (err) {\n  return [{ json: { valid: false } }];\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 800
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1669,
+    "completion_tokens": 1536,
+    "total_tokens": 3205
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:41:17.696422"
+}

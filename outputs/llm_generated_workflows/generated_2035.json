@@ -1,0 +1,126 @@
+{
+  "template_id": "2035",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Telegram to LangChain AI Agent Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent (Conversation Agent)",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "model": "OpenAI GPT-4",
+            "systemPrompt": "Custom System Prompt with reply formatting instructions",
+            "useMemory": true,
+            "memoryType": "Window Buffer Memory"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Dall-E 3 Tool",
+          "nodeType": "n8n-nodes-base.customWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "Dall-E 3 Tool Workflow"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Dall-E 3 Image Generation",
+          "nodeType": "n8n-nodes-base.dalleImageGeneration",
+          "typeVersion": 1,
+          "params": {
+            "userId": "={{$json[\"message\"][\"from\"][\"id\"]}}",
+            "prompt": "={{$json[\"message\"][\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Image to User",
+          "nodeType": "n8n-nodes-base.telegramSendMessage",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"from\"][\"id\"]}}",
+            "text": "Here is your generated image:",
+            "attachments": "={{$node[\"Dall-E 3 Image Generation\"].json[\"imageUrl\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "HTML Syntax Masking",
+          "nodeType": "n8n-nodes-base.telegramSendMessage",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"from\"][\"id\"]}}",
+            "text": "={{$node[\"AI Agent (Conversation Agent)\"].json[\"reply\"]}}",
+            "parseMode": "HTML"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 646,
+    "completion_tokens": 800,
+    "total_tokens": 1446
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:30:56.900286"
+}

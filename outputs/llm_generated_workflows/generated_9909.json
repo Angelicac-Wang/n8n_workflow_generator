@@ -1,0 +1,177 @@
+{
+  "template_id": "9909",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating weather forecast delivery.",
+    "workflowPlan": {
+      "name": "Weather Forecast Email Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "weather-form",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Geocode Cities",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openweathermap.org/geo/1.0/direct",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json[\"cityName\"]}}"
+              },
+              {
+                "name": "limit",
+                "value": "1"
+              },
+              {
+                "name": "appid",
+                "value": "YOUR_OPENWEATHERMAP_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Weather Forecast",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openweathermap.org/data/2.5/forecast",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "lat",
+                "value": "={{$json[\"lat\"]}}"
+              },
+              {
+                "name": "lon",
+                "value": "={{$json[\"lon\"]}}"
+              },
+              {
+                "name": "appid",
+                "value": "YOUR_OPENWEATHERMAP_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Weather Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const processWeatherData = (data) => {\n  // Process the raw weather data into daily summaries\n  // Calculate temperature ranges, precipitation levels, wind speeds, and dominant weather conditions\n  return data;\n};\n\nreturn processWeatherData(items[0].json);"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Email Content",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate a professionally formatted HTML email with condition-based color coding and safety warnings for the following weather data: {{$json}}",
+            "openaiApiKey": "YOUR_OPENAI_API_KEY"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Validate JSON",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "try {\n  JSON.parse(items[0].json);\n  return items;\n} catch (error) {\n  throw new Error('Invalid JSON format');\n}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "subject": "5-Day Weather Forecast",
+            "to": "recipient@example.com",
+            "content": "={{$json[\"emailContent\"]}}",
+            "oauth2": {
+              "clientId": "YOUR_GMAIL_CLIENT_ID",
+              "clientSecret": "YOUR_GMAIL_CLIENT_SECRET",
+              "refreshToken": "YOUR_GMAIL_REFRESH_TOKEN"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 751,
+    "completion_tokens": 1136,
+    "total_tokens": 1887
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:43:49.947515"
+}

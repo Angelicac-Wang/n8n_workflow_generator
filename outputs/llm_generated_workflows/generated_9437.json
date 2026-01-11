@@ -1,0 +1,166 @@
+{
+  "template_id": "9437",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Survey-Based Course Recommendation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "formFields": [
+              {
+                "name": "Name",
+                "type": "string"
+              },
+              {
+                "name": "Q1",
+                "type": "string"
+              },
+              {
+                "name": "Q2",
+                "type": "string"
+              },
+              {
+                "name": "Q3",
+                "type": "string"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Upsert Survey Responses",
+          "nodeType": "n8n-nodes-base.dataTable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upsert",
+            "tableName": "Survey Responses",
+            "columns": [
+              "Name",
+              "Q1",
+              "Q2",
+              "Q3"
+            ],
+            "data": [
+              {
+                "Name": "={{$json[\"Name\"]}}",
+                "Q1": "={{$json[\"Q1\"]}}",
+                "Q2": "={{$json[\"Q2\"]}}",
+                "Q3": "={{$json[\"Q3\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Courses",
+          "nodeType": "n8n-nodes-base.dataTable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "tableName": "Courses"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Aggregate and Set",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "surveyResponses",
+                "value": "={{$node[\"2\"].json}}"
+              },
+              {
+                "name": "courses",
+                "value": "={{$node[\"3\"].json}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.1-mini",
+            "prompt": "Based on the survey responses and available courses, recommend the most relevant course for the respondent.",
+            "inputs": {
+              "surveyResponses": "={{$node[\"4\"].json[\"surveyResponses\"]}}",
+              "courses": "={{$node[\"4\"].json[\"courses\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Structured Output Parser",
+          "nodeType": "n8n-nodes-base.jsonParse",
+          "typeVersion": 1,
+          "params": {
+            "fieldName": "output",
+            "json": "={{$node[\"5\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1419,
+    "completion_tokens": 956,
+    "total_tokens": 2375
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:40:30.918198"
+}

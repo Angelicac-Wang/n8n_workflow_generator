@@ -1,0 +1,144 @@
+{
+  "template_id": "5674",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the Seedance Video Marketing AI Agent.",
+    "workflowPlan": {
+      "name": "Seedance Video Marketing AI Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "chatId": "YOUR_CHAT_ID"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Trend Research",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.perplexity.ai/sonar-pro",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "={{$json[\"message\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Video Prompt Engineer",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Create a video prompt for Seedance based on the trend: {{$json[\"trend\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.wavespeed.io/seedance",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "videoPrompt": "={{$json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Status Loop",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.wavespeed.io/seedance/status",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "queryParameters": [
+              {
+                "name": "videoId",
+                "value": "={{$json[\"videoId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Telegram Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "text": "Your video is ready: {{$json[\"videoUrl\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 875,
+    "completion_tokens": 859,
+    "total_tokens": 1734
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:22:56.187737"
+}

@@ -1,0 +1,188 @@
+{
+  "template_id": "11960",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to automate your crypto intelligence and social agent tasks.",
+    "workflowPlan": {
+      "name": "X-Ray Crypto Intelligence",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch News",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://cryptopanic.com/api/v1/posts/",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "auth_token",
+                "value": "YOUR_CRYPTOPANIC_API_TOKEN"
+              },
+              {
+                "name": "filter",
+                "value": "news"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Filter Narratives",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "value": [
+              {
+                "name": "filteredHeadlines",
+                "value": "={{$json[\"results\"].filter(item => item.title.includes('RWA') || item.title.includes('DeFi') || item.title.includes('AI'))}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Search Full Articles",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/customsearch/v1",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "key",
+                "value": "YOUR_GOOGLE_API_KEY"
+              },
+              {
+                "name": "cx",
+                "value": "YOUR_GOOGLE_CX_ID"
+              },
+              {
+                "name": "q",
+                "value": "={{$node[\"Filter Narratives\"].json[\"filteredHeadlines\"][0].title}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Draft Tweet",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "Create a viral tweet draft based on this article: {{$node[\"Search Full Articles\"].json[\"items\"][0].snippet}}",
+              "max_tokens": 280
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send for Review",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_GMAIL_API_TOKEN"
+              }
+            },
+            "body": {
+              "raw": "={{$base64.encode(`To: your-email@gmail.com\nSubject: New Tweet Draft\n\nDraft: {{$node[\"Draft Tweet\"].json[\"choices\"][0].text}}`)}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Sheets",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/YOUR_SHEET_ID/values/Sheet1!A1:append",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_GOOGLE_SHEETS_API_TOKEN"
+              }
+            },
+            "body": {
+              "values": [
+                [
+                  "={{new Date().toISOString()}}",
+                  "={{$node[\"Filter Narratives\"].json[\"filteredHeadlines\"][0].title}}",
+                  "={{$node[\"Draft Tweet\"].json[\"choices\"][0].text}}",
+                  "={{$node[\"Search Full Articles\"].json[\"items\"][0].link}}"
+                ]
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 984,
+    "completion_tokens": 1194,
+    "total_tokens": 2178
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:07:15.543933"
+}

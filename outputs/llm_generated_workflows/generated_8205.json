@@ -1,0 +1,185 @@
+{
+  "template_id": "8205",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "UGC Ad Image and Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get Data1",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Gemini!A:E"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "setImgeURL",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "value": [
+              {
+                "name": "directLink",
+                "value": "={{ (() => { const u = $json.product || ''; const q = u.match(/[?&]id=([\\-\\w]{25,})/); const d = u.match(/\\/d\\/([\\-\\w]{25,})/); const any = u.match(/[\\-\\w]{25,}/); const id = q?.[1] || d?.[1] || (any ? any[0] : ''); return id ? 'https://drive.google.com/uc?export=view&id=' + id : ''; })() }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "CreateImagebyOpernRouter",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/gemini-2.5-flash-image-preview:free",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "image_url": "={{$node[\"setImgeURL\"].json[\"directLink\"]}}",
+              "prompt": "={{$json[\"prompt\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer {{$env.OPENROUTER_API_KEY}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "wait20sec",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "duration": 20
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "setBase64data",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const dataUri = $node[\"CreateImagebyOpernRouter\"].json[\"dataUri\"];\nconst matches = dataUri.match(/^data:(.+);base64,(.+)$/);\nreturn [{\n  mimeType: matches[1],\n  data: matches[2],\n  fileName: `image_${Date.now()}.png`\n}];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Convert to File",
+          "nodeType": "n8n-nodes-base.convertToFile",
+          "typeVersion": 1,
+          "params": {
+            "dataPropertyName": "data",
+            "fileName": "={{$node[\"setBase64data\"].json[\"fileName\"]}}",
+            "mimeType": "={{$node[\"setBase64data\"].json[\"mimeType\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "uploadImagetoGdrive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$node[\"Convert to File\"].json[\"fileName\"]}}",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1400,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "updateImageURL",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Gemini!D:D",
+            "key": "product",
+            "valueInputMode": "RAW",
+            "data": [
+              {
+                "key": "={{$json[\"product\"]}}",
+                "value": "={{$node[\"uploadImagetoGdrive\"].json[\"webViewLink\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2112,
+    "completion_tokens": 1335,
+    "total_tokens": 3447
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:33:58.530529"
+}

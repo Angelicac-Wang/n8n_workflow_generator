@@ -1,0 +1,212 @@
+{
+  "template_id": "11007",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Network Vulnerability Scanner with Automated CVE Report",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "params": {
+            "path": "vuln-scan",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "network",
+                  "value": "={{$json[\"body\"][\"network\"]}}"
+                },
+                {
+                  "name": "timestamp",
+                  "value": "={{$now.format('YYYYMMDD_HHmmss')}}"
+                },
+                {
+                  "name": "report_password",
+                  "value": "Almafa123456"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Execute Nmap Scan",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "params": {
+            "command": "nmap",
+            "arguments": [
+              "-sV",
+              "-oX",
+              "/tmp/nmap_scan.xml",
+              "={{$json[\"network\"]}}"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Convert Nmap XML to JSON",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "params": {
+            "command": "nmap-helper",
+            "arguments": [
+              "/tmp/nmap_scan.xml"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "CVE Enrichment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "cpeMatchString",
+                "value": "={{$json[\"cpe\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate HTML Report",
+          "nodeType": "n8n-nodes-base.html",
+          "params": {
+            "html": "<html><body><h1>Vulnerability Report</h1><p>Generated on {{$json[\"timestamp\"]}}</p></body></html>"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Convert to PDF",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "params": {
+            "command": "prince",
+            "arguments": [
+              "/tmp/report.html",
+              "-o",
+              "/tmp/report.pdf",
+              "--encrypt",
+              "--key-bits",
+              "128",
+              "--user-password",
+              "={{$json[\"report_password\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Report via Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "chatId": "-123456789012",
+            "document": "/tmp/report.pdf"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Report via Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "fromEmail": "report.creator@example.com",
+            "toEmail": "report.receiver@example.com",
+            "subject": "Vulnerability Report",
+            "text": "Please find the attached vulnerability report.",
+            "attachments": [
+              {
+                "fileName": "report.pdf",
+                "path": "/tmp/report.pdf"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5304,
+    "completion_tokens": 1203,
+    "total_tokens": 6507
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:40:11.654833"
+}

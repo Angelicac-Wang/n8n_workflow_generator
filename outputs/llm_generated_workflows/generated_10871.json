@@ -1,0 +1,194 @@
+{
+  "template_id": "10871",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Personal Finance AI Agent Telegram Bot",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "switchNode",
+          "label": "Switch Message Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "params": {
+            "property": "={{$json[\"message\"][\"document\"] ? \"document\" : ($json[\"message\"][\"photo\"] ? \"photo\" : \"text\")}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "photo"
+              },
+              {
+                "operation": "equal",
+                "value": "document"
+              },
+              {
+                "operation": "equal",
+                "value": "text"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "downloadFile",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"message\"][\"document\"] ? $json[\"message\"][\"document\"][\"file_id\"] : $json[\"message\"][\"photo\"][0][\"file_id\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "uploadDrive",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"fileName\"]}}",
+            "fileContent": "={{$binary.data}}",
+            "parentFolderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "ocrGemini",
+          "label": "OCR with Gemini",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "params": {
+            "operation": "ocr",
+            "fileContent": "={{$binary.data}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "extractData",
+          "label": "Extract Data with Gemini",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "params": {
+            "operation": "extract",
+            "text": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "appendSheet",
+          "label": "Append to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "data": "={{[$json[\"date\"], $json[\"amount\"], $json[\"description\"], $json[\"category\"]]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "aiAgent",
+          "label": "AI Agent for Queries",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "params": {
+            "operation": "query",
+            "question": "={{$json[\"message\"][\"text\"]}}",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "respondText",
+          "label": "Respond to User",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "switchNode"
+        },
+        {
+          "from": "switchNode",
+          "to": "downloadFile",
+          "outputIndex": 0
+        },
+        {
+          "from": "switchNode",
+          "to": "downloadFile",
+          "outputIndex": 1
+        },
+        {
+          "from": "switchNode",
+          "to": "aiAgent",
+          "outputIndex": 2
+        },
+        {
+          "from": "downloadFile",
+          "to": "uploadDrive"
+        },
+        {
+          "from": "uploadDrive",
+          "to": "ocrGemini"
+        },
+        {
+          "from": "ocrGemini",
+          "to": "extractData"
+        },
+        {
+          "from": "extractData",
+          "to": "appendSheet"
+        },
+        {
+          "from": "aiAgent",
+          "to": "respondText"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1403,
+    "completion_tokens": 1244,
+    "total_tokens": 2647
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:38:32.133699"
+}

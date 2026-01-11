@@ -1,0 +1,110 @@
+{
+  "template_id": "10801",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for automating static security analysis for JavaScript, PHP, and Python codebases.",
+    "workflowPlan": {
+      "name": "Static Security Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "security-analysis",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - OpenAI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"prompt\": \"Analyze the following code for vulnerabilities:\", \"max_tokens\": 1000 }"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set - Format Results",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "json": [
+                {
+                  "name": "formattedResults",
+                  "value": "={{JSON.stringify($json[\"choices\"][0][\"text\"])}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request - Google Drive",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "multipart-form-data"
+            },
+            "bodyParametersJson": "{ \"name\": \"Vulnerability_Report.json\", \"mimeType\": \"application/json\", \"data\": \"{{$node[\"Set - Format Results\"].json[\"formattedResults\"]}}\" }"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 814,
+    "completion_tokens": 704,
+    "total_tokens": 1518
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:37:04.411070"
+}

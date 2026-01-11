@@ -1,0 +1,190 @@
+{
+  "template_id": "10262",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating communication with meeting invitees.",
+    "workflowPlan": {
+      "name": "Meeting Reminder Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Calendly Email Trigger",
+          "nodeType": "n8n-nodes-base.emailReadImap",
+          "typeVersion": 1,
+          "params": {
+            "mailbox": "INBOX",
+            "searchCriteria": [
+              "UNSEEN"
+            ],
+            "fetchAll": false,
+            "options": {}
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Meeting Data",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{$json[\"text\"]}}",
+            "model": "gemini"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Information Sufficiency",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"sufficientInformation\"]}}",
+                  "operation": "isFalse"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Clarification Request",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"inviteeEmail\"]}}",
+            "subject": "Clarification Needed for Upcoming Meeting",
+            "text": "Please provide more information for your upcoming meeting."
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Calculate Reminder Times",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const meetingTime = new Date($json[\"meetingTime\"]);\nconst now = new Date();\nconst timeTo24HourReminder = meetingTime - 24 * 60 * 60 * 1000 - now;\nconst timeTo1HourReminder = meetingTime - 60 * 60 * 1000 - now;\nreturn [{ timeTo24HourReminder, timeTo1HourReminder }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait for 24-hour Reminder",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "={{$json[\"timeTo24HourReminder\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send 24-hour Email Reminder",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"inviteeEmail\"]}}",
+            "subject": "Reminder: Meeting in 24 Hours",
+            "text": "This is a reminder that your meeting is scheduled for tomorrow."
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Wait for 1-hour Reminder",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "={{$json[\"timeTo1HourReminder\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send 1-hour WhatsApp Reminder",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"inviteePhone\"]}}",
+            "message": "Reminder: Your meeting is in 1 hour."
+          },
+          "position": {
+            "x": 1400,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 701,
+    "completion_tokens": 1161,
+    "total_tokens": 1862
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:30:43.675110"
+}

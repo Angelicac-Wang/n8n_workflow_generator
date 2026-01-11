@@ -1,0 +1,130 @@
+{
+  "template_id": "2796",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the Voiceflow Demo Workflow.",
+    "workflowPlan": {
+      "name": "Voiceflow Demo Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "voiceflow-webhook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Customer Lookup",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-database-api.com/customers",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "customerId",
+                "value": "={{$json[\"customerId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Zendesk Ticket Creation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-zendesk-api.com/tickets",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "subject": "Customer Issue",
+              "description": "={{$json[\"issueDescription\"]}}",
+              "requester": {
+                "name": "={{$json[\"customerName\"]}}",
+                "email": "={{$json[\"customerEmail\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Calendar Meeting Scheduling",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "calendar": "primary",
+            "operation": "create",
+            "start": "={{$json[\"meetingStart\"]}}",
+            "end": "={{$json[\"meetingEnd\"]}}",
+            "summary": "Customer Meeting"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Airtable Transcript Reporting",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "baseId": "yourAirtableBaseId",
+            "tableId": "yourTableId",
+            "fields": {
+              "Transcript": "={{$json[\"transcript\"]}}",
+              "Customer ID": "={{$json[\"customerId\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 869,
+    "completion_tokens": 781,
+    "total_tokens": 1650
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:45:38.354522"
+}

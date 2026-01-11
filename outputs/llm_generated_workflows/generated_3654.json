@@ -1,0 +1,199 @@
+{
+  "template_id": "3654",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Auto-create and publish AI social videos",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi}}",
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kling.com/generate-video",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "={{$json[\"message\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Music",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.piapi.com/generate-music",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "videoId",
+                "value": "={{$node[\"2\"].json[\"videoId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Captions",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate captions for the video based on the prompt: {{$json[\"message\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.json2video.com/create",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "videoId",
+                "value": "={{$node[\"2\"].json[\"videoId\"]}}"
+              },
+              {
+                "name": "musicId",
+                "value": "={{$node[\"3\"].json[\"musicId\"]}}"
+              },
+              {
+                "name": "captions",
+                "value": "={{$node[\"4\"].json[\"text\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": "={{[{\"Title\": $node[\"4\"].json[\"text\"], \"Caption\": $node[\"4\"].json[\"text\"], \"URL\": $node[\"5\"].json[\"videoUrl\"]}]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi}}",
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "Your video has been created and is available at {{$node[\"5\"].json[\"videoUrl\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Auto-post Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/post-video",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "videoUrl",
+                "value": "={{$node[\"5\"].json[\"videoUrl\"]}}"
+              },
+              {
+                "name": "platforms",
+                "value": "Instagram,TikTok,YouTube,Facebook,LinkedIn,Threads,Twitter,X,Pinterest,Bluesky"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1061,
+    "completion_tokens": 1289,
+    "total_tokens": 2350
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:01:13.463132"
+}

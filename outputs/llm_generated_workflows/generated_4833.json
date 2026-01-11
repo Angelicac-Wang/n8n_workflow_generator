@@ -1,0 +1,309 @@
+{
+  "template_id": "4833",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Website Monitoring and Notification",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 5,
+                  "unit": "minutes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read URLs from Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "1_VVpkIvpYQigw5q0KmPXUAC2aV2rk1nRQLQZ7YK2KwY",
+            "range": "Sheet1!A:A"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Website Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "method": "HEAD",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "If Website is Down",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"statusCode\"]}}",
+                  "operation": "notEqual",
+                  "value2": 200
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log Downtime in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "1_VVpkIvpYQigw5q0KmPXUAC2aV2rk1nRQLQZ7YK2KwY",
+            "range": "Sheet2!A:C",
+            "data": "={{[{\"url\": $json[\"url\"], \"status\": \"down\", \"timestamp\": new Date().toISOString()}]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Notifications",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "team@example.com",
+            "subject": "Website Down Alert",
+            "text": "The website {{$json[\"url\"]}} is down."
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#alerts",
+            "text": "The website {{$json[\"url\"]}} is down."
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "123456789",
+            "text": "The website {{$json[\"url\"]}} is down."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Voice Call via Vapi",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.vapi.com/call",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "api_key": "vapi_api_key",
+              "assistant_id": "assistant_id",
+              "number": "phone_number",
+              "phone_number_id": "phone_number_id",
+              "message": "The website {{$json[\"url\"]}} is down."
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "If Website is Up",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"statusCode\"]}}",
+                  "operation": "equal",
+                  "value2": 200
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "11",
+          "label": "Log Uptime in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "1_VVpkIvpYQigw5q0KmPXUAC2aV2rk1nRQLQZ7YK2KwY",
+            "range": "Sheet2!A:C",
+            "data": "={{[{\"url\": $json[\"url\"], \"status\": \"up\", \"timestamp\": new Date().toISOString()}]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "12",
+          "label": "Send Recovery Notifications",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "team@example.com",
+            "subject": "Website Recovery Alert",
+            "text": "The website {{$json[\"url\"]}} is back up."
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        },
+        {
+          "id": "13",
+          "label": "Send Slack Recovery Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#alerts",
+            "text": "The website {{$json[\"url\"]}} is back up."
+          },
+          "position": {
+            "x": 1200,
+            "y": 600
+          }
+        },
+        {
+          "id": "14",
+          "label": "Send Telegram Recovery Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "123456789",
+            "text": "The website {{$json[\"url\"]}} is back up."
+          },
+          "position": {
+            "x": 1200,
+            "y": 700
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "8"
+        },
+        {
+          "from": "5",
+          "to": "9"
+        },
+        {
+          "from": "4",
+          "to": "10",
+          "outputIndex": 1
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "11",
+          "to": "13"
+        },
+        {
+          "from": "11",
+          "to": "14"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1145,
+    "completion_tokens": 1998,
+    "total_tokens": 3143
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:13:41.107564"
+}

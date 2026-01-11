@@ -1,0 +1,122 @@
+{
+  "template_id": "10157",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for the n8n Local AI Agentic RAG Template.",
+    "workflowPlan": {
+      "name": "Local AI Agentic RAG Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Create Tables",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "CREATE TABLE IF NOT EXISTS documents (id SERIAL PRIMARY KEY, content TEXT, metadata JSONB); CREATE TABLE IF NOT EXISTS tabular_data (id SERIAL PRIMARY KEY, data JSONB);"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Process Documents",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "python process_documents.py --input /data/shared --output /data/processed"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Store Processed Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://localhost:3000/api/store",
+            "method": "POST",
+            "body": {
+              "document": "={{$json[\"document\"]}}",
+              "metadata": "={{$json[\"metadata\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Ask Question",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "ask-question",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Reasoning and Retrieval",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const question = $json[\"question\"];\n// Implement reasoning and retrieval logic here\nreturn { answer: \"This is a mock answer.\" };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond with Answer",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{$json[\"answer\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 944,
+    "completion_tokens": 764,
+    "total_tokens": 1708
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:28:25.700147"
+}

@@ -1,0 +1,161 @@
+{
+  "template_id": "10322",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Twitter Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "twitter-content-form",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Workflow Configuration",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "maxTweetLength",
+                  "value": "280"
+                },
+                {
+                  "name": "modelUrl",
+                  "value": "https://api.openrouter.ai"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Text Generation",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"modelUrl\"]}}/generate-text",
+            "method": "POST",
+            "body": {
+              "topic": "={{$json[\"topic\"]}}",
+              "tone": "={{$json[\"tone\"]}}",
+              "action": "={{$json[\"action\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Image Generation",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pollinations.ai/create-image",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"topic\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Tweet Text and Image",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "tweetContent",
+                  "value": "={{$json[\"text\"]}}"
+                },
+                {
+                  "name": "imageUrl",
+                  "value": "={{$json[\"image\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Tweet",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.twitter.com/2/tweets",
+            "method": "POST",
+            "authentication": "oAuth2Api",
+            "body": {
+              "text": "={{$json[\"tweetContent\"]}}",
+              "media": {
+                "media_ids": [
+                  "={{$json[\"imageUrl\"]}}"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1086,
+    "completion_tokens": 861,
+    "total_tokens": 1947
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:31:15.181188"
+}

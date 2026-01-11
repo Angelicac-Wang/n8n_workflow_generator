@@ -1,0 +1,245 @@
+{
+  "template_id": "9176",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Smart Job Hunter Pro - AI-Powered Multi-Platform Job Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduled Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "cronExpression": "0 */8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Search Jooble",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://jooble.org/api/{{PLACEHOLDER_API_KEY}}",
+            "method": "POST",
+            "body": {
+              "keywords": "{{Job Keywords}}",
+              "location": "{{Location}}",
+              "radius": "{{Radius}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Search WhatJobs",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.whatjobs.com/v3/search",
+            "method": "GET",
+            "queryParameters": {
+              "keywords": "{{Job Keywords}}",
+              "location": "{{Location}}",
+              "radius": "{{Radius}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Search JobStreet & Indeed",
+          "nodeType": "n8n-nodes-base.webhook",
+          "params": {
+            "path": "scrape-jobstreet-indeed",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Normalize Data",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items.map(item => { /* Normalize data */ return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/analyze",
+            "method": "POST",
+            "body": {
+              "jobData": "{{Normalized Data}}",
+              "skillsProfile": "{{Skills Profile}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Filter Jobs",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "{{AI Analysis Score}}",
+                  "operation": "larger",
+                  "value2": "{{Auto-Apply Threshold}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Track in Notion",
+          "nodeType": "n8n-nodes-base.notion",
+          "params": {
+            "operation": "create",
+            "databaseId": "{{Notion Database ID}}",
+            "properties": {
+              "Job Title": "{{Job Title}}",
+              "Company": "{{Company}}",
+              "Score": "{{AI Analysis Score}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "chatId": "{{Telegram Chat ID}}",
+            "text": "High match job opportunity: {{Job Title}} at {{Company}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Generate Cover Letter",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/generateCoverLetter",
+            "method": "POST",
+            "body": {
+              "jobTitle": "{{Job Title}}",
+              "company": "{{Company}}",
+              "skillsProfile": "{{Skills Profile}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Save to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "upload",
+            "fileName": "{{Job Title}}_Cover_Letter.docx",
+            "fileContent": "{{Generated Cover Letter}}",
+            "folderId": "{{Google Drive Folder ID}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "10",
+          "outputIndex": 1
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1277,
+    "completion_tokens": 1443,
+    "total_tokens": 2720
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:38:20.393549"
+}

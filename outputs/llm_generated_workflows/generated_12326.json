@@ -1,0 +1,163 @@
+{
+  "template_id": "12326",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's the workflow to automate the process of creating products on WooCommerce via Telegram bot.",
+    "workflowPlan": {
+      "name": "WooCommerce Product Creation via Telegram",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "botToken": "{{your bot token}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Process User Input",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const chatId = items[0].json.message.chat.id;\nconst userInput = items[0].json.message.text;\n// Process user input and update data tables\nreturn [{ json: { chatId, userInput } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Update Data Tables",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.your-database.com/update",
+            "method": "POST",
+            "body": {
+              "chatId": "={{$json[\"chatId\"]}}",
+              "userInput": "={{$json[\"userInput\"]}}"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Approval Check",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"userInput\"]}}",
+                  "value2": "approved"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Product on WooCommerce",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-woocommerce-site.com/wp-json/wc/v3/products",
+            "method": "POST",
+            "authentication": "woocommerceApi",
+            "jsonParameters": true,
+            "body": {
+              "name": "={{$json[\"productName\"]}}",
+              "description": "={{$json[\"productDescription\"]}}",
+              "slug": "={{$json[\"productSlug\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Reset Data Tables",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.your-database.com/reset",
+            "method": "POST"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Prompt for New Product",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "Product created successfully! Would you like to create another product?"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 632,
+    "completion_tokens": 1015,
+    "total_tokens": 1647
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:24:37.865698"
+}

@@ -1,0 +1,89 @@
+{
+  "template_id": "10180",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow template to automate blog post creation with AI and WordPress.",
+    "workflowPlan": {
+      "name": "AI-Powered Blog Post Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "model": "text-davinci-003",
+              "prompt": "Generate a blog post about {{prompt}}",
+              "max_tokens": 500
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Publish to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "title": "AI Generated Post",
+              "content": "{{$json[\"choices\"][0][\"text\"]}}",
+              "status": "publish"
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_WORDPRESS_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 914,
+    "completion_tokens": 532,
+    "total_tokens": 1446
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:28:54.414401"
+}

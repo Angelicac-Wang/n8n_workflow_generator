@@ -1,0 +1,166 @@
+{
+  "template_id": "11458",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Photo to Professional Headshot Automation",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "chatId": "YOUR_TELEGRAM_USER_ID"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "manualTrigger",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "sanitize",
+          "label": "Sanitize Input",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { imageUrl: $json[\"message\"][\"photo\"][0][\"file_id\"] } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "fixImageUrl",
+          "label": "Fix Image URL",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "imageUrl",
+                  "value": "YOUR_IMAGE_URL"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "createImage",
+          "label": "Create Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/nano-banana-pro",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerParameters": [
+              {
+                "name": "Authorization",
+                "value": "Key YOURAPIKEY"
+              }
+            ],
+            "bodyParameters": [
+              {
+                "name": "imageUrl",
+                "value": "={{$json[\"imageUrl\"]}}"
+              }
+            ],
+            "options": {
+              "pollTimes": 10,
+              "pollInterval": 1000
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "uploadGoogleDrive",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{Date.now()}}-headshot.png",
+            "fileContent": "={{$json[\"data\"]}}",
+            "parentId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "uploadFTP",
+          "label": "Upload to FTP",
+          "nodeType": "n8n-nodes-base.ftp",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "path": "/public_html/images/",
+            "fileName": "={{Date.now()}}-headshot.png",
+            "fileContent": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "sanitize"
+        },
+        {
+          "from": "manualTrigger",
+          "to": "fixImageUrl"
+        },
+        {
+          "from": "sanitize",
+          "to": "createImage"
+        },
+        {
+          "from": "fixImageUrl",
+          "to": "createImage"
+        },
+        {
+          "from": "createImage",
+          "to": "uploadGoogleDrive"
+        },
+        {
+          "from": "createImage",
+          "to": "uploadFTP"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1439,
+    "completion_tokens": 970,
+    "total_tokens": 2409
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:50:22.512917"
+}

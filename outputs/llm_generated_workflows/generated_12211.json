@@ -1,0 +1,197 @@
+{
+  "template_id": "12211",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the AI Proposal Generator Engine.",
+    "workflowPlan": {
+      "name": "AI Proposal Generator Engine",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "proposal-form",
+            "responseMode": "onReceived",
+            "responseData": "default"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Proposal Content",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a proposal based on the following details: {{ $json }}",
+            "maxTokens": 1500
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Copy Slides Template",
+          "nodeType": "n8n-nodes-base.googleSlides",
+          "typeVersion": 1,
+          "params": {
+            "operation": "copy",
+            "fileId": "your-template-id",
+            "destinationFolderId": "your-generated-proposals-folder-id"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Email Draft",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate an email draft for the proposal: {{ $json }}",
+            "maxTokens": 500
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "{{ $node[\"Copy Slides Template\"].json[\"fileId\"] }}",
+                "{{ $node[\"Generate Email Draft\"].json[\"choices\"][0][\"text\"] }}",
+                "WAITING"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Status",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!C:C",
+            "filter": {
+              "field": "C",
+              "value": "READY"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Proposal",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "{{ $json[\"email\"] }}",
+            "subject": "Your Proposal",
+            "body": "{{ $node[\"Generate Email Draft\"].json[\"choices\"][0][\"text\"] }}",
+            "attachments": [
+              {
+                "fileId": "{{ $node[\"Copy Slides Template\"].json[\"fileId\"] }}",
+                "mimeType": "application/pdf"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Status to SENT",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!C:C",
+            "data": [
+              [
+                "SENT"
+              ]
+            ],
+            "filter": {
+              "field": "C",
+              "value": "READY"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1203,
+    "completion_tokens": 1197,
+    "total_tokens": 2400
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:19:57.003259"
+}

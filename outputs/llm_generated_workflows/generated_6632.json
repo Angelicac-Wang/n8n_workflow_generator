@@ -1,0 +1,232 @@
+{
+  "template_id": "6632",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates AI-powered responses across Instagram, Facebook, and WhatsApp using Meta's APIs.",
+    "workflowPlan": {
+      "name": "AI-Powered Social Media Response Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-webhook"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Instagram Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "instagram-webhook"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Facebook Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "facebook-webhook"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "4",
+          "label": "Message Processor",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Process message */ return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Travel Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://ai-travel-agent.api",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "message": "={{$json[\"message\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Ollama Chat Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://ollama-chat-model.api",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "message": "={{$json[\"message\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Response Router",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Route response */ return item; });"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Instagram Sender",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.instagram.com/send",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "recipient": "={{$json[\"recipient\"]}}",
+                "message": "={{$json[\"response\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Facebook Sender",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/send",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "recipient": "={{$json[\"recipient\"]}}",
+                "message": "={{$json[\"response\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Message (WhatsApp)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.whatsapp.com/send",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "recipient": "={{$json[\"recipient\"]}}",
+                "message": "={{$json[\"response\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "7",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1020,
+    "completion_tokens": 1372,
+    "total_tokens": 2392
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:29:47.675828"
+}

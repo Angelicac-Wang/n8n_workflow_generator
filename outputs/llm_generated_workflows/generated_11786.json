@@ -1,0 +1,195 @@
+{
+  "template_id": "11786",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Analytics Reporting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 23,
+                  "minute": 57
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Today's Data",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "params": {
+            "viewId": "YOUR_GOOGLE_ANALYTICS_VIEW_ID",
+            "metrics": "ga:users,ga:sessions,ga:pageviews",
+            "dateRange": {
+              "startDate": "today",
+              "endDate": "today"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Yesterday's Data",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "params": {
+            "viewId": "YOUR_GOOGLE_ANALYTICS_VIEW_ID",
+            "metrics": "ga:users,ga:sessions,ga:pageviews",
+            "dateRange": {
+              "startDate": "yesterday",
+              "endDate": "yesterday"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Combine Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Calculate Percent Changes",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const today = items[0].json;\nconst yesterday = items[1].json;\n\nconst percentChange = {\n  users: ((today.users - yesterday.users) / yesterday.users) * 100,\n  sessions: ((today.sessions - yesterday.sessions) / yesterday.sessions) * 100,\n  pageviews: ((today.pageviews - yesterday.pageviews) / yesterday.pageviews) * 100\n};\n\nreturn [{ json: percentChange }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate AI Summary",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "gpt-4-mini",
+            "prompt": "Generate a summary of the analytics data changes with trends and recommendations."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Daily Analytics Report",
+            "text": "AI Summary: {{$node[\"Generate AI Summary\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send WhatsApp",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "params": {
+            "to": "recipient-phone-number",
+            "message": "AI Summary: {{$node[\"Generate AI Summary\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Store Data in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "{{$node[\"Calculate Percent Changes\"].json[\"users\"]}}",
+                "{{$node[\"Calculate Percent Changes\"].json[\"sessions\"]}}",
+                "{{$node[\"Calculate Percent Changes\"].json[\"pageviews\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "5",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1204,
+    "completion_tokens": 1250,
+    "total_tokens": 2454
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:00:25.817260"
+}

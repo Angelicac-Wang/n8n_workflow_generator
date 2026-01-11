@@ -1,0 +1,202 @@
+{
+  "template_id": "4637",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow plan for automating social media content creation and publication.",
+    "workflowPlan": {
+      "name": "AI Social Media Content Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Post Ideas",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate social media post ideas based on brand tone."
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Select Best Idea",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"bestIdea\"]}}",
+                  "operation": "notEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Platform Posts",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Write tailored posts for Instagram, Facebook, X, and LinkedIn based on the selected idea."
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Visuals",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "dalle",
+            "prompt": "Create visuals for the social media posts."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to Cloudinary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload",
+            "method": "POST",
+            "body": {
+              "file": "={{$json[\"image\"]}}",
+              "upload_preset": "YOUR_UPLOAD_PRESET"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.socialmedia.com/publish",
+            "method": "POST",
+            "body": {
+              "platforms": [
+                "Instagram",
+                "Facebook",
+                "X",
+                "LinkedIn"
+              ],
+              "content": "={{$json[\"postContent\"]}}",
+              "image_url": "={{$json[\"cloudinaryUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "A1",
+            "data": "={{$json[\"logData\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Summary Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "Social Media Post Summary",
+            "text": "={{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 924,
+    "completion_tokens": 1216,
+    "total_tokens": 2140
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:11:29.193492"
+}

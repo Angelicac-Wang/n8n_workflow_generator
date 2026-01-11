@@ -1,0 +1,244 @@
+{
+  "template_id": "4767",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "VEO3 Video Generator Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "VEO3 Generator Form",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "veo3-generator",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Video Prompt Generator",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/claude4sonnet",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "input",
+                "value": "={{$json[\"body\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "anthropicApi"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create VEO3 Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/veo3/generate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "={{$node[\"Video Prompt Generator\"].json[\"output\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "falAiApi"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait 30 seconds",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "30"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check VEO3 Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/veo3/status",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "jobId",
+                "value": "={{$node[\"Create VEO3 Video\"].json[\"jobId\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "falAiApi"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Video completed?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$node[\"Check VEO3 Status\"].json[\"status\"]}}",
+                  "value2": "completed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Get VEO3 Video URL",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/veo3/video",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "jobId",
+                "value": "={{$node[\"Create VEO3 Video\"].json[\"jobId\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "falAiApi"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download VEO3 Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$node[\"Get VEO3 Video URL\"].json[\"videoUrl\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Save Video to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$node[\"Video Prompt Generator\"].json[\"title\"]}}.mp4",
+            "binaryData": true,
+            "binaryPropertyName": "data",
+            "parentId": "your-google-drive-folder-id"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Video Output",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "Video generated successfully! You can download it from: {{$node[\"Save Video to Google Drive\"].json[\"webViewLink\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1254,
+    "completion_tokens": 1542,
+    "total_tokens": 2796
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:13:13.410489"
+}

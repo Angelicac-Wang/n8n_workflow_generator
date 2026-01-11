@@ -1,0 +1,109 @@
+{
+  "template_id": "4875",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for an AI Customer Support Agent with Google Docs Knowledge using Telegram and OpenAI.",
+    "workflowPlan": {
+      "name": "AI Customer Support Agent",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "langchainAgent",
+          "label": "Langchain AI Agent",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Interpret the message and craft an answer using RAG techniques.",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "googleDocsTool",
+          "label": "Google Docs Tool",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "documentId": "={{$env.GOOGLE_DOC_ID}}",
+            "operation": "getContent"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "memoryBuffer",
+          "label": "Memory Buffer",
+          "nodeType": "n8n-nodes-base.memory",
+          "typeVersion": 1,
+          "params": {
+            "operation": "store",
+            "key": "chatHistory"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "telegramReply",
+          "label": "Telegram Reply",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$node[\"langchainAgent\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "googleDocsTool"
+        },
+        {
+          "from": "googleDocsTool",
+          "to": "langchainAgent"
+        },
+        {
+          "from": "langchainAgent",
+          "to": "memoryBuffer"
+        },
+        {
+          "from": "memoryBuffer",
+          "to": "telegramReply"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 755,
+    "completion_tokens": 678,
+    "total_tokens": 1433
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:14:07.231359"
+}

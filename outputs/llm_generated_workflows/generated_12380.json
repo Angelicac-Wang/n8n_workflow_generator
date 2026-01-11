@@ -1,0 +1,188 @@
+{
+  "template_id": "12380",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Meal Nutrition Tracker with LINE and Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "LINE Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "line-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"events\"][0][\"message\"][\"contentProvider\"][\"originalContentUrl\"]}}",
+            "responseFormat": "file",
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Meal with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "image": "={{$binary.data}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_GOOGLE_GEMINI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calculate Health Score",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { healthScore: Math.min(10, Math.max(1, Math.round((10 - $json[\"calories\"] / 100) + ($json[\"fiber\"] / 5)))) };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Append to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEETS_ID",
+            "range": "Sheet1",
+            "valueInputMode": "USER_ENTERED",
+            "keyRow": 1,
+            "data": [
+              [
+                "={{$now}}",
+                "={{$json[\"mealType\"]}}",
+                "={{$json[\"foodItems\"]}}",
+                "={{$json[\"calories\"]}}",
+                "={{$json[\"protein\"]}}",
+                "={{$json[\"carbs\"]}}",
+                "={{$json[\"fat\"]}}",
+                "={{$json[\"fiber\"]}}",
+                "={{$node[\"Calculate Health Score\"].json[\"healthScore\"]}}",
+                "={{$json[\"advice\"]}}",
+                "={{$json[\"imageUrl\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload Image to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"events\"][0][\"message\"][\"id\"]}}.jpg",
+            "parents": [
+              "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+            ],
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Reply with Nutritional Report",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.line.me/v2/bot/message/reply",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "replyToken": "={{$json[\"events\"][0][\"replyToken\"]}}",
+              "messages": [
+                {
+                  "type": "text",
+                  "text": "Your meal has been analyzed! Here are the details:\nCalories: {{$json[\"calories\"]}} kcal\nProtein: {{$json[\"protein\"]}} g\nCarbs: {{$json[\"carbs\"]}} g\nFat: {{$json[\"fat\"]}} g\nFiber: {{$json[\"fiber\"]}} g\nHealth Score: {{$node[\"Calculate Health Score\"].json[\"healthScore\"]}}\nAdvice: {{$json[\"advice\"]}}"
+                }
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_LINE_CHANNEL_ACCESS_TOKEN"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1222,
+    "completion_tokens": 1322,
+    "total_tokens": 2544
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:26:42.896225"
+}

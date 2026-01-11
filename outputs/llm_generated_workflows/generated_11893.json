@@ -1,0 +1,277 @@
+{
+  "template_id": "11893",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating keyword-level SEO research and content opportunity discovery.",
+    "workflowPlan": {
+      "name": "Automated SEO Research and Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive SEO Keyword Analysis Request",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "seo-keyword-analysis"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Keyword from Request Payload",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "keyword",
+                "value": "={{$json[\"body\"][\"keyword\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Run Google SERP Search for Keyword (India)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json[\"keyword\"]}}"
+              },
+              {
+                "name": "location",
+                "value": "India"
+              }
+            ],
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Normalize SERP Results into SEO Dataset",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "seoDataset",
+                "value": "={{$json[\"organic_results\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze Keyword SEO Opportunities Using AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "Analyze the following SEO dataset: {{$json[\"seoDataset\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Parse Market Analysis Output JSON",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return JSON.parse($json[\"body\"][\"choices\"][0][\"text\"]);"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Flatten AI Output for Downstream Use",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "flattenedOutput",
+                "value": "={{$json}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Map SEO Fields for UI & Reporting",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "uiFriendlyOutput",
+                "value": "={{$json[\"flattenedOutput\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Generate Client-Ready SEO Insights Email Using AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "Generate an email report for the following SEO insights: {{$json[\"uiFriendlyOutput\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send SEO Opportunity Report via Email",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "SEO Opportunity Report",
+            "html": "={{$json[\"body\"][\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        },
+        {
+          "id": "11",
+          "label": "Log SEO Analysis Result to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json[\"uiFriendlyOutput\"]}}"
+          },
+          "position": {
+            "x": 2200,
+            "y": 200
+          }
+        },
+        {
+          "id": "12",
+          "label": "Error Handler Trigger Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#alerts",
+            "text": "Workflow failed at node: {{$node[\"Error Trigger\"].parameter[\"nodeName\"]}} with error: {{$node[\"Error Trigger\"].parameter[\"errorMessage\"]}}"
+          },
+          "position": {
+            "x": 2400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "1",
+          "to": "12",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1166,
+    "completion_tokens": 1735,
+    "total_tokens": 2901
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:05:33.897776"
+}

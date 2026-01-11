@@ -1,0 +1,219 @@
+{
+  "template_id": "10104",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Meeting Request Scheduler",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "meeting-request",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Booking Details",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "name",
+                "value": "={{$json[\"body\"][\"name\"]}}"
+              },
+              {
+                "name": "email",
+                "value": "={{$json[\"body\"][\"email\"]}}"
+              },
+              {
+                "name": "preferredDateTime",
+                "value": "={{$json[\"body\"][\"preferredDateTime\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "calendarId": "primary",
+            "operation": "getAll",
+            "start": "={{$json[\"preferredDateTime\"]}}",
+            "end": "={{$json[\"preferredDateTime\"]}}",
+            "timeZone": "Asia/Tokyo"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Availability",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"events\"][0]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Calendar Event",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "calendarId": "primary",
+            "operation": "create",
+            "start": "={{$json[\"preferredDateTime\"]}}",
+            "end": "={{$json[\"preferredDateTime\"]}}",
+            "summary": "Meeting with {{$json[\"name\"]}}",
+            "description": "Scheduled via form submission",
+            "attendees": [
+              {
+                "email": "={{$json[\"email\"]}}"
+              }
+            ],
+            "timeZone": "Asia/Tokyo"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Zoom Meeting",
+          "nodeType": "n8n-nodes-base.zoom",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createMeeting",
+            "topic": "Meeting with {{$json[\"name\"]}}",
+            "startTime": "={{$json[\"preferredDateTime\"]}}",
+            "duration": 60,
+            "timezone": "Asia/Tokyo"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Confirmation Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Meeting Confirmation",
+            "text": "Your meeting is scheduled. Join via Zoom: {{$json[\"join_url\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Post Slack Summary",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "meetings",
+            "text": "Meeting scheduled with {{$json[\"name\"]}}. Zoom link: {{$json[\"join_url\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Alternative Time Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Please Pick Another Time",
+            "text": "The requested time is unavailable. Please choose another time."
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "4",
+          "to": "9",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 812,
+    "completion_tokens": 1365,
+    "total_tokens": 2177
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:26:44.481637"
+}

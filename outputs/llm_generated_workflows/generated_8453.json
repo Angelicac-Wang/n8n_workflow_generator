@@ -1,0 +1,232 @@
+{
+  "template_id": "8453",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Advanced ICT Trading Bot",
+      "nodes": [
+        {
+          "id": "webhook_telegram",
+          "label": "Extract ICT Signal Data",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "telegram-signal",
+            "responseMode": "onReceived",
+            "responseData": "default"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "session_validator",
+          "label": "ICT Session Validator",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function validateSession() { /* Logic to determine kill zone and session strength */ }"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "coinbase_market_data",
+          "label": "Get Coinbase Market Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.coinbase.com/v2/prices",
+            "method": "GET",
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "ai_analysis",
+          "label": "ICT AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "body": {
+              "prompt": "Analyze market with ICT methodology",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "parse_ai_analysis",
+          "label": "Parse ICT AI Analysis",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function parseAnalysis() { /* Logic to parse AI response */ }"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "quality_session_filter",
+          "label": "ICT Quality & Session Filter",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "all": [
+                {
+                  "value1": "{{ $json[\"confidenceScore\"] }}",
+                  "operation": "greaterThan",
+                  "value2": 60
+                },
+                {
+                  "value1": "{{ $json[\"sessionStrength\"] }}",
+                  "operation": "greaterThan",
+                  "value2": 0.5
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "execute_trade",
+          "label": "Execute ICT Trade",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.coinbase.com/v2/orders",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "body": {
+              "type": "market",
+              "side": "{{ $json[\"action\"] }}",
+              "product_id": "{{ $json[\"symbol\"] }}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "create_trading_record",
+          "label": "Create ICT Trading Record",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "databaseId": "={{ $env[\"NOTION_TRADING_DB_ID\"] }}",
+            "properties": {
+              "Trade": "{{ $json[\"symbol\"] }}",
+              "Action": "{{ $json[\"action\"] }}",
+              "Confidence": "{{ $json[\"confidenceScore\"] }}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "generate_notification",
+          "label": "Generate ICT Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $env[\"TELEGRAM_CHAT_ID\"] }}",
+            "text": "Trade executed: {{ $json[\"symbol\"] }} - {{ $json[\"action\"] }}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "log_rejected_signal",
+          "label": "Log ICT Rejected Signal",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "databaseId": "={{ $env[\"NOTION_REJECTED_DB_ID\"] }}",
+            "properties": {
+              "Signal": "{{ $json[\"symbol\"] }}",
+              "Reason": "Low confidence or session strength"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "webhook_telegram",
+          "to": "session_validator"
+        },
+        {
+          "from": "session_validator",
+          "to": "coinbase_market_data"
+        },
+        {
+          "from": "coinbase_market_data",
+          "to": "ai_analysis"
+        },
+        {
+          "from": "ai_analysis",
+          "to": "parse_ai_analysis"
+        },
+        {
+          "from": "parse_ai_analysis",
+          "to": "quality_session_filter"
+        },
+        {
+          "from": "quality_session_filter",
+          "to": "execute_trade",
+          "outputIndex": 1
+        },
+        {
+          "from": "quality_session_filter",
+          "to": "log_rejected_signal",
+          "outputIndex": 0
+        },
+        {
+          "from": "execute_trade",
+          "to": "create_trading_record"
+        },
+        {
+          "from": "execute_trade",
+          "to": "generate_notification"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1385,
+    "completion_tokens": 1513,
+    "total_tokens": 2898
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:34:52.316587"
+}

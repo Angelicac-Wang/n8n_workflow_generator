@@ -1,0 +1,174 @@
+{
+  "template_id": "10640",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Business Prospecting Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updates": [
+              "message"
+            ],
+            "credentials": {
+              "telegramApi": {
+                "apiToken": "YOUR_TELEGRAM_API_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Run Google Maps Scraper",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "google-maps-scraper",
+            "maxCrawledPlacesPerSearch": 10,
+            "credentials": {
+              "apifyApi": {
+                "apiToken": "YOUR_APIFY_API_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Remove Duplicates",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter((item, index, self) => self.findIndex(t => t.json.name === item.json.name) === index);"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Summarization",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate a concise business summary for the following data: {{JSON.stringify($json)}}",
+            "credentials": {
+              "openAiApi": {
+                "apiKey": "YOUR_OPENAI_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Email Extraction",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Extract professional contact emails from the following website data: {{JSON.stringify($json)}}",
+            "credentials": {
+              "openAiApi": {
+                "apiKey": "YOUR_OPENAI_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Sheets Integration",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "credentials": {
+              "googleApi": {
+                "accessToken": "YOUR_GOOGLE_ACCESS_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "All businesses have been processed and added to Google Sheets.",
+            "credentials": {
+              "telegramApi": {
+                "apiToken": "YOUR_TELEGRAM_API_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1573,
+    "completion_tokens": 1022,
+    "total_tokens": 2595
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:35:42.242303"
+}

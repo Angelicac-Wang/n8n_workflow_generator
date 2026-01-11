@@ -1,0 +1,106 @@
+{
+  "template_id": "2652",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow will backup your n8n workflows to GitHub.",
+    "workflowPlan": {
+      "name": "Backup Workflows to GitHub",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get Workflows",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://localhost:5678/rest/workflows",
+            "method": "GET",
+            "authentication": "none"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Loop Over Workflows",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check File on GitHub",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.github.com/repos/your-username/your-repo/contents/{{ $json[\"name\"] }}.json",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create or Update File on GitHub",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.github.com/repos/your-username/your-repo/contents/{{ $json[\"name\"] }}.json",
+            "method": "PUT",
+            "authentication": "oAuth2",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "message",
+                  "value": "Backup workflow"
+                },
+                {
+                  "name": "content",
+                  "value": "{{ Buffer.from(JSON.stringify($json)).toString('base64') }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 637,
+    "completion_tokens": 632,
+    "total_tokens": 1269
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:41:39.364806"
+}

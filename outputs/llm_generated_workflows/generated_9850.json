@@ -1,0 +1,156 @@
+{
+  "template_id": "9850",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Booking Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Intent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const message = items[0].json.message.text;\n// Parse message to extract intent, time, location, etc.\n// This is a placeholder for actual NLP parsing logic\nreturn [{json: {intent: 'viewing', time: '17:00-20:00', location: 'Eixample', details: '2-bed'}}];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAllEvents",
+            "calendar": "={{$credentials.googleCalendar.calendarId}}",
+            "timeMin": "={{$json.time.split('-')[0]}}",
+            "timeMax": "={{$json.time.split('-')[1]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Calling",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.callingprovider.com/makeCall",
+            "method": "POST",
+            "body": {
+              "to": "agent/restaurant number",
+              "message": "Schedule viewing or reservation",
+              "language": "en"
+            },
+            "json": true,
+            "authentication": "={{$credentials.callingApi}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Parse Call Result",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const callResult = items[0].json;\n// Parse call result to extract confirmation details\nreturn [{json: {status: 'confirmed', time: '18:00', address: '123 Main St', contact: 'Agent Name'}}];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Summary",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json.chatId}}",
+            "text": "Booking confirmed at {{$json.time}} at {{$json.address}} with {{$json.contact}}.",
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Add to Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEvent",
+            "calendar": "={{$credentials.googleCalendar.calendarId}}",
+            "start": "={{$json.time}}",
+            "end": "={{new Date(new Date($json.time).getTime() + 3600000).toISOString()}}",
+            "summary": "Viewing/Reservation",
+            "location": "={{$json.address}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1353,
+    "completion_tokens": 1075,
+    "total_tokens": 2428
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:42:39.254986"
+}

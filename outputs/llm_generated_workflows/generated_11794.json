@@ -1,0 +1,264 @@
+{
+  "template_id": "11794",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Insurance Speed-to-Lead Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Lead Ingestion",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "lead-ingestion",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseType": "json",
+              "responsePropertyName": "data"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Airtable Record",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "fields": {
+              "Name": "={{$json[\"body\"][\"name\"]}}",
+              "Email": "={{$json[\"body\"][\"email\"]}}",
+              "Phone number": "={{$json[\"body\"][\"phoneNumber\"]}}",
+              "Status": "New"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Trigger Vapi Call",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.vapi.ai/call",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "assistantId": "yourAssistantId",
+              "phoneNumberId": "yourPhoneNumberId",
+              "to": "={{$json[\"body\"][\"phoneNumber\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Vapi Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "vapi-webhook",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseType": "json",
+              "responsePropertyName": "data"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Is Qualified?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"successEvaluation\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Insurance Blueprint",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate an insurance proposal based on the following conversation: {{$json[\"callTranscript\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Proposal Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"body\"][\"email\"]}}",
+            "subject": "Your Personalized Insurance Proposal",
+            "text": "={{$node[\"Generate Insurance Blueprint\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Airtable Record - Qualified",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "id": "={{$json[\"recordId\"]}}",
+            "fields": {
+              "Status": "Qualified",
+              "Call summary": "={{$json[\"callTranscript\"]}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Slack Alert - Email Failed",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "yourChannelId",
+            "text": "Failed to send proposal email. Manual follow-up required. Proposal: {{$node[\"Generate Insurance Blueprint\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Slack Alert - Unqualified",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "yourChannelId",
+            "text": "Lead disqualified. Reason: {{$json[\"disqualificationReason\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "11",
+          "label": "Update Airtable Record - Unqualified",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "id": "={{$json[\"recordId\"]}}",
+            "fields": {
+              "Status": "Unqualified",
+              "Call summary": "={{$json[\"callTranscript\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "10",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1346,
+    "completion_tokens": 1712,
+    "total_tokens": 3058
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:00:51.963435"
+}

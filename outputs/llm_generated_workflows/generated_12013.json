@@ -1,0 +1,131 @@
+{
+  "template_id": "12013",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Purchase Bill Processing to QuickBooks",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Bill Upload",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "upload-bills",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "PDF Extractor",
+          "nodeType": "n8n-nodes-base.pdfExtractor",
+          "typeVersion": 1,
+          "params": {
+            "dataPropertyName": "pdfData"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Invoice Parser",
+          "nodeType": "n8n-nodes-base.aiInvoiceParser",
+          "typeVersion": 1,
+          "params": {
+            "inputData": "={{$json[\"pdfData\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "QuickBooks Item & Vendor Check",
+          "nodeType": "n8n-nodes-base.quickBooks",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "itemsAndVendors"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Missing Items/Vendors",
+          "nodeType": "n8n-nodes-base.quickBooks",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "resource": "itemOrVendor",
+            "data": "={{$json[\"missingItemsOrVendors\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create QuickBooks Bill",
+          "nodeType": "n8n-nodes-base.quickBooks",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "resource": "bill",
+            "data": "={{$json[\"billData\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1088,
+    "completion_tokens": 738,
+    "total_tokens": 1826
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:10:16.821034"
+}

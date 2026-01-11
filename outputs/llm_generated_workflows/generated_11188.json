@@ -1,0 +1,203 @@
+{
+  "template_id": "11188",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating appointment booking via WhatsApp.",
+    "workflowPlan": {
+      "name": "WhatsApp Appointment Automation",
+      "nodes": [
+        {
+          "id": "webhookNode",
+          "label": "WhatsApp Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp-webhook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "messageTypeDetection",
+          "label": "Detect Message Type",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"messageType\"]}}",
+                  "operation": "equal",
+                  "value2": "audio"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "whisperNode",
+          "label": "Whisper Audio Transcription",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/audio/transcriptions",
+            "method": "POST",
+            "body": {
+              "audio": "={{$json[\"audioUrl\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "gpt4VisionNode",
+          "label": "GPT-4 Vision Image Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/analyze",
+            "method": "POST",
+            "body": {
+              "image": "={{$json[\"imageUrl\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "aiAgentNode",
+          "label": "AI Agent for Appointment Management",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "method": "POST",
+            "body": {
+              "model": "gpt-4",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are an AI assistant for managing appointments."
+                },
+                {
+                  "role": "user",
+                  "content": "={{$json[\"messageContent\"]}}"
+                }
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "calComNode",
+          "label": "Cal.com Appointment Booking",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.cal.com/v1/appointments",
+            "method": "POST",
+            "body": {
+              "eventType": "={{$json[\"eventType\"]}}",
+              "startTime": "={{$json[\"startTime\"]}}",
+              "endTime": "={{$json[\"endTime\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_CALCOM_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "responseNode",
+          "label": "Send WhatsApp Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/me/messages",
+            "method": "POST",
+            "body": {
+              "recipient": {
+                "id": "={{$json[\"senderId\"]}}"
+              },
+              "message": {
+                "text": "*Your appointment has been successfully booked!*"
+              }
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_FACEBOOK_ACCESS_TOKEN"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "webhookNode",
+          "to": "messageTypeDetection"
+        },
+        {
+          "from": "messageTypeDetection",
+          "to": "whisperNode",
+          "outputIndex": 0
+        },
+        {
+          "from": "messageTypeDetection",
+          "to": "gpt4VisionNode",
+          "outputIndex": 1
+        },
+        {
+          "from": "whisperNode",
+          "to": "aiAgentNode"
+        },
+        {
+          "from": "gpt4VisionNode",
+          "to": "aiAgentNode"
+        },
+        {
+          "from": "aiAgentNode",
+          "to": "calComNode"
+        },
+        {
+          "from": "calComNode",
+          "to": "responseNode"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1075,
+    "completion_tokens": 1261,
+    "total_tokens": 2336
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:44:47.863400"
+}

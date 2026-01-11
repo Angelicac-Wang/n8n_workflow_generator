@@ -1,0 +1,126 @@
+{
+  "template_id": "5405",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Financial News Summary",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Webpage News",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.ft.com/",
+            "method": "GET",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Delay to Ensure Page Load",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": 5000
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract News Headlines & Clean Extracted Data",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$node[\"Fetch Webpage News\"].json[\"body\"]}}",
+            "cssSelector": ".js-headline-text",
+            "returnArray": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "LLM Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Summarize the following financial headlines into a short investor-friendly email: {{$node[\"Extract News Headlines & Clean Extracted Data\"].json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Email Daily Financial Summary",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "investor@example.com",
+            "subject": "Daily Financial News Summary",
+            "text": "={{$node[\"LLM Chat Model\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 784,
+    "completion_tokens": 761,
+    "total_tokens": 1545
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:19:56.114081"
+}

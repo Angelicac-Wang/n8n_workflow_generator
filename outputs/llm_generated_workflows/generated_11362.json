@@ -1,0 +1,131 @@
+{
+  "template_id": "11362",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "n8n Consultant Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch New Ideas",
+          "nodeType": "n8n-nodes-base.googleTasks",
+          "typeVersion": 1,
+          "params": {
+            "taskList": "n8n Ideas",
+            "polling": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Design",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Analyze the idea and generate a structured plan",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Slack Review & Approve",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your-slack-channel-id",
+            "message": "Here is the AI-generated plan. Approve or Regenerate?",
+            "buttons": [
+              {
+                "name": "Approve",
+                "value": "approve"
+              },
+              {
+                "name": "Regenerate",
+                "value": "regenerate"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Archive to Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "spreadsheetId": "your-spreadsheet-id",
+            "sheetName": "Sheet1",
+            "data": [
+              {
+                "Date Added": "{{ $now }}",
+                "Idea Title": "{{ $json['ideaTitle'] }}",
+                "Status": "Approved",
+                "Recommended Nodes": "{{ $json['nodes'] }}",
+                "Key Challenges": "{{ $json['challenges'] }}",
+                "Improvement Ideas": "{{ $json['improvementIdeas'] }}",
+                "Alternatives": "{{ $json['alternatives'] }}",
+                "Source Task ID": "{{ $json['taskId'] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Mark Task Done",
+          "nodeType": "n8n-nodes-base.googleTasks",
+          "typeVersion": 1,
+          "params": {
+            "taskList": "n8n Ideas",
+            "taskId": "{{ $json['taskId'] }}",
+            "status": "completed"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1011,
+    "completion_tokens": 774,
+    "total_tokens": 1785
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:48:14.125782"
+}

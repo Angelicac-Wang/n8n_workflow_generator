@@ -1,0 +1,154 @@
+{
+  "template_id": "11994",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Hashtag Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Caption Input",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "caption",
+                  "value": "Enter your Instagram caption here"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Suggestions",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "body": {
+              "prompt": "Generate 10 relevant hashtags for: {{$json[\"caption\"]}}",
+              "max_tokens": 50
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Hashtag IDs",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/ig_hashtag_search",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "queryParameters": [
+              {
+                "name": "user_id",
+                "value": "YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID"
+              },
+              {
+                "name": "q",
+                "value": "{{$json[\"hashtags\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get Hashtag Metrics",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{hashtag_id}/recent_media",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "queryParameters": [
+              {
+                "name": "user_id",
+                "value": "YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Aggregate & Rank Candidates",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const hashtags = $json[\"hashtags\"];\n// Sort and rank logic here\nreturn { hashtags: hashtags.slice(0, 5) };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Output Hashtags",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "Top 5 Hashtags: {{$json[\"hashtags\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1064,
+    "completion_tokens": 913,
+    "total_tokens": 1977
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:08:50.505740"
+}

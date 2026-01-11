@@ -1,0 +1,160 @@
+{
+  "template_id": "11638",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Batch Video Publishing Prep",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Videos from Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "mimeType='video/mp4'",
+            "folderId": "={{$json[\"folderId\"]}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Build Publishing Calendar",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function buildCalendar(videos, startDate, cadence, timezone, publishHour) {\n  // Logic to build a publishing calendar\n  return videos.map((video, index) => {\n    const scheduleDate = new Date(startDate);\n    scheduleDate.setDate(scheduleDate.getDate() + index * cadence);\n    scheduleDate.setHours(publishHour);\n    return {\n      ...video,\n      scheduleDate: scheduleDate.toISOString(),\n      scheduleDateTime: scheduleDate.toLocaleString('en-US', { timeZone: timezone })\n    };\n  });\n}\n\nreturn buildCalendar(items, $json[\"startDate\"], $json[\"cadence\"], $json[\"timezone\"], $json[\"publishHour\"]);"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Video with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/analyze",
+            "method": "POST",
+            "body": {
+              "videoUrl": "={{$json[\"videoUrl\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "credentials": "Gemini API"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Social Copy",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function generateCopy(analysis) {\n  // Logic to generate platform-specific copy\n  const copy = {};\n  // Example logic\n  copy.tiktok = `TikTok: ${analysis.keyTopics}`;\n  copy.instagram = `Instagram: ${analysis.keyTopics}`;\n  copy.youtube = `YouTube: ${analysis.keyTopics}`;\n  return copy;\n}\n\nreturn generateCopy($json[\"analysis\"]);"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$json[\"sheetId\"]}}",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Auto-Publish Approved Rows",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "={{$json[\"sheetId\"]}}",
+            "range": "Sheet1!A1:Z",
+            "filter": {
+              "field": "Status",
+              "value": "approved"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Schedule Video to Platforms",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://upload-post.com/schedule",
+            "method": "POST",
+            "body": {
+              "videoId": "={{$json[\"videoId\"]}}",
+              "platforms": "={{$json[\"platforms\"]}}",
+              "scheduleDateTime": "={{$json[\"scheduleDateTime\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "credentials": "Upload-Post API"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1351,
+    "completion_tokens": 1220,
+    "total_tokens": 2571
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:56:30.062990"
+}

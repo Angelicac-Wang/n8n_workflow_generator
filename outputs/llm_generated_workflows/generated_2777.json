@@ -1,0 +1,130 @@
+{
+  "template_id": "2777",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow demonstrates multiple integration methods with DeepSeek's AI models.",
+    "workflowPlan": {
+      "name": "DeepSeek AI Integration",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "deepseek",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "DeepSeek Chat V3 API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.deepseek.com/chat/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            },
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "body": {
+              "model": "DeepSeek-Chat-V3",
+              "prompt": "Hello, how can I assist you today?"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "DeepSeek-R1 Local",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://localhost:5000/deepseek-r1/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "model": "DeepSeek-R1",
+              "prompt": "Advanced reasoning request"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Set Memory Buffer",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "memory",
+                  "value": "Persistent context for conversation"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Result",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "Here is the response from DeepSeek AI."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 687,
+    "completion_tokens": 728,
+    "total_tokens": 1415
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:44:45.684407"
+}

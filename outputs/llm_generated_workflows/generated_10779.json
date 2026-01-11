@@ -1,0 +1,169 @@
+{
+  "template_id": "10779",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for monitoring and debugging n8n workflows using Claude Desktop and MCP Server.",
+    "workflowPlan": {
+      "name": "n8n Workflow Monitoring with Claude",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "mcp-monitor",
+            "httpMethod": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Switch Action",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "action",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "get_active_workflows"
+              },
+              {
+                "operation": "equal",
+                "value": "get_workflow_executions"
+              },
+              {
+                "operation": "equal",
+                "value": "get_execution_details"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Active Workflows",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://<YOUR_N8N_INSTANCE>/rest/workflows",
+            "method": "GET",
+            "authentication": "none"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get Workflow Executions",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://<YOUR_N8N_INSTANCE>/rest/executions",
+            "method": "GET",
+            "authentication": "none"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Get Execution Details",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://<YOUR_N8N_INSTANCE>/rest/executions/{{executionId}}",
+            "method": "GET",
+            "authentication": "none"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Calculate KPIs",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { successRate: 95, failureRate: 5, alerts: [] } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond with JSON",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 2
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1514,
+    "completion_tokens": 979,
+    "total_tokens": 2493
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:36:37.775043"
+}

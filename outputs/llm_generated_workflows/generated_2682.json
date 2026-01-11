@@ -1,0 +1,113 @@
+{
+  "template_id": "2682",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan to transform queries into structured content using Perplexity AI and GPT-4.",
+    "workflowPlan": {
+      "name": "Intelligent Content Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "query-submission",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Perplexity AI Research",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.perplexity.ai/research",
+            "method": "POST",
+            "bodyParameters": {
+              "query": "={{$json[\"query\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "GPT-4 Content Structuring",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "bodyParameters": {
+              "prompt": "={{$node[\"Perplexity AI Research\"].json[\"data\"]}}",
+              "max_tokens": 1500
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTML Transformation",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { htmlContent: `<html><head><title>Generated Content</title></head><body>${$json[\"text\"]}</body></html>` };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "text": "New content has been generated and is ready for review."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 785,
+    "completion_tokens": 694,
+    "total_tokens": 1479
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:42:42.947883"
+}

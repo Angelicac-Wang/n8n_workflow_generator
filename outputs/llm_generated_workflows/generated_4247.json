@@ -1,0 +1,208 @@
+{
+  "template_id": "4247",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Invoice Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Read Invoice PDF",
+          "nodeType": "n8n-nodes-base.readPDF",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{$json[\"filePath\"]}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Text with OCR",
+          "nodeType": "n8n-nodes-base.ocr",
+          "typeVersion": 1,
+          "params": {
+            "image": "={{$node[\"1\"].output}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Text with AI",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{$node[\"2\"].output}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Structure JSON",
+          "nodeType": "n8n-nodes-base.jsonTransform",
+          "typeVersion": 1,
+          "params": {
+            "jsonInput": "={{$node[\"3\"].output}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Split Item-wise Data",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1,
+            "input": "={{$node[\"4\"].output}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Unique Keys",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "uniqueKey": "={{$json[\"itemId\"]}}_{{$json[\"timestamp\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$node[\"6\"].output}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Fetch Master Item Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourcompany.com/masterdata",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Validate Item Name & Cost",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "all": [
+                {
+                  "value1": "={{$node[\"5\"].output[\"itemName\"]}}",
+                  "operation": "equal",
+                  "value2": "={{$node[\"8\"].output[\"itemName\"]}}"
+                },
+                {
+                  "value1": "={{$node[\"5\"].output[\"itemCost\"]}}",
+                  "operation": "equal",
+                  "value2": "={{$node[\"8\"].output[\"itemCost\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update Results Per Item",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "validationStatus": "={{$node[\"9\"].output ? 'Valid' : 'Invalid'}}"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 781,
+    "completion_tokens": 1268,
+    "total_tokens": 2049
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:08:08.145138"
+}

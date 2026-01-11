@@ -1,0 +1,128 @@
+{
+  "template_id": "5993",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for building a RAG pipeline with n8n.",
+    "workflowPlan": {
+      "name": "RAG Pipeline for n8n Documentation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start Indexing",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Official n8n Documentation",
+          "nodeType": "n8n-nodes-base.supabase",
+          "params": {
+            "operation": "scrapeDocumentation",
+            "documentationUrl": "https://docs.n8n.io"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gemini Chunk Embedding",
+          "nodeType": "n8n-nodes-base.gemini",
+          "params": {
+            "operation": "createEmbedding",
+            "input": "={{$json[\"chunks\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Your Supabase Vector Store",
+          "nodeType": "n8n-nodes-base.supabase",
+          "params": {
+            "operation": "storeEmbedding",
+            "embedding": "={{$json[\"embedding\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "RAG Chatbot",
+          "nodeType": "n8n-nodes-base.webhook",
+          "params": {
+            "httpMethod": "POST",
+            "path": "rag-chatbot"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Gemini Query Embedding",
+          "nodeType": "n8n-nodes-base.gemini",
+          "params": {
+            "operation": "createQueryEmbedding",
+            "input": "={{$json[\"query\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Gemini 2.5 Flash",
+          "nodeType": "n8n-nodes-base.gemini",
+          "params": {
+            "operation": "generateAnswer",
+            "context": "={{$json[\"relevantChunks\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1244,
+    "completion_tokens": 711,
+    "total_tokens": 1955
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:27:52.283569"
+}

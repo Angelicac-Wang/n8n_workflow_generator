@@ -1,0 +1,146 @@
+{
+  "template_id": "2137",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to send multi-step email campaigns using n8n, Gmail, and Google Sheets.",
+    "workflowPlan": {
+      "name": "Email Campaign Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Read Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Email Sequence",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "emailSequence",
+                  "value": [
+                    {
+                      "day": 0,
+                      "message": "Hi, {{name}}, nice to meet you at the conference. Was wondering whether {{company}} would be interested in a quick call about X?"
+                    },
+                    {
+                      "day": 3,
+                      "message": "Hi, {{name}}, just wanted to check in on this. Let me know if there's any interest!"
+                    },
+                    {
+                      "day": 7,
+                      "message": "{{name}}, just wanted to give this one last try"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Follow-up",
+            "body": "={{$json[\"message\"]}}",
+            "additionalFields": {
+              "threadId": "={{$json[\"threadId\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Replies",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "filters": {
+              "q": "label:unread"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Filter Weekends",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "dateTime": [
+                {
+                  "value1": "={{new Date().getDay()}}",
+                  "operation": "notEqual",
+                  "value2": 6
+                },
+                {
+                  "value1": "={{new Date().getDay()}}",
+                  "operation": "notEqual",
+                  "value2": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 838,
+    "completion_tokens": 838,
+    "total_tokens": 1676
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:31:51.377111"
+}

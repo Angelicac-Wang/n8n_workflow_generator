@@ -1,0 +1,156 @@
+{
+  "template_id": "12441",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates the extraction and classification of FAQs using SE Ranking and OpenAI.",
+    "workflowPlan": {
+      "name": "AI Search FAQ Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch AI Search Prompts",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.seranking.com/v1/ai-search-prompts",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "headers": {
+              "Authorization": "Token YOUR_SE_RANKING_API_KEY"
+            },
+            "queryParameters": {
+              "domain": "example.com",
+              "searchEngine": "AI",
+              "region": "us",
+              "limit": 100
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Questions and Answers",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "questions",
+                "value": "={{$json['data'].map(item => item.question)}}"
+              },
+              {
+                "name": "answers",
+                "value": "={{$json['data'].map(item => item.answer)}}"
+              },
+              {
+                "name": "links",
+                "value": "={{$json['data'].map(item => item.link)}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Classify Intent with OpenAI",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/classifications",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            },
+            "body": {
+              "model": "gpt-4.1-mini",
+              "query": "={{$json['questions']}}",
+              "examples": [
+                [
+                  "How to reset password?",
+                  "HOW_TO"
+                ],
+                [
+                  "What is AI?",
+                  "DEFINITION"
+                ]
+              ],
+              "labels": [
+                "HOW_TO",
+                "DEFINITION",
+                "PRICING"
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Aggregate and Export",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "faqDataset",
+                "value": "={{ { questions: $json['questions'], answers: $json['answers'], links: $json['links'], intents: $json['data'].map(item => item.intent) } }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Write to File",
+          "nodeType": "writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "/data/faq_dataset.json",
+            "data": "={{$json['faqDataset']}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1263,
+    "completion_tokens": 871,
+    "total_tokens": 2134
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:28:35.381058"
+}

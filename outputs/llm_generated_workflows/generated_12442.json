@@ -1,0 +1,130 @@
+{
+  "template_id": "12442",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Brand Intelligence Analysis with SE Ranking",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "brand-intelligence",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch AI Search Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.seranking.com/ai-search",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "queryParameters": [
+              {
+                "name": "brand",
+                "value": "={{$json[\"brandName\"]}}"
+              },
+              {
+                "name": "engine",
+                "value": "={{$json[\"aiEngine\"]}}"
+              },
+              {
+                "name": "region",
+                "value": "={{$json[\"region\"]}}"
+              },
+              {
+                "name": "sort",
+                "value": "={{$json[\"sort\"]}}"
+              },
+              {
+                "name": "limit",
+                "value": "={{$json[\"limit\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Normalize Data",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const { prompts, answers, citations } = item.json;\n  return {\n    json: {\n      prompt: prompts,\n      answer: answers,\n      references: citations\n    }\n  };\n});"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Merge Data",
+          "nodeType": "merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Export JSON",
+          "nodeType": "writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "/data/brand_intelligence.json",
+            "dataPropertyName": "data",
+            "options": {
+              "overwrite": true
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1287,
+    "completion_tokens": 723,
+    "total_tokens": 2010
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:28:42.136135"
+}

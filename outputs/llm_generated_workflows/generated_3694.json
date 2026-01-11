@@ -1,0 +1,166 @@
+{
+  "template_id": "3694",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Healthcare Clinic Assistant with WhatsApp and Telegram Integration",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp-webhook",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Telegram Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "telegram-webhook",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process WhatsApp Message",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const messageType = getMessageType($json); return { messageType };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Telegram Command",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const command = getTelegramCommand($json); return { command };"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Media Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/media",
+            "method": "POST",
+            "body": {
+              "content": "={{$json[\"messageType\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Calendar Appointment",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "calendarId": "={{$env[\"seu_calendario\"]}}",
+            "timeMin": "={{new Date().toISOString()}}",
+            "timeMax": "={{new Date(Date.now() + 24*60*60*1000).toISOString()}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Google Tasks Management",
+          "nodeType": "n8n-nodes-base.googleTasks",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "tasklist": "={{$env[\"tasklist_id\"]}}",
+            "title": "New Task from Telegram"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send WhatsApp Confirmation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.evolution.com/send",
+            "method": "POST",
+            "body": {
+              "to": "={{$env[\"nmero_whatsapp\"]}}",
+              "message": "Your appointment is confirmed for tomorrow."
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1618,
+    "completion_tokens": 1022,
+    "total_tokens": 2640
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:02:08.147173"
+}

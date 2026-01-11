@@ -1,0 +1,204 @@
+{
+  "template_id": "11913",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Shipment Validation and Documentation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:F",
+            "triggerOn": "newRow"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Shipment Validation",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Validate the following shipment details: {{JSON.stringify($json)}}",
+            "maxTokens": 100
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Validation Result",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"valid\"]}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Mismatch Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"shipperEmail\"]}}",
+            "subject": "Shipment Mismatch Detected",
+            "body": "There is a mismatch in your shipment details: {{$json[\"reason\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Google Sheets Mismatch",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!G:G",
+            "valueInputOption": "USER_ENTERED",
+            "values": [
+              [
+                "Mismatch_Details"
+              ]
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate PDF",
+          "nodeType": "n8n-nodes-base.convertApi",
+          "typeVersion": 1,
+          "params": {
+            "html": "<html><body><h1>Shipment Report</h1><p>{{JSON.stringify($json)}}</p></body></html>",
+            "outputFormat": "pdf"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send PDF Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"shipperEmail\"]}}, {{$json[\"receiverEmail\"]}}",
+            "subject": "Shipment Document",
+            "body": "Please find attached the shipment document.",
+            "attachments": "={{$node[\"Generate PDF\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "Shipment_{{$json[\"shipmentId\"]}}.pdf",
+            "binaryData": "={{$node[\"Generate PDF\"].binary[\"data\"]}}",
+            "folderId": "your_google_drive_folder_id"
+          },
+          "position": {
+            "x": 1200,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Google Sheets Success",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!G:G",
+            "valueInputOption": "USER_ENTERED",
+            "values": [
+              [
+                "shipment_pdf_dispatch"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1265,
+    "completion_tokens": 1264,
+    "total_tokens": 2529
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:06:20.252923"
+}

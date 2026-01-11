@@ -1,0 +1,164 @@
+{
+  "template_id": "11575",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Dream Visualization and Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updates": [
+              "message"
+            ],
+            "credentials": {
+              "telegramApi": "YOUR_TELEGRAM_CREDENTIAL"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Dream Command",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const input = $json[\"message\"][\"text\"];\nconst styles = ['cinematic', 'ghibli', 'surreal', 'vintage', 'horror', 'abstract', 'watercolor', 'cyberpunk'];\nlet style = 'cinematic';\nlet dreamText = input;\nstyles.forEach(s => {\n  if (input.startsWith(`/dream ${s}`)) {\n    style = s;\n    dreamText = input.replace(`/dream ${s}`, '').trim();\n  }\n});\nif (input.startsWith('/dream ')) {\n  dreamText = input.replace('/dream', '').trim();\n}\nreturn [{ json: { style, dreamText } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Dream Analyzer Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "dream": "={{$json[\"dreamText\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENROUTER_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/veo3",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "style": "={{$json[\"style\"]}}",
+              "text": "={{$json[\"dreamText\"]}}"
+            },
+            "headers": {
+              "Authorization": "Key YOUR_FAL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A:G",
+            "data": [
+              [
+                "={{$now}}",
+                "={{$json[\"message\"][\"from\"][\"username\"]}}",
+                "={{$json[\"style\"]}}",
+                "={{$json[\"dreamText\"]}}",
+                "={{$json[\"theme\"]}}",
+                "={{$json[\"emotion\"]}}",
+                "={{$json[\"type\"]}}",
+                "={{$json[\"meaning\"]}}",
+                "={{$json[\"videoUrl\"]}}"
+              ]
+            ],
+            "credentials": {
+              "googleApi": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Video to User",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Here is your dream video and analysis:\nVideo: {{$json[\"videoUrl\"]}}\nAnalysis: {{$json[\"analysis\"]}}",
+            "credentials": {
+              "telegramApi": "YOUR_TELEGRAM_CREDENTIAL"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1230,
+    "completion_tokens": 1161,
+    "total_tokens": 2391
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:53:27.300439"
+}

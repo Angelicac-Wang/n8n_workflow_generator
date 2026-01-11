@@ -1,0 +1,114 @@
+{
+  "template_id": "2324",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to perform account research using AI and SerpAPI.",
+    "workflowPlan": {
+      "name": "AI Account Research",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "account-research"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Prompt",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { json: { prompt: `Research the following company: ${items[0].json.companyName}` } };"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "SerpAPI Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json[\"prompt\"]}}"
+              },
+              {
+                "name": "api_key",
+                "value": "YOUR_SERPAPI_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Structured Output Parser",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const output = { domain: '', linkedinUrl: '', cheapestPlan: '', hasFreeTrial: false, hasEnterprisePlan: false, hasAPI: false, market: '' }; // Parse the response here\nreturn { json: output };"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Data",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 730,
+    "completion_tokens": 675,
+    "total_tokens": 1405
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:34:15.138173"
+}

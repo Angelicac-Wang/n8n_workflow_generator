@@ -1,0 +1,154 @@
+{
+  "template_id": "10664",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to organize your Gmail inbox using AI.",
+    "workflowPlan": {
+      "name": "AI-Powered Gmail Organizer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "newEmail"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Classifier",
+          "nodeType": "n8n-nodes-base.aiClassifier",
+          "typeVersion": 1,
+          "params": {
+            "model": "Gemini",
+            "input": "={{$json[\"body\"]}}",
+            "previousConversations": "={{$json[\"threadId\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Label Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "addLabel",
+            "label": "={{$node[\"AI Classifier\"].json[\"label\"]}}",
+            "messageId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Smart Rules",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$node[\"AI Classifier\"].json[\"actionable\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Draft Reply",
+          "nodeType": "n8n-nodes-base.aiDraft",
+          "typeVersion": 1,
+          "params": {
+            "model": "Gemini",
+            "prompt": "Draft a professional reply to this email.",
+            "input": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Draft",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createDraft",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "={{$json[\"subject\"]}}",
+            "body": "={{$node[\"AI Draft Reply\"].json[\"draft\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Check Calendar",
+          "nodeType": "n8n-nodes-base.checkCalendar",
+          "typeVersion": 1,
+          "params": {
+            "suggestTimeSlots": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 720,
+    "completion_tokens": 922,
+    "total_tokens": 1642
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:36:15.323297"
+}

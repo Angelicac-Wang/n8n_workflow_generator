@@ -1,0 +1,146 @@
+{
+  "template_id": "4400",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "PDF Processing and RAG with Mistral, Qdrant, and Gemini",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Search PDFs",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Mistral OCR",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.mistral.com/ocr",
+            "method": "POST",
+            "body": {
+              "file": "={{$json[\"fileId\"]}}"
+            },
+            "authentication": "mistralApi"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Token Splitter",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function splitText(text) { /* Your splitting logic */ } return splitText($json[\"text\"]);"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Embeddings",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/embeddings",
+            "method": "POST",
+            "body": {
+              "input": "={{$json[\"chunk\"]}}"
+            },
+            "authentication": "openAiApi"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Qdrant",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "QDRANTURL/collections/COLLECTION/points",
+            "method": "POST",
+            "body": {
+              "points": [
+                {
+                  "id": "={{$json[\"id\"]}}",
+                  "vector": "={{$json[\"embedding\"]}}",
+                  "payload": "={{$json[\"chunk\"]}}"
+                }
+              ]
+            },
+            "authentication": "qdrantApi"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Question and Answer Chain",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini",
+            "method": "POST",
+            "body": {
+              "question": "={{$json[\"question\"]}}",
+              "context": "={{$json[\"retrievedText\"]}}"
+            },
+            "authentication": "googleGeminiApi"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1358,
+    "completion_tokens": 896,
+    "total_tokens": 2254
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:09:32.778645"
+}

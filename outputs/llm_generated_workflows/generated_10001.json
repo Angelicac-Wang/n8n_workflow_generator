@@ -1,0 +1,175 @@
+{
+  "template_id": "10001",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "TikTok Video Downloader (No Watermark) - Telegram Bot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate URL",
+          "nodeType": "if",
+          "typeVersion": 2,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "{{ $json[\"message\"][\"text\"] }}",
+                  "operation": "contains",
+                  "value2": "tiktok.com"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Invalid URL Message",
+          "nodeType": "telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Please send a valid TikTok link."
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Processing Message",
+          "nodeType": "telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Downloading video..."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Get TikTok Page HTML",
+          "nodeType": "httpRequest",
+          "typeVersion": 4,
+          "params": {
+            "url": "={{$json[\"message\"][\"text\"]}}",
+            "method": "GET",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Extract Video URL",
+          "nodeType": "code",
+          "typeVersion": 2,
+          "params": {
+            "functionCode": "const regex = /<video[^>]+src=\"([^\"]+)\"/;\nconst match = regex.exec(items[0].json[\"body\"]);\nif (match && match[1]) {\n  return [{ json: { videoUrl: match[1] } }];\n} else {\n  throw new Error('Video URL not found');\n}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Download Video File",
+          "nodeType": "httpRequest",
+          "typeVersion": 4,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "sendBinaryData": true
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Video to User",
+          "nodeType": "telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendVideo",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "video": "={{$binary.data}}",
+            "caption": "Here is your video without watermark."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2783,
+    "completion_tokens": 1060,
+    "total_tokens": 3843
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:24:01.089442"
+}

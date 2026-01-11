@@ -1,0 +1,169 @@
+{
+  "template_id": "11648",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-first WhatsApp Support with Human Handoff",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Incoming WhatsApp Message",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "incoming-whatsapp",
+            "responseMode": "onReceived",
+            "responseData": "default"
+          },
+          "position": {
+            "x": 250,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Query Supabase Vector Store",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-supabase-url/rest/v1/knowledge_base",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "query",
+                "value": "={{$json[\"body\"][\"message\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "supabaseApi"
+          },
+          "position": {
+            "x": 550,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Call Google Gemini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/v1/query",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "query",
+                "value": "={{$node[\"Query Supabase Vector Store\"].json[\"data\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "geminiApi"
+          },
+          "position": {
+            "x": 850,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Human Intervention",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"human_intervention\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1150,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Pause AI",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "2h"
+          },
+          "position": {
+            "x": 1350,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send AI Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.twilio.com/2010-04-01/Accounts/{{TWILIO_ACCOUNT_SID}}/Messages.json",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "To",
+                "value": "={{$json[\"body\"][\"from\"]}}"
+              },
+              {
+                "name": "From",
+                "value": "{{TWILIO_PHONE_NUMBER}}"
+              },
+              {
+                "name": "Body",
+                "value": "={{$node[\"Call Google Gemini\"].json[\"response\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "twilioApi"
+          },
+          "position": {
+            "x": 1350,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1492,
+    "completion_tokens": 1008,
+    "total_tokens": 2500
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:56:44.244401"
+}

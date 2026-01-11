@@ -1,0 +1,193 @@
+{
+  "template_id": "10119",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Web Research in Google Sheets with Bright Data",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "brightdata-search",
+            "responseMode": "onReceived",
+            "responseData": "lastNode",
+            "authentication": "headerAuth",
+            "headerParameters": [
+              {
+                "name": "key",
+                "value": "12312346"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"body\"][\"prompt\"]}}"
+                },
+                {
+                  "name": "source",
+                  "value": "={{$json[\"body\"][\"source\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Query Optimization",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4.1-mini/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerParameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ],
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "Optimize the following search query: {{$json[\"prompt\"]}}"
+              },
+              {
+                "name": "max_tokens",
+                "value": 50
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Web Scraping",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/scrape",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerParameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_BRIGHTDATA_API_KEY"
+              }
+            ],
+            "bodyParameters": [
+              {
+                "name": "query",
+                "value": "={{$json[\"choices\"][0][\"text\"]}}"
+              },
+              {
+                "name": "source",
+                "value": "={{$json[\"source\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerParameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ],
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "Analyze and summarize the following data: {{$json[\"data\"]}}"
+              },
+              {
+                "name": "max_tokens",
+                "value": 100
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1940,
+    "completion_tokens": 1111,
+    "total_tokens": 3051
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:27:17.231400"
+}

@@ -1,0 +1,116 @@
+{
+  "template_id": "10420",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Financial Report from Loyverse to Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Sales Data",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.loyverse.com/v1.0/sales",
+            "method": "GET",
+            "authentication": "Bearer",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Receipts",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.loyverse.com/v1.0/receipts",
+            "method": "GET",
+            "authentication": "Bearer",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Calculate Metrics",
+          "nodeType": "code",
+          "params": {
+            "functionCode": "const metrics = {};\nmetrics.totalRevenue = $json.sales.reduce((acc, sale) => acc + sale.total, 0);\nmetrics.grossProfit = metrics.totalRevenue - $json.sales.reduce((acc, sale) => acc + sale.cost, 0);\nmetrics.netOperatingProfit = metrics.grossProfit - $json.expenses;\nreturn metrics;"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Append to Google Sheet",
+          "nodeType": "googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "{{ $json.date }}",
+                "{{ $json.totalRevenue }}",
+                "{{ $json.grossProfit }}",
+                "{{ $json.netOperatingProfit }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email Report",
+          "nodeType": "emailSend",
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Daily Financial Report",
+            "text": "Here is your daily financial report:\nTotal Revenue: {{ $json.totalRevenue }}\nGross Profit: {{ $json.grossProfit }}\nNet Operating Profit: {{ $json.netOperatingProfit }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1349,
+    "completion_tokens": 729,
+    "total_tokens": 2078
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:32:48.224655"
+}

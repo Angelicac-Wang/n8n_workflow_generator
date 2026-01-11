@@ -1,0 +1,359 @@
+{
+  "template_id": "12091",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Ad Performance Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Ad Check2",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Meta Ads Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/act_<AD_ACCOUNT_ID>/insights",
+            "method": "GET",
+            "authentication": "oAuth2Api",
+            "queryParameters": [
+              {
+                "name": "fields",
+                "value": "campaign_name,clicks,spend,impressions"
+              },
+              {
+                "name": "date_preset",
+                "value": "yesterday"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Benchmarks",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "platform",
+                  "value": "Meta Ads"
+                },
+                {
+                  "name": "ctrBenchmark",
+                  "value": "0.02"
+                },
+                {
+                  "name": "roasBenchmark",
+                  "value": "1.5"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Daily Ad Check3",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 1 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Get many campaigns",
+          "nodeType": "n8n-nodes-base.googleAds",
+          "typeVersion": 1,
+          "params": {
+            "resource": "campaign",
+            "returnAll": true,
+            "fields": [
+              "campaign.name",
+              "metrics.clicks",
+              "metrics.cost_micros",
+              "metrics.impressions"
+            ],
+            "dateRange": {
+              "startDate": "yesterday",
+              "endDate": "yesterday"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Set Benchmarks4",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "platform",
+                  "value": "Google Ads"
+                },
+                {
+                  "name": "ctrBenchmark",
+                  "value": "0.03"
+                },
+                {
+                  "name": "roasBenchmark",
+                  "value": "2.0"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Detect Performance Drop",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const results = items.map(item => {\n  const ctr = item.json.clicks / item.json.impressions;\n  const roas = item.json.spend ? (item.json.revenue / item.json.spend) : 0;\n  const ctrDrop = ctr < parseFloat(item.json.ctrBenchmark);\n  const roasDrop = roas < parseFloat(item.json.roasBenchmark);\n  return {\n    json: {\n      ...item.json,\n      ctr,\n      roas,\n      ctrDrop,\n      roasDrop,\n      performanceDrop: ctrDrop || roasDrop\n    }\n  };\n});\nreturn results;"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "If",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"performanceDrop\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Loop Over Items",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send message1",
+          "nodeType": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "params": {
+            "message": "Performance drop detected in {{$json[\"platform\"]}} campaign {{$json[\"campaign_name\"]}}. CTR: {{$json[\"ctr\"]}}, ROAS: {{$json[\"roas\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send a message",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#ad-performance-alerts",
+            "text": "Alert: Performance drop in {{$json[\"platform\"]}} campaign {{$json[\"campaign_name\"]}}. CTR: {{$json[\"ctr\"]}}, ROAS: {{$json[\"roas\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Send a message4",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "team@example.com",
+            "subject": "Ad Performance Alert",
+            "text": "Performance drop detected in {{$json[\"platform\"]}} campaign {{$json[\"campaign_name\"]}}. CTR: {{$json[\"ctr\"]}}, ROAS: {{$json[\"roas\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "13",
+          "label": "Code in JavaScript",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "return items;"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "14",
+          "label": "Wait1",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": 5
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "15",
+          "label": "your-google-sheets-name",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "A1",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              {
+                "values": [
+                  "={{$json[\"platform\"]}}",
+                  "={{$json[\"campaign_name\"]}}",
+                  "={{$json[\"ctr\"]}}",
+                  "={{$json[\"roas\"]}}",
+                  "={{$json[\"ctrDrop\"]}}",
+                  "={{$json[\"roasDrop\"]}}"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "9",
+          "to": "11"
+        },
+        {
+          "from": "9",
+          "to": "12"
+        },
+        {
+          "from": "10",
+          "to": "13"
+        },
+        {
+          "from": "11",
+          "to": "13"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        },
+        {
+          "from": "14",
+          "to": "15"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 946,
+    "completion_tokens": 2277,
+    "total_tokens": 3223
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:13:42.336309"
+}

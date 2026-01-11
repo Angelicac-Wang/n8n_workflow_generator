@@ -1,0 +1,124 @@
+{
+  "template_id": "11679",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Inventory Replenishment",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduled Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": [
+              {
+                "mode": "everyDay"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Low-Stock Items",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Inventory!A1:D100",
+            "filter": {
+              "field": "current stock",
+              "operation": "<",
+              "value": "minimum stock threshold"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Each Low-Stock Item",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.orderQuantity = item.json['minimum stock threshold'] - item.json['current stock']; return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Purchase Order Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"supplierEmail\"]}}",
+            "subject": "Purchase Order for {{$json[\"itemName\"]}}",
+            "body": "Please send {{$json[\"orderQuantity\"]}} units of {{$json[\"itemName\"]}}. Current stock is {{$json[\"current stock\"]}}."
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log PO in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Orders!A1:E1",
+            "data": [
+              "={{$json[\"itemName\"]}}",
+              "={{$json[\"orderQuantity\"]}}",
+              "={{$json[\"supplierEmail\"]}}",
+              "={{new Date().toISOString()}}",
+              "PO Sent"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 958,
+    "completion_tokens": 760,
+    "total_tokens": 1718
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:57:16.829196"
+}

@@ -1,0 +1,188 @@
+{
+  "template_id": "12097",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for O'Carla, the Discord AI assistant.",
+    "workflowPlan": {
+      "name": "O'Carla - Discord AI Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Discord Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "discord-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Intent Routing",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"body\"][\"content\"]}}",
+                  "operation": "contains",
+                  "value2": "gambar:"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gemini 2.5 Chat",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/chat",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"message\": $json[\"body\"][\"content\"]}",
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_GEMINI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Llama 3.2 Vision",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.com/vision",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"file\": $json[\"body\"][\"attachments\"][0]}",
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_OPENROUTER_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Flux Image Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pollinations.ai/flux",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"prompt\": $json[\"body\"][\"content\"].replace('gambar:', '')}",
+            "headers": {
+              "Content-Type": "application/json"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "TinyURL Shortener",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.tinyurl.com/create",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"url\": $json[\"data\"][\"imageUrl\"]}",
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_TINYURL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond to Discord",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"data\"][\"shortUrl\"] || $json[\"data\"][\"response\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1003,
+    "completion_tokens": 1185,
+    "total_tokens": 2188
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:14:31.472769"
+}

@@ -1,0 +1,100 @@
+{
+  "template_id": "7455",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow plan for the Telegram AI Assistant with multi-file media group handling and PostgreSQL integration.",
+    "workflowPlan": {
+      "name": "Telegram AI Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "PostgreSQL - Check Media Group",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "query": "SELECT * FROM media_group WHERE group_id = $json[\"media_group_id\"]",
+            "credentials": "PostgreSQL"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Process the media group: {{$json[\"media_group\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer {{$credentials.openAIApi.apiKey}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Telegram Send Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chat_id\"]}}",
+            "text": "={{$node[\"AI Processing\"].json[\"choices\"][0][\"text\"]}}",
+            "additionalFields": {
+              "parse_mode": "MarkdownV2"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1379,
+    "completion_tokens": 622,
+    "total_tokens": 2001
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:32:07.077121"
+}

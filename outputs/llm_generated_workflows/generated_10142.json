@@ -1,0 +1,197 @@
+{
+  "template_id": "10142",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Website Chatbot with Google Drive Knowledge Base",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Message Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "chatbot",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI GPT-4.1-mini",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4.1-mini/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": {
+              "prompt": "You are the official AI assistant for this website. Use `chatdbtai` only as your knowledge source. Respond conversationally, list offerings clearly, link blogs, and say 'I couldn't find that on this site' if no match.",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Qdrant Vector Search",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://qdrant-api-url/v1/search",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": {
+              "collection_name": "docragtestkb",
+              "query_vector": "{{ $json['vector'] }}",
+              "top": 5
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Drive Fetch",
+          "nodeType": "googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "'1o3DK9Ceka5Lqb8irvFSfEeB8SVGG_OL7' in parents"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Loop Over Files",
+          "nodeType": "foreach",
+          "typeVersion": 1,
+          "params": {
+            "items": "{{ $json['files'] }}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Mistral OCR",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://mistral-api-url/ocr",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": {
+              "file_url": "{{ $json['fileUrl'] }}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Chunking Logic",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const chunks = []; const text = $json['ocrText']; for (let i = 0; i < text.length; i += 1000) { chunks.push({ text: text.substring(i, i + 1000), metadata: { source: $json['source'], position: i, fileId: $json['fileId'] } }); } return chunks;"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Mistral Embeddings",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://mistral-api-url/embeddings",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": {
+              "text": "{{ $json['chunk'] }}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Qdrant Insert",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://qdrant-api-url/v1/points",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": {
+              "collection_name": "docragtestkb",
+              "points": "{{ $json['embeddings'] }}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1377,
+    "completion_tokens": 1283,
+    "total_tokens": 2660
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:28:06.825597"
+}

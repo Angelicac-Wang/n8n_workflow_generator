@@ -1,0 +1,160 @@
+{
+  "template_id": "11244",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LINE to Infographic Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "LINE Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "line-webhook",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Gemini Data Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/analyze",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "bodyParameters": [
+              {
+                "name": "data",
+                "value": "={{$json[\"body\"][\"message\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Nano Banana Infographic",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/nano-banana",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "bodyParameters": [
+              {
+                "name": "layout",
+                "value": "={{$node[\"Gemini Data Analysis\"].json[\"layout\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Infographic Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/status",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "queryParameters": [
+              {
+                "name": "jobId",
+                "value": "={{$node[\"Nano Banana Infographic\"].json[\"jobId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to S3",
+          "nodeType": "n8n-nodes-base.s3",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "bucketName": "your-s3-bucket",
+            "fileName": "infographic.png",
+            "fileContent": "={{$node[\"Check Infographic Status\"].json[\"fileUrl\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Infographic to LINE",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.line.me/v2/bot/message/reply",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "bodyParameters": [
+              {
+                "name": "replyToken",
+                "value": "={{$json[\"body\"][\"replyToken\"]}}"
+              },
+              {
+                "name": "messages",
+                "value": "[{\"type\":\"image\",\"originalContentUrl\":\"{{$node[\"Upload to S3\"].json[\"fileUrl\"]}}\",\"previewImageUrl\":\"{{$node[\"Upload to S3\"].json[\"fileUrl\"]}}\"}]"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 805,
+    "completion_tokens": 1008,
+    "total_tokens": 1813
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:45:57.875303"
+}

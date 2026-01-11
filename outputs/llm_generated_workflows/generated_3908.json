@@ -1,0 +1,240 @@
+{
+  "template_id": "3908",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered SEO Keyword Research Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "keyword-research",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "Primary Topic",
+                "value": "={{$json[\"body\"][\"Primary Topic\"]}}"
+              },
+              {
+                "name": "Competitor URLs",
+                "value": "={{$json[\"body\"][\"Competitor URLs\"]}}"
+              },
+              {
+                "name": "Target Audience",
+                "value": "={{$json[\"body\"][\"Target Audience\"]}}"
+              },
+              {
+                "name": "Content Type",
+                "value": "={{$json[\"body\"][\"Content Type\"]}}"
+              },
+              {
+                "name": "Location",
+                "value": "={{$json[\"body\"][\"Location\"]}}"
+              },
+              {
+                "name": "Language",
+                "value": "={{$json[\"body\"][\"Language\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Topic Expansion",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"prompt\": \"Generate keywords for {{$json[\"Primary Topic\"]}}\", \"max_tokens\": 100}",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Keyword Metrics Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/post",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"keywords\": {{$json[\"keywords\"]}}, \"location\": {{$json[\"Location\"]}}, \"language\": {{$json[\"Language\"]}}}",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Basic YOUR_DATAFORSEO_API_CREDENTIALS"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Competitor Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.dataforseo.com/v3/keywords_data/google_ads/competitors_domain/post",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"domain\": {{$json[\"Competitor URLs\"]}}, \"location\": {{$json[\"Location\"]}}, \"language\": {{$json[\"Language\"]}}}",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Basic YOUR_DATAFORSEO_API_CREDENTIALS"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Final Strategy Creation",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "Keyword Strategy",
+                "value": "={{$json[\"keywords\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Store Results in NocoDB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://nocodb.yourinstance.com/api/v1/db/data/v1/yourproject/yourtable",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"primary_topic_used\": {{$json[\"Primary Topic\"]}}, \"report_content\": {{$json[\"Keyword Strategy\"]}}}",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_NOCODB_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Notification to Slack",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://slack.com/api/chat.postMessage",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"channel\": \"#your-channel\", \"text\": \"Keyword research completed for {{$json[\"Primary Topic\"]}}\"}",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_SLACK_API_TOKEN"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2073,
+    "completion_tokens": 1602,
+    "total_tokens": 3675
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:04:42.724207"
+}

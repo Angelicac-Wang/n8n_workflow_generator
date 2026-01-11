@@ -1,0 +1,88 @@
+{
+  "template_id": "5202",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Blog Post Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Perplexity AI Research",
+          "nodeType": "community.perplexityAi",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{$credentials.perplexityApiKey}}",
+            "query": "Recent AI news for non-technical audience"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent (Claude via Anthropic)",
+          "nodeType": "community.claudeAi",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{$credentials.anthropicApiKey}}",
+            "prompt": "Write a blog post with title, intro, 3+ section headers, takeaway, and meta description based on the following news: {{$json[\"news\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Docs",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "documentName": "Daily AI Blog Post",
+            "content": "={{$json[\"blogPost\"]}}",
+            "oauth2": "={{$credentials.googleDocsOAuth2}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 824,
+    "completion_tokens": 521,
+    "total_tokens": 1345
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:17:43.747194"
+}

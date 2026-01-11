@@ -1,0 +1,228 @@
+{
+  "template_id": "11083",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube Video to Notion GEO Summary",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get YouTube Video Metadata",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "part",
+                "value": "snippet"
+              },
+              {
+                "name": "id",
+                "value": "YOUR_VIDEO_ID"
+              },
+              {
+                "name": "key",
+                "value": "YOUR_YOUTUBE_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Download YouTube Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://rapidapi.com/YOUR_ENDPOINT",
+            "method": "GET",
+            "headers": [
+              {
+                "name": "X-RapidAPI-Key",
+                "value": "YOUR_RAPIDAPI_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transcribe Audio with Whisper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/whisper",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ],
+            "body": {
+              "audio": "{{$json[\"audio\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "If Transcript Exists",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"transcript\"]}}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate GEO Summary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/gpt-4o-mini",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ],
+            "body": {
+              "transcript": "={{$json[\"transcript\"]}}",
+              "metadata": "={{$json[\"metadata\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Notion Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.notion.com/v1/pages",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_NOTION_API_TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "parent": {
+                "database_id": "YOUR_NOTION_DATABASE_ID"
+              },
+              "properties": {
+                "Title": {
+                  "title": [
+                    {
+                      "text": {
+                        "content": "={{$json[\"metadata\"][\"title\"]}}"
+                      }
+                    }
+                  ]
+                },
+                "Summary": {
+                  "rich_text": [
+                    {
+                      "text": {
+                        "content": "={{$json[\"geoSummary\"]}}"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1102,
+    "completion_tokens": 1240,
+    "total_tokens": 2342
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:42:24.421365"
+}

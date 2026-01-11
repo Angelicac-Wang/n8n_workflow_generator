@@ -1,0 +1,187 @@
+{
+  "template_id": "12197",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for automating tenant screening.",
+    "workflowPlan": {
+      "name": "Tenant Screening Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Payment History",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.paymentsystem.com/history",
+            "method": "GET",
+            "authentication": "paymentSystemAuth"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Credit Report",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.creditbureau.com/report",
+            "method": "GET",
+            "authentication": "creditBureauAuth"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Employment Records",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.employmentverification.com/records",
+            "method": "GET",
+            "authentication": "employmentVerificationAuth"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Risk",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/analyze",
+            "method": "POST",
+            "authentication": "openAIApiKey",
+            "body": {
+              "paymentHistory": "={{$node[\"Fetch Payment History\"].json}}",
+              "creditReport": "={{$node[\"Fetch Credit Report\"].json}}",
+              "employmentRecords": "={{$node[\"Fetch Employment Records\"].json}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Evaluate Risk",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$node[\"Analyze Risk\"].json[\"riskScore\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 75
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send High Risk Alert",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.gmail.com/send",
+            "method": "POST",
+            "authentication": "gmailAuth",
+            "body": {
+              "to": "propertymanager@example.com",
+              "subject": "High Risk Tenant Alert",
+              "text": "A high-risk tenant has been identified. Immediate action is required."
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Post Medium Risk to Slack",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.slack.com/post",
+            "method": "POST",
+            "authentication": "slackAuth",
+            "body": {
+              "channel": "#tenant-monitoring",
+              "text": "A medium-risk tenant has been identified. Please monitor closely."
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Save Low Risk to Database",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.database.com/save",
+            "method": "POST",
+            "authentication": "databaseAuth",
+            "body": {
+              "tenantData": "={{$node[\"Analyze Risk\"].json}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 695,
+    "completion_tokens": 1102,
+    "total_tokens": 1797
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:19:26.912985"
+}

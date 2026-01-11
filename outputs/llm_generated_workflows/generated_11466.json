@@ -1,0 +1,285 @@
+{
+  "template_id": "11466",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Tech & AI Daily Briefing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 8,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "RSS Feed Cybersecurity",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/rss/cybersecurity",
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "RSS Feed AI",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/rss/ai",
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "RSS Feed Technology",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/rss/technology",
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Cybersecurity",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Merge AI",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Merge Technology",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Merge All",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Filter Recent Articles",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "date": [
+                {
+                  "value1": "={{$json[\"isoDate\"]}}",
+                  "operation": "after",
+                  "value2": "={{$now.minus({\"hours\": 24}).toISOString()}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Sort Articles by Date",
+          "nodeType": "n8n-nodes-base.sort",
+          "typeVersion": 1,
+          "params": {
+            "fieldName": "isoDate",
+            "order": "desc"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Normalize Data",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { articles: items.map(item => ({ title: item.json.title, content: item.json.content, link: item.json.link, isoDate: item.json.isoDate })) } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "LLM News Summarizer",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "Google Gemini",
+            "prompt": "Act as the editor-in-chief of a major tech newspaper. Select 8-10 important stories, ignore low-value content, and output a valid JSON object with 'subject' and 'html'."
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Build Final Newsletter HTML",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const { subject, html } = JSON.parse(items[0].json[\"response\"]); return [{ json: { subject, html } }];"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "14",
+          "label": "Send Final Digest Email",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "={{$json[\"subject\"]}}",
+            "html": "={{$json[\"html\"]}}",
+            "fromName": "n8n News"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "8"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1504,
+    "completion_tokens": 1699,
+    "total_tokens": 3203
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:50:59.405317"
+}

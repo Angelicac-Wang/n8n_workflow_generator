@@ -1,0 +1,173 @@
+{
+  "template_id": "6524",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated AI News Video Creation and Social Media Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch News",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/rss",
+            "options": {}
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Captions",
+          "nodeType": "n8n-nodes-base.langChain",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Generate a concise and engaging caption for the following news: {{$json[\"title\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v1/video",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "avatar_id": "your_avatar_id",
+              "voice_id": "your_voice_id",
+              "text": "{{$node[\"Generate Captions\"].json[\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store Video",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "news_video.mp4",
+            "fileContent": "{{$node[\"Create Video\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A1",
+            "data": [
+              [
+                "{{$node[\"Fetch News\"].json[\"title\"]}}",
+                "{{$node[\"Generate Captions\"].json[\"text\"]}}",
+                "{{$node[\"Create Video\"].json[\"video_url\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to Postiz",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://postiz.yourdomain.com/api/upload",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "file": "{{$node[\"Store Video\"].json[\"fileId\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish on Social Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://postiz.yourdomain.com/api/publish",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "platforms": [
+                "Instagram",
+                "Facebook",
+                "YouTube"
+              ],
+              "content": "{{$node[\"Upload to Postiz\"].json[\"file_id\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 934,
+    "completion_tokens": 1074,
+    "total_tokens": 2008
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:29:24.896396"
+}

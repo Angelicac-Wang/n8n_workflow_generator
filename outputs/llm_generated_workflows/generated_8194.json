@@ -1,0 +1,110 @@
+{
+  "template_id": "8194",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Product Mockup Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "productImage",
+                "type": "file"
+              },
+              {
+                "name": "templateImage",
+                "type": "file"
+              },
+              {
+                "name": "textPrompt",
+                "type": "string"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert Images to Base64",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const productImageBase64 = Buffer.from(items[0].binary.productImage.data, 'base64').toString('base64');\nconst templateImageBase64 = Buffer.from(items[0].binary.templateImage.data, 'base64').toString('base64');\nreturn [{ json: { productImageBase64, templateImageBase64, textPrompt: items[0].json.textPrompt } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request to OpenRouter",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/v1/generate",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "model": "google/gemini-2.5-flash-image-preview:free",
+              "inputs": {
+                "productImage": "={{$json[\"productImageBase64\"]}}",
+                "templateImage": "={{$json[\"templateImageBase64\"]}}",
+                "prompt": "={{$json[\"textPrompt\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Convert Base64 to File",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const generatedImageBase64 = items[0].json.generatedImage;\nitems[0].binary = { data: { data: Buffer.from(generatedImageBase64, 'base64'), mimeType: 'image/png' } };\nreturn items;"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 986,
+    "completion_tokens": 741,
+    "total_tokens": 1727
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:33:49.796888"
+}

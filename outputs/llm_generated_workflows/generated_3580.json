@@ -1,0 +1,130 @@
+{
+  "template_id": "3580",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn Hiring Signal Scraper",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "job-scraper-trigger",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request to Bright Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/dataset",
+            "method": "POST",
+            "authentication": "none",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_BRIGHTDATA_API_KEY"
+              }
+            },
+            "body": [
+              {
+                "location": "={{$json[\"location\"]}}",
+                "keyword": "={{$json[\"keyword\"]}}",
+                "country": "={{$json[\"country\"]}}",
+                "time_range": "Past 24 hours"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait for Bright Data",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": {
+              "value": 780000,
+              "unit": "milliseconds"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Data",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "functionCode": "return items.map(item => {\n  const job = item.json;\n  return {\n    json: {\n      job_title: job.title,\n      company_name: job.company,\n      location: job.location,\n      salary_min: job.base_salary ? job.base_salary.min : null,\n      apply_link: job.apply_link,\n      job_description_plain: job.description.replace(/<[^>]*>/g, '')\n    }\n  };\n});"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "1_jbr5zBllTy_pGbogfGSvyv1_0a77I8tU-Ai7BjTAw4",
+            "range": "Sheet1",
+            "options": {
+              "valueInputMode": "USER_ENTERED"
+            },
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2075,
+    "completion_tokens": 851,
+    "total_tokens": 2926
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:59:52.307343"
+}

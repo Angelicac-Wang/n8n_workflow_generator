@@ -1,0 +1,183 @@
+{
+  "template_id": "11158",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Olostep Amazon Products Scraper",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "amazon-scraper",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Pagination Setup",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "number": [
+                {
+                  "name": "pageNumbers",
+                  "value": "=Array.from({length: 10}, (_, i) => i + 1)"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Scrape Amazon with Olostep",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.olostep.com/scrape",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "query",
+                "value": "={{$json[\"query\"]}}"
+              },
+              {
+                "name": "page",
+                "value": "={{$json[\"pageNumbers\"]}}"
+              }
+            ],
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OLOSTEP_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Parse & Split Results",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => JSON.parse(item.json.response));"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "URL Normalization",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { if (!item.json.url.startsWith('http')) { item.json.url = 'https://www.amazon.com' + item.json.url; } return item; });"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Conditional Check",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"url\"]}}",
+                  "operation": "contains",
+                  "value2": "amazon.com"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Insert into Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:B",
+            "data": [
+              {
+                "name": "title",
+                "value": "={{$json[\"title\"]}}"
+              },
+              {
+                "name": "url",
+                "value": "={{$json[\"url\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1077,
+    "completion_tokens": 1061,
+    "total_tokens": 2138
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:44:02.558718"
+}

@@ -1,0 +1,557 @@
+{
+  "template_id": "12124",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Unified Marketing Performance Reports",
+      "nodes": [
+        {
+          "id": "scheduleTriggerWeekly",
+          "label": "Weekly Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "params": {
+            "cronExpression": "0 0 * * 1"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "scheduleTriggerMonthly",
+          "label": "Monthly Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "params": {
+            "cronExpression": "0 0 1 * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "checkMonthAndWeek",
+          "label": "Check Month and Week",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return [{ json: { isWeekly: !!$node[\"scheduleTriggerWeekly\"], isMonthly: !!$node[\"scheduleTriggerMonthly\"] } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "setWebsitesAndCampaigns",
+          "label": "Set Websites and Campaigns",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "websites",
+                  "value": "[{\"name\":\"Site A\",\"ga4Id\":\"GA4_ID_A\",\"campaigns\":[\"Campaign 1\",\"Campaign 2\"]},{\"name\":\"Site B\",\"ga4Id\":\"GA4_ID_B\",\"campaigns\":[\"Campaign 3\"]}]"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "expandWebsites",
+          "label": "Expand Websites",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "fieldToSplit": "websites"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "attachRunFlags",
+          "label": "Attach Run Flags",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items.map(item => { item.json.isWeekly = $node[\"checkMonthAndWeek\"].json.isWeekly; item.json.isMonthly = $node[\"checkMonthAndWeek\"].json.isMonthly; return item; });"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "loopWebsites",
+          "label": "Loop Websites",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "fieldToSplit": "websites"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "getReport",
+          "label": "Get Website Report",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://analytics.api/report",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "ga4Id",
+                "value": "={{$json[\"ga4Id\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "getManyCampaigns",
+          "label": "Get Google Ads Campaigns",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://googleads.api/campaigns",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "campaignIds",
+                "value": "={{$json[\"campaigns\"].join(\",\")}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "fetchMetaAds",
+          "label": "Fetch Meta Ads",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://metaads.api/performance",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "campaignIds",
+                "value": "={{$json[\"campaigns\"].join(\",\")}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 600
+          }
+        },
+        {
+          "id": "filterGoogleAdsByWebsite",
+          "label": "Filter Google Ads By Website",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items.filter(item => item.json.website === $json[\"name\"]);"
+          },
+          "position": {
+            "x": 1600,
+            "y": 400
+          }
+        },
+        {
+          "id": "filterMetaAdsByWebsite",
+          "label": "Filter Meta Ads By Website",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items.filter(item => item.json.website === $json[\"name\"]);"
+          },
+          "position": {
+            "x": 1600,
+            "y": 600
+          }
+        },
+        {
+          "id": "mergeData",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "params": {
+            "mode": "passThrough"
+          },
+          "position": {
+            "x": 1800,
+            "y": 400
+          }
+        },
+        {
+          "id": "buildWebsiteDataset",
+          "label": "Build Website Dataset",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return [{ json: { websiteData: $json } }];"
+          },
+          "position": {
+            "x": 2000,
+            "y": 400
+          }
+        },
+        {
+          "id": "calculateKPIs",
+          "label": "Calculate KPIs & Insights",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const data = $json.websiteData; const kpis = { spend: data.spend, ctr: data.ctr, cpa: data.cpa, cpl: data.cpl, conversions: data.conversions }; return [{ json: { kpis } }];"
+          },
+          "position": {
+            "x": 2200,
+            "y": 400
+          }
+        },
+        {
+          "id": "appendOrUpdateRowInSheet",
+          "label": "Store Metrics in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": "={{ $json.kpis }}"
+          },
+          "position": {
+            "x": 2400,
+            "y": 400
+          }
+        },
+        {
+          "id": "prepareReportData",
+          "label": "Prepare Report Data",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return [{ json: { report: $items(\"buildWebsiteDataset\") } }];"
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        },
+        {
+          "id": "switchReportType",
+          "label": "Switch Report Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "params": {
+            "property": "isWeekly",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": true
+              },
+              {
+                "operation": "equal",
+                "value": false
+              }
+            ]
+          },
+          "position": {
+            "x": 2800,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendWeeklyMarketingReport",
+          "label": "Send Weekly Marketing Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "to": "weekly@example.com",
+            "subject": "Weekly Marketing Performance Report",
+            "text": "={{ $json.report }}"
+          },
+          "position": {
+            "x": 3000,
+            "y": 200
+          }
+        },
+        {
+          "id": "sendMonthlyMarketingReport",
+          "label": "Send Monthly Marketing Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "to": "monthly@example.com",
+            "subject": "Monthly Marketing Performance Report",
+            "text": "={{ $json.report }}"
+          },
+          "position": {
+            "x": 3000,
+            "y": 400
+          }
+        },
+        {
+          "id": "fetchHubSpotLeads",
+          "label": "Fetch HubSpot Leads",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://hubspot.api/leads",
+            "method": "GET"
+          },
+          "position": {
+            "x": 200,
+            "y": 800
+          }
+        },
+        {
+          "id": "filterHubSpotLeads",
+          "label": "Filter HubSpot Leads",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items.filter(item => item.json.date >= $json.startDate && item.json.date <= $json.endDate);"
+          },
+          "position": {
+            "x": 400,
+            "y": 800
+          }
+        },
+        {
+          "id": "summarizeHubSpotLeads",
+          "label": "Summarize HubSpot Leads",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const leads = $items(\"filterHubSpotLeads\"); const summary = { totalLeads: leads.length, statusCounts: {} }; leads.forEach(lead => { summary.statusCounts[lead.json.status] = (summary.statusCounts[lead.json.status] || 0) + 1; }); return [{ json: { summary } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 800
+          }
+        },
+        {
+          "id": "prepareCRMReportData",
+          "label": "Prepare CRM Report Data",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return [{ json: { crmReport: $json.summary } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 800
+          }
+        },
+        {
+          "id": "switchCRMReportType",
+          "label": "Switch CRM Report Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "params": {
+            "property": "isWeekly",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": true
+              },
+              {
+                "operation": "equal",
+                "value": false
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 800
+          }
+        },
+        {
+          "id": "sendWeeklyCRMReport",
+          "label": "Send Weekly CRM Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "to": "weekly-crm@example.com",
+            "subject": "Weekly CRM Summary Report",
+            "text": "={{ $json.crmReport }}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 700
+          }
+        },
+        {
+          "id": "sendMonthlyCRMReport",
+          "label": "Send Monthly CRM Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "to": "monthly-crm@example.com",
+            "subject": "Monthly CRM Summary Report",
+            "text": "={{ $json.crmReport }}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 900
+          }
+        },
+        {
+          "id": "transformCRMData",
+          "label": "Transform CRM Data",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const crmData = $json.crmReport; return [{ json: { transformedData: crmData } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 800
+          }
+        },
+        {
+          "id": "appendOrUpdateCRMRowInSheet",
+          "label": "Store CRM Data in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "B1",
+            "valueInputMode": "USER_ENTERED",
+            "values": "={{ $json.transformedData }}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 800
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "scheduleTriggerWeekly",
+          "to": "checkMonthAndWeek"
+        },
+        {
+          "from": "scheduleTriggerMonthly",
+          "to": "checkMonthAndWeek"
+        },
+        {
+          "from": "checkMonthAndWeek",
+          "to": "setWebsitesAndCampaigns"
+        },
+        {
+          "from": "setWebsitesAndCampaigns",
+          "to": "expandWebsites"
+        },
+        {
+          "from": "expandWebsites",
+          "to": "attachRunFlags"
+        },
+        {
+          "from": "attachRunFlags",
+          "to": "loopWebsites"
+        },
+        {
+          "from": "loopWebsites",
+          "to": "getReport"
+        },
+        {
+          "from": "loopWebsites",
+          "to": "getManyCampaigns"
+        },
+        {
+          "from": "loopWebsites",
+          "to": "fetchMetaAds"
+        },
+        {
+          "from": "getReport",
+          "to": "mergeData"
+        },
+        {
+          "from": "getManyCampaigns",
+          "to": "filterGoogleAdsByWebsite"
+        },
+        {
+          "from": "fetchMetaAds",
+          "to": "filterMetaAdsByWebsite"
+        },
+        {
+          "from": "filterGoogleAdsByWebsite",
+          "to": "mergeData"
+        },
+        {
+          "from": "filterMetaAdsByWebsite",
+          "to": "mergeData"
+        },
+        {
+          "from": "mergeData",
+          "to": "buildWebsiteDataset"
+        },
+        {
+          "from": "buildWebsiteDataset",
+          "to": "calculateKPIs"
+        },
+        {
+          "from": "calculateKPIs",
+          "to": "appendOrUpdateRowInSheet"
+        },
+        {
+          "from": "appendOrUpdateRowInSheet",
+          "to": "prepareReportData"
+        },
+        {
+          "from": "prepareReportData",
+          "to": "switchReportType"
+        },
+        {
+          "from": "switchReportType",
+          "to": "sendWeeklyMarketingReport",
+          "outputIndex": 0
+        },
+        {
+          "from": "switchReportType",
+          "to": "sendMonthlyMarketingReport",
+          "outputIndex": 1
+        },
+        {
+          "from": "fetchHubSpotLeads",
+          "to": "filterHubSpotLeads"
+        },
+        {
+          "from": "filterHubSpotLeads",
+          "to": "summarizeHubSpotLeads"
+        },
+        {
+          "from": "summarizeHubSpotLeads",
+          "to": "prepareCRMReportData"
+        },
+        {
+          "from": "prepareCRMReportData",
+          "to": "switchCRMReportType"
+        },
+        {
+          "from": "switchCRMReportType",
+          "to": "sendWeeklyCRMReport",
+          "outputIndex": 0
+        },
+        {
+          "from": "switchCRMReportType",
+          "to": "sendMonthlyCRMReport",
+          "outputIndex": 1
+        },
+        {
+          "from": "sendWeeklyCRMReport",
+          "to": "transformCRMData"
+        },
+        {
+          "from": "sendMonthlyCRMReport",
+          "to": "transformCRMData"
+        },
+        {
+          "from": "transformCRMData",
+          "to": "appendOrUpdateCRMRowInSheet"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1275,
+    "completion_tokens": 3791,
+    "total_tokens": 5066
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:16:18.950496"
+}

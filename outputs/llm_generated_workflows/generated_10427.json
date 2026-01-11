@@ -1,0 +1,145 @@
+{
+  "template_id": "10427",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan to automate the analysis of Meta Ads data and deliver insights to Google Sheets.",
+    "workflowPlan": {
+      "name": "AI-Powered Media Buyer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Retrieve Facebook Token",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/oauth/access_token",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "client_id",
+                "value": "YOUR_CLIENT_ID"
+              },
+              {
+                "name": "client_secret",
+                "value": "YOUR_CLIENT_SECRET"
+              },
+              {
+                "name": "grant_type",
+                "value": "fb_exchange_token"
+              },
+              {
+                "name": "fb_exchange_token",
+                "value": "YOUR_SHORT_LIVED_TOKEN"
+              }
+            ],
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Ad Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/act_XXXXXX/insights",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "fields",
+                "value": "ad_name,impressions,clicks,spend,actions"
+              },
+              {
+                "name": "time_range",
+                "value": "{\"since\":\"28 days ago\",\"until\":\"today\"}"
+              },
+              {
+                "name": "access_token",
+                "value": "={{$json[\"access_token\"]}}"
+              }
+            ],
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process & Clean Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const data = item.json;\n  data.roas = data.actions.find(action => action.action_type === 'offsite_conversion.purchase')?.value / data.spend;\n  return { json: data };\n});"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the following ad data and categorize each ad as HELL YES, YES, or MAYBE based on its performance metrics: {{$json}}",
+            "temperature": 0.5,
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Output to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1026,
+    "completion_tokens": 925,
+    "total_tokens": 1951
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:32:54.587554"
+}

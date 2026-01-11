@@ -1,0 +1,297 @@
+{
+  "template_id": "11285",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated SEO Blog Post Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "submit-topic"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Append Row in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "<your-sheet-id>",
+            "range": "Sheet1!A:E",
+            "data": [
+              {
+                "value": "={{$json[\"body\"][\"topic\"]}}"
+              },
+              {
+                "value": "={{$json[\"body\"][\"referenceUrl\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Topic from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "<your-sheet-id>",
+            "range": "Sheet1!A:E"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Copywriter AI Agent",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Create an SEO-optimized blog post based on the topic: {{$json[\"topic\"]}} and reference URL: {{$json[\"referenceUrl\"]}}."
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Structured Output Parser",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { title: $json.title, content: $json.content };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Set Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "Topic Title",
+                  "value": "={{$json[\"title\"]}}"
+                },
+                {
+                  "name": "Content",
+                  "value": "={{$json[\"content\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Content for Approval",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "<your-email>",
+            "subject": "Blog Post Approval Needed",
+            "body": "Please review the following blog post:\n\nTitle: {{$json[\"Topic Title\"]}}\n\nContent: {{$json[\"Content\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Approval Result",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"approval\"]}}",
+                  "value2": "Yes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Topic Status on Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "<your-sheet-id>",
+            "range": "Sheet1!A:E",
+            "data": [
+              {
+                "value": "Approved",
+                "range": "E{{$json[\"row_number\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Copywriter Revision Agent",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Revise the blog post based on the feedback: {{$json[\"feedback\"]}}. Keep the original structure and tone."
+          },
+          "position": {
+            "x": 1600,
+            "y": 500
+          }
+        },
+        {
+          "id": "11",
+          "label": "Create Blog file",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "title": "={{$json[\"Topic Title\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Add blog content in file",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "documentId": "={{$json[\"documentId\"]}}",
+            "content": "={{$json[\"Content\"]}}"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Update sheet with blog post link",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "<your-sheet-id>",
+            "range": "Sheet1!A:E",
+            "data": [
+              {
+                "value": "={{$json[\"documentLink\"]}}",
+                "range": "F{{$json[\"row_number\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 1
+        },
+        {
+          "from": "9",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "10",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1288,
+    "completion_tokens": 1820,
+    "total_tokens": 3108
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:47:34.352171"
+}

@@ -1,0 +1,290 @@
+{
+  "template_id": "2852",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Email Response with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Email Trigger",
+          "nodeType": "n8n-nodes-base.emailReadImap",
+          "typeVersion": 1,
+          "params": {
+            "credentials": "IMAP Credentials",
+            "mailbox": "INBOX",
+            "fetchUnreadOnly": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Markdown",
+          "nodeType": "n8n-nodes-base.markdown",
+          "typeVersion": 1,
+          "params": {
+            "value": "={{$json[\"textHtml\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Email Summarization Chain",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "DeepSeek R1",
+            "text": "={{$json[\"text\"]}}",
+            "language": "Italian",
+            "maxWords": 100
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Email Classifier",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "OpenAI 4-o-mini",
+            "categories": [
+              "Company info request",
+              "Other"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Write Email",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "OpenAI",
+            "text": "={{$json[\"text\"]}}",
+            "maxWords": 100
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Review Email",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "DeepSeek",
+            "text": "={{$json[\"text\"]}}",
+            "format": "HTML"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "credentials": "SMTP Credentials",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "Re: {{$json[\"subject\"]}}",
+            "text": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Qdrant Vector Store",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "typeVersion": 1,
+          "params": {
+            "action": "query",
+            "collection": "CompanyInfo",
+            "query": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Embeddings OpenAI",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "OpenAI",
+            "text": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Create Collection",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "typeVersion": 1,
+          "params": {
+            "action": "createCollection",
+            "collection": "CompanyInfo"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "11",
+          "label": "Refresh Collection",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "typeVersion": 1,
+          "params": {
+            "action": "refreshCollection",
+            "collection": "CompanyInfo"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "12",
+          "label": "Get Folder",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "folderId": "your-folder-id"
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "13",
+          "label": "Download Files",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 700
+          }
+        },
+        {
+          "id": "14",
+          "label": "Embeddings OpenAI1",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "OpenAI",
+            "text": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 700
+          }
+        },
+        {
+          "id": "15",
+          "label": "Qdrant Vector Store1",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "typeVersion": 1,
+          "params": {
+            "action": "upsert",
+            "collection": "CompanyInfo",
+            "data": "={{$json[\"embeddings\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 700
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "9",
+          "to": "8"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        },
+        {
+          "from": "14",
+          "to": "15"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1491,
+    "completion_tokens": 1727,
+    "total_tokens": 3218
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:47:03.976014"
+}

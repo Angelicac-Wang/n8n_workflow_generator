@@ -1,0 +1,211 @@
+{
+  "template_id": "10213",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Company Email Discovery and Update",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Leads",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "[YOUR_SHEET_ID_HERE]",
+            "range": "Sheet1!A:D",
+            "filter": {
+              "column": "D",
+              "value": ""
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split In Batches",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Email Finder",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anymailfinder.com/v4.0/search",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "queryParameters": [
+              {
+                "name": "domain",
+                "value": "={{$json[\"Website\"]}}"
+              },
+              {
+                "name": "company",
+                "value": "={{$json[\"Company Name\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Email Status Switch",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "operation": "equal",
+                  "value2": "valid"
+                },
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "operation": "equal",
+                  "value2": "risky"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Sheet - Email Found",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "[YOUR_SHEET_ID_HERE]",
+            "range": "Sheet1!A:D",
+            "updateData": {
+              "key": "Company Name",
+              "value": "={{$json[\"Company Name\"]}}",
+              "data": {
+                "Email": "={{$json[\"email\"]}}",
+                "Processing": "x"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Sheet - No Email",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "[YOUR_SHEET_ID_HERE]",
+            "range": "Sheet1!A:D",
+            "updateData": {
+              "key": "Company Name",
+              "value": "={{$json[\"Company Name\"]}}",
+              "data": {
+                "Processing": "x"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Telegram Alert",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "[YOUR_TELEGRAM_CHAT_ID]",
+            "text": "Email processing completed for company: {{$json[\"Company Name\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1360,
+    "completion_tokens": 1229,
+    "total_tokens": 2589
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:29:42.036214"
+}

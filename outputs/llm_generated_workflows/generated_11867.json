@@ -1,0 +1,107 @@
+{
+  "template_id": "11867",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube Transcript API Extractor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "youtube-transcript",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://youtube-transcript.io/api",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"videoId\": $json[\"body\"][\"youtubeVideoId\"], \"apiToken\": $json[\"body\"][\"apiToken\"]}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "keepOnlySet": true,
+            "values": {
+              "string": [
+                {
+                  "name": "transcript",
+                  "value": "={{$json[\"transcript\"]}}"
+                },
+                {
+                  "name": "wordCount",
+                  "value": "={{$json[\"wordCount\"]}}"
+                },
+                {
+                  "name": "charCount",
+                  "value": "={{$json[\"charCount\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Respond with Transcript",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"transcript\"]}}",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 678,
+    "completion_tokens": 604,
+    "total_tokens": 1282
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:04:20.573719"
+}

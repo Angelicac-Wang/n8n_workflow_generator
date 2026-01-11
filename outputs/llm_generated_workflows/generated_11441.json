@@ -1,0 +1,119 @@
+{
+  "template_id": "11441",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube Shorts Auto Uploader",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyHour"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Video from Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "mimeType='video/mp4' and 'YOUR_INPUT_FOLDER_ID' in parents",
+            "limit": 1
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Metadata with AI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "completion",
+            "model": "text-davinci-003",
+            "prompt": "Generate a YouTube title, description, and hashtags for the following video: {{$json[\"name\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload Video to YouTube",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "video": "={{$node[\"Fetch Video from Google Drive\"].json[\"id\"]}}",
+            "title": "={{$node[\"Generate Metadata with AI\"].json[\"choices\"][0][\"text\"][\"title\"]}}",
+            "description": "={{$node[\"Generate Metadata with AI\"].json[\"choices\"][0][\"text\"][\"description\"]}}",
+            "tags": "={{$node[\"Generate Metadata with AI\"].json[\"choices\"][0][\"text\"][\"hashtags\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Move Video to Posted Folder",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "fileId": "={{$node[\"Fetch Video from Google Drive\"].json[\"id\"]}}",
+            "addParents": "YOUR_POSTED_FOLDER_ID",
+            "removeParents": "YOUR_INPUT_FOLDER_ID"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 664,
+    "completion_tokens": 781,
+    "total_tokens": 1445
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:49:53.833188"
+}

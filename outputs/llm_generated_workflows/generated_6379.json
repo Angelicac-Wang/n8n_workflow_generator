@@ -1,0 +1,171 @@
+{
+  "template_id": "6379",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "WhatsApp Restaurant Reservation Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp-reservation",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse & Validate",
+          "nodeType": "aiFunction",
+          "typeVersion": 1,
+          "params": {
+            "model": "openai",
+            "prompt": "Extract guest name, date, time, and party size from this message: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Availability",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourdatastore.com/check-availability",
+            "method": "POST",
+            "body": {
+              "date": "{{$node[\"Parse & Validate\"].json[\"date\"]}}",
+              "time": "{{$node[\"Parse & Validate\"].json[\"time\"]}}",
+              "partySize": "{{$node[\"Parse & Validate\"].json[\"partySize\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calculate Discount",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { discount: items[0].json.partySize > 4 ? 0.1 : 0 };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Compose Confirmation",
+          "nodeType": "aiFunction",
+          "typeVersion": 1,
+          "params": {
+            "model": "openai",
+            "prompt": "Generate a confirmation message for a reservation on {{$node[\"Parse & Validate\"].json[\"date\"]}} at {{$node[\"Parse & Validate\"].json[\"time\"]}} for {{$node[\"Parse & Validate\"].json[\"partySize\"]}} people with a {{$node[\"Calculate Discount\"].json[\"discount\"] * 100}}% discount."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Message",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "body": {
+              "to": "{{$json[\"from\"]}}",
+              "message": "{{$node[\"Compose Confirmation\"].json[\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Optional Reminder",
+          "nodeType": "wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "24h"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Reminder",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "body": {
+              "to": "{{$json[\"from\"]}}",
+              "message": "Reminder: Your reservation is tomorrow at {{$node[\"Parse & Validate\"].json[\"time\"]}}."
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 863,
+    "completion_tokens": 1094,
+    "total_tokens": 1957
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:29:19.102487"
+}

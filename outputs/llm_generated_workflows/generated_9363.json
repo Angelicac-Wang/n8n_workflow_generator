@@ -1,0 +1,159 @@
+{
+  "template_id": "9363",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Social Media Command Center",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "photoPipeline",
+          "label": "Photo Pipeline",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "if (item.message.photo) {\n  return [{ json: { type: 'photo', fileId: item.message.photo[0].file_id } }];\n} else {\n  return null;\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "videoPipeline",
+          "label": "Video Pipeline",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "if (item.message.video) {\n  return [{ json: { type: 'video', fileId: item.message.video.file_id, caption: item.message.caption || '' } }];\n} else {\n  return null;\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "voicePipeline",
+          "label": "Voice Pipeline",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "if (item.message.voice) {\n  return [{ json: { type: 'voice', fileId: item.message.voice.file_id } }];\n} else {\n  return null;\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "aiProcessing",
+          "label": "AI Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/ai-process",
+            "method": "POST",
+            "body": {
+              "type": "={{$json[\"type\"]}}",
+              "fileId": "={{$json[\"fileId\"]}}",
+              "caption": "={{$json[\"caption\"] || \"\"}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "uploadPost",
+          "label": "Upload-Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/upload",
+            "method": "POST",
+            "body": {
+              "platforms": [
+                "Instagram",
+                "TikTok",
+                "Pinterest"
+              ],
+              "content": "={{$json[\"content\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "telegramResponse",
+          "label": "Telegram Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "photoPipeline"
+        },
+        {
+          "from": "telegramTrigger",
+          "to": "videoPipeline"
+        },
+        {
+          "from": "telegramTrigger",
+          "to": "voicePipeline"
+        },
+        {
+          "from": "photoPipeline",
+          "to": "aiProcessing"
+        },
+        {
+          "from": "videoPipeline",
+          "to": "aiProcessing"
+        },
+        {
+          "from": "voicePipeline",
+          "to": "aiProcessing"
+        },
+        {
+          "from": "aiProcessing",
+          "to": "uploadPost"
+        },
+        {
+          "from": "uploadPost",
+          "to": "telegramResponse"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2544,
+    "completion_tokens": 1025,
+    "total_tokens": 3569
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:39:48.906793"
+}

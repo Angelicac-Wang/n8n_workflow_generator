@@ -1,0 +1,180 @@
+{
+  "template_id": "12374",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Capture and Process Website Leads",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Lead",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "capture-lead"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate Lead",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json[\"email\"] !== undefined && $json[\"name\"] !== undefined }}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Enrich Lead",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.clearbit.com/v2/people/find",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "email",
+                "value": "={{ $json[\"email\"] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to HubSpot",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "contact",
+            "operation": "upsert",
+            "email": "={{ $json[\"email\"] }}",
+            "additionalFields": {
+              "properties": [
+                {
+                  "name": "firstname",
+                  "value": "={{ $json[\"name\"] }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{ $json[\"name\"] }}",
+                "={{ $json[\"email\"] }}",
+                "={{ $json[\"message\"] }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Notify via Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#leads",
+            "text": "New lead received: {{ $json[\"name\"] }} - {{ $json[\"email\"] }}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond to Website",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "json",
+            "responseData": {
+              "ok": true
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1030,
+    "completion_tokens": 1012,
+    "total_tokens": 2042
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:26:04.759985"
+}

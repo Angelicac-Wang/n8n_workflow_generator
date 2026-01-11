@@ -1,0 +1,139 @@
+{
+  "template_id": "8604",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow plan for the HTX Spot Market AI Agent.",
+    "workflowPlan": {
+      "name": "HTX Spot Market AI Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Symbol and Timeframe",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const input = items[0].json.message.text;\nconst parts = input.split(' ');\nreturn [{ json: { symbol: parts[0], timeframe: parts[1] || '1h' } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Market Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.htx.com/market_data",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "symbol",
+                  "value": "={{$json[\"symbol\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Data with GPT-4o",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Analyze the following market data and provide a trading summary: {{$json}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Format Telegram Message",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const analysis = items[0].json.choices[0].text;\nreturn [{ json: { message: `Market Summary\\n\\n${analysis}` } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chat_id\"]}}",
+            "text": "={{$json[\"message\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1255,
+    "completion_tokens": 882,
+    "total_tokens": 2137
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:35:32.635177"
+}

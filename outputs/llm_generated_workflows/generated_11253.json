@@ -1,0 +1,313 @@
+{
+  "template_id": "11253",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Calendly Booking Link Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "generate-calendly-link",
+            "responseMode": "responseNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Configuration",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "recipient_name",
+                  "value": "={{$json[\"name\"]}}"
+                },
+                {
+                  "name": "recipient_email",
+                  "value": "={{$json[\"email\"]}}"
+                },
+                {
+                  "name": "requested_event_type",
+                  "value": "={{$json[\"event_type_uri\"] || \"\"}}"
+                },
+                {
+                  "name": "utm_source",
+                  "value": "={{$json[\"utm_source\"] || \"n8n\"}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Current User",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.calendly.com/users/me",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract User",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "user_uri",
+                  "value": "={{$json[\"resource\"][\"uri\"]}}"
+                },
+                {
+                  "name": "user_name",
+                  "value": "={{$json[\"resource\"][\"name\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Get Event Types",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.calendly.com/event_types?user={{$node[\"Extract User\"].json[\"user_uri\"]}}&active=true",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Select Event Type",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const eventTypes = $json.resource;\nconst requestedEventType = $node[\"Set Configuration\"].json[\"requested_event_type\"];\nlet selectedEventType = eventTypes.find(event => event.uri === requestedEventType) || eventTypes[0];\nreturn [{\n  event_type_uri: selectedEventType.uri,\n  event_type_name: selectedEventType.name,\n  event_duration: selectedEventType.duration\n}];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Single-Use Link",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.calendly.com/scheduling_links",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "body": {
+              "owner": "={{$node[\"Select Event Type\"].json[\"event_type_uri\"]}}",
+              "owner_type": "EventType",
+              "max_event_count": 1
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Build Personalized Link",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "base_booking_url",
+                  "value": "={{$node[\"Create Single-Use Link\"].json[\"resource\"][\"booking_url\"]}}"
+                },
+                {
+                  "name": "personalized_booking_url",
+                  "value": "={{$node[\"Create Single-Use Link\"].json[\"resource\"][\"booking_url\"]}}?name={{encodeURIComponent($node[\"Set Configuration\"].json[\"recipient_name\"])}}&email={{encodeURIComponent($node[\"Set Configuration\"].json[\"recipient_email\"])}}&utm_source={{$node[\"Set Configuration\"].json[\"utm_source\"]}}"
+                },
+                {
+                  "name": "recipient_name",
+                  "value": "={{$node[\"Set Configuration\"].json[\"recipient_name\"]}}"
+                },
+                {
+                  "name": "recipient_email",
+                  "value": "={{$node[\"Set Configuration\"].json[\"recipient_email\"]}}"
+                },
+                {
+                  "name": "event_type_name",
+                  "value": "={{$node[\"Select Event Type\"].json[\"event_type_name\"]}}"
+                },
+                {
+                  "name": "event_duration",
+                  "value": "={{$node[\"Select Event Type\"].json[\"event_duration\"]}}"
+                },
+                {
+                  "name": "link_created_at",
+                  "value": "={{new Date().toISOString()}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-spreadsheet-id",
+            "range": "Generated Links",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{$node[\"Build Personalized Link\"].json[\"recipient_name\"]}}",
+                "={{$node[\"Build Personalized Link\"].json[\"recipient_email\"]}}",
+                "={{$node[\"Build Personalized Link\"].json[\"event_type_name\"]}}",
+                "={{$node[\"Build Personalized Link\"].json[\"event_duration\"]}}",
+                "={{$node[\"Build Personalized Link\"].json[\"personalized_booking_url\"]}}",
+                "={{$node[\"Build Personalized Link\"].json[\"link_created_at\"]}}",
+                "Active"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Notify via Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#booking-links",
+            "text": "New Calendly link generated for {{$node[\"Build Personalized Link\"].json[\"recipient_name\"]}} ({{$node[\"Build Personalized Link\"].json[\"recipient_email\"]}}): {{$node[\"Build Personalized Link\"].json[\"personalized_booking_url\"]}}",
+            "as_user": true
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Respond to Webhook",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "json",
+            "jsonParameters": true,
+            "jsonContent": {
+              "success": true,
+              "booking_url": "={{$node[\"Build Personalized Link\"].json[\"personalized_booking_url\"]}}",
+              "base_url": "={{$node[\"Build Personalized Link\"].json[\"base_booking_url\"]}}",
+              "recipient": {
+                "name": "={{$node[\"Build Personalized Link\"].json[\"recipient_name\"]}}",
+                "email": "={{$node[\"Build Personalized Link\"].json[\"recipient_email\"]}}"
+              },
+              "event": {
+                "name": "={{$node[\"Build Personalized Link\"].json[\"event_type_name\"]}}",
+                "duration": "={{$node[\"Build Personalized Link\"].json[\"event_duration\"]}}"
+              },
+              "created_at": "={{$node[\"Build Personalized Link\"].json[\"link_created_at\"]}}",
+              "expires": "Single-use or 90 days"
+            }
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "10"
+        },
+        {
+          "from": "8",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2741,
+    "completion_tokens": 2343,
+    "total_tokens": 5084
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:46:25.876726"
+}

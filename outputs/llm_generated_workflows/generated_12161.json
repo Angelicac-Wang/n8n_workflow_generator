@@ -1,0 +1,131 @@
+{
+  "template_id": "12161",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan to automate competitive intelligence using n8n.",
+    "workflowPlan": {
+      "name": "Automated Competitive Intelligence",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "RSS Feed Trigger",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-competitor-blog-feed-url.com/rss",
+            "options": {}
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "YouTube Channel Trigger",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "channelId": "UC_x5XG1OV2P6uZZ5FSM9Ttw",
+            "resource": "video",
+            "operation": "list",
+            "returnAll": true
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Apify Transcript Scraper",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "youtube-transcript-scraper",
+            "input": "{}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Gemini Analysis",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{$node[\"Apify Transcript Scraper\"].json[\"output\"]}}",
+            "prompt": "Analyze the content for core messages, tone, and strategic positioning."
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your-telegram-chat-id",
+            "text": "={{$node[\"Google Gemini Analysis\"].json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Notion Database Update",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "databaseId": "your-notion-database-id",
+            "properties": {
+              "Name": "={{$node[\"RSS Feed Trigger\"].json[\"title\"]}}",
+              "Date": "={{$node[\"RSS Feed Trigger\"].json[\"pubDate\"]}}",
+              "Content": "={{$node[\"Google Gemini Analysis\"].json[\"detailedReport\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1029,
+    "completion_tokens": 834,
+    "total_tokens": 1863
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:17:38.847430"
+}

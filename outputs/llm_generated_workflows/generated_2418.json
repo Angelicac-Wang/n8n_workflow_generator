@@ -1,0 +1,91 @@
+{
+  "template_id": "2418",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a simple n8n workflow for automating image captioning using Gemini 1.5 Pro.",
+    "workflowPlan": {
+      "name": "Image Captioning with Gemini 1.5 Pro",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Image",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.pexels.com/photo-url",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Resize Image",
+          "nodeType": "editImage",
+          "typeVersion": 1,
+          "params": {
+            "width": 800,
+            "height": 600,
+            "resizeMode": "cover"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Caption",
+          "nodeType": "basicLLM",
+          "typeVersion": 1,
+          "params": {
+            "model": "Gemini 1.5 Pro",
+            "inputType": "binary",
+            "prompt": "Generate a caption for this image."
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Position Caption",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const caption = items[0].json.caption;\nconst image = items[0].binary.data;\n// Logic to position caption on image\nreturn [{ json: { image, caption } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 884,
+    "completion_tokens": 519,
+    "total_tokens": 1403
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:36:33.697050"
+}

@@ -1,0 +1,262 @@
+{
+  "template_id": "11971",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan to synchronize MySQL database table schemas with a vector database.",
+    "workflowPlan": {
+      "name": "MySQL to Vector DB Schema Sync",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Load Config",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "mysql_database_name",
+                  "value": "your_database_name"
+                },
+                {
+                  "name": "pinecone_index",
+                  "value": "your_pinecone_index"
+                },
+                {
+                  "name": "vector_namespace",
+                  "value": "your_vector_namespace"
+                },
+                {
+                  "name": "vector_index_host",
+                  "value": "your_vector_index_host"
+                },
+                {
+                  "name": "pinecone_apikey",
+                  "value": "your_pinecone_apikey"
+                },
+                {
+                  "name": "embedding_model",
+                  "value": "your_embedding_model"
+                },
+                {
+                  "name": "chunk_size",
+                  "value": "your_chunk_size"
+                },
+                {
+                  "name": "chunk_overlap",
+                  "value": "your_chunk_overlap"
+                },
+                {
+                  "name": "dataTable_Id",
+                  "value": "your_metadata_table_id"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Discover Tables",
+          "nodeType": "n8n-nodes-base.mysql",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SHOW TABLES",
+            "database": "={{$json[\"mysql_database_name\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Tables",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const tables = items.map(item => item.json[Object.keys(item.json)[0]]);\nreturn tables.map(table => ({ json: { table } }));"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Schema Hash",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const crypto = require('crypto');\nconst tableName = $json[\"table\"];\nconst schemaQuery = `SHOW CREATE TABLE ${tableName}`;\nconst result = await $node[\"3\"].executeQuery({ query: schemaQuery });\nconst schema = result[0][\"Create Table\"];\nconst hash = crypto.createHash('sha256').update(schema).digest('hex');\nreturn [{ json: { table: tableName, schema, hash } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Metadata",
+          "nodeType": "n8n-nodes-base.mysql",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT hash FROM {{$json[\"dataTable_Id\"]}} WHERE table_name = '{{$json[\"table\"]}}'",
+            "database": "={{$json[\"mysql_database_name\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Compare Hashes",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"5\"].json[\"hash\"]}}",
+                  "operation": "notEqual",
+                  "value2": "={{$node[\"6\"].json[\"hash\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Delete Existing Vector",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"vector_index_host\"]}}/vectors/{{$json[\"table\"]}}",
+            "method": "DELETE",
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer {{$json[\"pinecone_apikey\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Embed and Upsert Vector",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"vector_index_host\"]}}/vectors",
+            "method": "POST",
+            "body": {
+              "vector": {
+                "id": "={{$json[\"table\"]}}",
+                "values": "={{$node[\"5\"].json[\"schema\"]}}",
+                "namespace": "={{$json[\"vector_namespace\"]}}"
+              }
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer {{$json[\"pinecone_apikey\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update Metadata",
+          "nodeType": "n8n-nodes-base.mysql",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "REPLACE INTO {{$json[\"dataTable_Id\"]}} (table_name, hash) VALUES ('{{$json[\"table\"]}}', '{{$node[\"5\"].json[\"hash\"]}}')",
+            "database": "={{$json[\"mysql_database_name\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 864,
+    "completion_tokens": 1752,
+    "total_tokens": 2616
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:08:04.528327"
+}

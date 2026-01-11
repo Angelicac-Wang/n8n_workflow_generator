@@ -1,0 +1,115 @@
+{
+  "template_id": "2454",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the automated email management workflow for Microsoft Outlook using AI categorization.",
+    "workflowPlan": {
+      "name": "Automated Email Management",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Emails",
+          "nodeType": "n8n-nodes-base.microsoftOutlook",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "returnAll": true,
+            "filters": {
+              "flagged": false,
+              "categories": false
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Prepare Content",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.content = `## From: ${item.json.from}\n\n${item.json.body}`; return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Categorization",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.ollama.com/categorize",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "content": "={{$json[\"content\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Categorize & Move Emails",
+          "nodeType": "n8n-nodes-base.microsoftOutlook",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "updateFields": {
+              "categories": "={{$json[\"category\"]}}",
+              "moveToFolder": "={{$json[\"folder\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Error Handling",
+          "nodeType": "n8n-nodes-base.errorTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 871,
+    "completion_tokens": 663,
+    "total_tokens": 1534
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:37:22.163919"
+}

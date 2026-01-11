@@ -1,0 +1,115 @@
+{
+  "template_id": "11409",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Meeting Recording to Notes and Tasks",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Recording Ready Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "meeting-recording",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AssemblyAI Transcription",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.assemblyai.com/v2/transcript",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParametersJson": {
+              "audio_url": "={{$json[\"body\"][\"audio_url\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_ASSEMBLYAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Meeting Notes & Extract Action Items",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Generate structured meeting notes and action items from the following transcript: {{$json[\"text\"]}}",
+              "max_tokens": 150,
+              "temperature": 0.7
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Log Meeting to Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{$json[\"meeting_notes\"]}}",
+                "={{$json[\"action_items\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 922,
+    "completion_tokens": 700,
+    "total_tokens": 1622
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:49:15.569103"
+}

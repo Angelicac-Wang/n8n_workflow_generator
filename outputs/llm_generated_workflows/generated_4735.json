@@ -1,0 +1,193 @@
+{
+  "template_id": "4735",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Blog Generator for Shopify Products",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Products from Shopify",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-01/products.json",
+            "method": "GET",
+            "authentication": "shopifyApi",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Product Images",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Nutrition Info",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Extract nutritional information from this image: {{$json[\"image_url\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Existing Logs",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:D100"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Filter Valid Nutrition Info",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "{{$json[\"nutrition_info\"]}}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate SEO Blog",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Generate a SEO-rich blog post for the product with the following details: {{$json}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Post Blog to Shopify",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-01/blogs/{blog_id}/articles.json",
+            "method": "POST",
+            "authentication": "shopifyApi",
+            "responseFormat": "json",
+            "body": {
+              "article": {
+                "title": "{{$json[\"blog_title\"]}}",
+                "body_html": "{{$json[\"blog_content\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:D100",
+            "data": [
+              [
+                "{{$json[\"product_id\"]}}",
+                "{{$json[\"blog_url\"]}}",
+                "{{$json[\"status\"]}}",
+                "{{$json[\"error\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1179,
+    "completion_tokens": 1161,
+    "total_tokens": 2340
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:12:19.024944"
+}

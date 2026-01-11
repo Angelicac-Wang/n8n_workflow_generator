@@ -1,0 +1,181 @@
+{
+  "template_id": "6067",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress",
+      "nodes": [
+        {
+          "id": "cronTrigger",
+          "label": "CRON Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 6,
+                  "minute": 0,
+                  "weekday": "1"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "perplexityAI",
+          "label": "Perplexity AI Research",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.perplexity.ai/research",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "headers": {
+              "Authorization": "Bearer {{ $credentials.perplexityApiKey }}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "gptArticle",
+          "label": "Generate Article with GPT",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4.1/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "body": {
+              "prompt": "Write a 1000-1500 word article about {{ $json.topic }} in HTML format.",
+              "max_tokens": 1500
+            },
+            "headers": {
+              "Authorization": "Bearer {{ $credentials.openAIApiKey }}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "leonardoAI",
+          "label": "Create Image with Leonardo AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.leonardo.ai/create-image",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "body": {
+              "prompt": "Create a cinematic image for a blog post about {{ $json.topic }}."
+            },
+            "headers": {
+              "Authorization": "Bearer {{ $credentials.leonardoApiKey }}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "wordpress",
+          "label": "Publish to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "body": {
+              "title": "{{ $json.title }}",
+              "content": "{{ $json.article }}",
+              "status": "publish",
+              "categories": [
+                1
+              ],
+              "featured_media": "{{ $json.imageId }}"
+            },
+            "headers": {
+              "Authorization": "Basic {{ $credentials.wordpressAuth }}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "googleSheets",
+          "label": "Log in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "{{ $json.date }}",
+                "{{ $json.title }}",
+                "{{ $json.url }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "cronTrigger",
+          "to": "perplexityAI"
+        },
+        {
+          "from": "perplexityAI",
+          "to": "gptArticle"
+        },
+        {
+          "from": "gptArticle",
+          "to": "leonardoAI"
+        },
+        {
+          "from": "leonardoAI",
+          "to": "wordpress"
+        },
+        {
+          "from": "wordpress",
+          "to": "googleSheets"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 909,
+    "completion_tokens": 1124,
+    "total_tokens": 2033
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:28:31.774681"
+}

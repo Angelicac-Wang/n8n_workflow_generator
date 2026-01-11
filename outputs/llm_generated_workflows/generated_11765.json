@@ -1,0 +1,214 @@
+{
+  "template_id": "11765",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Image Generation and Social Media Publishing",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramBotToken}}",
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "collectInputs",
+          "label": "Collect Inputs",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "textPrompt",
+                "value": "={{$json[\"message\"][\"text\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "enhancePrompt",
+          "label": "Enhance Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Enhance this prompt for image generation: {{$json[\"textPrompt\"]}}",
+              "max_tokens": 50
+            },
+            "headers": {
+              "Authorization": "Bearer {{$credentials.openAIApiKey}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "generateImage",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "={{$json[\"choices\"][0][\"text\"]}}",
+              "model": "Nano Banana PRO"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendImageTelegram",
+          "label": "Send Image to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "sendMessage": false,
+            "sendPhoto": true,
+            "photo": "={{$json[\"imageUrl\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "compressImage",
+          "label": "Compress Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.tinify.com/shrink",
+            "method": "POST",
+            "jsonParameters": false,
+            "options": {},
+            "body": {},
+            "headers": {
+              "Authorization": "Basic {{Buffer.from($credentials.tinyPngApiKey + ':').toString('base64')}}"
+            },
+            "sendBinaryData": true,
+            "binaryPropertyName": "image"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "generateCaption",
+          "label": "Generate Caption",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Generate a caption for the image: {{$json[\"imageUrl\"]}}",
+              "max_tokens": 50
+            },
+            "headers": {
+              "Authorization": "Bearer {{$credentials.openAIApiKey}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "publishToSocialMedia",
+          "label": "Publish to Social Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/publish",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "image": "={{$json[\"compressedImageUrl\"]}}",
+              "caption": "={{$json[\"choices\"][0][\"text\"]}}",
+              "platforms": [
+                "Facebook",
+                "Instagram",
+                "X"
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer {{$credentials.blotatoApiKey}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "collectInputs"
+        },
+        {
+          "from": "collectInputs",
+          "to": "enhancePrompt"
+        },
+        {
+          "from": "enhancePrompt",
+          "to": "generateImage"
+        },
+        {
+          "from": "generateImage",
+          "to": "sendImageTelegram"
+        },
+        {
+          "from": "generateImage",
+          "to": "compressImage"
+        },
+        {
+          "from": "compressImage",
+          "to": "generateCaption"
+        },
+        {
+          "from": "generateCaption",
+          "to": "publishToSocialMedia"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1161,
+    "completion_tokens": 1360,
+    "total_tokens": 2521
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:59:53.690242"
+}

@@ -1,0 +1,222 @@
+{
+  "template_id": "2662",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Generated 9:16 Images for Short-Form Content",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Brand Guidelines",
+          "nodeType": "n8n-nodes-base.airtable",
+          "params": {
+            "operation": "getAll",
+            "baseId": "YOUR_AIRTABLE_BASE_ID",
+            "tableId": "BrandGuidelines",
+            "apiKey": "={{ $credentials.airtableApiKey }}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Guidelines",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "fields": [
+              {
+                "name": "style",
+                "value": "={{ $json[\"fields\"][\"Style\"] }}"
+              },
+              {
+                "name": "tone",
+                "value": "={{ $json[\"fields\"][\"Tone\"] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get SEO Keywords",
+          "nodeType": "n8n-nodes-base.airtable",
+          "params": {
+            "operation": "getAll",
+            "baseId": "YOUR_AIRTABLE_BASE_ID",
+            "tableId": "SEOKeywords",
+            "apiKey": "={{ $credentials.airtableApiKey }}"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Keyword Filter",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json[\"fields\"][\"Keyword\"] }}",
+                  "operation": "contains",
+                  "value2": "AI Automation"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Script Prep",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate a 4-scene script and thumbnail prompts for short-form videos based on {{ $json[\"fields\"][\"Content\"] }}",
+            "apiKey": "={{ $credentials.openaiApiKey }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Leo - Improve Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.leonardo.ai/improve-prompt",
+            "method": "POST",
+            "body": {
+              "prompt": "={{ $json[\"choices\"][0][\"text\"] }}"
+            },
+            "headers": {
+              "Authorization": "Bearer {{ $credentials.leonardoApiKey }}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Leo - Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.leonardo.ai/generate-image",
+            "method": "POST",
+            "body": {
+              "prompt": "={{ $json[\"improvedPrompt\"] }}",
+              "aspectRatio": "9:16"
+            },
+            "headers": {
+              "Authorization": "Bearer {{ $credentials.leonardoApiKey }}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Wait for Image Generation",
+          "nodeType": "n8n-nodes-base.wait",
+          "params": {
+            "waitFor": "={{ $json[\"status\"] === \"completed\" }}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Add Asset Info",
+          "nodeType": "n8n-nodes-base.airtable",
+          "params": {
+            "operation": "create",
+            "baseId": "YOUR_AIRTABLE_BASE_ID",
+            "tableId": "GeneratedAssets",
+            "fields": {
+              "ImageURL": "={{ $json[\"imageUrl\"] }}",
+              "FileSize": "={{ $json[\"fileSize\"] }}",
+              "Type": "9:16 Image"
+            },
+            "apiKey": "={{ $credentials.airtableApiKey }}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1333,
+    "completion_tokens": 1368,
+    "total_tokens": 2701
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:42:05.652354"
+}

@@ -1,0 +1,97 @@
+{
+  "template_id": "10800",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Generate Sticky Note for n8n Template",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Template JSON",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "value": {
+              "string": [
+                {
+                  "name": "templateJson",
+                  "value": ""
+                }
+              ]
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Generate Sticky Note",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "Create a sticky note for the following n8n template JSON with a clear title, How it works steps, and a setup checklist formatted in Markdown: {{$json[\"templateJson\"]}}"
+              },
+              {
+                "name": "max_tokens",
+                "value": 150
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Sticky Note",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "value": {
+              "string": [
+                {
+                  "name": "stickyNoteJson",
+                  "value": "={{$json[\"choices\"][0][\"text\"]}}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 530,
+    "completion_tokens": 521,
+    "total_tokens": 1051
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:36:56.921926"
+}

@@ -1,0 +1,106 @@
+{
+  "template_id": "8662",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Related News to Content Marketing Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "RSS Read",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-rss-feed-url.com",
+            "options": {}
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Best Article Finder",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.sort((a, b) => b.json.pubDate - a.json.pubDate).slice(0, 1);"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate LinkedIn, Medium, and Instagram content based on this article: {{$json[\"title\"]}} - {{$json[\"link\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Content Confirmation",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "Content Drafts for Review",
+            "text": "Here are your content drafts: {{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "5",
+          "to": "1"
+        },
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1111,
+    "completion_tokens": 638,
+    "total_tokens": 1749
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:36:11.573530"
+}

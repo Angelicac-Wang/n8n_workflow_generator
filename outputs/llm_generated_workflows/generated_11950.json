@@ -1,0 +1,139 @@
+{
+  "template_id": "11950",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Analyse YouTube Comments and Create Video Topics",
+      "nodes": [
+        {
+          "id": "scheduleTrigger",
+          "label": "Weekly Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * 5"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "getYouTubeVideos",
+          "label": "Fetch Video Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/playlistItems",
+            "method": "GET",
+            "queryParameters": {
+              "part": "snippet",
+              "playlistId": "YOUR_PLAYLIST_ID",
+              "maxResults": 5,
+              "key": "YOUR_YOUTUBE_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "getYouTubeComments",
+          "label": "Retrieve Comments",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+            "method": "GET",
+            "queryParameters": {
+              "part": "snippet",
+              "videoId": "={{$json[\"items\"][0][\"snippet\"][\"resourceId\"][\"videoId\"]}}",
+              "maxResults": 100,
+              "key": "YOUR_YOUTUBE_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "appendGoogleSheet",
+          "label": "Data Archiving",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "data": "={{$json[\"items\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "aiAnalysis",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Analyze these comments and suggest 5 SEO-optimized video topics.",
+            "input": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "sendEmail",
+          "label": "Email Delivery",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "Weekly Video Topic Suggestions",
+            "text": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "scheduleTrigger",
+          "to": "getYouTubeVideos"
+        },
+        {
+          "from": "getYouTubeVideos",
+          "to": "getYouTubeComments"
+        },
+        {
+          "from": "getYouTubeComments",
+          "to": "appendGoogleSheet"
+        },
+        {
+          "from": "appendGoogleSheet",
+          "to": "aiAnalysis"
+        },
+        {
+          "from": "aiAnalysis",
+          "to": "sendEmail"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1170,
+    "completion_tokens": 890,
+    "total_tokens": 2060
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:06:49.243956"
+}

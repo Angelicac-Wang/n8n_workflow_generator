@@ -1,0 +1,145 @@
+{
+  "template_id": "7157",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Outlook Calendar Summary with GPT-4o",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Outlook Events",
+          "nodeType": "n8n-nodes-base.microsoftOutlook",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "event",
+            "returnAll": true,
+            "filters": {
+              "select": "subject,start"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          },
+          "credentials": {
+            "microsoftOutlookOAuth2Api": {
+              "id": "your-credential-id"
+            }
+          }
+        },
+        {
+          "id": "3",
+          "label": "Normalize Dates",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return $input.all().map(item => {\n  const startDateTime = new Date(item.json.start.dateTime);\n  const formattedDate = startDateTime.toISOString().split('T')[0];\n  return { json: { ...item.json, startDateFormatted: formattedDate } };\n});"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Events",
+          "nodeType": "n8n-nodes-base.filter",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$today.add(1, 'days').format('YYYY-MM-DD')}}",
+                  "operation": "equal",
+                  "value2": "={{$json[\"startDateFormatted\"]}}"
+                },
+                {
+                  "value1": "={{$today.add(2, 'days').format('YYYY-MM-DD')}}",
+                  "operation": "equal",
+                  "value2": "={{$json[\"startDateFormatted\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Aggregate Subjects",
+          "nodeType": "n8n-nodes-base.aggregate",
+          "typeVersion": 1,
+          "params": {
+            "fieldsToAggregate": [
+              {
+                "fieldToAggregate": "subject",
+                "aggregateFunction": "aggregate"
+              }
+            ],
+            "options": {
+              "keepOnlyAggregatedFields": true
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Convert to Text",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{\n  json: {\n    text: items\n      .map(item => JSON.stringify(item.json))\n      .join('\\n')\n  }\n}];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1118,
+    "completion_tokens": 892,
+    "total_tokens": 2010
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:30:57.589944"
+}

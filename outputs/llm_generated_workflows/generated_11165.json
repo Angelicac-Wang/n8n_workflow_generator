@@ -1,0 +1,177 @@
+{
+  "template_id": "11165",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the AI Telegram Customer Support Assistant with Lead Management.",
+    "workflowPlan": {
+      "name": "AI Telegram Customer Support Assistant + Lead Manager",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "params": {
+            "credentials": "Telegram Bot API Key"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Log Message",
+          "nodeType": "n8n-nodes-base.dataTableInsert",
+          "params": {
+            "table": "chat_logs",
+            "data": {
+              "chat_id": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+              "message": "={{$json[\"message\"][\"text\"]}}",
+              "timestamp": "={{$json[\"message\"][\"date\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Lead",
+          "nodeType": "n8n-nodes-base.dataTableRead",
+          "params": {
+            "table": "leads",
+            "filter": {
+              "chat_id": "={{$json[\"message\"][\"chat\"][\"id\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Lead",
+          "nodeType": "n8n-nodes-base.dataTableInsert",
+          "params": {
+            "table": "leads",
+            "data": {
+              "chat_id": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+              "full_name": "={{$json[\"message\"][\"chat\"][\"first_name\"]}}",
+              "phone": "",
+              "email": "",
+              "notes": ""
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Prepare Context",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "context": "={{$json[\"message\"][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Response",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "params": {
+            "credentials": "AI Model Credential",
+            "context": "={{$node[\"Prepare Context\"].json[\"context\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Reply",
+          "nodeType": "n8n-nodes-base.telegramSend",
+          "params": {
+            "credentials": "Telegram Bot API Key",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$node[\"AI Response\"].json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Lead",
+          "nodeType": "n8n-nodes-base.dataTableUpdate",
+          "params": {
+            "table": "leads",
+            "filter": {
+              "chat_id": "={{$json[\"message\"][\"chat\"][\"id\"]}}"
+            },
+            "data": {
+              "notes": "={{$node[\"AI Response\"].json[\"response\"]}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 802,
+    "completion_tokens": 1105,
+    "total_tokens": 1907
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:44:17.518388"
+}

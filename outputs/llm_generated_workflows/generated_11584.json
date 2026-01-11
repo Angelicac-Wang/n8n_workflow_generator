@@ -1,0 +1,177 @@
+{
+  "template_id": "11584",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Viral Clip Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "submit-youtube-url",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "yt-dlp",
+            "arguments": [
+              "-f",
+              "best",
+              "--write-auto-sub",
+              "--skip-download",
+              "--output",
+              "/data/videos/%(title)s.%(ext)s",
+              "{{$json['body']['url']}}"
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Transcript",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/v1/analyze",
+            "method": "POST",
+            "body": {
+              "transcript": "{{$json['transcript']}}",
+              "model": "gemini-2.5-flash"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "googleGeminiApi": "Google Gemini API"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Select Top Clips",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const clips = items[0].json.clips;\nclips.sort((a, b) => b.score - a.score);\nreturn clips.slice(0, 10).map(clip => ({ json: clip }));"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Extract Clips",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "ffmpeg",
+            "arguments": [
+              "-i",
+              "/data/videos/{{ $json['videoFile'] }}",
+              "-ss",
+              "{{ $json['start'] }}",
+              "-to",
+              "{{ $json['end'] }}",
+              "-c",
+              "copy",
+              "/data/clips/{{ $json['clipName'] }}.mp4"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Edit Clips",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "subworkflow-id",
+            "input": [
+              {
+                "json": {
+                  "clipPath": "/data/clips/{{ $json['clipName'] }}.mp4"
+                }
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Notification",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@gmail.com",
+            "toEmail": "habeebmohammedfaiz@gmail.com",
+            "subject": "Clips Ready",
+            "text": "Your clips are ready in the /data/clips/ directory."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2587,
+    "completion_tokens": 1073,
+    "total_tokens": 3660
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:53:44.522153"
+}

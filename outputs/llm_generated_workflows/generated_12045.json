@@ -1,0 +1,138 @@
+{
+  "template_id": "12045",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to turn viral Instagram trends into original scripts.",
+    "workflowPlan": {
+      "name": "Instagram Trend to Script",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scrape Instagram Trends",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "instagram-trends-scraper",
+            "runInput": {
+              "hashtags": [
+                "yourNicheHashtag"
+              ],
+              "resultsLimit": 5
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Transcribe Audio",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "transcribeAudio",
+            "audioFile": "={{$node[\"2\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Research Topic",
+          "nodeType": "n8n-nodes-base.perplexity",
+          "typeVersion": 1,
+          "params": {
+            "query": "={{$node[\"3\"].json[\"text\"]}}",
+            "apiKey": "yourPerplexityApiKey"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Script",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateText",
+            "prompt": "Write a script based on the following transcript and research: \nTranscript: {{$node[\"3\"].json[\"text\"]}}\nResearch: {{$node[\"4\"].json[\"facts\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "yourGoogleSheetId",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{$node[\"1\"].json[\"url\"]}}",
+                "={{$node[\"3\"].json[\"text\"]}}",
+                "={{$node[\"5\"].json[\"text\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 732,
+    "completion_tokens": 814,
+    "total_tokens": 1546
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:12:13.583957"
+}

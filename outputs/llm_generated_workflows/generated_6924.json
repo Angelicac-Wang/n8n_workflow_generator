@@ -1,0 +1,118 @@
+{
+  "template_id": "6924",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube to MP4 Downloader",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "On Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "youtube-download",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://youtube-video-downloader-fast.p.rapidapi.com/api",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "X-RapidAPI-Host": "youtube-video-downloader-fast.p.rapidapi.com",
+                "X-RapidAPI-Key": "YOUR_RAPIDAPI_KEY"
+              }
+            },
+            "bodyParametersJson": {
+              "url": "={{$json[\"body\"][\"youtubeUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "If Node",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"success\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              {
+                "values": [
+                  "={{$json[\"body\"][\"youtubeUrl\"]}}",
+                  "={{$json[\"downloadLinks\"][\"mp4\"]}}",
+                  "={{$json[\"downloadLinks\"][\"mp3\"]}}"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1019,
+    "completion_tokens": 684,
+    "total_tokens": 1703
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:30:22.311682"
+}

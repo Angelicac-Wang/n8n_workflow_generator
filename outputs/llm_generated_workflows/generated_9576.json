@@ -1,0 +1,224 @@
+{
+  "template_id": "9576",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Generated Video Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "*/5 * * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get New Video Requests",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "filter": {
+              "conditions": [
+                {
+                  "field": "VIDEO",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/video",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "header": {
+                "name": "Authorization",
+                "value": "Key YOUR_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "={{$json[\"PROMPT\"]}}",
+              "duration": "={{$json[\"DURATION\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/video/status",
+            "method": "GET",
+            "authentication": {
+              "type": "headerAuth",
+              "header": {
+                "name": "Authorization",
+                "value": "Key YOUR_API_KEY"
+              }
+            },
+            "query": {
+              "videoId": "={{$json[\"videoId\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"videoFileName\"]}}",
+            "fileContent": "={{$json[\"videoContent\"]}}",
+            "folderId": "YOUR_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate YouTube Title",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-5",
+            "prompt": "Generate an SEO-friendly title for: {{$json[\"PROMPT\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish to YouTube",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/youtube/upload",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "header": {
+                "name": "Authorization",
+                "value": "Apikey YOUR_UPLOAD_POST_API_KEY"
+              }
+            },
+            "body": {
+              "username": "YOUR_USERNAME",
+              "videoFile": "={{$json[\"videoFileName\"]}}",
+              "title": "={{$json[\"generatedTitle\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "updateData": {
+              "range": "={{$json[\"rowRange\"]}}",
+              "values": [
+                {
+                  "VIDEO": "={{$json[\"googleDriveUrl\"]}}",
+                  "YOUTUBE_URL": "={{$json[\"youtubeUrl\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "8"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1507,
+    "completion_tokens": 1349,
+    "total_tokens": 2856
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:40:41.909283"
+}

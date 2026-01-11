@@ -1,0 +1,105 @@
+{
+  "template_id": "2513",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Image Transformation and Optimization",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Image Input",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "image-input"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Upload to ImgBB",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.imgbb.com/1/upload",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "key",
+                "value": "YOUR_IMGBB_API_KEY"
+              },
+              {
+                "name": "image",
+                "value": "={{$json[\"body\"][\"image\"]}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Optimize Image",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://api.resmush.it/ws.php",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "img",
+                "value": "={{$node[\"Upload to ImgBB\"].json[\"data\"][\"url\"]}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Return Optimized URL",
+          "nodeType": "respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$node[\"Optimize Image\"].json[\"dest\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 723,
+    "completion_tokens": 555,
+    "total_tokens": 1278
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:38:20.985337"
+}

@@ -1,0 +1,113 @@
+{
+  "template_id": "2315",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow retrieves social media profile links from a webpage and stores them in Supabase.",
+    "workflowPlan": {
+      "name": "Social Media Profile Links Extractor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "retrieve-links"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Page Content",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract URLs",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const cheerio = require('cheerio');\nconst $ = cheerio.load($node[\"Fetch Page Content\"].json[\"body\"]);\nconst links = [];\n$('a').each((i, elem) => {\n  links.push($(elem).attr('href'));\n});\nreturn links;"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Social Media Links",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const socialMediaDomains = ['facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com'];\nconst socialMediaLinks = $node[\"Extract URLs\"].json.filter(link => {\n  return socialMediaDomains.some(domain => link.includes(domain));\n});\nreturn socialMediaLinks;"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Supabase",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-supabase-url.supabase.co/rest/v1/social_links",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "links": "={{$node[\"Filter Social Media Links\"].json}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentialType": "supabaseApi"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 806,
+    "completion_tokens": 744,
+    "total_tokens": 1550
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:34:02.633879"
+}

@@ -1,0 +1,169 @@
+{
+  "template_id": "9735",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Enhanced Subdomain Discovery",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "upload-domains",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Execute Command - Subfinder",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "subfinder -d {{ $json[\"domain\"] }} -silent"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Execute Command - Assetfinder",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "assetfinder --subs-only {{ $json[\"domain\"] }}"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request - crt.sh",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://crt.sh/?q={{ $json[\"domain\"] }}&output=json",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 700
+          }
+        },
+        {
+          "id": "5",
+          "label": "HTTP Request - Wayback Machine",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://web.archive.org/cdx/search/cdx?url=*.{{ $json[\"domain\"] }}&output=json&fl=original",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 900
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent - Generate Subdomains",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const aiAgent = require('ai-agent');\nconst subdomains = aiAgent.generateSubdomains(inputData);\nreturn subdomains;"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Execute Command - HTTPX",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "echo {{ $json[\"subdomain\"] }} | httpx -silent"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Respond with Results",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "{{ $json[\"validatedSubdomains\"] }}",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 749,
+    "completion_tokens": 1019,
+    "total_tokens": 1768
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:41:46.624325"
+}

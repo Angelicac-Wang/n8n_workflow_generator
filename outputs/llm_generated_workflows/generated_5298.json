@@ -1,0 +1,155 @@
+{
+  "template_id": "5298",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "URL Monitoring and Alert System",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get URLs",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "urls",
+                  "value": "https://example1.com,https://example2.com"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split URLs",
+          "nodeType": "splitInBatches",
+          "params": {
+            "fieldToSplit": "urls",
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check URL Status",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "={{$json[\"urls\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log Result",
+          "nodeType": "googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{$json[\"urls\"]}}",
+                "={{$node[\"Check URL Status\"].json[\"statusCode\"]}}",
+                "={{$node[\"Check URL Status\"].json[\"statusCode\"] === 200 ? \"Success\" : \"Error\"}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check for Errors",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$node[\"Check URL Status\"].json[\"statusCode\"]}}",
+                  "operation": "notEqual",
+                  "value2": 200
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email Alert",
+          "nodeType": "gmail",
+          "params": {
+            "operation": "sendEmail",
+            "to": "your-email@example.com",
+            "subject": "URL Down Alert",
+            "message": "The URL {{$json[\"urls\"]}} is down."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 688,
+    "completion_tokens": 833,
+    "total_tokens": 1521
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:18:45.015524"
+}

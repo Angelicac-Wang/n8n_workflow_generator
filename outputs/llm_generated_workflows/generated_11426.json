@@ -1,0 +1,158 @@
+{
+  "template_id": "11426",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Get Top Binance Earn Yields to Email",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Credentials",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "API_KEY",
+                  "value": "YOUR_API_KEY"
+                },
+                {
+                  "name": "SECRET_KEY",
+                  "value": "YOUR_SECRET_KEY"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Signature",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const crypto = require('crypto');\nconst timestamp = Date.now();\nconst queryString = `timestamp=${timestamp}`;\nconst signature = crypto.createHmac('sha256', $node[\"Set Credentials\"].json[\"SECRET_KEY\"]).update(queryString).digest('hex');\nreturn { json: { timestamp, signature } };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Flexible Earn Products",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.binance.com/sapi/v1/lending/daily/product/list",
+            "method": "GET",
+            "authentication": "none",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "timestamp",
+                  "value": "={{$node[\"Generate Signature\"].json[\"timestamp\"]}}"
+                },
+                {
+                  "name": "signature",
+                  "value": "={{$node[\"Generate Signature\"].json[\"signature\"]}}"
+                }
+              ]
+            },
+            "headers": [
+              {
+                "name": "X-MBX-APIKEY",
+                "value": "={{$node[\"Set Credentials\"].json[\"API_KEY\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Process Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const products = items[0].json;\nproducts.sort((a, b) => parseFloat(b.annualInterestRate) - parseFloat(a.annualInterestRate));\nconst topProducts = products.slice(0, 15);\nconst capital = 10000;\nconst dailyEarnings = topProducts.map(product => {\n  const dailyRate = parseFloat(product.annualInterestRate) / 365;\n  const earnings = capital * dailyRate;\n  return { ...product, dailyEarnings: earnings.toFixed(2) };\n});\nreturn dailyEarnings.map(product => ({ json: product }));"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "Daily Binance Earn Yields",
+            "text": "={{$json[\"name\"]}}: {{$json[\"dailyEarnings\"]}} USD/day",
+            "html": "<h1>Top Binance Earn Yields</h1><ul>{{$items.map(item => `<li>${item.json.name}: ${item.json.dailyEarnings} USD/day</li>`).join('')}}</ul>"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1018,
+    "completion_tokens": 1117,
+    "total_tokens": 2135
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:49:39.545676"
+}

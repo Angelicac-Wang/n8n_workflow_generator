@@ -1,0 +1,128 @@
+{
+  "template_id": "11625",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Monthly Payroll and Attendance Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Attendance Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "attendanceSheetId",
+            "range": "Attendance!A:G"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Employee Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "employeeSheetId",
+            "range": "Employees!A:D"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Calculate Deductions",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function calculateDeductions(attendanceData, employeeData) {\n  // Logic to calculate missing hours, absences, and deductions\n  return calculatedData;\n}\nreturn calculateDeductions($node[\"Fetch Attendance Data\"].json, $node[\"Fetch Employee Data\"].json);"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate AI Summary",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate a professional summary for each employee based on their attendance and salary data."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"EmpEmail\"]}}",
+            "subject": "Monthly Salary and Attendance Report",
+            "body": "={{$node[\"Generate AI Summary\"].json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log Email Status",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "logSheetId",
+            "range": "Logs!A:C",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 929,
+    "completion_tokens": 798,
+    "total_tokens": 1727
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:55:41.977887"
+}

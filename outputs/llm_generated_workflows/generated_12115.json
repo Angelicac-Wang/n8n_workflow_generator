@@ -1,0 +1,156 @@
+{
+  "template_id": "12115",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow for the Virtual Try-On Image & Video Generation.",
+    "workflowPlan": {
+      "name": "Virtual Try-On Image & Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "upload-dress",
+            "method": "POST",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Model Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/model-image.jpg",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Try-On Image",
+          "nodeType": "@vlm-run/n8n-nodes-vlmrun",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateTryOnImage",
+            "dressImage": "={{$json[\"body\"][\"dressImage\"]}}",
+            "modelImage": "={{$node[\"Download Model Image\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Fashion Walk Video",
+          "nodeType": "@vlm-run/n8n-nodes-vlmrun",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateFashionVideo",
+            "tryOnImage": "={{$node[\"Generate Try-On Image\"].json[\"tryOnImage\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Share on Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendPhoto",
+            "chatId": "123456789",
+            "photo": "={{$node[\"Generate Try-On Image\"].json[\"tryOnImage\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Share on Discord",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "channelId": "987654321",
+            "message": "Check out this new try-on image!",
+            "embed": {
+              "image": {
+                "url": "={{$node[\"Generate Try-On Image\"].json[\"tryOnImage\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "uploadVideo",
+            "video": "={{$node[\"Generate Fashion Walk Video\"].json[\"fashionVideo\"]}}",
+            "title": "Virtual Fashion Walk",
+            "description": "Experience the latest fashion with our virtual try-on technology."
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 972,
+    "completion_tokens": 1002,
+    "total_tokens": 1974
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:15:20.217025"
+}

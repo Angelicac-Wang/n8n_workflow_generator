@@ -1,0 +1,279 @@
+{
+  "template_id": "11049",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Document Generator with Anthropic and Google Drive",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "document-generation",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseCode": 200,
+              "responseBody": "Form received"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Document Type Routing",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "body.fileType",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "PPTX"
+              },
+              {
+                "operation": "equal",
+                "value": "PDF"
+              },
+              {
+                "operation": "equal",
+                "value": "DOCX"
+              },
+              {
+                "operation": "equal",
+                "value": "XLSX"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate PPTX",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/messages",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "systemPrompt": "Generate a professional presentation",
+              "userPrompt": "={{$json[\"body\"][\"prompt\"]}}",
+              "skills": [
+                "pptx"
+              ]
+            },
+            "headerParametersJson": {
+              "x-api-key": "YOUR_ANTHROPIC_API_KEY",
+              "anthropic-version": "v1",
+              "anthropic-beta": "true"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/messages",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "systemPrompt": "Generate a professional report",
+              "userPrompt": "={{$json[\"body\"][\"prompt\"]}}",
+              "skills": [
+                "pdf"
+              ]
+            },
+            "headerParametersJson": {
+              "x-api-key": "YOUR_ANTHROPIC_API_KEY",
+              "anthropic-version": "v1",
+              "anthropic-beta": "true"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate DOCX",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/messages",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "systemPrompt": "Generate a professional document",
+              "userPrompt": "={{$json[\"body\"][\"prompt\"]}}",
+              "skills": [
+                "docx"
+              ]
+            },
+            "headerParametersJson": {
+              "x-api-key": "YOUR_ANTHROPIC_API_KEY",
+              "anthropic-version": "v1",
+              "anthropic-beta": "true"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate XLSX",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/messages",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "systemPrompt": "Generate a professional spreadsheet",
+              "userPrompt": "={{$json[\"body\"][\"prompt\"]}}",
+              "skills": [
+                "xlsx"
+              ]
+            },
+            "headerParametersJson": {
+              "x-api-key": "YOUR_ANTHROPIC_API_KEY",
+              "anthropic-version": "v1",
+              "anthropic-beta": "true"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Extract File ID",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const extractFileId = (response) => {\n  // Implement recursive search to find file ID\n  return response.data.fileId;\n};\n\nreturn [{ json: { fileId: extractFileId(items[0].json) } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/files/{{$json[\"fileId\"]}}",
+            "method": "GET",
+            "options": {},
+            "headerParametersJson": {
+              "x-api-key": "YOUR_ANTHROPIC_API_KEY",
+              "anthropic-version": "v1",
+              "anthropic-beta": "true"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"fileId\"]}}",
+            "fileContent": "={{$binary.data}}",
+            "parentFolderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 2
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 3
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1394,
+    "completion_tokens": 1740,
+    "total_tokens": 3134
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:41:43.974652"
+}

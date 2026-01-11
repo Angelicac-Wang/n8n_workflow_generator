@@ -1,0 +1,183 @@
+{
+  "template_id": "11580",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Autonomous Tier 2 Customer Support Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watch": "support@yourdomain.com",
+            "onlyUnread": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Security Guardrails",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Scan for Prompt Injection, Profanity, PII\n// Log to Airtable if detected\n// Stop execution if threat is found"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Master Orchestrator",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Orchestrate the workflow\n// Call Ticket Analyser Agent"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Ticket Analyser Agent",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "ticketAnalyserWorkflowId"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Decision Logic",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"priority_score\"]}}",
+                  "operation": "greaterEqual",
+                  "value2": 0.9
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Alert Human Manager",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#support",
+            "text": "High priority support ticket requires human intervention."
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Knowledge Worker Agent",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "knowledgeWorkerWorkflowId"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Resolution Agent",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "resolutionAgentWorkflowId"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Support Ticket Resolution",
+            "body": "={{$json[\"email_draft\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1231,
+    "completion_tokens": 1061,
+    "total_tokens": 2292
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:53:36.593256"
+}

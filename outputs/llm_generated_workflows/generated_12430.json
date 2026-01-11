@@ -1,0 +1,134 @@
+{
+  "template_id": "12430",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating tenant and management notifications for package and visitor events.",
+    "workflowPlan": {
+      "name": "Property Management Notification Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "package-visitor-event"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Classifier",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Classify the urgency and type of the following event: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "{{$json[\"email\"]}}",
+            "subject": "New Package/Visitor Event",
+            "text": "A new event has been classified as: {{$json[\"classification\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send SMS",
+          "nodeType": "n8n-nodes-base.smsSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "{{$json[\"phone\"]}}",
+            "message": "New event: {{$json[\"classification\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#property-management",
+            "text": "New package/visitor event classified as: {{$json[\"classification\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "A1",
+            "data": [
+              [
+                "{{$json[\"timestamp\"]}}",
+                "{{$json[\"classification\"]}}",
+                "{{$json[\"details\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 648,
+    "completion_tokens": 804,
+    "total_tokens": 1452
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:28:18.623840"
+}

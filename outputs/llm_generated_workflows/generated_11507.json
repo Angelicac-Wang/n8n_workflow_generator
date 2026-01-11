@@ -1,0 +1,136 @@
+{
+  "template_id": "11507",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Error Alert with AI Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Error Trigger",
+          "nodeType": "n8n-nodes-base.errorTrigger",
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Config Set Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "fields": [
+              {
+                "name": "smtpSettings",
+                "value": "your_smtp_settings"
+              },
+              {
+                "name": "analyzeErrorWithAI",
+                "value": "true"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Use AI Analysis?",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"analyzeErrorWithAI\"]}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Error with AI",
+          "nodeType": "n8n-nodes-base.openAIApi",
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the following error: {{$json[\"errorDetails\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Format Email Body",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return { emailBody: `Workflow: ${$json[\"workflowName\"]}\nTimestamp: ${$json[\"timestamp\"]}\nNode: ${$json[\"nodeName\"]}\nError: ${$json[\"errorMessage\"]}\nSeverity: ${$json[\"severityLevel\"] || 'N/A'}\nResolution: ${$json[\"quickResolution\"] || 'N/A'}` };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "fromEmail": "your_email@example.com",
+            "toEmail": "recipient_email@example.com",
+            "subject": "n8n Workflow Error Alert",
+            "text": "={{$json[\"emailBody\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 811,
+    "completion_tokens": 817,
+    "total_tokens": 1628
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:52:00.384180"
+}

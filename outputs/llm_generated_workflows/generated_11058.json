@@ -1,0 +1,135 @@
+{
+  "template_id": "11058",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow template for AI-powered invoice processing using Google Drive and Google Sheets.",
+    "workflowPlan": {
+      "name": "AI Invoice Processing Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "file",
+            "driveId": "your-drive-id",
+            "folderId": "input-folder-id",
+            "pollingInterval": 60
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"fileId\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Invoice Text",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "prompt": "Extract invoice details from PDF text",
+                "max_tokens": 150
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Rename and Save File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "fileId": "={{$json[\"fileId\"]}}",
+            "name": "={{$json[\"invoiceNumber\"]}} {{$json[\"vendor\"]}}.pdf",
+            "parents": [
+              "output-folder-id"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:G",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{$json[\"invoiceDate\"]}}",
+                "={{$json[\"vendor\"]}}",
+                "={{$json[\"currency\"]}}",
+                "={{$json[\"totalAmount\"]}}",
+                "={{$json[\"invoiceNumber\"]}}",
+                "={{$json[\"bookingText\"]}}",
+                "={{$json[\"bookingAccount\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 967,
+    "completion_tokens": 832,
+    "total_tokens": 1799
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:42:02.326689"
+}

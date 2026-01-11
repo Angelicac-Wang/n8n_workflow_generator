@@ -1,0 +1,107 @@
+{
+  "template_id": "7163",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow for hyper-personalized email outreach using Google Sheets, OpenAI, and Gmail.",
+    "workflowPlan": {
+      "name": "Hyper-Personalized Email Outreach",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Inquiries from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Gmail Display Name",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/gmail/v1/users/me/profile",
+            "method": "GET",
+            "authentication": "googleOAuth2"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Craft Reply with OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4-turbo",
+            "prompt": "Generate a personalized email reply based on the following inquiry: {{Original Inquiry}} with intent {{Inquiry Intent}}."
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email via Gmail",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$node[\"Fetch Inquiries from Google Sheets\"].json[\"Email ID\"]}}",
+            "subject": "Re: Your Inquiry",
+            "body": "={{$node[\"Craft Reply with OpenAI\"].json[\"choices\"][0][\"text\"]}}",
+            "html": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1281,
+    "completion_tokens": 672,
+    "total_tokens": 1953
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:31:14.608305"
+}

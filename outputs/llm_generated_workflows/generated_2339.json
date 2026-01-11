@@ -1,0 +1,179 @@
+{
+  "template_id": "2339",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to process documents and generate templates.",
+    "workflowPlan": {
+      "name": "Document Processing and Template Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "File Trigger",
+          "nodeType": "n8n-nodes-base.fileTrigger",
+          "typeVersion": 1,
+          "params": {
+            "path": "/path/to/watch",
+            "pollingInterval": 60
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read File",
+          "nodeType": "n8n-nodes-base.readBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{$json[\"filePath\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract and Vectorize",
+          "nodeType": "custom.qdrantVectorize",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_MISTRAL_API_KEY",
+            "qdrantUrl": "http://localhost:6333",
+            "collectionName": "document_vectors"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Study Guide",
+          "nodeType": "custom.mistralAI",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a study guide with questions and answers from the document.",
+            "knowledgebase": "document_vectors"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Briefing Doc",
+          "nodeType": "custom.mistralAI",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Extract key information and insights for a briefing document.",
+            "knowledgebase": "document_vectors"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Timeline",
+          "nodeType": "custom.mistralAI",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Identify key events, durations, and people for a timeline.",
+            "knowledgebase": "document_vectors"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Study Guide",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "/path/to/save/study_guide.txt",
+            "data": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Save Briefing Doc",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "/path/to/save/briefing_doc.txt",
+            "data": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Save Timeline",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "/path/to/save/timeline.txt",
+            "data": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "8"
+        },
+        {
+          "from": "6",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 823,
+    "completion_tokens": 1070,
+    "total_tokens": 1893
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:34:47.133129"
+}

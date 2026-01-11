@@ -1,0 +1,384 @@
+{
+  "template_id": "11270",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Monitor Meta Ads Library for Competitor Creatives",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 8,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Add Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "ad_active_status",
+                  "value": "active"
+                },
+                {
+                  "name": "search_page_ids",
+                  "value": "COMPETITOR_PAGE_ID"
+                },
+                {
+                  "name": "ad_reached_countries",
+                  "value": "US"
+                },
+                {
+                  "name": "access_token",
+                  "value": "YOUR_ACCESS_TOKEN"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Facebook Ads API by Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/ads_archive",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "ad_active_status",
+                "value": "={{$json[\"ad_active_status\"]}}"
+              },
+              {
+                "name": "search_page_ids",
+                "value": "={{$json[\"search_page_ids\"]}}"
+              },
+              {
+                "name": "ad_reached_countries",
+                "value": "={{$json[\"ad_reached_countries\"]}}"
+              },
+              {
+                "name": "access_token",
+                "value": "={{$json[\"access_token\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check the Pagination",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const data = items[0].json.data || [];\nconst next_url = items[0].json.paging ? items[0].json.paging.next : null;\nreturn [{ json: { data, next_url } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "If Next URL",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"next_url\"] !== null}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Set Next URL",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "url",
+                  "value": "={{$json[\"next_url\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Facebook Ads API Pagination",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Read Existing IDs",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "ads!A:A"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Collect ID List",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const existingIds = items.map(item => item.json.id);\nreturn [{ json: { existingIds } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Attach Existing IDs",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "passThrough",
+            "join": "inner"
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "11",
+          "label": "Filter New Creatives",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const existingIds = items[1].json.existingIds;\nconst newAds = items[0].json.data.filter(ad => !existingIds.includes(ad.id));\nreturn newAds.map(ad => ({ json: ad }));"
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        },
+        {
+          "id": "12",
+          "label": "Split Out",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 1400,
+            "y": 500
+          }
+        },
+        {
+          "id": "13",
+          "label": "Add to Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "appendOrUpdate",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "ads",
+            "key": "id",
+            "fields": {
+              "id": "={{$json[\"id\"]}}",
+              "ad_creation_time": "={{$json[\"ad_creation_time\"]}}",
+              "page_name": "={{$json[\"page_name\"]}}",
+              "ad_creative_bodies": "={{$json[\"ad_creative_bodies\"]}}",
+              "ad_snapshot_url": "={{$json[\"ad_snapshot_url\"]}}",
+              "languages": "={{$json[\"languages\"]}}",
+              "publisher_platforms": "={{$json[\"publisher_platforms\"]}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 500
+          }
+        },
+        {
+          "id": "14",
+          "label": "Count New Ads",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { newCount: items.length } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 700
+          }
+        },
+        {
+          "id": "15",
+          "label": "Any New Ads?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"newCount\"]}}",
+                  "operation": "larger",
+                  "value2": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 700
+          }
+        },
+        {
+          "id": "16",
+          "label": "Send a Text Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "New ads discovered: {{$json.newCount}}. Check the Google Sheet for details."
+          },
+          "position": {
+            "x": 1800,
+            "y": 700
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "4",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "12",
+          "to": "14"
+        },
+        {
+          "from": "14",
+          "to": "15"
+        },
+        {
+          "from": "15",
+          "to": "16",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2057,
+    "completion_tokens": 2374,
+    "total_tokens": 4431
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:46:54.780331"
+}

@@ -1,0 +1,163 @@
+{
+  "template_id": "12148",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Return Pickup Reminders",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 10
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:H",
+            "filters": {
+              "conditions": {
+                "all": [
+                  {
+                    "field": "Pickup Date",
+                    "operation": "equal",
+                    "value": "={{ $today }}",
+                    "type": "date"
+                  },
+                  {
+                    "field": "Status",
+                    "operation": "equal",
+                    "value": "Pending"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Messages",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { const data = item.json; return { json: { whatsappMessage: `Hello ${data['Customer Name']}, your return pickup for ${data['Product']} is scheduled today at ${data['Pickup Date']}. Please have it ready at ${data['Address']}. Reason: ${data['Return Reason']}.`, voiceMessage: `Hello ${data['Customer Name']}, this is a reminder for your return pickup scheduled today for ${data['Product']}. Please ensure it is ready at ${data['Address']}.` } }; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.twilio",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "from": "whatsapp:+your-twilio-number",
+            "to": "={{ 'whatsapp:' + $json['Phone Number'] }}",
+            "message": "={{ $json['whatsappMessage'] }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Place Voice Call",
+          "nodeType": "n8n-nodes-base.twilio",
+          "typeVersion": 1,
+          "params": {
+            "resource": "call",
+            "from": "+your-twilio-number",
+            "to": "={{ $json['Phone Number'] }}",
+            "twiml": "<Response><Say>{{ $json['voiceMessage'] }}</Say></Response>"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!H:H",
+            "updateData": {
+              "key": "Order ID",
+              "value": "={{ $json['Order ID'] }}",
+              "data": {
+                "Status": "Reminder Sent"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1125,
+    "completion_tokens": 1024,
+    "total_tokens": 2149
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:17:03.769865"
+}

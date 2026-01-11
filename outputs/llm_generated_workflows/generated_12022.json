@@ -1,0 +1,308 @@
+{
+  "template_id": "12022",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Chatbot for Max Messenger with Voice Recognition",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Max Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "max-trigger",
+            "responseMode": "onReceived",
+            "responseData": "default"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check User",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"user_id\"]}}",
+                  "value2": "50488534"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Access Denied",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.max.ru/sendMessage",
+            "method": "POST",
+            "bodyParameters": {
+              "message": "Access denied. You are not authorized to use this bot."
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Text/Attachment",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message_type\"]}}",
+            "rules": [
+              {
+                "value": "text"
+              },
+              {
+                "value": "attachment"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Download Attachment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"attachment_url\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Attachment Router",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"attachment_type\"]}}",
+            "rules": [
+              {
+                "value": "voice"
+              },
+              {
+                "value": "photo"
+              },
+              {
+                "value": "file"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Get Access Token",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.sber.ru/oauth/token",
+            "method": "POST",
+            "authentication": "headerAuth"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Get Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.sber.ru/smartspeech/v1/transcribe",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "bodyParameters": {
+              "audio": "={{$json[\"audio_file\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Voice to Prompt",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"transcription\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Text to Prompt",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "11",
+          "label": "Combine",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gigachat.ru/process",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "bodyParameters": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "user_id": "={{$json[\"user_id\"]}}"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Send Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.max.ru/sendMessage",
+            "method": "POST",
+            "bodyParameters": {
+              "message": "={{$json[\"response\"]}}"
+            }
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "10"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "11"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1209,
+    "completion_tokens": 1738,
+    "total_tokens": 2947
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:10:43.147697"
+}

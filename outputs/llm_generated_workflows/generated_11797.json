@@ -1,0 +1,271 @@
+{
+  "template_id": "11797",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube Post-Publish Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "YouTube Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "youtube-new-video"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Video Metadata",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "part",
+                "value": "snippet,statistics"
+              },
+              {
+                "name": "id",
+                "value": "={{$json[\"videoId\"]}}"
+              }
+            ],
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credentials": "YouTube API"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "SEO Optimization",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "bodyParameters": {
+              "prompt": "Generate SEO optimized title, description, and tags for YouTube video with metadata: {{$json[\"items\"][0][\"snippet\"]}}",
+              "max_tokens": 150
+            },
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Update YouTube Metadata",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "method": "PUT",
+            "bodyParameters": {
+              "id": "={{$json[\"videoId\"]}}",
+              "snippet": {
+                "title": "={{$json[\"optimizedTitle\"]}}",
+                "description": "={{$json[\"optimizedDescription\"]}}",
+                "tags": "={{$json[\"optimizedTags\"]}}"
+              }
+            },
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credentials": "YouTube API"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Social Media Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "bodyParameters": {
+              "prompt": "Create social media posts for LinkedIn, Twitter, Instagram, and Facebook for the video: {{$json[\"optimizedTitle\"]}}",
+              "max_tokens": 200
+            },
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post to Social Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.socialmedia.com/post",
+            "method": "POST",
+            "bodyParameters": {
+              "content": "={{$json[\"socialMediaPosts\"]}}"
+            },
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credentials": "Social Media API"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Monitor Comments",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "part",
+                "value": "snippet"
+              },
+              {
+                "name": "videoId",
+                "value": "={{$json[\"videoId\"]}}"
+              }
+            ],
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credentials": "YouTube API"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Analyze Sentiment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.sentimentanalysis.com/analyze",
+            "method": "POST",
+            "bodyParameters": {
+              "text": "={{$json[\"comments\"]}}"
+            },
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SENTIMENT_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "YOUR_SLACK_CHANNEL",
+            "text": "New video published: {{$json[\"optimizedTitle\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1287,
+    "completion_tokens": 1729,
+    "total_tokens": 3016
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:01:04.405286"
+}

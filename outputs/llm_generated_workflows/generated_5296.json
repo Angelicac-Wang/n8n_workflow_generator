@@ -1,0 +1,157 @@
+{
+  "template_id": "5296",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to automatically discover, analyze, and track trending topics and videos on YouTube using an AI-powered agent.",
+    "workflowPlan": {
+      "name": "YouTube Trend Explorer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "youtube-trend-explorer",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent - Trend Explorer",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { query: $json[\"body\"][\"message\"] } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "YouTube Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "part",
+                "value": "snippet"
+              },
+              {
+                "name": "q",
+                "value": "={{$json[\"query\"]}}"
+              },
+              {
+                "name": "type",
+                "value": "video"
+              },
+              {
+                "name": "key",
+                "value": "YOUR_YOUTUBE_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ],
+            "body": {
+              "prompt": "Analyze YouTube trends: {{$json[\"items\"]}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Simple Memory",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "memory",
+                  "value": "={{$json[\"choices\"][0][\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond to Chat",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"memory\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1188,
+    "completion_tokens": 897,
+    "total_tokens": 2085
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:18:39.520251"
+}

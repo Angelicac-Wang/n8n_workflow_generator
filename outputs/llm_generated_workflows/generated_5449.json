@@ -1,0 +1,140 @@
+{
+  "template_id": "5449",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Cold Calling Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * 1-5"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Apify Scraper",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "your-actor-id",
+            "runInput": "{}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI RAG",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate personalized message for {{prospect}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "WAHA WhatsApp",
+          "nodeType": "@devlikeapro/n8n-nodes-waha",
+          "typeVersion": 1,
+          "params": {
+            "phoneNumber": "{{prospectPhoneNumber}}",
+            "message": "{{generatedMessage}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Database Insert",
+          "nodeType": "n8n-nodes-base.database",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "prospect_data",
+            "columns": [
+              "name",
+              "phone",
+              "message",
+              "status"
+            ],
+            "values": [
+              "{{prospectName}}",
+              "{{prospectPhoneNumber}}",
+              "{{generatedMessage}}",
+              "sent"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourcrm.com/prospects",
+            "method": "POST",
+            "body": {
+              "name": "{{prospectName}}",
+              "phone": "{{prospectPhoneNumber}}",
+              "message": "{{generatedMessage}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1718,
+    "completion_tokens": 737,
+    "total_tokens": 2455
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:20:12.052712"
+}

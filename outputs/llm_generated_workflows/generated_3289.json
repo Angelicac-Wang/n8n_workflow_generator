@@ -1,0 +1,173 @@
+{
+  "template_id": "3289",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Analyze YouTube Video for Summaries, Transcripts & Content",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "youtube-analysis"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Video Metadata",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "part",
+                "value": "snippet,contentDetails,statistics"
+              },
+              {
+                "name": "id",
+                "value": "={{$json[\"videoId\"]}}"
+              },
+              {
+                "name": "key",
+                "value": "={{$env[\"GOOGLE_API_KEY\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Metadata",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "videoTitle": "={{$json[\"items\"][0][\"snippet\"][\"title\"]}}",
+              "videoDescription": "={{$json[\"items\"][0][\"snippet\"][\"description\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Output",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"promptType\"]}}",
+                  "operation": "equal",
+                  "value2": "summary"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Summary",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "summary": "={{'Summary of ' + $json[\"videoTitle\"] + ': ' + $json[\"videoDescription\"].substr(0, 200) + '...'}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"videoTitle\"]}}_summary.txt",
+            "fileContent": "={{$json[\"summary\"]}}",
+            "parents": [
+              "root"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send via Gmail",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Video Analysis Summary",
+            "text": "={{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 943,
+    "completion_tokens": 1000,
+    "total_tokens": 1943
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:55:10.970890"
+}

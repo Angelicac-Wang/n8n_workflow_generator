@@ -1,0 +1,152 @@
+{
+  "template_id": "11619",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Multi-Agent Orchestration",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "formFields": [
+              {
+                "name": "agentName",
+                "type": "string"
+              },
+              {
+                "name": "description",
+                "type": "string"
+              },
+              {
+                "name": "datastore",
+                "type": "string"
+              },
+              {
+                "name": "files",
+                "type": "file"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Agent",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.contextual.ai/agents",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParameters": [
+              {
+                "name": "name",
+                "value": "={{$json[\"agentName\"]}}"
+              },
+              {
+                "name": "description",
+                "value": "={{$json[\"description\"]}}"
+              },
+              {
+                "name": "datastore",
+                "value": "={{$json[\"datastore\"]}}"
+              },
+              {
+                "name": "files",
+                "value": "={{$json[\"files\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Ingestion Status",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.contextual.ai/agents/{{$json[\"agentId\"]}}/status",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "interval": 30
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Agent Orchestrator",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { agentId: 'selectedAgentId' };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 905,
+    "completion_tokens": 830,
+    "total_tokens": 1735
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:55:04.692060"
+}

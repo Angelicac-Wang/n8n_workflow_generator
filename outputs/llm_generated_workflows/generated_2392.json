@@ -1,0 +1,130 @@
+{
+  "template_id": "2392",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to create a Telegram chatbot that interacts with PDFs.",
+    "workflowPlan": {
+      "name": "Telegram PDF Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{$credentials.telegramApi.token}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check for Document",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message\"][\"document\"] !== undefined}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Store PDF in Pinecone",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pinecone.io/vectors/upsert",
+            "method": "POST",
+            "body": "={{JSON.stringify({id: $json[\"message\"][\"document\"][\"file_id\"], values: $json[\"message\"][\"document\"][\"file_name\"]})}}",
+            "headers": {
+              "Content-Type": "application/json",
+              "Api-Key": "={{$credentials.pineconeApi.apiKey}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Search Vector Store",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pinecone.io/vectors/query",
+            "method": "POST",
+            "body": "={{JSON.stringify({query: $json[\"message\"][\"text\"], topK: 1})}}",
+            "headers": {
+              "Content-Type": "application/json",
+              "Api-Key": "={{$credentials.pineconeApi.apiKey}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"response\"][\"matches\"][0][\"metadata\"]}}",
+            "botToken": "={{$credentials.telegramApi.token}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 694,
+    "completion_tokens": 841,
+    "total_tokens": 1535
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:35:36.875075"
+}

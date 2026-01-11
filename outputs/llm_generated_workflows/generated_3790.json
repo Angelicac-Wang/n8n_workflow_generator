@@ -1,0 +1,164 @@
+{
+  "template_id": "3790",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Stock Analysis Agent (Hebrew, RTL, GPT-4o)",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Stock Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.twelvedata.com/time_series",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "symbol",
+                "value": "AAPL"
+              },
+              {
+                "name": "interval",
+                "value": "1week"
+              },
+              {
+                "name": "apikey",
+                "value": "={{$credentials.twelveDataApiKey}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Technical Analysis",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const rsi = calculateRSI(); const macd = calculateMACD(); const bollingerBands = calculateBollingerBands(); return { json: { rsi, macd, bollingerBands } };"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch News Sentiment",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.alphavantage.co/query",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "function",
+                "value": "NEWS_SENTIMENT"
+              },
+              {
+                "name": "apikey",
+                "value": "={{$credentials.alphaVantageApiKey}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze with GPT-4o",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "prompt": "Analyze the stock data and news sentiment to identify patterns, trends, and trading opportunities.",
+              "max_tokens": 500
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$credentials.openAIApiKey}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate HTML Email",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const emailContent = generateEmailContent(); return { json: { emailContent } };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "smtp",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Weekly Stock Analysis",
+            "content": "={{$node[\"Generate HTML Email\"].json[\"emailContent\"]}}",
+            "host": "smtp.gmail.com",
+            "port": 465,
+            "secure": true,
+            "user": "your-email@example.com",
+            "password": "your-email-password"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 896,
+    "completion_tokens": 981,
+    "total_tokens": 1877
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:03:07.511972"
+}

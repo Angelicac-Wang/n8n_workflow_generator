@@ -1,0 +1,106 @@
+{
+  "template_id": "5680",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Telegram to RAG Chat Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "telegramTrigger",
+          "params": {
+            "active": false
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Google Doc",
+          "nodeType": "googleDocs",
+          "params": {
+            "authentication": "serviceAccount",
+            "documentUrl": "your-google-doc-url"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split into Chunks",
+          "nodeType": "code",
+          "params": {
+            "functionCode": "function splitText(text) { const size = 1000; let chunks = []; for (let i = 0; i < text.length; i += size) { chunks.push(text.slice(i, i + size)); } return chunks; }"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Embed Document",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.together.ai/embedding",
+            "method": "POST",
+            "body": {
+              "model": "your-model-name",
+              "text": "{{$json[\"chunk\"]}}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save Embedding",
+          "nodeType": "supabase",
+          "params": {
+            "table": "embed",
+            "data": {
+              "chunk": "{{$json[\"chunk\"]}}",
+              "embedding": "{{$json[\"embedding\"]}}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1004,
+    "completion_tokens": 572,
+    "total_tokens": 1576
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:23:37.488994"
+}

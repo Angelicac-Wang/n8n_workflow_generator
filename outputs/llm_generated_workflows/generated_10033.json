@@ -1,0 +1,183 @@
+{
+  "template_id": "10033",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow for the AI-powered WhatsApp virtual receptionist.",
+    "workflowPlan": {
+      "name": "AI-Powered WhatsApp Virtual Receptionist",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.whatsappTrigger",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "https://your-n8n-instance.com/webhook/whatsapp"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Detect Message Type",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message_type\"]}}",
+                  "value2": "voice"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Download Voice Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"media_url\"]}}",
+            "options": {
+              "responseFormat": "file"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Convert to Base64",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fs = require('fs');\nconst filePath = items[0].binary.data.filePath;\nconst fileBuffer = fs.readFileSync(filePath);\nitems[0].json.base64 = fileBuffer.toString('base64');\nreturn items;"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Transcribe with Gemini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini-api-url.com/transcribe",
+            "method": "POST",
+            "body": {
+              "base64Audio": "={{$json[\"base64\"]}}"
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer {{ $env.GOOGLE_API_KEY }}"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Process with AI Agent",
+          "nodeType": "n8n-nodes-base.langChain",
+          "typeVersion": 1,
+          "params": {
+            "input": "={{$json[\"transcription\"]}}",
+            "memoryBuffer": 20,
+            "rules": {
+              "language": [
+                "en",
+                "es"
+              ],
+              "skipGreetings": true
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Retrieve Knowledge",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "typeVersion": 1,
+          "params": {
+            "query": "={{$json[\"aiResponse\"]}}",
+            "index": "products-index"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send WhatsApp Response",
+          "nodeType": "n8n-nodes-base.whatsappSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"from\"]}}",
+            "message": "={{$json[\"knowledgeResponse\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1739,
+    "completion_tokens": 1104,
+    "total_tokens": 2843
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:25:00.352487"
+}

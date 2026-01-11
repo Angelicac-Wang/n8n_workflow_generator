@@ -1,0 +1,150 @@
+{
+  "template_id": "12223",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Meta Ads Webhook Dispatcher",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Meta Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "meta-webhook",
+            "responseMode": "onReceived",
+            "responseData": "default",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Verify Token",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"query\"][\"hub.mode\"]}}",
+                  "operation": "equal",
+                  "value2": "subscribe"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Respond with Challenge",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "json": [
+                {
+                  "name": "response",
+                  "value": "={{$json[\"query\"][\"hub.challenge\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Route by Event Field",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "propertyName": "={{$json[\"body\"][\"object\"]}}",
+            "rules": [
+              {
+                "value": "ad_account",
+                "operation": "equal"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-spreadsheet-id",
+            "range": "A1",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your-slack-channel",
+            "text": "New Meta Webhook / Type: {{$json[\"body\"][\"field\"]}} / Count: {{$json[\"body\"][\"entry\"].length}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1298,
+    "completion_tokens": 860,
+    "total_tokens": 2158
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:20:15.736826"
+}

@@ -1,0 +1,249 @@
+{
+  "template_id": "3501",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Social Video Generator",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}",
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "gpt4Transform",
+          "label": "Transform with GPT-4",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": "={{$env.OPENAI_API_KEY}}",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "prompt": "={{$json[\"message\"]}}",
+                "max_tokens": 150
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "generateVideo",
+          "label": "Generate Video with Kling",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kling.com/generate",
+            "method": "POST",
+            "authentication": "={{$env.KLING_API_KEY}}",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "sceneDescription": "={{$json[\"choices\"][0][\"text\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "createVoiceOver",
+          "label": "Create Voice-Over",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.cloudinary.com/v1_1/voiceover/upload",
+            "method": "POST",
+            "authentication": "={{$env.CLOUDINARY_API_KEY}}",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "file": "={{$json[\"choices\"][0][\"text\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "mergeVideoAudio",
+          "label": "Merge Video and Audio",
+          "nodeType": "n8n-nodes-base.json2video",
+          "typeVersion": 1,
+          "params": {
+            "videoUrl": "={{$json[\"video_url\"]}}",
+            "audioUrl": "={{$json[\"audio_url\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "addCaptions",
+          "label": "Add Styled Captions",
+          "nodeType": "n8n-nodes-base.json2video",
+          "typeVersion": 1,
+          "params": {
+            "videoUrl": "={{$json[\"merged_video_url\"]}}",
+            "captions": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "createSocialCaption",
+          "label": "Create Social Caption",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": "={{$env.OPENAI_API_KEY}}",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "prompt": "Create a social media caption for the video",
+                "max_tokens": 50
+              }
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "saveMetadata",
+          "label": "Save Metadata to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
+            "range": "A1",
+            "valueInputOption": "RAW",
+            "values": [
+              [
+                "={{$json[\"merged_video_url\"]}}",
+                "={{$json[\"choices\"][0][\"text\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendPreview",
+          "label": "Send Preview via Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chat_id\"]}}",
+            "text": "Here is your video preview: {{$json[\"merged_video_url\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "publishVideo",
+          "label": "Publish Video to Platforms",
+          "nodeType": "n8n-nodes-base.blotato",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{$env.BLOTATO_API_KEY}}",
+            "platforms": [
+              "Instagram",
+              "TikTok",
+              "YouTube",
+              "Facebook",
+              "Threads",
+              "Twitter",
+              "LinkedIn",
+              "Pinterest",
+              "Bluesky"
+            ],
+            "videoUrl": "={{$json[\"merged_video_url\"]}}",
+            "caption": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "gpt4Transform"
+        },
+        {
+          "from": "gpt4Transform",
+          "to": "generateVideo"
+        },
+        {
+          "from": "generateVideo",
+          "to": "createVoiceOver"
+        },
+        {
+          "from": "createVoiceOver",
+          "to": "mergeVideoAudio"
+        },
+        {
+          "from": "mergeVideoAudio",
+          "to": "addCaptions"
+        },
+        {
+          "from": "addCaptions",
+          "to": "createSocialCaption"
+        },
+        {
+          "from": "createSocialCaption",
+          "to": "saveMetadata"
+        },
+        {
+          "from": "saveMetadata",
+          "to": "sendPreview"
+        },
+        {
+          "from": "sendPreview",
+          "to": "publishVideo"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1203,
+    "completion_tokens": 1657,
+    "total_tokens": 2860
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:59:15.167106"
+}

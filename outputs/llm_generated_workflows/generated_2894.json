@@ -1,0 +1,129 @@
+{
+  "template_id": "2894",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automate Video Posting to Instagram and TikTok",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+            "watchFor": "file",
+            "watchType": "upload"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Description Generator",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Transcribe the audio of this video and generate a captivating social media description.",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload to Instagram",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://upload-post.com/instagram",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "video": "={{$json[\"fileUrl\"]}}",
+              "description": "={{$node[\"OpenAI Description Generator\"].json[\"choices\"][0][\"text\"]}}",
+              "apiKey": "YOUR_UPLOAD_POST_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload to TikTok",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://upload-post.com/tiktok",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "video": "={{$json[\"fileUrl\"]}}",
+              "description": "={{$node[\"OpenAI Description Generator\"].json[\"choices\"][0][\"text\"]}}",
+              "apiKey": "YOUR_UPLOAD_POST_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Error Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "An error occurred during the video upload process.",
+            "botToken": "YOUR_TELEGRAM_BOT_TOKEN"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 993,
+    "completion_tokens": 811,
+    "total_tokens": 1804
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:48:35.726985"
+}

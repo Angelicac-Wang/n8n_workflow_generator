@@ -1,0 +1,124 @@
+{
+  "template_id": "4102",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for managing your calendar with voice and text commands using Telegram, GPT-4, and Google Calendar.",
+    "workflowPlan": {
+      "name": "AI Calendar Assistant",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updates": [
+              "message"
+            ],
+            "botToken": "YOUR_TELEGRAM_BOT_TOKEN"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "transcription",
+          "label": "Transcription",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "whisper",
+            "language": "ro",
+            "input": "={{$json[\"message\"][\"voice\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "aiReasoning",
+          "label": "AI Reasoning",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "You are a calendar assistant. Understand the user's request and determine the calendar action needed.",
+            "input": "={{$json[\"message\"][\"text\"] || $json[\"transcription\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "googleCalendar",
+          "label": "Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "={{$json[\"aiReasoning\"][\"action\"]}}",
+            "calendarId": "primary",
+            "eventId": "={{$json[\"aiReasoning\"][\"eventId\"]}}",
+            "start": "={{$json[\"aiReasoning\"][\"start\"]}}",
+            "end": "={{$json[\"aiReasoning\"][\"end\"]}}",
+            "summary": "={{$json[\"aiReasoning\"][\"summary\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "telegramResponse",
+          "label": "Telegram Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"googleCalendar\"][\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "transcription",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "transcription",
+          "to": "aiReasoning",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "aiReasoning",
+          "to": "googleCalendar",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "googleCalendar",
+          "to": "telegramResponse",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1027,
+    "completion_tokens": 853,
+    "total_tokens": 1880
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:07:08.016169"
+}

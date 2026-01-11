@@ -1,0 +1,200 @@
+{
+  "template_id": "11446",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Nano Banana Pro AI Product Advertisement Generator via Telegram",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "botToken": "={{$credentials.telegramApiToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "downloadImage",
+          "label": "Download Image File",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"message\"][\"photo\"][0][\"file_id\"]}}",
+            "options": {
+              "download": true
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "imageToBase64",
+          "label": "Image to Base64",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fs = require('fs');\nconst imagePath = items[0].binary.data.filePath;\nconst imageBuffer = fs.readFileSync(imagePath);\nitems[0].json.base64Image = imageBuffer.toString('base64');\nreturn items;"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "aiDesignAnalysis",
+          "label": "AI Design Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "image": "={{$json[\"base64Image\"]}}",
+              "caption": "={{$json[\"message\"][\"caption\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer {{$credentials.googleGeminiApiKey}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "prepareApiPayload",
+          "label": "Prepare API Payload",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { image: $json[\"base64Image\"], instructions: $json[\"instructions\"] } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "generateEnhancedImage",
+          "label": "Generate Enhanced Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.nano-banana-pro.com/enhance",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": "={{$json}}",
+            "headers": {
+              "Authorization": "Bearer {{$credentials.nanoBananaProApiKey}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "convertBase64ToImage",
+          "label": "Convert Base64 to Image",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fs = require('fs');\nconst base64Image = $json[\"enhancedImage1\"];\nconst buffer = Buffer.from(base64Image, 'base64');\nfs.writeFileSync('/tmp/enhancedImage1.jpg', buffer);\nreturn [{ json: {}, binary: { data: { filePath: '/tmp/enhancedImage1.jpg' } } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "convertBase64ToImage1",
+          "label": "Convert Base64 to Image1",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fs = require('fs');\nconst base64Image = $json[\"enhancedImage2\"];\nconst buffer = Buffer.from(base64Image, 'base64');\nfs.writeFileSync('/tmp/enhancedImage2.jpg', buffer);\nreturn [{ json: {}, binary: { data: { filePath: '/tmp/enhancedImage2.jpg' } } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "sendImage",
+          "label": "Send Image",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendPhoto",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "photo": "={{$binary.data.filePath}}",
+            "caption": "Here is your enhanced product advertisement!"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "downloadImage"
+        },
+        {
+          "from": "downloadImage",
+          "to": "imageToBase64"
+        },
+        {
+          "from": "imageToBase64",
+          "to": "aiDesignAnalysis"
+        },
+        {
+          "from": "aiDesignAnalysis",
+          "to": "prepareApiPayload"
+        },
+        {
+          "from": "prepareApiPayload",
+          "to": "generateEnhancedImage"
+        },
+        {
+          "from": "generateEnhancedImage",
+          "to": "convertBase64ToImage",
+          "outputIndex": 0
+        },
+        {
+          "from": "generateEnhancedImage",
+          "to": "convertBase64ToImage1",
+          "outputIndex": 1
+        },
+        {
+          "from": "convertBase64ToImage",
+          "to": "sendImage"
+        },
+        {
+          "from": "convertBase64ToImage1",
+          "to": "sendImage"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1195,
+    "completion_tokens": 1488,
+    "total_tokens": 2683
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:50:04.278272"
+}

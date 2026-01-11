@@ -1,0 +1,115 @@
+{
+  "template_id": "12462",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Product Image and Video Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Generate Product Images",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://fal.ai/models/fal-ai/nano-banana-pro/edit/api",
+            "method": "POST",
+            "body": {
+              "prompt": "Generate high-quality product images",
+              "parameters": {
+                "composition": "default",
+                "realism": "high"
+              }
+            },
+            "authentication": "nanoBananaProApiKey"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Contact Sheet Prompting",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "selectedImages": "={{$json[\"response\"][\"images\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Convert Images to Video",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://fal.ai/models/fal-ai/veo3.1/first-last-frame-to-video",
+            "method": "POST",
+            "body": {
+              "images": "={{$json[\"selectedImages\"]}}",
+              "videoParameters": {
+                "motion": "smooth",
+                "pacing": "medium",
+                "aspectRatio": "16:9"
+              }
+            },
+            "authentication": "veoApiKey"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Publish Video",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://blotato.com/api/publish",
+            "method": "POST",
+            "body": {
+              "video": "={{$json[\"response\"][\"videoUrl\"]}}",
+              "platforms": [
+                "facebook",
+                "instagram",
+                "twitter"
+              ]
+            },
+            "authentication": "blotatoApiKey"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1263,
+    "completion_tokens": 637,
+    "total_tokens": 1900
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:28:56.984358"
+}

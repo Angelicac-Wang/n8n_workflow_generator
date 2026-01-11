@@ -1,0 +1,81 @@
+{
+  "template_id": "3151",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to ingest data from a Google Sheet and convert it into a MySQL database and a vector index.",
+    "workflowPlan": {
+      "name": "Tech Radar Data Ingestion",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheetsTrigger",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:Z1000"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "MySQL Insert",
+          "nodeType": "n8n-nodes-base.mySql",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "tech_radar",
+            "columns": [
+              "column1",
+              "column2",
+              "column3"
+            ],
+            "values": "={{$json[\"column1\"]}}, {{$json[\"column2\"]}}, {{$json[\"column3\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Vector Index Update",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://your-vector-db-api/insert",
+            "method": "POST",
+            "body": {
+              "data": "={{$json}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1217,
+    "completion_tokens": 456,
+    "total_tokens": 1673
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:54:05.986775"
+}

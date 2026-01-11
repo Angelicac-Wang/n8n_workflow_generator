@@ -1,0 +1,214 @@
+{
+  "template_id": "3416",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Video Creation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "filter": {
+              "field": "videoStatus",
+              "value": "To Do"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/v1/claude",
+            "method": "POST",
+            "body": {
+              "idea": "={{$json[\"idea\"]}}",
+              "style": "={{$json[\"style\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your-anthropic-api-key"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fluxai.com/v1/generate-image",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$node[\"Generate Prompt\"].json[\"prompt\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your-flux-ai-api-key"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Animate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.runwayml.com/v1/animate",
+            "method": "POST",
+            "body": {
+              "image": "={{$node[\"Generate Image\"].json[\"imageUrl\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your-runwayml-api-key"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/generate-audio",
+            "method": "POST",
+            "body": {
+              "text": "={{$node[\"Generate Prompt\"].json[\"prompt\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your-elevenlabs-api-key"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Merge Video and Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.creatomate.com/v1/merge",
+            "method": "POST",
+            "body": {
+              "video": "={{$node[\"Animate Image\"].json[\"videoUrl\"]}}",
+              "audio": "={{$node[\"Generate Audio\"].json[\"audioUrl\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your-creatomate-api-key"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/upload/youtube/v3/videos",
+            "method": "POST",
+            "body": {
+              "video": "={{$node[\"Merge Video and Audio\"].json[\"mergedVideoUrl\"]}}",
+              "title": "={{$json[\"title\"]}}",
+              "description": "={{$json[\"caption\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your-youtube-api-key"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "filter": {
+              "field": "title",
+              "value": "={{$json[\"title\"]}}"
+            },
+            "data": {
+              "videoStatus": "Created",
+              "publishStatus": "Processed"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1475,
+    "completion_tokens": 1370,
+    "total_tokens": 2845
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:57:15.423754"
+}

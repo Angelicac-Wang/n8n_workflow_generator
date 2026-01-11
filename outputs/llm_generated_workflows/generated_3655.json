@@ -1,0 +1,125 @@
+{
+  "template_id": "3655",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Short Video Generation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Basic Params",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "X-API-key",
+                  "value": "YOUR_PIAPI_KEY"
+                },
+                {
+                  "name": "scenario",
+                  "value": "A gentle girl and a fluffy rabbit explore a sunlit forest together, playing by a sparkling stream"
+                },
+                {
+                  "name": "situational_keywords",
+                  "value": "Butterflies flutter around them as golden sunlight filters through green leaves. Warm and peaceful atmosphere"
+                },
+                {
+                  "name": "style",
+                  "value": "a childrens book cover, ages 6-10. --s 500 --sref 4028286908  --niji 6"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.piapi.ai/generate-image",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "apiKey": "={{$json[\"X-API-key\"]}}",
+              "scenario": "={{$json[\"scenario\"]}}",
+              "style": "={{$json[\"style\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.creatomate.com/v1/render",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "template_id": "YOUR_TEMPLATE_ID",
+              "apiKey": "YOUR_CREATOMATE_KEY",
+              "assets": [
+                {
+                  "type": "image",
+                  "source": "={{$node[\"Generate Image\"].json[\"image_url\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Respond with Video",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseText": "Video generated successfully: {{$node[\"Generate Video\"].json[\"video_url\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1070,
+    "completion_tokens": 763,
+    "total_tokens": 1833
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:01:20.237255"
+}

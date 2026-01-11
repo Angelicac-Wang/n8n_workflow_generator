@@ -1,0 +1,209 @@
+{
+  "template_id": "4685",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn Lead Generation and Enrichment",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "lead-generation-trigger",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Apollo Lead Collection",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apollo.io/v1/leads",
+            "method": "GET",
+            "authentication": "genericCredential",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "keywords",
+                "value": "={{$json[\"keywords\"]}}"
+              },
+              {
+                "name": "roles",
+                "value": "={{$json[\"roles\"]}}"
+              },
+              {
+                "name": "industries",
+                "value": "={{$json[\"industries\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract LinkedIn Username",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { const url = item.json.linkedinProfileUrl; const username = url.split('/').pop(); return { json: { ...item.json, linkedinUsername: username } }; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Retrieve Email",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apollo.io/v1/emails",
+            "method": "GET",
+            "authentication": "genericCredential",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "userId",
+                "value": "={{$json[\"apolloUserId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Validate Email",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.mails.so/validate",
+            "method": "POST",
+            "authentication": "genericCredential",
+            "responseFormat": "json",
+            "bodyParameters": [
+              {
+                "name": "email",
+                "value": "={{$json[\"email\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "LinkedIn Profile Summary",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapidapi.com/linkedin/profile",
+            "method": "GET",
+            "authentication": "genericCredential",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "username",
+                "value": "={{$json[\"linkedinUsername\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Collect Activity Insights",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapidapi.com/linkedin/activity",
+            "method": "GET",
+            "authentication": "genericCredential",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "username",
+                "value": "={{$json[\"linkedinUsername\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Google Sheet",
+          "nodeType": "googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1322,
+    "completion_tokens": 1210,
+    "total_tokens": 2532
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:11:36.022930"
+}

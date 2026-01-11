@@ -1,0 +1,149 @@
+{
+  "template_id": "10156",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Lead Intelligence & Outreach",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger on New/Updated Leads",
+          "nodeType": "n8n-nodes-base.hubspotTrigger",
+          "typeVersion": 1,
+          "params": {
+            "event": "contact.propertyChange",
+            "propertyName": "lead_status"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Normalize and Score",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const scoreLead = (lead) => { /* scoring logic */ }; return scoreLead($json);"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Enrich Contacts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.enrichmentservice.com/enrich",
+            "method": "POST",
+            "body": {
+              "email": "={{$json[\"email\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Verify Emails",
+          "nodeType": "n8n-nodes-base.emailVerify",
+          "typeVersion": 1,
+          "params": {
+            "email": "={{$json[\"email\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Compose Outreach",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const composeEmail = (lead) => { /* email composition logic */ }; return composeEmail($json);"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Draft in Outlook",
+          "nodeType": "n8n-nodes-base.microsoftOutlook",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createDraft",
+            "subject": "={{$json[\"subject\"]}}",
+            "body": "={{$json[\"body\"]}}",
+            "to": "={{$json[\"email\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "CRM Sync and Tasks",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "objectType": "contact",
+            "objectId": "={{$json[\"id\"]}}",
+            "updateFields": {
+              "email_content": "={{$json[\"body\"]}}",
+              "task": "Follow-up"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1339,
+    "completion_tokens": 897,
+    "total_tokens": 2236
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:28:17.036476"
+}

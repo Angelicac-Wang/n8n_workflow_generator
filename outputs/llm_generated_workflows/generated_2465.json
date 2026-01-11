@@ -1,0 +1,146 @@
+{
+  "template_id": "2465",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow sets up a WhatsApp chatbot acting as a Sales Agent using a product catalog vector store.",
+    "workflowPlan": {
+      "name": "WhatsApp Sales Agent Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Import Product Brochure",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/product-brochure.pdf",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Text from Brochure",
+          "nodeType": "n8n-nodes-base.extractText",
+          "typeVersion": 1,
+          "params": {
+            "filePropertyName": "data"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload to Vector Store",
+          "nodeType": "n8n-nodes-base.vectorStore",
+          "typeVersion": 1,
+          "params": {
+            "action": "upload",
+            "textPropertyName": "text"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.whatsappTrigger",
+          "typeVersion": 1,
+          "params": {
+            "event": "message_received"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "Filter Non-Text Messages",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"message_type\"]}}",
+                  "operation": "equal",
+                  "value2": "text"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "6",
+          "label": "Query AI Agent",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Query: {{$json[\"text\"]}}",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send WhatsApp Response",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"from\"]}}",
+            "message": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 778,
+    "completion_tokens": 839,
+    "total_tokens": 1617
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:37:46.404024"
+}

@@ -1,0 +1,231 @@
+{
+  "template_id": "12090",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Provision New Employee Accounts",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "new-employee"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Configuration",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "Default_Password",
+                  "value": "Temp1234!"
+                },
+                {
+                  "name": "Welcome_Email_Subject",
+                  "value": "Welcome to the Company!"
+                },
+                {
+                  "name": "Slack_Channel_ID",
+                  "value": "general"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Google Workspace Account",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://admin.googleapis.com/admin/directory/v1/users",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "primaryEmail": "={{$json[\"email\"]}}",
+              "name": {
+                "givenName": "={{$json[\"firstName\"]}}",
+                "familyName": "={{$json[\"lastName\"]}}"
+              },
+              "password": "={{$node[\"Set Configuration\"].json[\"Default_Password\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Invite to Slack",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://slack.com/api/conversations.invite",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "channel": "={{$node[\"Set Configuration\"].json[\"Slack_Channel_ID\"]}}",
+              "users": "={{$json[\"slackUserId\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Department",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"department\"]}}",
+                  "operation": "equal",
+                  "value2": "Engineering"
+                },
+                {
+                  "value1": "={{$json[\"department\"]}}",
+                  "operation": "equal",
+                  "value2": "Sales"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Jira User",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-domain.atlassian.net/rest/api/3/user",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "emailAddress": "={{$json[\"email\"]}}",
+              "displayName": "={{$json[\"firstName\"]}} {{$json[\"lastName\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Salesforce User",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-instance.salesforce.com/services/data/vXX.X/sobjects/User",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "Username": "={{$json[\"email\"]}}",
+              "LastName": "={{$json[\"lastName\"]}}",
+              "Email": "={{$json[\"email\"]}}",
+              "Alias": "={{$json[\"firstName\"][0]}}{{$json[\"lastName\"][0]}}",
+              "TimeZoneSidKey": "America/Los_Angeles",
+              "LocaleSidKey": "en_US",
+              "EmailEncodingKey": "UTF-8",
+              "LanguageLocaleKey": "en_US",
+              "ProfileId": "00eXXXXXXXXXXXX"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Welcome Email",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "raw": "={{$json[\"emailContent\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1061,
+    "completion_tokens": 1474,
+    "total_tokens": 2535
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:13:28.946134"
+}

@@ -1,0 +1,89 @@
+{
+  "template_id": "5010",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow demonstrates how to use Retrieval-Augmented Generation (RAG) in n8n to provide knowledge to an agent using a PDF document.",
+    "workflowPlan": {
+      "name": "RAG Knowledge Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "upload-pdf",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "PDF Extract",
+          "nodeType": "n8n-nodes-base.pdfExtract",
+          "typeVersion": 1,
+          "params": {
+            "dataPropertyName": "pdfData"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Simple Vector Store",
+          "nodeType": "n8n-nodes-base.simpleVectorStore",
+          "typeVersion": 1,
+          "params": {
+            "action": "store",
+            "data": "={{$json[\"pdfData\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Agent Chat",
+          "nodeType": "n8n-nodes-base.agentChat",
+          "typeVersion": 1,
+          "params": {
+            "vectorStore": "={{$node[\"Simple Vector Store\"].json[\"storeId\"]}}",
+            "prompt": "Provide knowledge based on the uploaded document."
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 665,
+    "completion_tokens": 506,
+    "total_tokens": 1171
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:15:32.039282"
+}

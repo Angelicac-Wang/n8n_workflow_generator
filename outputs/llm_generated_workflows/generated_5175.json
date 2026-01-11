@@ -1,0 +1,150 @@
+{
+  "template_id": "5175",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating website security audits.",
+    "workflowPlan": {
+      "name": "Website Security Audit Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "webhook-url-input",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Website Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}",
+            "options": {
+              "method": "GET"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request - AlienVault OTX",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://otx.alienvault.com/api/v1/indicators/domain/{{$json[\"body\"][\"url\"]}}/general",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "method": "GET"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Prepare Data for AI",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const websiteData = items[0].json;\nconst alienVaultData = items[1].json;\nreturn [{ json: { websiteData, alienVaultData } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Analyze the following data for security vulnerabilities: {{$json[\"websiteData\"]}}, {{$json[\"alienVaultData\"]}}",
+            "maxTokens": 1500
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Format Report for Email",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const aiReport = items[0].json;\nconst htmlReport = `<html><body><h1>Security Audit Report</h1><p>${aiReport}</p></body></html>`;\nreturn [{ json: { htmlReport } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Security Report",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "Website Security Audit Report",
+            "html": "={{$json[\"htmlReport\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 972,
+    "completion_tokens": 992,
+    "total_tokens": 1964
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:17:02.921447"
+}

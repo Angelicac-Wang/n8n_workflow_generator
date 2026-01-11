@@ -1,0 +1,149 @@
+{
+  "template_id": "3490",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn Lead Generation Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "ICP Translation",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const icpDescription = 'Target marketing directors at SaaS companies with 50-200 employees';\n// Convert ICP description to LinkedIn search parameters\nreturn [{ json: { searchParameters: icpDescription } }];"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Lead Discovery",
+          "nodeType": "n8n-nodes-hdw.anySiteLinkedInSearch",
+          "params": {
+            "searchParameters": "={{$json[\"searchParameters\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "18w5jT_Gx20bhW_UfU8IiUkEO0xMioD7XZZC2sShQItA",
+            "range": "Sheet1!A:H",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Data Enrichment",
+          "nodeType": "n8n-nodes-hdw.anySiteLinkedInEnrich",
+          "params": {
+            "leadData": "={{$json}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Intent Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Analyze the following lead data for buying signals: {{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Lead Scoring",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const score = Math.floor(Math.random() * 10) + 1;\nreturn [{ json: { score } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Connection Requests",
+          "nodeType": "n8n-nodes-hdw.anySiteLinkedInConnect",
+          "params": {
+            "leadData": "={{$json}}",
+            "condition": "={{$json[\"score\"] > 7}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Messages",
+          "nodeType": "n8n-nodes-hdw.anySiteLinkedInSendMessage",
+          "params": {
+            "messageTemplate": "Hello {{$json[\"Name\"]}}, I noticed your experience in {{$json[\"Industry\"]}} and thought we could connect."
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1370,
+    "completion_tokens": 959,
+    "total_tokens": 2329
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:59:04.149527"
+}

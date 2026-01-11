@@ -1,0 +1,212 @@
+{
+  "template_id": "11728",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Auto-resolve Jira tickets with coding agents",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Jira Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "jira-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Issue Status and Labels",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"issue\"][\"fields\"][\"status\"][\"name\"]}}",
+                  "operation": "equal",
+                  "value2": "In Progress"
+                }
+              ],
+              "string": [
+                {
+                  "value1": "={{$json[\"issue\"][\"fields\"][\"labels\"]}}",
+                  "operation": "contains",
+                  "value2": "product_approved"
+                },
+                {
+                  "value1": "={{$json[\"issue\"][\"fields\"][\"labels\"]}}",
+                  "operation": "notContains",
+                  "value2": "copilot_assigned"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Context from Port",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.port.io/context",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "issueKey",
+                "value": "={{$json[\"issue\"][\"key\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create GitHub Issue",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.github.com/repos/your-repo/issues",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParameters": {
+              "title": "={{$json[\"title\"]}}",
+              "body": "={{$json[\"body\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Assign to Copilot",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.github.com/repos/your-repo/issues/{{$json[\"number\"]}}/comments",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParameters": {
+              "body": "Copilot, please take ownership of this issue."
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Add GitHub Issue Link to Jira",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-jira-instance.atlassian.net/rest/api/3/issue/{{$json[\"issue\"][\"key\"]}}/comment",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParameters": {
+              "body": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "text": "GitHub Issue created: {{$json[\"html_url\"]}}",
+                        "type": "text"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Mark Jira Ticket as Assigned",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-jira-instance.atlassian.net/rest/api/3/issue/{{$json[\"issue\"][\"key\"]}}",
+            "method": "PUT",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParameters": {
+              "update": {
+                "labels": [
+                  {
+                    "add": "copilot_assigned"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1021,
+    "completion_tokens": 1324,
+    "total_tokens": 2345
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:58:47.794230"
+}

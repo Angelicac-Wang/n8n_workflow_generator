@@ -1,0 +1,107 @@
+{
+  "template_id": "2201",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow to create a simple OpenAI Assistant.",
+    "workflowPlan": {
+      "name": "Simple OpenAI Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get File from Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "1_miLvjUQJ-E9bWgEBK87nHZre26-4Fz0RpfSfO548H0"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Upload File to OpenAI",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "operation": "uploadFile",
+            "fileContent": "={{$node[\"Get File from Google Drive\"].binary.data}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create New Assistant",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createAssistant",
+            "name": "Music Festival Assistant",
+            "description": "Assistant for Music Festival queries",
+            "systemPrompt": "You are an assistant specialized in Music Festivals.",
+            "knowledgeSource": "={{$node[\"Upload File to OpenAI\"].json[\"fileId\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI Assistant",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "assistantId": "={{$node[\"Create New Assistant\"].json[\"assistantId\"]}}",
+            "input": "={{$json[\"message\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 890,
+    "completion_tokens": 681,
+    "total_tokens": 1571
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:33:11.344025"
+}

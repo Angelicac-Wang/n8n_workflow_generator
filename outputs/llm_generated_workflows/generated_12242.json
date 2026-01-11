@@ -1,0 +1,258 @@
+{
+  "template_id": "12242",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Workflow Backup to Google Drive",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Cron Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 2,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Fetch Workflows",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-n8n-domain/rest/workflows",
+            "method": "GET",
+            "authentication": "none",
+            "headers": {
+              "Authorization": "Bearer your-n8n-api-key"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Backup Configuration",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "n8nHost",
+                  "value": "https://your-n8n-domain"
+                },
+                {
+                  "name": "apiKey",
+                  "value": "your-n8n-api-key"
+                },
+                {
+                  "name": "backupFolder",
+                  "value": "/n8n/workflow-backups"
+                },
+                {
+                  "name": "hashAlgorithm",
+                  "value": "sha256"
+                },
+                {
+                  "name": "dataTableTitle",
+                  "value": "n8n_workflow_backup_index"
+                },
+                {
+                  "name": "backupScope",
+                  "value": "tagged"
+                },
+                {
+                  "name": "requiredTag",
+                  "value": "production"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Workflows",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const workflows = items[0].json;\nconst backupScope = $node[\"Set Backup Configuration\"].json[\"backupScope\"];\nconst requiredTag = $node[\"Set Backup Configuration\"].json[\"requiredTag\"];\n\nconst filteredWorkflows = workflows.filter(workflow => {\n  if (backupScope === 'all') return true;\n  if (backupScope === 'active' && workflow.active) return true;\n  if (backupScope === 'tagged' && workflow.tags.includes(requiredTag)) return true;\n  return false;\n});\n\nreturn filteredWorkflows.map(workflow => ({ json: workflow }));"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Hash",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const crypto = require('crypto');\n\nreturn items.map(item => {\n  const hash = crypto.createHash('sha256').update(JSON.stringify(item.json)).digest('hex');\n  return { json: { ...item.json, hash } };\n});"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Data Table",
+          "nodeType": "n8n-nodes-base.dataTableRead",
+          "typeVersion": 1,
+          "params": {
+            "table": "n8n_workflow_backup_index",
+            "filter": {
+              "field": "workflowId",
+              "operation": "equals",
+              "value": "={{$json[\"id\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "If Hash Changed",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"hash\"]}}",
+                  "operation": "notEqual",
+                  "value2": "={{$node[\"Check Data Table\"].json[\"hashCode\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Delete Existing Backup",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "deleteFile",
+            "fileId": "={{$node[\"Check Data Table\"].json[\"DriveFileId\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"name\"]}}.json",
+            "fileContent": "={{JSON.stringify($json)}}",
+            "parentFolderId": "={{$node[\"Set Backup Configuration\"].json[\"backupFolder\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update Data Table",
+          "nodeType": "n8n-nodes-base.dataTableInsert",
+          "typeVersion": 1,
+          "params": {
+            "table": "n8n_workflow_backup_index",
+            "data": {
+              "workflowId": "={{$json[\"id\"]}}",
+              "workflowName": "={{$json[\"name\"]}}",
+              "hashCode": "={{$json[\"hash\"]}}",
+              "DriveFileId": "={{$node[\"Upload to Google Drive\"].json[\"id\"]}}"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1055,
+    "completion_tokens": 1723,
+    "total_tokens": 2778
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:21:14.957466"
+}

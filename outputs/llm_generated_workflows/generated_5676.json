@@ -1,0 +1,281 @@
+{
+  "template_id": "5676",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow for customer onboarding automation.",
+    "workflowPlan": {
+      "name": "Customer Onboarding Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Signup Data",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "new-customer-signup"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate Customer Data",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"email\"]}}",
+                  "operation": "notEmpty"
+                },
+                {
+                  "value1": "={{$json[\"customerName\"]}}",
+                  "operation": "notEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create CRM Contact",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "contact",
+            "operation": "create",
+            "additionalFields": {
+              "email": "={{$json[\"email\"]}}",
+              "firstname": "={{$json[\"customerName\"].split(' ')[0]}}",
+              "lastname": "={{$json[\"customerName\"].split(' ')[1] || ''}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Team Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "post",
+            "channel": "team-channel",
+            "text": "New customer signed up: {{$json[\"customerName\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Welcome Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Welcome to Our Service",
+            "text": "Hi {{$json[\"customerName\"]}}, welcome to our service!"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait 2 Hours",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "2h"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Onboarding Documents",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Your Onboarding Documents",
+            "text": "Attached are your onboarding documents.",
+            "attachments": [
+              {
+                "url": "https://example.com/onboarding.pdf"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Wait 1 Day",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1d"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Check-in Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Checking In",
+            "text": "Hi {{$json[\"customerName\"]}}, just checking in to see how you're doing."
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Wait 2 More Days",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "2d"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Success Guide",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Week 1 Success Guide",
+            "text": "Here's your Week 1 success guide to help you get started."
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Update CRM & Notify Team",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "contact",
+            "operation": "update",
+            "additionalFields": {
+              "email": "={{$json[\"email\"]}}",
+              "status": "Onboarding Complete"
+            }
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Notify Team Completion",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "post",
+            "channel": "team-channel",
+            "text": "Customer {{$json[\"customerName\"]}} has completed onboarding."
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 805,
+    "completion_tokens": 1729,
+    "total_tokens": 2534
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:23:13.275372"
+}

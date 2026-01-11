@@ -1,0 +1,85 @@
+{
+  "template_id": "2114",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to connect Telegram with OpenAI's GPT-3.5.",
+    "workflowPlan": {
+      "name": "Telegram to OpenAI GPT-3.5 Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$env.TELEGRAM_API_KEY}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI GPT-3.5 Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer {{$env.OPENAI_API_KEY}}"
+              }
+            },
+            "bodyParameters": {
+              "mode": "json",
+              "json": {
+                "prompt": "={{$json[\"message\"]}}",
+                "max_tokens": 150
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Telegram Respond",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$env.TELEGRAM_API_KEY}}",
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "={{$json[\"choices\"][0][\"text\"]}} 😊"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 583,
+    "completion_tokens": 514,
+    "total_tokens": 1097
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:31:44.310709"
+}

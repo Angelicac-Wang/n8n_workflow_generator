@@ -1,0 +1,172 @@
+{
+  "template_id": "2705",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for a Retrieval Augmented Generation (RAG) chatbot using n8n, OpenAI, and Pinecone.",
+    "workflowPlan": {
+      "name": "RAG Chatbot for GitHub API",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch GitHub API Spec",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.github.com/repos/github/rest-api-description/contents/descriptions/api.github.com/api.github.com.yaml",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Chunk and Embed",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function chunkAndEmbed(apiSpec) { /* Code to chunk and embed using OpenAI */ }"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Store in Pinecone",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-pinecone-instance-url/vectors/upsert",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "vectors": "={{$json['embeddings']}}"
+            },
+            "authentication": {
+              "type": "apiKey",
+              "apiKey": "={{$credentials.pineconeApiKey}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Chat Interface",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "chat",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Query Embedding",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function generateEmbedding(query) { /* Code to generate embedding using OpenAI */ }"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Semantic Search",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-pinecone-instance-url/query",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "vector": "={{$json['queryEmbedding']}}",
+              "topK": 5
+            },
+            "authentication": {
+              "type": "apiKey",
+              "apiKey": "={{$credentials.pineconeApiKey}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Response",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function generateResponse(retrievedChunks, question) { /* Code to generate response using OpenAI */ }"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Respond to User",
+          "nodeType": "respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json['response']}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 957,
+    "completion_tokens": 1037,
+    "total_tokens": 1994
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:43:10.674393"
+}

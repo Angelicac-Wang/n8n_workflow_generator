@@ -1,0 +1,136 @@
+{
+  "template_id": "2167",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate code reviews on a Gitlab PR using AI.",
+    "workflowPlan": {
+      "name": "Gitlab PR AI Review",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gitlab Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "gitlab-pr-review",
+            "responseMode": "onReceived",
+            "options": {
+              "responseData": {
+                "responseCode": 200,
+                "responseBody": "Webhook received"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Comment",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"object_attributes\"][\"note\"]}}",
+                  "operation": "contains",
+                  "value2": "+0"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Merge Request Changes",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"merge_request\"][\"changes_url\"]}}",
+            "method": "GET",
+            "authentication": "none",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze with GPT",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "={\"prompt\":\"Review the following code changes: \" + JSON.stringify($json[\"body\"]) + \"\\nProvide feedback:\", \"max_tokens\": 150}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Post Review Comment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"merge_request\"][\"add_note_url\"]}}",
+            "method": "POST",
+            "authentication": "none",
+            "responseFormat": "json",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "={\"body\": $json[\"choices\"][0][\"text\"]}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 677,
+    "completion_tokens": 848,
+    "total_tokens": 1525
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:32:29.928850"
+}

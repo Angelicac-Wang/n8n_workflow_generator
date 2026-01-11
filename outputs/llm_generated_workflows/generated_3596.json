@@ -1,0 +1,129 @@
+{
+  "template_id": "3596",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily AI News Digest to Telegram",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "fetchNewsAPI",
+          "label": "Fetch NewsAPI Articles",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://newsapi.org/v2/everything?q=artificial+intelligence&apiKey=YOUR_NEWSAPI_KEY",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "fetchGNews",
+          "label": "Fetch GNews Articles",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gnews.io/api/v4/search?q=artificial+intelligence&token=YOUR_GNEWS_API_KEY",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "mergeArticles",
+          "label": "Merge Articles",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const articles = [...items[0].json.articles, ...items[1].json.articles];\narticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));\nreturn articles.slice(0, 40).map(article => ({ json: article }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "summarizeArticles",
+          "label": "Summarize Articles",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.1",
+            "prompt": "Summarize the following article in Traditional Chinese, keeping essential English technical terms:\n\n{{json.content}}\n\nLink: {{json.url}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendToTelegram",
+          "label": "Send Summary to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "{{json.summary}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "fetchNewsAPI"
+        },
+        {
+          "from": "trigger",
+          "to": "fetchGNews"
+        },
+        {
+          "from": "fetchNewsAPI",
+          "to": "mergeArticles"
+        },
+        {
+          "from": "fetchGNews",
+          "to": "mergeArticles"
+        },
+        {
+          "from": "mergeArticles",
+          "to": "summarizeArticles"
+        },
+        {
+          "from": "summarizeArticles",
+          "to": "sendToTelegram"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1047,
+    "completion_tokens": 865,
+    "total_tokens": 1912
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:00:40.113851"
+}

@@ -1,0 +1,148 @@
+{
+  "template_id": "2803",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Trending Content Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scrape Instagram",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.instagram.com/v1/tags/{hashtag}/media/recent",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Analyze Visual Elements",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.example.com/analyze",
+            "method": "POST",
+            "body": "={{$json[\"data\"]}}",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Content",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "all": [
+                {
+                  "value1": "={{$json[\"media_type\"]}}",
+                  "operation": "notEqual",
+                  "value2": "video"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate AI Content",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/images/generate",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"caption\"]}}",
+              "style": "trending"
+            },
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Post to Instagram",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.instagram.com/v1/media",
+            "method": "POST",
+            "body": {
+              "image_url": "={{$json[\"image_url\"]}}",
+              "caption": "={{$json[\"caption\"]}}"
+            },
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Notification",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "method": "POST",
+            "body": {
+              "chat_id": "{chat_id}",
+              "text": "Content posted successfully!"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 702,
+    "completion_tokens": 831,
+    "total_tokens": 1533
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:46:03.452394"
+}

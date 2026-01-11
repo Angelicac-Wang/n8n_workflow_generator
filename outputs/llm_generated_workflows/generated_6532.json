@@ -1,0 +1,170 @@
+{
+  "template_id": "6532",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Telegram AI Agent for Lead Scraping and Research Reports",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Transcribe Voice",
+          "nodeType": "n8n-nodes-base.openaiWhisper",
+          "typeVersion": 1,
+          "params": {
+            "audioUrl": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Interpret Intent",
+          "nodeType": "n8n-nodes-base.openaiChat",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Determine if the request is for lead scraping or research report based on: {{$json[\"message\"][\"text\"] || $node[\"Transcribe Voice\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Lead Scraping",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apollo.io/v1/leads",
+            "method": "GET",
+            "authentication": "={{$credentials.apolloApi}}",
+            "queryParameters": [
+              {
+                "name": "criteria",
+                "value": "={{$json[\"criteria\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Research Report",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/profiles",
+            "method": "GET",
+            "authentication": "={{$credentials.linkedinApi}}",
+            "queryParameters": [
+              {
+                "name": "profileUrl",
+                "value": "={{$json[\"profileUrl\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Research Report",
+            "text": "={{$json[\"report\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 993,
+    "completion_tokens": 1047,
+    "total_tokens": 2040
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:29:32.224260"
+}

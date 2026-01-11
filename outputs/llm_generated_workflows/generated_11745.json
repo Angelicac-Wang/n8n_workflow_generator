@@ -1,0 +1,137 @@
+{
+  "template_id": "11745",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Employee Performance Review Summary",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Capture Review Inputs",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:E10"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Review Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the following performance feedback and generate a structured summary: {{input}}",
+            "input": "={{$node[\"Capture Review Inputs\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Review Summary",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "summary": "={{$node[\"AI Review Analysis\"].json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store Summary",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet2!A1",
+            "data": "={{$node[\"Generate Review Summary\"].json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Notify via Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "HR-Notifications",
+            "text": "A new performance review summary has been generated."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "manager@example.com",
+            "subject": "Performance Review Summary",
+            "text": "Please find the attached performance review summary.",
+            "attachments": [
+              {
+                "content": "={{$node[\"Generate Review Summary\"].json[\"summary\"]}}",
+                "type": "text/plain",
+                "filename": "ReviewSummary.txt"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1061,
+    "completion_tokens": 834,
+    "total_tokens": 1895
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:59:22.566235"
+}

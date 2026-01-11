@@ -1,0 +1,203 @@
+{
+  "template_id": "11573",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Competitive Visual Intelligence Gathering",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "visual-intelligence",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 250,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": [
+              {
+                "name": "postsCount",
+                "value": 10
+              }
+            ]
+          },
+          "position": {
+            "x": 450,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Platform Router",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "platform",
+            "rules": [
+              {
+                "value": "Instagram",
+                "operation": "equal"
+              },
+              {
+                "value": "TikTok",
+                "operation": "equal"
+              }
+            ]
+          },
+          "position": {
+            "x": 650,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Instagram Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_INSTAGRAM_SCRAPER_ID/runs",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"input\": { \"username\": \"{{$json[\"username\"]}}\", \"resultsLimit\": \"{{$json[\"postsCount\"]}}\" } }",
+            "authentication": "apifyApi"
+          },
+          "position": {
+            "x": 850,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "TikTok Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TIKTOK_SCRAPER_ID/runs",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"input\": { \"username\": \"{{$json[\"username\"]}}\", \"resultsLimit\": \"{{$json[\"postsCount\"]}}\" } }",
+            "authentication": "apifyApi"
+          },
+          "position": {
+            "x": 850,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Analyze Images with GPT-4o Vision",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"images\": \"{{$json[\"images\"]}}\", \"features\": [\"colorPalette\", \"composition\", \"mood\", \"textDesign\"] }",
+            "authentication": "openaiApi"
+          },
+          "position": {
+            "x": 1050,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Competitive Analysis Report",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { summary: 'Competitive analysis report generated.' };"
+          },
+          "position": {
+            "x": 1250,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log Results to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:F",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "{{$now}}",
+                "{{$json[\"own_account\"]}}",
+                "{{$json[\"competitors\"]}}",
+                "{{$json[\"platforms\"]}}",
+                "{{$json[\"posts_analyzed\"]}}",
+                "{{$json[\"summary\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1450,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 902,
+    "completion_tokens": 1290,
+    "total_tokens": 2192
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:53:13.102577"
+}

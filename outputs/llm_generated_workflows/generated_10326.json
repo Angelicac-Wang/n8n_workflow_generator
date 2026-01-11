@@ -1,0 +1,124 @@
+{
+  "template_id": "10326",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Figma to QA Test Cases",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Figma Design Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.figma.com/v1/files/{{$json[\"figmaFileId\"]}}",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "headers": [
+              {
+                "name": "X-Figma-Token",
+                "value": "={{$credentials.figmaApiToken}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Test Cases with GPT-4o-mini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$credentials.openAIApiKey}}"
+              }
+            ],
+            "body": {
+              "prompt": "Generate test cases for the following Figma design data: {{$json[\"designData\"]}}",
+              "max_tokens": 1500
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Format Test Cases",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => ({ json: { testCases: item.json.choices[0].text.split('\\n') } }));"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Export to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": "={{$json[\"testCases\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 870,
+    "completion_tokens": 767,
+    "total_tokens": 1637
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:31:22.527688"
+}

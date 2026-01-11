@@ -1,0 +1,202 @@
+{
+  "template_id": "2753",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for implementing a Retrieval Augmented Generation (RAG) chatbot using company documents from Google Drive.",
+    "workflowPlan": {
+      "name": "RAG Chatbot with Google Drive and Pinecone",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "New File Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "params": {
+            "watchFor": "newFile",
+            "folderId": "your-google-drive-folder-id"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Updated File Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "params": {
+            "watchFor": "fileUpdated",
+            "folderId": "your-google-drive-folder-id"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"fileId\"]}}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Load Document Content",
+          "nodeType": "n8n-nodes-base.defaultDataLoader",
+          "params": {},
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Split Text",
+          "nodeType": "n8n-nodes-base.recursiveCharacterTextSplitter",
+          "params": {
+            "chunkSize": 1000
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Embeddings",
+          "nodeType": "n8n-nodes-base.googleGeminiEmbeddings",
+          "params": {
+            "model": "text-embedding-004"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Index in Pinecone",
+          "nodeType": "n8n-nodes-base.pineconeVectorStore",
+          "params": {
+            "operation": "index",
+            "indexName": "company-files"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.chatTrigger",
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "params": {},
+          "position": {
+            "x": 300,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Retrieve from Pinecone",
+          "nodeType": "n8n-nodes-base.vectorStoreTool",
+          "params": {
+            "operation": "query",
+            "indexName": "company-files"
+          },
+          "position": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "11",
+          "label": "Generate Response",
+          "nodeType": "n8n-nodes-base.googleGeminiChat",
+          "params": {
+            "model": "gemini-pro"
+          },
+          "position": {
+            "x": 700,
+            "y": 500
+          }
+        },
+        {
+          "id": "12",
+          "label": "Window Buffer Memory",
+          "nodeType": "n8n-nodes-base.windowBufferMemory",
+          "params": {},
+          "position": {
+            "x": 900,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1037,
+    "completion_tokens": 1068,
+    "total_tokens": 2105
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:44:21.501084"
+}

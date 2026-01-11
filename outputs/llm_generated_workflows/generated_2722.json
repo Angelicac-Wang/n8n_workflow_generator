@@ -1,0 +1,108 @@
+{
+  "template_id": "2722",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow plan to automate email management and summarization using n8n and AI.",
+    "workflowPlan": {
+      "name": "Automated Email Summarization",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger Morning",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 7 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Trigger Night",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 21 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Emails",
+          "nodeType": "n8n-nodes-base.imapEmail",
+          "typeVersion": 1,
+          "params": {
+            "mailbox": "INBOX",
+            "fetchUnread": true,
+            "limit": 50
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Summarize with AI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Summarize the following emails into key points and actions: {{emailContent}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Team Update",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "toEmail": "team@example.com",
+            "subject": "Daily Email Summary",
+            "text": "Here are the key points and actions from today's emails: {{summary}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 644,
+    "completion_tokens": 625,
+    "total_tokens": 1269
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:43:29.183187"
+}

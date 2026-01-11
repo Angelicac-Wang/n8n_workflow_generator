@@ -1,0 +1,174 @@
+{
+  "template_id": "11803",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Product Price Monitor with Pushover and Baserow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "price-monitor"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Product URLs",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "products",
+                  "value": "[{\"url\": \"https://example.com/product1\", \"id\": 1}, {\"url\": \"https://example.com/product2\", \"id\": 2}]"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split In Batches",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "ScrapeGraphAI",
+          "nodeType": "custom.scrapeGraphAI",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "selectors": {
+              "price": {
+                "selector": ".price",
+                "type": "text"
+              },
+              "name": {
+                "selector": ".product-title",
+                "type": "text"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "If Price Changed",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"price\"]}}",
+                  "operation": "larger",
+                  "value2": "={{$json[\"previousPrice\"] * 1.05}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Baserow Upsert",
+          "nodeType": "n8n-nodes-base.baserow",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upsert",
+            "tableId": "your-table-id",
+            "data": {
+              "Product ID": "={{$json[\"id\"]}}",
+              "Name": "={{$json[\"name\"]}}",
+              "URL": "={{$json[\"url\"]}}",
+              "Price": "={{$json[\"price\"]}}",
+              "Currency": "USD",
+              "Last Seen": "={{$now}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Pushover Notification",
+          "nodeType": "n8n-nodes-base.pushover",
+          "typeVersion": 1,
+          "params": {
+            "userKey": "your-user-key",
+            "apiToken": "your-api-token",
+            "message": "Price change detected for {{$json[\"name\"]}}: new price is {{$json[\"price\"]}} USD"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1997,
+    "completion_tokens": 1042,
+    "total_tokens": 3039
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:01:27.062413"
+}

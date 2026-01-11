@@ -1,0 +1,161 @@
+{
+  "template_id": "5453",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow plan for the AI Resume Screener.",
+    "workflowPlan": {
+      "name": "AI Resume Screener",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "resume-upload",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract PDF Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/extract",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "file",
+                "value": "={{$binary.data}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Evaluation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/evaluate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "education",
+                "value": "={{$json[\"education\"]}}"
+              },
+              {
+                "name": "skills",
+                "value": "={{$json[\"skills\"]}}"
+              },
+              {
+                "name": "jobHistory",
+                "value": "={{$json[\"jobHistory\"]}}"
+              }
+            ],
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets - Lookup",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "lookup",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Roles!A:B",
+            "lookupColumn": "Role",
+            "lookupValue": "={{$json[\"role\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Results!A:E",
+            "data": "={{[{\"name\": $json[\"name\"], \"score\": $json[\"score\"], \"role\": $json[\"role\"]}]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"name\"]}}.pdf",
+            "binaryData": "={{$binary.data}}",
+            "parents": [
+              "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 800,
+    "completion_tokens": 960,
+    "total_tokens": 1760
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:20:20.478995"
+}

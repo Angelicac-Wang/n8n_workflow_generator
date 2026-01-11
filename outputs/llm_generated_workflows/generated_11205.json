@@ -1,0 +1,185 @@
+{
+  "template_id": "11205",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LINE to Banner Image Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "LINE Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "line-webhook",
+            "method": "POST",
+            "responseMode": "onReceived",
+            "responseData": "default"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Gemini Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/prompt",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "prompt": "={{$json[\"body\"][\"message\"]}}"
+              }
+            },
+            "authentication": "headerAuth"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Nano Banana Pro Job",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/nano-banana-pro/job",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "prompt": "={{$json[\"data\"][\"optimizedPrompt\"]}}"
+              }
+            },
+            "authentication": "headerAuth"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Poll for Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/nano-banana-pro/job/{{ $json[\"jobId\"] }}/status",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {
+              "pollTimes": 10,
+              "pollInterval": 5000
+            },
+            "authentication": "headerAuth"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Download Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"imageUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "jsonParameters": false
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to S3",
+          "nodeType": "n8n-nodes-base.s3",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "bucketName": "your-s3-bucket-name",
+            "fileName": "={{$json[\"fileName\"]}}",
+            "fileContent": "={{$binary[\"data\"]}}",
+            "options": {
+              "acl": "public-read"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send LINE Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.line.me/v2/bot/message/reply",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "replyToken": "={{$json[\"replyToken\"]}}",
+                "messages": [
+                  {
+                    "type": "image",
+                    "originalContentUrl": "={{$json[\"s3Url\"]}}",
+                    "previewImageUrl": "={{$json[\"s3Url\"]}}"
+                  }
+                ]
+              }
+            },
+            "authentication": "headerAuth"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 841,
+    "completion_tokens": 1130,
+    "total_tokens": 1971
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:45:24.650535"
+}

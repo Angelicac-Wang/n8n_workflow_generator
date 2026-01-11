@@ -1,0 +1,114 @@
+{
+  "template_id": "11046",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Lead Import and Execution Report",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Initialize Data Table",
+          "nodeType": "n8n-nodes-base.dataTable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "tableName": "Execution Report"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read Leads",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:Z",
+            "filter": {
+              "field": "Valid Email",
+              "value": "OK"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Company Existence",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "search",
+            "baseId": "your-airtable-base-id",
+            "table": "Company",
+            "filterByFormula": "{Company} = {{$json[\"Company\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Company",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const created = 0;\nconst updated = 0;\nconst duplicates = 0;\n\nif (items.length === 0) {\n  // Create new company\n  created += 1;\n} else if (items.length === 1) {\n  // Update existing company\n  updated += 1;\n} else {\n  // Log duplicate issue\n  duplicates += 1;\n}\n\nreturn [{ json: { created, updated, duplicates } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Execution Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Leads Import Report",
+            "text": "Number of records read: {{$json[\"readCount\"]}}\nNumber of records created: {{$json[\"created\"]}}\nNumber of records updated: {{$json[\"updated\"]}}\nDuplicates: {{$json[\"duplicates\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1170,
+    "completion_tokens": 778,
+    "total_tokens": 1948
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:41:10.488181"
+}

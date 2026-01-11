@@ -1,0 +1,108 @@
+{
+  "template_id": "12296",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating Shopify store operations with an AI assistant.",
+    "workflowPlan": {
+      "name": "Shopify AI Assistant Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "shopify-ai-assistant",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI API Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4.1-mini/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_KEY"
+            },
+            "body": {
+              "model": "gpt-4.1-mini",
+              "prompt": "E-commerce operations assistant",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Shopify API Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-10/products.json",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "X-Shopify-Access-Token",
+              "value": "YOUR_SHOPIFY_ACCESS_TOKEN"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Notification",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://discord.com/api/webhooks/YOUR_DISCORD_WEBHOOK",
+            "method": "POST",
+            "body": {
+              "content": "Shopify AI Assistant has processed a request successfully."
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1007,
+    "completion_tokens": 659,
+    "total_tokens": 1666
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:23:12.099865"
+}

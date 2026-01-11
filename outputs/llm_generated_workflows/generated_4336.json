@@ -1,0 +1,159 @@
+{
+  "template_id": "4336",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI PDF Summariser",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "ai_pdf_summariser",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "File Validation",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [],
+              "number": [
+                {
+                  "value1": "={{$json[\"headers\"][\"content-length\"]}}",
+                  "operation": "smaller",
+                  "value2": 10485760
+                },
+                {
+                  "value1": "={{$json[\"body\"][\"pageCount\"]}}",
+                  "operation": "smaller",
+                  "value2": 20
+                }
+              ],
+              "string": []
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Text",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://example.com/extract-text",
+            "method": "POST",
+            "sendBinaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "body": {
+              "prompt": "Analyze this document and break it down into distinct topics with key insights.",
+              "max_tokens": 1500
+            },
+            "headers": {
+              "Authorization": "Bearer {{OPENAI_API_KEY}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Format Response",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "formattedResponse",
+                  "value": "={{$json[\"choices\"][0][\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Return Results",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"formattedResponse\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 876,
+    "completion_tokens": 915,
+    "total_tokens": 1791
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:08:45.315546"
+}

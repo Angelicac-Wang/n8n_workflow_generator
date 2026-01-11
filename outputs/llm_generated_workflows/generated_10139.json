@@ -1,0 +1,174 @@
+{
+  "template_id": "10139",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Text/Image to Video with Sora 2",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "video_creation",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "mode",
+                  "value": "={{$json[\"mode\"]}}"
+                },
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"prompt\"]}}"
+                },
+                {
+                  "name": "aspectRatio",
+                  "value": "={{$json[\"aspectRatio\"]}}"
+                },
+                {
+                  "name": "model",
+                  "value": "={{$json[\"model\"]}}"
+                },
+                {
+                  "name": "duration",
+                  "value": "={{$json[\"duration\"]}}"
+                },
+                {
+                  "name": "imageUrl",
+                  "value": "={{$json[\"imageUrl\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Enhance Prompt with GPT-5",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-5",
+            "prompt": "Enhance the following prompt for cinematic quality: {{$json[\"prompt\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request to fal.ai",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/video",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"prompt\": {{$json[\"enhancedPrompt\"] || $json[\"prompt\"]}}, \"aspectRatio\": {{$json[\"aspectRatio\"]}}, \"model\": {{$json[\"model\"]}}, \"duration\": {{$json[\"duration\"]}}, \"imageUrl\": {{$json[\"imageUrl\"]}}}",
+            "headerParametersJson": "{\"Authorization\": \"Key [Your API Key]\"}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Poll for Completion",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/video/status",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {
+              "pollTimes": 10,
+              "pollInterval": 60
+            },
+            "queryParametersJson": "{\"videoId\": \"={{$json[\"videoId\"]}}\"}",
+            "headerParametersJson": "{\"Authorization\": \"Key [Your API Key]\"}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Redirect to Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1254,
+    "completion_tokens": 1113,
+    "total_tokens": 2367
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:27:57.986636"
+}

@@ -1,0 +1,140 @@
+{
+  "template_id": "2790",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Triathlon Coach AI Workflow: Strava Data Analysis and Personalized Training Insights",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Strava Trigger",
+          "nodeType": "n8n-nodes-base.stravaTrigger",
+          "params": {
+            "events": [
+              "activity.create",
+              "activity.update"
+            ],
+            "credentials": "Strava API"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Data Preprocessing",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "functionCode": "function flattenObject(ob) { var toReturn = {}; for (var i in ob) { if (!ob.hasOwnProperty(i)) continue; if ((typeof ob[i]) == 'object' && ob[i] !== null) { var flatObject = flattenObject(ob[i]); for (var x in flatObject) { if (!flatObject.hasOwnProperty(x)) continue; toReturn[i + '.' + x] = flatObject[x]; } } else { toReturn[i] = ob[i]; } } return toReturn; } return flattenObject(items[0].json);"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Analysis with Google Gemini",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "params": {
+            "prompt": "Analyze the following activity data and provide personalized training insights: {{JSON.stringify($json)}}",
+            "model": "chat",
+            "credentials": "Google Gemini API"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Structured Output",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return { json: { structuredOutput: `Insights:\n\n${$json.text}` } };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Convert to HTML",
+          "nodeType": "n8n-nodes-base.html",
+          "params": {
+            "html": "<html><body><h1>Training Insights</h1><p>{{structuredOutput}}</p></body></html>"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email with Training Insights",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "fromEmail": "coach@example.com",
+            "toEmail": "athlete@example.com",
+            "subject": "Your Personalized Training Insights",
+            "html": "={{$node[\"Convert to HTML\"].json[\"html\"]}}",
+            "credentials": "Gmail API"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "WhatsApp Notifications",
+          "nodeType": "n8n-nodes-base.whatsappBusinessCloud",
+          "params": {
+            "message": "={{$node[\"Generate Structured Output\"].json[\"structuredOutput\"]}}",
+            "to": "whatsapp:+1234567890",
+            "credentials": "WhatsApp Business Cloud API"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1515,
+    "completion_tokens": 959,
+    "total_tokens": 2474
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:45:22.551007"
+}

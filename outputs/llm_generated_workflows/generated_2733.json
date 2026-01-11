@@ -1,0 +1,153 @@
+{
+  "template_id": "2733",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LINE Messaging API Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook from LINE Message",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "n8n-webhook-page"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "If Condition",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [],
+              "number": [],
+              "string": [
+                {
+                  "value1": "{{ $json.body.events[0].type }}",
+                  "operation": "equal",
+                  "value2": "message"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Line: Reply with Token",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.line.me/v2/bot/message/reply",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "replyToken": "{{ $('Webhook from LINE Message').item.json.body.events[0].replyToken }}",
+              "messages": [
+                {
+                  "type": "text",
+                  "text": " : {{ $('Webhook from LINE Message').item.json.body.events[0].message.text }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Manual Trigger: Test Workflow",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Edit Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "line_uid",
+                "value": "Uxxxxxxxxxxxx"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Line: Push Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.line.me/v2/bot/message/push",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "to": "{{ $json.line_uid }}",
+              "messages": [
+                {
+                  "type": "text",
+                  "text": ""
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1561,
+    "completion_tokens": 846,
+    "total_tokens": 2407
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:43:40.511350"
+}

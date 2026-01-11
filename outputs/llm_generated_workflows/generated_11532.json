@@ -1,0 +1,166 @@
+{
+  "template_id": "11532",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube to ElevenLabs Voice Cloning",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets - Read Rows",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "filter": {
+              "column": "C",
+              "value": "",
+              "operation": "isEmpty"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Video ID",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { const url = item.json['YOUTUBE VIDEO']; const videoId = url.match(/(?:https?:\\/\\/)?(?:www\\.)?youtu(?:\\.be\\/|be\\.com\\/watch\\?v=)([\\w\\-]{11})/)[1]; item.json.videoId = videoId; return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "YouTube to Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://youtube-mp3-2025.p.rapidapi.com/dl",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "id",
+                "value": "={{$json[\"videoId\"]}}"
+              }
+            ],
+            "headerParameters": [
+              {
+                "name": "x-rapidapi-key",
+                "value": "YOUR_RAPIDAPI_KEY"
+              },
+              {
+                "name": "x-rapidapi-host",
+                "value": "youtube-mp3-2025.p.rapidapi.com"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Download Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"link\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "fileName": "audio.m4a"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Voice",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/voices/add",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "name",
+                "value": "={{$json[\"VOICE NAME\"]}}"
+              }
+            ],
+            "headerParameters": [
+              {
+                "name": "xi-api-key",
+                "value": "YOUR_ELEVENLABS_API_KEY"
+              }
+            ],
+            "sendBinaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!C:C",
+            "updateData": {
+              "key": "videoId",
+              "value": "={{$json[\"voice_id\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1581,
+    "completion_tokens": 1048,
+    "total_tokens": 2629
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:52:27.371036"
+}

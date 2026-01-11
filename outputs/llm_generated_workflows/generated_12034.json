@@ -1,0 +1,220 @@
+{
+  "template_id": "12034",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate monthly payroll processing and tax compliance.",
+    "workflowPlan": {
+      "name": "Automated Payroll Processing and Tax Compliance",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Payroll Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.payrollsource.com/data",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Revenue Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.revenuesource.com/data",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Calculate Payroll",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* payroll calculation logic */ return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Apply Tax Withholding",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "responseFormat": "json",
+            "body": {
+              "prompt": "Calculate tax withholding based on jurisdiction rules.",
+              "max_tokens": 100
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Tax Summary",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* tax summary logic */ return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate HTML Document",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* HTML generation logic */ return item; });"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Convert HTML to PDF",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.html2pdf.com/convert",
+            "method": "POST",
+            "responseFormat": "json",
+            "body": {
+              "html": "{{ $json[\"htmlContent\"] }}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Store in Google Sheets",
+          "nodeType": "googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputOption": "RAW",
+            "data": "{{ $json }}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Archive to Google Drive",
+          "nodeType": "googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "Payroll_Report_{{ $json[\"date\"] }}.pdf",
+            "fileContent": "{{ $json[\"pdfContent\"] }}",
+            "mimeType": "application/pdf"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Summary to Tax Agent",
+          "nodeType": "emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "taxagent@example.com",
+            "subject": "Monthly Payroll and Tax Summary",
+            "text": "Attached is the payroll and tax summary for the month.",
+            "attachments": [
+              {
+                "content": "{{ $json[\"pdfContent\"] }}",
+                "type": "application/pdf",
+                "filename": "Payroll_Report_{{ $json[\"date\"] }}.pdf"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 707,
+    "completion_tokens": 1324,
+    "total_tokens": 2031
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:11:30.356533"
+}

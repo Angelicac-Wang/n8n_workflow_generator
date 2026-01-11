@@ -1,0 +1,144 @@
+{
+  "template_id": "12264",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan to repurpose YouTube video content into multiple formats and publish them.",
+    "workflowPlan": {
+      "name": "YouTube Content Repurposing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch YouTube Transcript",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.example.com/getTranscript",
+            "method": "GET",
+            "queryParameters": {
+              "videoUrl": "={{$json[\"videoUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Content with AI",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.example.com/generateContent",
+            "method": "POST",
+            "bodyParameters": {
+              "transcript": "={{$json[\"transcript\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Approval Check",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"approvalMode\"]}}",
+                  "operation": "is",
+                  "value2": "true"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Manual Approval",
+          "nodeType": "webhook",
+          "params": {
+            "path": "manualApproval",
+            "httpMethod": "POST"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish Content",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.example.com/publishContent",
+            "method": "POST",
+            "bodyParameters": {
+              "content": "={{$json[\"content\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log Result",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.example.com/logResult",
+            "method": "POST",
+            "bodyParameters": {
+              "status": "={{$json[\"status\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 676,
+    "completion_tokens": 772,
+    "total_tokens": 1448
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:22:02.114843"
+}

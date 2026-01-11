@@ -1,0 +1,135 @@
+{
+  "template_id": "8654",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Self-Thinking Content System",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Keyword Research & Content Ideation",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.keywordresearch.com",
+            "method": "GET",
+            "queryParameters": {
+              "search": "high-value topics"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Dynamic Prompt Generation",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { prompt: `Create writing instructions for ${$json['topics']}` };"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Modular AI Writing Process",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "{{$node[\"2\"].json[\"prompt\"]}}",
+              "max_tokens": 1500
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Final Refinements",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const content = $json[\"content\"]; return { polishedContent: content + ' - refined' };"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publication-Ready Output",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "content": "{{$node[\"4\"].json[\"polishedContent\"]}}",
+              "metaDescription": "Generated Meta Description",
+              "title": "Generated Title"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Smart Internal Linking",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourwebsite.com/urls",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1262,
+    "completion_tokens": 773,
+    "total_tokens": 2035
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:36:06.117398"
+}

@@ -1,0 +1,268 @@
+{
+  "template_id": "9786",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Social Media Video Posting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 0,
+                  "weekday": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7
+                  ]
+                },
+                {
+                  "hour": 21,
+                  "minute": 0,
+                  "weekday": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7
+                  ]
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets (Read)",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Video!A:F",
+            "filter": {
+              "field": "Status",
+              "value": "Listo para postear"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Code Node",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { formattedTime: new Date().toLocaleString('es-ES', { timeZone: 'America/Santiago', hour12: true }) } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "If Condition",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"2\"].json[\"Fecha.Hora\"]}}",
+                  "operation": "equal",
+                  "value2": "={{$node[\"3\"].json[\"formattedTime\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Format Drive Content",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "Title",
+                  "value": "={{$node[\"2\"].json[\"Title\"]}}"
+                },
+                {
+                  "name": "Copy",
+                  "value": "={{$node[\"2\"].json[\"Copy\"]}}"
+                },
+                {
+                  "name": "Video URL",
+                  "value": "={{$node[\"2\"].json[\"Video Link\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Social Media Account IDs",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "Instagram ID",
+                  "value": "YOUR_INSTAGRAM_ID"
+                },
+                {
+                  "name": "LinkedIn ID",
+                  "value": "YOUR_LINKEDIN_ID"
+                },
+                {
+                  "name": "TikTok ID",
+                  "value": "YOUR_TIKTOK_ID"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload a video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/upload",
+            "method": "POST",
+            "body": {
+              "title": "={{$node[\"5\"].json[\"Title\"]}}",
+              "description": "={{$node[\"5\"].json[\"Copy\"]}}",
+              "videoUrl": "={{$node[\"5\"].json[\"Video URL\"]}}",
+              "platforms": [
+                "Instagram",
+                "LinkedIn",
+                "TikTok"
+              ],
+              "accountIds": {
+                "Instagram": "={{$node[\"6\"].json[\"Instagram ID\"]}}",
+                "LinkedIn": "={{$node[\"6\"].json[\"LinkedIn ID\"]}}",
+                "TikTok": "={{$node[\"6\"].json[\"TikTok ID\"]}}"
+              }
+            },
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Google Sheets (Update)",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Video!D:D",
+            "updateData": {
+              "row": "={{$node[\"2\"].json[\"row_number\"]}}",
+              "value": "Posteado"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "Post successful: {{ $node[\"5\"].json[\"Title\"] }} on Instagram, LinkedIn, and TikTok."
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1666,
+    "completion_tokens": 1542,
+    "total_tokens": 3208
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:41:58.418373"
+}

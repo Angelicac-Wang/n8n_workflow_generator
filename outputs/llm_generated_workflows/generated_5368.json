@@ -1,0 +1,118 @@
+{
+  "template_id": "5368",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan to manage Google Calendar via WhatsApp using natural language.",
+    "workflowPlan": {
+      "name": "WhatsApp Google Calendar Manager",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Natural Language Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "prompt": "Interpret the following message for Google Calendar actions: {{$json[\"body\"]}}",
+              "max_tokens": 100
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Calendar Action",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEvent",
+            "calendar": "primary",
+            "start": "{{$json[\"start\"]}}",
+            "end": "{{$json[\"end\"]}}",
+            "summary": "{{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send WhatsApp Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/YOUR_WHATSAPP_NUMBER_ID/messages",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "messaging_product": "whatsapp",
+              "to": "{{$json[\"from\"]}}",
+              "text": {
+                "body": "Your Google Calendar event has been processed successfully."
+              }
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_WHATSAPP_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 609,
+    "completion_tokens": 728,
+    "total_tokens": 1337
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:19:06.448483"
+}

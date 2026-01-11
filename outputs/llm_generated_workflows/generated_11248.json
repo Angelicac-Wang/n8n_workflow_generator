@@ -1,0 +1,180 @@
+{
+  "template_id": "11248",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Lead Nurturing with Email Tracking",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get CRM",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:D"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Pixel",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "addFields": [
+                {
+                  "name": "pixelId",
+                  "value": "={{$json[\"email\"]}}_{{Date.now()}}"
+                },
+                {
+                  "name": "trackingPixel",
+                  "value": "<img src=\"https://YOUR_N8N_WEBHOOK_URL?pixelId={{$json[\"pixelId\"]}}\" width=\"1\" height=\"1\">"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Email Content",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a personalized email for {{$json[\"firstName\"]}} including this tracking pixel: {{$json[\"trackingPixel\"]}}",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Personalized Email for {{$json[\"firstName\"]}}",
+            "html": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update CRM",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:D",
+            "key": "email",
+            "value": "={{$json[\"email\"]}}",
+            "fields": {
+              "addFields": [
+                {
+                  "name": "EMAIL 1 SEND",
+                  "value": "yes"
+                },
+                {
+                  "name": "PIXEL EMAIL 1",
+                  "value": "={{$json[\"pixelId\"]}}"
+                },
+                {
+                  "name": "EMAIL 1 DATE",
+                  "value": "={{Date.now()}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "GET",
+            "path": "email-open-tracking"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Open Status",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:D",
+            "key": "PIXEL EMAIL 1",
+            "value": "={{$json[\"query\"][\"pixelId\"]}}",
+            "fields": {
+              "addFields": [
+                {
+                  "name": "OPEN EMAIL 1",
+                  "value": "yes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1668,
+    "completion_tokens": 1105,
+    "total_tokens": 2773
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:46:08.335786"
+}

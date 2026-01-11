@@ -1,0 +1,91 @@
+{
+  "template_id": "2533",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Facebook Page Comments Collection",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Posts",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{PageID}/posts",
+            "method": "GET",
+            "authentication": "facebookOAuth2Api",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "access_token",
+                "value": "={{$credentials.facebookOAuth2Api.accessToken}}"
+              },
+              {
+                "name": "limit",
+                "value": "={{$json[\"number_of_posts\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Comments",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{{$json[\"id\"]}}/comments",
+            "method": "GET",
+            "authentication": "facebookOAuth2Api",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "access_token",
+                "value": "={{$credentials.facebookOAuth2Api.accessToken}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Number of Latest Posts to Fetch",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "number_of_posts": 5
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "3",
+          "to": "1"
+        },
+        {
+          "from": "1",
+          "to": "2"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 580,
+    "completion_tokens": 484,
+    "total_tokens": 1064
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:38:46.679770"
+}

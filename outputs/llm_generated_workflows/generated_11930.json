@@ -1,0 +1,185 @@
+{
+  "template_id": "11930",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Auto-Publisher",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduled Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 15,
+                  "unit": "minutes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Posts from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-spreadsheet-id",
+            "range": "Sheet1!A1:E",
+            "filter": {
+              "field": "status",
+              "value": "Pending"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Posts by Time",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "dateTime": [
+                {
+                  "value1": "={{$json[\"scheduled_time\"]}}",
+                  "operation": "earlier",
+                  "value2": "={{$now}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Download Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"image_url\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish to Instagram",
+          "nodeType": "n8n-nodes-base.instagram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "publish",
+            "mediaType": "image",
+            "media": "={{$binary.data}}",
+            "caption": "={{$json[\"caption\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Publish to Facebook",
+          "nodeType": "n8n-nodes-base.facebook",
+          "typeVersion": 1,
+          "params": {
+            "operation": "publish",
+            "message": "={{$json[\"caption\"]}}",
+            "link": "={{$json[\"link\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-spreadsheet-id",
+            "range": "Sheet1!A1:E",
+            "data": [
+              {
+                "range": "Sheet1!D{{ $json[\"row_number\"] }}",
+                "values": [
+                  [
+                    "Success"
+                  ]
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 722,
+    "completion_tokens": 1023,
+    "total_tokens": 1745
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:06:43.529462"
+}

@@ -1,0 +1,127 @@
+{
+  "template_id": "4485",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow creates a Telegram chatbot agent using InfraNodus GraphRAG for knowledge retrieval.",
+    "workflowPlan": {
+      "name": "Telegram Chatbot with InfraNodus GraphRAG",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 250,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "tools": [
+              {
+                "name": "GraphRAG Expert 1",
+                "description": "Expert in domain 1",
+                "endpoint": "https://api.infranodus.com/graphRAG/expert1"
+              },
+              {
+                "name": "GraphRAG Expert 2",
+                "description": "Expert in domain 2",
+                "endpoint": "https://api.infranodus.com/graphRAG/expert2"
+              }
+            ]
+          },
+          "position": {
+            "x": 450,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request to InfraNodus",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"endpoint\"]}}",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_INFRANODUS_API_KEY"
+              }
+            },
+            "body": {
+              "query": "={{$json[\"query\"]}}"
+            }
+          },
+          "position": {
+            "x": 650,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Integrate Responses",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { finalAnswer: items.map(item => item.json.response).join(' ') };"
+          },
+          "position": {
+            "x": 850,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "={{$json[\"finalAnswer\"]}}"
+          },
+          "position": {
+            "x": 1050,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1590,
+    "completion_tokens": 751,
+    "total_tokens": 2341
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:10:29.156489"
+}

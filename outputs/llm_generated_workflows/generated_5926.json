@@ -1,0 +1,172 @@
+{
+  "template_id": "5926",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "YouTube Playlist Transcription and Summarization",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch YouTube Playlist Videos",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/playlistItems",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "part",
+                "value": "snippet"
+              },
+              {
+                "name": "maxResults",
+                "value": "50"
+              },
+              {
+                "name": "playlistId",
+                "value": "YOUR_PLAYLIST_ID"
+              },
+              {
+                "name": "key",
+                "value": "YOUR_YOUTUBE_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Video Details",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "title",
+                "value": "={{$json[\"items\"][0][\"snippet\"][\"title\"]}}"
+              },
+              {
+                "name": "videoId",
+                "value": "={{$json[\"items\"][0][\"snippet\"][\"resourceId\"][\"videoId\"]}}"
+              },
+              {
+                "name": "url",
+                "value": "={{\"https://www.youtube.com/watch?v=\" + $json[\"items\"][0][\"snippet\"][\"resourceId\"][\"videoId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Retrieve Transcript",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "TRANSCRIPT_API_ENDPOINT",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "videoId",
+                "value": "={{$json[\"videoId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Summary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "AI_SUMMARY_API_ENDPOINT",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "transcript",
+                "value": "={{$json[\"transcript\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "valueInputMode": "RAW",
+            "data": [
+              [
+                "={{$json[\"title\"]}}",
+                "={{$json[\"url\"]}}",
+                "={{$json[\"transcript\"]}}",
+                "={{$json[\"summary\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1066,
+    "completion_tokens": 1008,
+    "total_tokens": 2074
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:27:05.138564"
+}

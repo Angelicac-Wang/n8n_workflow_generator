@@ -1,0 +1,128 @@
+{
+  "template_id": "8756",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow setup for the AI Facebook Post Generator.",
+    "workflowPlan": {
+      "name": "AI Facebook Post Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "ai-facebook-post",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets - Append Row",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_CONTENT_LOG_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "RAW",
+            "values": [
+              "={{$json[\"date\"]}}",
+              "={{$json[\"short_content\"]}}",
+              "={{$json[\"full_content\"]}}"
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gemini AI - Generate Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.ai/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "={{$json[\"content_idea\"]}}",
+              "apiKey": "YOUR_GEMINI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Facebook Graph API - Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/YOUR_PAGE_ID/feed",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "message": "={{$node[\"Gemini AI - Generate Content\"].json[\"generated_text\"]}}",
+              "access_token": "YOUR_PAGE_ACCESS_TOKEN"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Success Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "subject": "AI Facebook Post Success",
+            "to": "your-email@example.com",
+            "text": "Your post has been successfully published on Facebook!"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2766,
+    "completion_tokens": 786,
+    "total_tokens": 3552
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:36:48.378813"
+}

@@ -1,0 +1,213 @@
+{
+  "template_id": "12263",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to generate illustrated stories using AI and save them to Firebase.",
+    "workflowPlan": {
+      "name": "AI Illustrated Story Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "generate-story",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "OPENAI_API_KEY",
+                  "value": "your_openai_api_key"
+                },
+                {
+                  "name": "FIREBASE_BUCKET",
+                  "value": "your_firebase_bucket"
+                },
+                {
+                  "name": "FIREBASE_PROJECT_ID",
+                  "value": "your_firebase_project_id"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Story with GPT-4",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": "none",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "model": "gpt-4",
+              "prompt": "Generate a story based on the following details: {{$json[\"body\"]}}",
+              "max_tokens": 1500
+            },
+            "headers": {
+              "Authorization": "Bearer {{$json[\"OPENAI_API_KEY\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Images with DALL-E 3",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "authentication": "none",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "{{$json[\"data\"][\"story\"][\"image_prompts\"]}}",
+              "n": "{{$json[\"body\"][\"number_of_scenes\"]}}",
+              "size": "1024x1024"
+            },
+            "headers": {
+              "Authorization": "Bearer {{$json[\"OPENAI_API_KEY\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload Images to Firebase",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://firebasestorage.googleapis.com/v0/b/{{$json[\"FIREBASE_BUCKET\"]}}/o",
+            "method": "POST",
+            "authentication": "none",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "uploadType": "media",
+              "name": "{{$json[\"data\"][\"images\"][\"name\"]}}",
+              "data": "{{$json[\"data\"][\"images\"][\"data\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer {{$json[\"FIREBASE_PROJECT_ID\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Story to Firestore",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://firestore.googleapis.com/v1/projects/{{$json[\"FIREBASE_PROJECT_ID\"]}}/databases/(default)/documents/stories",
+            "method": "POST",
+            "authentication": "none",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "fields": {
+                "story": {
+                  "stringValue": "{{$json[\"data\"][\"story\"]}}"
+                },
+                "images": {
+                  "arrayValue": {
+                    "values": [
+                      {
+                        "stringValue": "{{$json[\"data\"][\"images\"][\"url\"]}}"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Authorization": "Bearer {{$json[\"FIREBASE_PROJECT_ID\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond with Story and Image URLs",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "{{$json[\"data\"]}}",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 696,
+    "completion_tokens": 1377,
+    "total_tokens": 2073
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:21:55.186674"
+}

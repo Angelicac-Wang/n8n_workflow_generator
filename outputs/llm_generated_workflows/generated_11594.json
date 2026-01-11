@@ -1,0 +1,214 @@
+{
+  "template_id": "11594",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Character Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 6,
+                  "unit": "hours"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Location & Pose Selection",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const locations = ['beach', 'city', 'cafe', 'rooftop'];\nconst poses = ['pose1', 'pose2', 'pose3'];\nconst selectedLocation = locations[Math.floor(Math.random() * locations.length)];\nconst selectedPoses = poses.sort(() => 0.5 - Math.random()).slice(0, 3);\nreturn [{ json: { location: selectedLocation, poses: selectedPoses } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Story Creation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"prompt\": \"Create a cinematic story for the character in location: {{$json[\"location\"]}} with poses: {{$json[\"poses\"]}}\", \"max_tokens\": 150 }"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Start Frame Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/nano-banana-edit",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"reference_images\": [\"url1\", \"url2\", \"url3\", \"url4\", \"url5\"], \"location\": \"{{$json[\"location\"]}}\", \"pose\": \"{{$json[\"poses\"][0]}}\" }"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "End Frame Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/nano-banana-edit",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"reference_image\": \"{{$node[\"Start Frame Generation\"].json[\"image_url\"]}}\", \"pose\": \"{{$json[\"poses\"][1]}}\" }"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/veo-3.1",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"start_frame\": \"{{$node[\"Start Frame Generation\"].json[\"image_url\"]}}\", \"end_frame\": \"{{$node[\"End Frame Generation\"].json[\"image_url\"]}}\" }"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Content Creation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"prompt\": \"Generate a title, description, and hashtags for a video about {{$json[\"location\"]}} with poses: {{$json[\"poses\"]}}\", \"max_tokens\": 100 }"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Auto-Publishing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/post",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"video_url\": \"{{$node[\"Video Generation\"].json[\"video_url\"]}}\", \"title\": \"{{$node[\"Content Creation\"].json[\"choices\"][0][\"text\"]}}\", \"description\": \"{{$node[\"Content Creation\"].json[\"choices\"][0][\"text\"]}}\", \"platforms\": [\"TikTok\", \"Instagram\"] }"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Telegram Preview",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "Preview of the generated video: {{$node[\"Video Generation\"].json[\"video_url\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "6",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1518,
+    "completion_tokens": 1688,
+    "total_tokens": 3206
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:53:59.719538"
+}

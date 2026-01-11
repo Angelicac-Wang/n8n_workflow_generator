@@ -1,0 +1,222 @@
+{
+  "template_id": "11836",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Enhanced Email Labeling and Routing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "unread",
+            "pollingInterval": 120
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTML Extractor",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.openAIApi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Classify and extract entities from the email content: {{$json[\"cleanedHtml\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Structured Output Parser",
+          "nodeType": "n8n-nodes-base.jsonParse",
+          "typeVersion": 1,
+          "params": {
+            "json": "={{$json[\"aiResponse\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Category Router",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"category\"]}}",
+            "rules": [
+              {
+                "value": "Inquiry"
+              },
+              {
+                "value": "Support"
+              },
+              {
+                "value": "Newsletter"
+              },
+              {
+                "value": "Marketing"
+              },
+              {
+                "value": "Personal"
+              },
+              {
+                "value": "Urgent"
+              },
+              {
+                "value": "Spam"
+              },
+              {
+                "value": "Invoice"
+              },
+              {
+                "value": "Meeting"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Gmail Auto-labeling",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "addLabel",
+            "labelName": "={{$json[\"category\"]}}",
+            "messageId": "={{$json[\"messageId\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Google Sheets Logging",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "MainLog!A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              "={{$json[\"messageId\"]}}",
+              "={{$json[\"subject\"]}}",
+              "={{$json[\"category\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "alerts",
+            "text": "Urgent email received: {{$json[\"subject\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Error Logging",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "ErrorLog!A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              "={{$json[\"messageId\"]}}",
+              "={{$json[\"error\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 5
+        },
+        {
+          "from": "5",
+          "to": "9",
+          "outputIndex": 10
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 741,
+    "completion_tokens": 1281,
+    "total_tokens": 2022
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:03:25.974501"
+}

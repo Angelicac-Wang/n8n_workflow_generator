@@ -1,0 +1,155 @@
+{
+  "template_id": "3669",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Multi-Platform Posting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "social-media-form",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Video or Photo?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [],
+              "number": [],
+              "string": [
+                {
+                  "value1": "={{$json[\"file\"][\"mimeType\"]}}",
+                  "operation": "contains",
+                  "value2": "image"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Post Photo",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/upload_photos",
+            "method": "POST",
+            "authentication": "none",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Apikey YOUR_API_KEY_HERE"
+              }
+            ],
+            "bodyParametersJson": "={\"platform\": $json[\"platform\"], \"account\": $json[\"account\"], \"caption\": $json[\"caption\"], \"file\": $json[\"file\"], \"facebookPageId\": $json[\"facebookPageId\"]}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Post Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/upload",
+            "method": "POST",
+            "authentication": "none",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Apikey YOUR_API_KEY_HERE"
+              }
+            ],
+            "bodyParametersJson": "={\"platform\": $json[\"platform\"], \"account\": $json[\"account\"], \"caption\": $json[\"caption\"], \"file\": $json[\"file\"], \"facebookPageId\": $json[\"facebookPageId\"]}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Result Photo/Video",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "status",
+                  "value": "={{$json[\"status\"]}}"
+                },
+                {
+                  "name": "message",
+                  "value": "={{$json[\"message\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1267,
+    "completion_tokens": 946,
+    "total_tokens": 2213
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:01:49.459213"
+}

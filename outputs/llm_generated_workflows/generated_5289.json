@@ -1,0 +1,106 @@
+{
+  "template_id": "5289",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to create a web application for generating AI prompts using Google Gemini.",
+    "workflowPlan": {
+      "name": "AI Prompt Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Prompt Request",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "goal",
+                "type": "string",
+                "label": "Describe your goal"
+              },
+              {
+                "name": "components",
+                "type": "multiOptions",
+                "label": "Select structural components",
+                "options": [
+                  "system instructions",
+                  "examples",
+                  "input variables"
+                ]
+              }
+            ],
+            "submitButtonText": "Generate Prompt"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "LangChain Chain",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { metaPrompt: `Create a prompt with the following goal: ${items[0].json.goal} and include these components: ${items[0].json.components.join(', ')}` };"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Gemini",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "model": "Gemini 2.5 Flash",
+            "prompt": "={{$json[\"metaPrompt\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "GET",
+            "responseMode": "onReceived",
+            "path": "display-prompt",
+            "responseData": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1044,
+    "completion_tokens": 607,
+    "total_tokens": 1651
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:18:23.033595"
+}

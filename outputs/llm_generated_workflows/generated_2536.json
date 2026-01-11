@@ -1,0 +1,129 @@
+{
+  "template_id": "2536",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Parallel Sub-Workflow Execution with Callback",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "n8n-nodes-base.start",
+          "position": {
+            "x": 250,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Split Data",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 450,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Execute Sub-Workflow",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "params": {
+            "workflowId": "sub-workflow-id",
+            "options": {
+              "resumeUrl": "https://your-n8n-instance.com/webhook/callback",
+              "additionalFields": {
+                "identifier": "={{$json[\"documentName\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 650,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait for All",
+          "nodeType": "n8n-nodes-base.wait",
+          "params": {},
+          "position": {
+            "x": 850,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Completion",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "all": [
+                {
+                  "value1": "={{$json[\"completedCount\"]}}",
+                  "operation": "equal",
+                  "value2": "={{$json[\"totalCount\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1050,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "All Completed",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "status",
+                  "value": "All sub-workflows completed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1250,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1034,
+    "completion_tokens": 670,
+    "total_tokens": 1704
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:38:59.724916"
+}

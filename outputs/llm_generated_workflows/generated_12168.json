@@ -1,0 +1,166 @@
+{
+  "template_id": "12168",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automate video creation using AI and Google services.",
+    "workflowPlan": {
+      "name": "Automate Video Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Ideas with Gemini AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.gemini.ai/generate",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"prompt\": \"Generate creative video ideas\" }"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Render Video with Vertex AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://vertexai.googleapis.com/v1/projects/your-project-id/locations/us-central1/endpoints/your-endpoint-id:predict",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"instances\": [{ \"content\": \"{{ $json[\\\"data\\\"] }}\" }] }"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait for Video Rendering",
+          "nodeType": "n8n-nodes-base.delay",
+          "params": {
+            "delay": 300
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Convert Base64 to MP4",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const fs = require('fs');\nconst base64Data = $json[\"videoBase64\"];\nconst buffer = Buffer.from(base64Data, 'base64');\nfs.writeFileSync('/data/video.mp4', buffer);\nreturn { filePath: '/data/video.mp4' };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "upload",
+            "filePath": "={{$node[\"Convert Base64 to MP4\"].json[\"filePath\"]}}",
+            "parents": [
+              "your-folder-id"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "1575_YE8kQk92Xj2DTpx4feCYDXu4hZh8CVl57Un2l2k",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "={{$now}}",
+                "={{$node[\"Generate Ideas with Gemini AI\"].json[\"data\"]}}",
+                "={{$node[\"Upload to Google Drive\"].json[\"id\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 751,
+    "completion_tokens": 1086,
+    "total_tokens": 1837
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:17:55.882970"
+}

@@ -1,0 +1,252 @@
+{
+  "template_id": "12092",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Financial Risk Evaluation Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyHour"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Financial Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.financialdata.com",
+            "authentication": "genericCredentialType",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Operational Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.operationaldata.com",
+            "authentication": "genericCredentialType",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Legal Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.legaldata.com",
+            "authentication": "genericCredentialType",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Insurance Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.insurancedata.com",
+            "authentication": "genericCredentialType",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 800
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Regulatory Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.regulatorydata.com",
+            "authentication": "genericCredentialType",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 1000
+          }
+        },
+        {
+          "id": "7",
+          "label": "AI Risk Assessment",
+          "nodeType": "n8n-nodes-base.openRouter",
+          "params": {
+            "apiKey": "={{$credentials.openRouterApiKey}}",
+            "model": "ChatModel",
+            "input": "={{$json}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Evaluate Risk",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json.riskScore}}",
+                  "operation": "greaterThan",
+                  "value2": "={{$env.RISK_THRESHOLD}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Trigger Corrective Action",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.correctiveaction.com",
+            "method": "POST",
+            "body": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "params": {
+            "webhookUri": "={{$credentials.slackWebhookUrl}}",
+            "text": "High risk detected: {{$json.riskScore}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Investor Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "params": {
+            "to": "={{$env.INVESTOR_EMAILS}}",
+            "subject": "Risk Alert",
+            "text": "High risk detected: {{$json.riskScore}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 800
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "1",
+          "to": "6"
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "11",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 713,
+    "completion_tokens": 1455,
+    "total_tokens": 2168
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:13:50.750989"
+}

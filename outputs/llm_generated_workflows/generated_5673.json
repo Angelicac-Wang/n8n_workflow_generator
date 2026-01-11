@@ -1,0 +1,140 @@
+{
+  "template_id": "5673",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Advanced SSL Health Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 8,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch URLs from Notion",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "page",
+            "databaseId": "YOUR_DATABASE_ID",
+            "returnAll": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "SSL Assessment Script",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "python3 /path/to/sysadmin-toolkit/ssl_check.py",
+            "arguments": "{{$json[\"URL\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "SSL-Checker.io API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.ssl-checker.io/v1/check",
+            "method": "POST",
+            "bodyParameters": {
+              "domain": "{{$json[\"URL\"]}}"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze SSL Health",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const expirationThreshold = 30; const gradeThreshold = 'B'; const issues = []; // Analyze results from nodes 3 and 4 and populate issues array if any problems are found // Example: if (expiration < expirationThreshold) { issues.push('Certificate expiring soon'); } return [{ json: { issues } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Discord Alert",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "YOUR_DISCORD_WEBHOOK_URL",
+            "message": "SSL Health Alert: {{$json[\"issues\"]}}",
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1146,
+    "completion_tokens": 838,
+    "total_tokens": 1984
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:22:50.192088"
+}

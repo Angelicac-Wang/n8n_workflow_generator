@@ -1,0 +1,228 @@
+{
+  "template_id": "3057",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Create Social Media Content from Telegram with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Switch",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message\"][\"voice\"] ? \"voice\" : \"text\"}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "voice"
+              },
+              {
+                "operation": "equal",
+                "value": "text"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Telegram (Fetch Voice)",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "resource": "file",
+            "operation": "download",
+            "fileId": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Whisper API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/whisper",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "sendBinaryData": true,
+            "options": {
+              "bodyContentType": "multipart-form-data"
+            },
+            "bodyParameters": {
+              "file": "={{$binary.data}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "contentRequest",
+                  "value": "={{$json[\"text\"] || $json[\"message\"][\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "model": "gpt-3.5-turbo",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are a helpful assistant that generates social media content and image prompts."
+                },
+                {
+                  "role": "user",
+                  "content": "={{$json[\"contentRequest\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "HTTP Request (Image Generation)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.huggingface.co/models/stable-diffusion-v1-4",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": {
+              "inputs": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Set Final Output",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "socialMediaContent",
+                  "value": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+                },
+                {
+                  "name": "imagePrompt",
+                  "value": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1215,
+    "completion_tokens": 1362,
+    "total_tokens": 2577
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:51:33.371997"
+}

@@ -1,0 +1,217 @@
+{
+  "template_id": "12283",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for automating brand reputation monitoring with sentiment analysis and trend detection.",
+    "workflowPlan": {
+      "name": "Brand Reputation Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch News Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://newsapi.example.com/v1/articles",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Social Media Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://socialmediaapi.example.com/v1/posts",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Review Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://reviewapi.example.com/v1/reviews",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Forum Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://forumapi.example.com/v1/discussions",
+            "method": "GET",
+            "authentication": "apiKey",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Data",
+          "nodeType": "merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 400,
+            "y": 250
+          }
+        },
+        {
+          "id": "6",
+          "label": "Normalize Data",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => ({ json: { source: item.json.source, content: item.json.content, date: item.json.date } }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 250
+          }
+        },
+        {
+          "id": "7",
+          "label": "Sentiment Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Analyze the sentiment and detect trends in the following data: {{ $json.content }}",
+            "apiKey": "={{ $env.OPENAI_API_KEY }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 250
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Alert to Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#crisis-response",
+            "text": "Alert: Potential reputation threat detected. Details: {{ $json }}",
+            "authentication": "accessToken"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Email to PR Team",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "pr-team@example.com",
+            "subject": "Reputation Alert",
+            "body": "Potential reputation threat detected. Details: {{ $json }}",
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update Google Sheets Dashboard",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-google-sheet-id",
+            "range": "A1",
+            "valueInputOption": "RAW",
+            "values": [
+              [
+                "{{ $json.source }}",
+                "{{ $json.content }}",
+                "{{ $json.date }}",
+                "{{ $json.sentiment }}"
+              ]
+            ],
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "7",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 765,
+    "completion_tokens": 1305,
+    "total_tokens": 2070
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:22:36.753548"
+}

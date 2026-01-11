@@ -1,0 +1,447 @@
+{
+  "template_id": "5159",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI powered content creation and WordPress publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger: Select Action",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "params": {
+            "formFields": [
+              {
+                "name": "action",
+                "type": "options",
+                "options": [
+                  {
+                    "name": "Generate Content",
+                    "value": "generateContent"
+                  },
+                  {
+                    "name": "Add Ideas",
+                    "value": "addIdeas"
+                  }
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch unprocessed ideas",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "read",
+            "sheetId": "<YOUR_SHEET_ID>",
+            "range": "Sheet1!A1:F",
+            "filter": {
+              "column": "Generated",
+              "value": "no"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set prompt",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "fields": [
+              {
+                "name": "prompt",
+                "value": "={{$json[\"Prompt\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate article AI",
+          "nodeType": "n8n-nodes-base.langchainAgent",
+          "params": {
+            "model": "Google Gemini",
+            "prompt": "={{$json[\"prompt\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate image keyword AI",
+          "nodeType": "n8n-nodes-base.langchainAgent",
+          "params": {
+            "model": "Google Gemini",
+            "prompt": "Generate a keyword for image search based on: {{$json[\"prompt\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Search Pexels image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.pexels.com/v1/search",
+            "method": "GET",
+            "headers": {
+              "Authorization": "Bearer <YOUR_PEXELS_API_KEY>"
+            },
+            "qs": {
+              "query": "={{$json[\"keyword\"]}}",
+              "per_page": 1
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create WordPress post",
+          "nodeType": "n8n-nodes-base.wordpress",
+          "params": {
+            "operation": "createPost",
+            "title": "={{$json[\"title\"]}}",
+            "content": "={{$json[\"content\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download Pexels image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "={{$json[\"image_url\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1600,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "Upload image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "<YOUR_WORDPRESS_URL>/wp-json/wp/v2/media",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Bearer <YOUR_WORDPRESS_API_KEY>"
+            },
+            "body": {
+              "file": "={{$binary[\"data\"]}}"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 100
+          }
+        },
+        {
+          "id": "10",
+          "label": "Set featured image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "<YOUR_WORDPRESS_URL>/wp-json/wp/v2/posts/{{$json[\"post_id\"]}}",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Bearer <YOUR_WORDPRESS_API_KEY>"
+            },
+            "body": {
+              "featured_media": "={{$json[\"media_id\"]}}"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 100
+          }
+        },
+        {
+          "id": "11",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "update",
+            "sheetId": "<YOUR_SHEET_ID>",
+            "range": "Sheet1!A1:F",
+            "data": {
+              "Generated": "yes",
+              "Post ID": "={{$json[\"post_id\"]}}",
+              "Title": "={{$json[\"title\"]}}",
+              "Date": "={{$now}}"
+            }
+          },
+          "position": {
+            "x": 2200,
+            "y": 100
+          }
+        },
+        {
+          "id": "12",
+          "label": "Form: End post generation",
+          "nodeType": "n8n-nodes-base.form",
+          "params": {
+            "formFields": [
+              {
+                "name": "message",
+                "type": "text",
+                "default": "Content generation and publishing complete!"
+              }
+            ]
+          },
+          "position": {
+            "x": 2400,
+            "y": 100
+          }
+        },
+        {
+          "id": "13",
+          "label": "Form: Enter topic for ideas",
+          "nodeType": "n8n-nodes-base.form",
+          "params": {
+            "formFields": [
+              {
+                "name": "topic",
+                "type": "text",
+                "placeholder": "Enter a general subject for blog ideas"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "14",
+          "label": "Generate blog topics AI",
+          "nodeType": "n8n-nodes-base.langchainAgent",
+          "params": {
+            "model": "Google Gemini",
+            "prompt": "Generate five SEO friendly blog topic ideas for: {{$json[\"topic\"]}}",
+            "outputParser": "structured"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "15",
+          "label": "Split topics",
+          "nodeType": "n8n-nodes-base.splitOut",
+          "params": {
+            "fieldToSplit": "topics"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "16",
+          "label": "Add ideas to sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "<YOUR_SHEET_ID>",
+            "range": "Sheet1!A1:F",
+            "data": {
+              "Prompt": "={{$json[\"topic\"]}}",
+              "Generated": "no"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "17",
+          "label": "Form: Add more topics?",
+          "nodeType": "n8n-nodes-base.form",
+          "params": {
+            "formFields": [
+              {
+                "name": "action",
+                "type": "options",
+                "options": [
+                  {
+                    "name": "NEXT",
+                    "value": "next"
+                  },
+                  {
+                    "name": "END",
+                    "value": "end"
+                  }
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        },
+        {
+          "id": "18",
+          "label": "Form: End idea generation",
+          "nodeType": "n8n-nodes-base.form",
+          "params": {
+            "formFields": [
+              {
+                "name": "message",
+                "type": "text",
+                "default": "Idea generation complete!"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "11",
+          "to": "12",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "13",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "13",
+          "to": "14",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "14",
+          "to": "15",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "15",
+          "to": "16",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "16",
+          "to": "17",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "17",
+          "to": "13",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "17",
+          "to": "18",
+          "outputIndex": 1,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2008,
+    "completion_tokens": 2674,
+    "total_tokens": 4682
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:16:36.824685"
+}

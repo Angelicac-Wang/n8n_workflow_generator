@@ -1,0 +1,168 @@
+{
+  "template_id": "11787",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow plan for the Dungeons and Goblins AI Telegram Voice Adventure.",
+    "workflowPlan": {
+      "name": "Dungeons and Goblins AI Telegram Voice Adventure",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}",
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Groq STT",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.groq.com/stt",
+            "method": "POST",
+            "bodyParameters": {
+              "file": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}"
+            },
+            "authentication": "={{$env.GROQ_API_TOKEN}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Load Game State",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "gameState",
+                  "value": "={{$json[\"gameState\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.your-ai-agent.com/process",
+            "method": "POST",
+            "bodyParameters": {
+              "input": "={{$json[\"text\"]}}",
+              "gameState": "={{$json[\"gameState\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Groq TTS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.groq.com/tts",
+            "method": "POST",
+            "bodyParameters": {
+              "text": "={{$json[\"response\"][\"narration\"]}}"
+            },
+            "authentication": "={{$env.GROQ_API_TOKEN}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Game State",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "gameState",
+                  "value": "={{$json[\"response\"][\"gameState\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Telegram Send",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"response\"][\"narration\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 704,
+    "completion_tokens": 1035,
+    "total_tokens": 1739
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:00:37.363173"
+}

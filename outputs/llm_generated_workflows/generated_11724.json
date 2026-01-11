@@ -1,0 +1,220 @@
+{
+  "template_id": "11724",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily News Digest Video Generator for YouTube Shorts",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduled Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 19 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Today's Articles",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-wordpress-site.com/wp-json/wp/v2/posts?after={{today}}&before={{tomorrow}}",
+            "method": "GET",
+            "authentication": {
+              "type": "basicAuth",
+              "username": "your_wp_username",
+              "password": "your_wp_password"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Validate Content",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"length\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 2
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Video Detection",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function detectVideos(articles) { /* Custom JS to extract video URLs */ }"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Data Processing",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function processData(articles) { /* Custom JS for data processing */ }"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.shotstack.io/stage/render",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "name": "x-api-key",
+              "value": "your_shotstack_api_key"
+            },
+            "body": {
+              "type": "json",
+              "json": {
+                "timeline": {
+                  "background": "#000000",
+                  "tracks": [
+                    {
+                      "clips": [
+                        {
+                          "asset": {
+                            "type": "title",
+                            "text": "Daily News Digest",
+                            "style": "minimal"
+                          },
+                          "start": 0,
+                          "length": 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Processing Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 30
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "YouTube Upload",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "title": "Daily Digest - {{today}}",
+            "description": "Daily Digest - {{today}}",
+            "categoryId": "25",
+            "tags": [
+              "dailydigest"
+            ],
+            "madeForKids": true
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1571,
+    "completion_tokens": 1250,
+    "total_tokens": 2821
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:58:28.335578"
+}

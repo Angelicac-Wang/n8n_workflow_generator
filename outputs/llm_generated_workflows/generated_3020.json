@@ -1,0 +1,90 @@
+{
+  "template_id": "3020",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow template for managing Linux VPS environments using AI and SSH.",
+    "workflowPlan": {
+      "name": "AI SysAdmin for Linux VPS",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-trigger",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "model": "text-davinci-003",
+              "prompt": "Interpret the following command for SSH execution: {{$json[\"body\"]}}",
+              "max_tokens": 150
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "httpBasicAuth": {
+                "user": "api-key",
+                "password": "your-openai-api-key"
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "SSH Command Execution",
+          "nodeType": "n8n-nodes-base.ssh",
+          "typeVersion": 1,
+          "params": {
+            "command": "{{$json[\"choices\"][0][\"text\"]}}",
+            "sshAuthentication": "password",
+            "host": "your-vps-host",
+            "port": 22,
+            "username": "your-ssh-username",
+            "password": "your-ssh-password"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 844,
+    "completion_tokens": 542,
+    "total_tokens": 1386
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:50:42.132872"
+}

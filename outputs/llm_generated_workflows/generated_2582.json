@@ -1,0 +1,154 @@
+{
+  "template_id": "2582",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Meeting Assistant with Reminders",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyHour"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendarId": "primary",
+            "returnAll": true,
+            "filters": {
+              "timeMin": "={{ $now }}",
+              "timeMax": "={{ $addMinutes($now, 60) }}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent - Analyze Invite",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the meeting invite and extract email and LinkedIn details of invitees."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Subworkflow - Email Correspondence",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "emailCorrespondenceWorkflow"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Subworkflow - LinkedIn Scrape",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "linkedinScrapeWorkflow"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent - Summarize Info",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Summarize the email and LinkedIn information into a short meeting prep message."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "WhatsApp Notification",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "typeVersion": 1,
+          "params": {
+            "phoneNumber": "userPhoneNumber",
+            "message": "={{ $json[\"summary\"] }}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 848,
+    "completion_tokens": 875,
+    "total_tokens": 1723
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:40:25.886518"
+}

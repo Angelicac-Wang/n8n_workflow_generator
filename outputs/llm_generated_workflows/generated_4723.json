@@ -1,0 +1,153 @@
+{
+  "template_id": "4723",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Email Personal Assistant - Comprehensive Communication Manager",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Automated Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * 1-5"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "emailAssistant",
+          "label": "Email Assistant Agent",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "filters": {
+              "labelIds": [
+                "To Respond",
+                "FYI"
+              ],
+              "q": "is:unread"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "followUpAssistant",
+          "label": "Follow-Up Assistant Agent",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendarId": "primary",
+            "timeMin": "={{ $now.minus({ days: 3 }).toISO() }}",
+            "timeMax": "={{ $now.toISO() }}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "slackAssistant",
+          "label": "Slack Assistant Agent",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "messages",
+            "channelType": "im"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "masterOrchestrator",
+          "label": "Master Orchestrator Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items;"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "taskManagement",
+          "label": "Task Management Integration",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Tasks!A1",
+            "valueInputMode": "USER_ENTERED"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "sendSlackDM",
+          "label": "Send Slack DM",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "post",
+            "resource": "message",
+            "channelType": "im",
+            "text": "Your daily briefing is ready."
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "emailAssistant"
+        },
+        {
+          "from": "emailAssistant",
+          "to": "followUpAssistant"
+        },
+        {
+          "from": "followUpAssistant",
+          "to": "slackAssistant"
+        },
+        {
+          "from": "slackAssistant",
+          "to": "masterOrchestrator"
+        },
+        {
+          "from": "masterOrchestrator",
+          "to": "taskManagement"
+        },
+        {
+          "from": "taskManagement",
+          "to": "sendSlackDM"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1068,
+    "completion_tokens": 895,
+    "total_tokens": 1963
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:11:59.357278"
+}

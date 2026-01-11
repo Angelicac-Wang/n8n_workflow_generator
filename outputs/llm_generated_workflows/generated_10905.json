@@ -1,0 +1,153 @@
+{
+  "template_id": "10905",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Voice Appointment Booking with Vapi and Google Calendar",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook for Availability Checker",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "availability-checker",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Calendar - Get Busy Times",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendar": "primary",
+            "timeMin": "={{$json[\"date\"]}}T00:00:00Z",
+            "timeMax": "={{$json[\"date\"]}}T23:59:59Z"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Format Busy Times",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const busyTimes = items[0].json.items.map(item => `${item.start.dateTime} to ${item.end.dateTime}`).join(', ');\nreturn [{ json: { busyTimes } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Agent - Analyze Availability",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/analyze",
+            "method": "POST",
+            "body": {
+              "busyTimes": "={{$json[\"busyTimes\"]}}"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Webhook for Appointment Creator",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "appointment-creator",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Google Calendar Event",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendar": "primary",
+            "start": "={{$json[\"date and time\"]}}",
+            "end": "={{$json[\"date and time\"].plus(30, 'mins')}}",
+            "summary": "={{$json[\"Appointment type\"]}}",
+            "description": "Appointment with {{$json[\"Name\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Confirmation Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"Email\"]}}",
+            "subject": "Appointment Confirmation",
+            "html": "<p>Dear {{$json[\"Name\"]}},</p><p>Your appointment for {{$json[\"Appointment type\"]}} is confirmed for {{$json[\"date and time\"]}}.</p><p>Thank you!</p>"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1424,
+    "completion_tokens": 1036,
+    "total_tokens": 2460
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:39:11.090078"
+}

@@ -1,0 +1,166 @@
+{
+  "template_id": "12014",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Job Opportunity Evaluator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Resume",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "YOUR_RESUME_FILE_ID",
+            "binaryProperty": "data"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Resume",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "Google Gemini",
+            "input": "={{$binary.data}}",
+            "operation": "analyzeResume"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "LinkedIn Job Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/jobSearch",
+            "method": "GET",
+            "queryParameters": {
+              "fields": {
+                "keywords": "={{$json['skills']}}",
+                "location": "remote",
+                "limit": 10
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Evaluate Jobs",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "model": "Google Gemini",
+            "input": "={{$json['jobDescriptions']}}",
+            "operation": "evaluateJobs",
+            "additionalFields": {
+              "resume": "={{$json['resume']}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A1",
+            "data": "={{$json['evaluatedJobs']}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Notification Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "your-email@example.com",
+            "subject": "Job Search Completed",
+            "message": "Your job search and evaluation have been completed. Check your Google Sheets for results."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 906,
+    "completion_tokens": 948,
+    "total_tokens": 1854
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:10:25.842156"
+}

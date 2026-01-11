@@ -1,0 +1,329 @@
+{
+  "template_id": "11807",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Omnichannel Customer Support Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Email Trigger",
+          "nodeType": "n8n-nodes-base.emailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "email": "support@yourcompany.com",
+            "triggerOn": "newEmail"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "live-chat"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.whatsappTrigger",
+          "typeVersion": 1,
+          "params": {
+            "phoneNumber": "+1234567890"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Slack Trigger",
+          "nodeType": "n8n-nodes-base.slackTrigger",
+          "typeVersion": 1,
+          "params": {
+            "channel": "support"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Discord Trigger",
+          "nodeType": "n8n-nodes-base.discordTrigger",
+          "typeVersion": 1,
+          "params": {
+            "channel": "support"
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Normalize Message",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { normalizedMessage: $json };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Fetch Conversation History",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourcrm.com/conversations",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "customerId",
+                "value": "={{$json[\"customerId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate AI Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "prompt": "={{$json[\"normalizedMessage\"]}}",
+              "max_tokens": 150
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Analyze Confidence & Sentiment",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const response = $json;\nconst confidence = response.confidence;\nconst sentiment = response.sentiment;\nreturn { confidence, sentiment };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Check Escalation",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"confidence\"] < 0.7 || $json[\"sentiment\"] === 'negative'}}",
+                  "operation": "true"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Create Support Ticket",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.zendesk.com/api/v2/tickets",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "subject": "Escalated Support Request",
+              "description": "={{$json[\"normalizedMessage\"]}}"
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_ZENDESK_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "12",
+          "label": "Send AI Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"responseChannelUrl\"]}}",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "message": "={{$json[\"aiResponse\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "13",
+          "label": "Log Interaction",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourcrm.com/logs",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "interaction": "={{$json}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "14",
+          "label": "Weekly Reporting",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * 0"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "15",
+          "label": "Send Weekly Report",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.slack.com/send",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "channel": "support-reports",
+              "text": "Weekly support report generated."
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "6"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "12",
+          "outputIndex": 1
+        },
+        {
+          "from": "11",
+          "to": "13"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "14",
+          "to": "15"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1145,
+    "completion_tokens": 1967,
+    "total_tokens": 3112
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:02:07.570621"
+}

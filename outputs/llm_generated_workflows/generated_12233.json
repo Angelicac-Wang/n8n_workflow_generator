@@ -1,0 +1,204 @@
+{
+  "template_id": "12233",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Property Listing Aggregator with Microsoft Teams and Baserow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * 1"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Load URL List",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { urls: ['https://example.com/listing1', 'https://example.com/listing2'] } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split In Batches",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 5
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "ScrapeGraphAI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"urls\"]}}",
+            "method": "GET",
+            "headers": {
+              "Authorization": "Bearer YOUR_SCRAPEGRAPH_API_KEY"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "IF Node",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"listing_id\"]}}",
+                  "operation": "notEqual",
+                  "value2": "={{$json[\"existing_listing_id\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Baserow",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.baserow.io/api/database/rows/table/YOUR_TABLE_ID/",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Token YOUR_BASEROW_API_TOKEN"
+            },
+            "body": {
+              "listing_id": "={{$json[\"listing_id\"]}}",
+              "title": "={{$json[\"title\"]}}",
+              "price": "={{$json[\"price\"]}}",
+              "sq_ft": "={{$json[\"sq_ft\"]}}",
+              "location": "={{$json[\"location\"]}}",
+              "url": "={{$json[\"url\"]}}",
+              "scraped": "={{$json[\"scraped\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Set Node",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "text": "={{'New Listing: ' + $json[\"title\"] + ' for ' + $json[\"price\"] + ' USD at ' + $json[\"location\"]}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Microsoft Teams",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "YOUR_TEAMS_WEBHOOK_URL",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"text\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2027,
+    "completion_tokens": 1281,
+    "total_tokens": 3308
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:21:02.050209"
+}

@@ -1,0 +1,156 @@
+{
+  "template_id": "2940",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "n8n Creators Leaderboard Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-trigger"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Username",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "username",
+                "value": "={{$json[\"body\"][\"text\"].match(/username (\\w+)/)[1]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Creators Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.github.com/repos/your-repo/creators-data.json",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Workflows Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.github.com/repos/your-repo/workflows-data.json",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const creators = items[0].json;\nconst workflows = items[1].json;\nconst username = $node[\"Extract Username\"].json[\"username\"];\nconst creatorData = creators.find(c => c.username === username);\nconst userWorkflows = workflows.filter(w => w.creator === username);\nreturn [{ json: { creatorData, userWorkflows } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Report",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a Markdown report for the following data: {{$json}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Report",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "creator_leaderboard_report_{{Date.now()}}.md",
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1144,
+    "completion_tokens": 990,
+    "total_tokens": 2134
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:49:13.018569"
+}

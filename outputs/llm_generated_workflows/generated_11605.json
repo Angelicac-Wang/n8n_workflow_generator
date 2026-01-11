@@ -1,0 +1,168 @@
+{
+  "template_id": "11605",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the Clinic WhatsApp Customer Service Bot.",
+    "workflowPlan": {
+      "name": "Clinic WhatsApp Customer Service Bot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive WhatsApp Message",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Process Message with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Process the message and identify intent",
+              "max_tokens": 150
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Intent",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"intent\"]}}",
+                  "operation": "contains",
+                  "value2": "appointment"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Availability",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourdatatables.com/check-availability",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "queryParametersJson": {
+              "date": "={{$json[\"date\"]}}",
+              "time": "={{$json[\"time\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Confirmation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send-message",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "message": "Your appointment is confirmed for {{ $json[\"date\"] }} at {{ $json[\"time\"] }}."
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log Interaction",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              [
+                "={{$json[\"userId\"]}}",
+                "={{$json[\"message\"]}}",
+                "={{$json[\"intent\"]}}",
+                "={{$json[\"date\"]}}",
+                "={{$json[\"time\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 867,
+    "completion_tokens": 1019,
+    "total_tokens": 1886
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:54:27.076237"
+}

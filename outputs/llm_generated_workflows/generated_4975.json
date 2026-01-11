@@ -1,0 +1,218 @@
+{
+  "template_id": "4975",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated HR WhatsApp Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp-trigger",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "LLM Classification",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Classify the following message into one of the categories: Leave, HR FAQ, Attendance, Complaint, Shortlisting.",
+            "input": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Switch Node",
+          "nodeType": "switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$node[\"LLM Classification\"].json[\"category\"]}}",
+            "rules": [
+              {
+                "value": "Leave"
+              },
+              {
+                "value": "HR FAQ"
+              },
+              {
+                "value": "Attendance"
+              },
+              {
+                "value": "Complaint"
+              },
+              {
+                "value": "Shortlisting"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Leave Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{json: {response: 'Leave request processed.'}}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "HR FAQ Chatbot",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Answer the HR FAQ: {{$json[\"body\"]}}",
+            "input": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Attendance Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{json: {response: 'Attendance recorded.'}}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Complaint/Request Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{json: {response: 'Complaint/request logged.'}}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Shortlisting Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{json: {response: 'Candidate shortlisting completed.'}}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Final WhatsApp Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "body": {
+              "to": "={{$json[\"from\"]}}",
+              "message": "={{$json[\"response\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 2
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 3
+        },
+        {
+          "from": "3",
+          "to": "8",
+          "outputIndex": 4
+        },
+        {
+          "from": "4",
+          "to": "9"
+        },
+        {
+          "from": "5",
+          "to": "9"
+        },
+        {
+          "from": "6",
+          "to": "9"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 862,
+    "completion_tokens": 1259,
+    "total_tokens": 2121
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:15:20.044215"
+}

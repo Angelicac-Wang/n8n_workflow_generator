@@ -1,0 +1,97 @@
+{
+  "template_id": "2592",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Advanced Telegram AI Bot with LangChain and Tools",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Tool Agent",
+          "nodeType": "n8n-nodes-langchain.toolAgent",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "memory": {
+              "type": "windowBuffer",
+              "size": 10
+            },
+            "tools": [
+              {
+                "type": "httpRequest",
+                "config": {
+                  "url": "https://api.openai.com/v1/images/generations",
+                  "method": "POST",
+                  "body": {
+                    "prompt": "$input.text",
+                    "n": 1,
+                    "size": "1024x1024"
+                  },
+                  "headers": {
+                    "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+                  }
+                }
+              },
+              {
+                "type": "telegram",
+                "config": {
+                  "chatId": "YOUR_CHAT_ID",
+                  "message": "$fromAI('image_url')"
+                }
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Final Reply",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "message": "$input.text"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1227,
+    "completion_tokens": 508,
+    "total_tokens": 1735
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:40:30.601885"
+}

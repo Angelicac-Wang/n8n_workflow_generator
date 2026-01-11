@@ -1,0 +1,105 @@
+{
+  "template_id": "2416",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow demonstrates how to use Multimodal LLMs to parse and extract data from PDF documents, specifically for filtering CVs with hidden prompts.",
+    "workflowPlan": {
+      "name": "CV Filtering with Multimodal LLM",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Download",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "1MORAdeev6cMcTJBV2EYALAwll8gCDRav"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert PDF to Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.stirlingpdf.io/convert",
+            "method": "POST",
+            "body": {
+              "file": "={{$binary.data}}",
+              "outputFormat": "png"
+            },
+            "options": {
+              "responseFormat": "file"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process with LLM",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "Google Gemini 1.5 Pro",
+            "inputType": "binary",
+            "input": "={{$binary.data}}",
+            "apiKey": "={{$env.GOOGLE_GEMINI_API_KEY}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Qualification",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"qualification\"]}}",
+                  "operation": "contains",
+                  "value2": "qualified"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 915,
+    "completion_tokens": 617,
+    "total_tokens": 1532
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:36:28.132918"
+}

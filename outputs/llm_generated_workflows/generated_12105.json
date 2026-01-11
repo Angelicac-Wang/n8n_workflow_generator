@@ -1,0 +1,217 @@
+{
+  "template_id": "12105",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating the detection and processing of new product launches on Hacker News.",
+    "workflowPlan": {
+      "name": "Daily Show HN Launch Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Show HN Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://hacker-news.firebaseio.com/v0/showstories.json",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Launch Posts",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter(item => /launch|beta|v1|api|platform|tool/i.test(item.json.title));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Normalize and Score",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.score = item.json.points + item.json.comments; return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Asana Task",
+          "nodeType": "n8n-nodes-base.asana",
+          "typeVersion": 1,
+          "params": {
+            "resource": "task",
+            "operation": "create",
+            "workspace": "your_workspace_id",
+            "project": "your_project_id",
+            "name": "={{$json[\"title\"]}}",
+            "notes": "={{$json[\"url\"]}}",
+            "due_on": "={{new Date().toISOString().split('T')[0]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Aggregate for Digest",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { launches: items.map(item => item.json) } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate AI Digest",
+          "nodeType": "n8n-nodes-base.azureOpenAI",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Create a daily launch digest from the following data: {{$json[\"launches\"]}}",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Slack Digest",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your_slack_channel",
+            "text": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Email Digest",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your_email@example.com",
+            "subject": "Daily Founder Launch Digest",
+            "text": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Error Handler",
+          "nodeType": "n8n-nodes-base.errorTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your_slack_channel",
+            "text": "Error in workflow: {{$node[\"Error Trigger\"].json[\"error\"]}}"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1148,
+    "completion_tokens": 1380,
+    "total_tokens": 2528
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:14:56.480596"
+}

@@ -1,0 +1,118 @@
+{
+  "template_id": "5626",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to generate custom images using AI.",
+    "workflowPlan": {
+      "name": "AI Image Generation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Values",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "imageSize": "1080x1920",
+              "imageModel": "flux"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent - Create Image From Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/image",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"message\"]}}",
+              "model": "={{$node[\"Set Values\"].json[\"imageModel\"]}}",
+              "size": "={{$node[\"Set Values\"].json[\"imageSize\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"imageUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Telegram Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendPhoto",
+            "chatId": "={{$json[\"chatId\"]}}",
+            "photo": "={{$node[\"Fetch Image\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1149,
+    "completion_tokens": 688,
+    "total_tokens": 1837
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:22:21.436667"
+}

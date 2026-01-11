@@ -1,0 +1,205 @@
+{
+  "template_id": "10045",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn URL Scrape Match Screen Decide",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Telegram Msg to Recruiter Bot",
+          "nodeType": "telegramTrigger",
+          "params": {
+            "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+            "updateType": "message"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate LinkedIn URL & Spam Check",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "const urlPattern = /https?:\\/\\/(www\\.)?linkedin\\.com\\/in\\/[a-zA-Z0-9-]+/;\nconst isValidUrl = urlPattern.test($json[\"message\"][\"text\"]);\nconst spamLimit = 3;\nconst submissions = getSubmissions($json[\"message\"][\"from\"][\"username\"]);\nreturn { isValidUrl, isSpam: submissions >= spamLimit };"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract LinkedIn Profile Information",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TASK_ID/runs",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "auth": {
+              "type": "bearer",
+              "token": "YOUR_APIFY_API_TOKEN"
+            },
+            "body": {
+              "start": true,
+              "input": {
+                "url": "{{$json[\"message\"][\"text\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check LinkedIn Profile Extraction Status",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TASK_ID/runs/{{ $json[\"data\"][\"id\"] }}",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "auth": {
+              "type": "bearer",
+              "token": "YOUR_APIFY_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI JD Matching",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.google.com/gemini/match",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "auth": {
+              "type": "bearer",
+              "token": "YOUR_GOOGLE_GEMINI_API_KEY"
+            },
+            "body": {
+              "profileData": "{{ $json[\"data\"] }}",
+              "jobDescriptions": "YOUR_JOB_DESCRIPTIONS"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Screening Analysis",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.google.com/gemini/screen",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "auth": {
+              "type": "bearer",
+              "token": "YOUR_GOOGLE_GEMINI_API_KEY"
+            },
+            "body": {
+              "profileData": "{{ $json[\"data\"] }}",
+              "jobDescription": "{{ $json[\"matchedJD\"] }}"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log to Google Sheets",
+          "nodeType": "googleSheets",
+          "params": {
+            "spreadsheetId": "YOUR_SPREADSHEET_ID",
+            "range": "LinkedIn Profile AI Candidate Screening!A1",
+            "valueInputOption": "RAW",
+            "values": [
+              [
+                "{{ $json[\"submissionId\"] }}",
+                "{{ $json[\"date\"] }}",
+                "{{ $json[\"profileUrl\"] }}",
+                "{{ $json[\"firstName\"] }}",
+                "{{ $json[\"lastName\"] }}",
+                "{{ $json[\"email\"] }}",
+                "{{ $json[\"telegramUsername\"] }}",
+                "{{ $json[\"strengths\"] }}",
+                "{{ $json[\"weaknesses\"] }}",
+                "{{ $json[\"riskFactor\"] }}",
+                "{{ $json[\"rewardFactor\"] }}",
+                "{{ $json[\"jdMatch\"] }}",
+                "{{ $json[\"overallFit\"] }}",
+                "{{ $json[\"justification\"] }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Msg to Internal Talent Group",
+          "nodeType": "telegramSendMessage",
+          "params": {
+            "chatId": "YOUR_TELEGRAM_GROUP_CHAT_ID",
+            "text": "Candidate {{ $json[\"firstName\"] }} {{ $json[\"lastName\"] }} has been screened. Overall fit score: {{ $json[\"overallFit\"] }}."
+          },
+          "position": {
+            "x": 1500,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 3115,
+    "completion_tokens": 1407,
+    "total_tokens": 4522
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:25:26.028818"
+}

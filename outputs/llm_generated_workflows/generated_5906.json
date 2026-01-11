@@ -1,0 +1,251 @@
+{
+  "template_id": "5906",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Job Application and Tracking",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "cron",
+          "params": {
+            "triggerTimes": [
+              {
+                "mode": "everyDay",
+                "hour": 9,
+                "minute": 0,
+                "weekDays": [
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "read",
+            "sheetId": "=spreadsheetId",
+            "range": "Sheet1!A:J"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Jobs",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "all": [
+                {
+                  "value1": "={{$json[\"Status\"]}}",
+                  "operation": "equal",
+                  "value2": "Not Applied"
+                },
+                {
+                  "value1": "={{$json[\"Priority\"]}}",
+                  "operation": "in",
+                  "value2": [
+                    "High",
+                    "Medium"
+                  ]
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Apply to Job",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "method": "POST",
+            "url": "={{$json[\"Job_URL\"]}}",
+            "bodyParameters": {
+              "resume": "=resumeUrl",
+              "coverLetter": "=coverLetterTemplate"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "update",
+            "sheetId": "=spreadsheetId",
+            "range": "Sheet1!D:D",
+            "key": "Job_ID",
+            "keyValue": "={{$json[\"Job_ID\"]}}",
+            "data": [
+              {
+                "value": "Applied",
+                "range": "D"
+              },
+              {
+                "value": "={{new Date().toISOString().split('T')[0]}}",
+                "range": "E"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email Notification",
+          "nodeType": "n8n-nodes-base.gmail",
+          "params": {
+            "operation": "send",
+            "to": "=yourEmail",
+            "subject": "Job Application Submitted",
+            "text": "You have successfully applied to {{$json[\"Position\"]}} at {{$json[\"Company\"]}}."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Status Monitoring",
+          "nodeType": "cron",
+          "params": {
+            "triggerTimes": [
+              {
+                "mode": "everyXDays",
+                "hour": 10,
+                "minute": 0,
+                "interval": 2
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Check Application Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "method": "GET",
+            "url": "={{$json[\"Job_URL\"]}}/status"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Status in Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "update",
+            "sheetId": "=spreadsheetId",
+            "range": "Sheet1!D:D",
+            "key": "Job_ID",
+            "keyValue": "={{$json[\"Job_ID\"]}}",
+            "data": [
+              {
+                "value": "={{$json[\"newStatus\"]}}",
+                "range": "D"
+              },
+              {
+                "value": "={{new Date().toISOString().split('T')[0]}}",
+                "range": "F"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Status Update Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "params": {
+            "operation": "send",
+            "to": "=yourEmail",
+            "subject": "Job Application Status Update",
+            "text": "The status of your application for {{$json[\"Position\"]}} at {{$json[\"Company\"]}} has changed to {{$json[\"newStatus\"]}}."
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1910,
+    "completion_tokens": 1435,
+    "total_tokens": 3345
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:26:52.713448"
+}

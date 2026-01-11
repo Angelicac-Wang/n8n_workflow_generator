@@ -1,0 +1,202 @@
+{
+  "template_id": "10303",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow template to analyze trending Instagram reels and generate video scripts.",
+    "workflowPlan": {
+      "name": "Trending Reels Analysis and Script Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "collect-hashtag",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseText": "Hashtag and reel count received."
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Instagram Reels",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/your-task-id/run-sync-get-dataset-items",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "hashtag",
+                "value": "={{$json[\"body\"][\"hashtag\"]}}"
+              },
+              {
+                "name": "minLikes",
+                "value": "1000"
+              },
+              {
+                "name": "daysOld",
+                "value": "7"
+              }
+            ],
+            "authentication": {
+              "type": "headerAuth",
+              "headerName": "Authorization",
+              "headerValue": "Bearer YOUR_APIFY_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Add to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Reels!A1",
+            "data": "={{$node[\"Scrape Instagram Reels\"].json}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transcribe Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.video-to-text-service.com/transcribe",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "videoUrl",
+                "value": "={{$json[\"videoUrl\"]}}"
+              }
+            ],
+            "authentication": {
+              "type": "headerAuth",
+              "headerName": "Authorization",
+              "headerValue": "Bearer YOUR_TRANSCRIPTION_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze Transcript",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the transcript for pacing, tone, curiosity hooks, and CTA placement.",
+            "input": "={{$node[\"Transcribe Video\"].json[\"transcript\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Script",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a new video script using proven engagement structures based on the analysis.",
+            "input": "={{$node[\"Analyze Transcript\"].json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Script to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Scripts!A1",
+            "data": "={{$node[\"Generate Script\"].json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Summary Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "Script Generation Summary",
+            "text": "Number of scripts created: {{$node[\"Generate Script\"].json.length}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1094,
+    "completion_tokens": 1297,
+    "total_tokens": 2391
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:31:07.077276"
+}

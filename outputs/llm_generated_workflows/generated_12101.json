@@ -1,0 +1,190 @@
+{
+  "template_id": "12101",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Proactive Brand Reputation Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": "*/1"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Search Mentions",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "engine",
+                "value": "google"
+              },
+              {
+                "name": "q",
+                "value": "brand_name OR keywords"
+              },
+              {
+                "name": "api_key",
+                "value": "={{$credentials.serpApi.apiKey}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Sentiment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "text": "={{$json['organic_results']}}",
+              "model": "text-sentiment-analysis"
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$credentials.azureOpenAI.apiKey}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter High-Risk",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json['risk_score']}}",
+                  "operation": "greaterThan",
+                  "value2": 7
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Google Chat Alert",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://chat.googleapis.com/v1/spaces/your-space/messages",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "text": "High-risk brand mention detected: {{$json['mention']}}"
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$credentials.googleChat.oauthToken}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Asana Task",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://app.asana.com/api/1.0/tasks",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "data": {
+                "name": "Urgent: High-risk brand mention",
+                "notes": "Details: {{$json['mention']}}",
+                "projects": [
+                  "your-project-id"
+                ]
+              }
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$credentials.asana.oauthToken}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 845,
+    "completion_tokens": 1059,
+    "total_tokens": 1904
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:14:47.919422"
+}

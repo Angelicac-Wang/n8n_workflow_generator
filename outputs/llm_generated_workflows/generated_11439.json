@@ -1,0 +1,156 @@
+{
+  "template_id": "11439",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "MT5 Trading Signal Handler",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Signal (POST)",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "mt5-signal",
+            "responseMode": "onReceived",
+            "responseData": "lastNode",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Store Signal",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const signalId = `signal_${Date.now()}`;\nconst signal = {\n  id: signalId,\n  asset: $json[\"asset\"],\n  entry: $json[\"entry\"],\n  sl: $json[\"sl\"],\n  tp: $json[\"tp\"],\n  risk: $json[\"risk\"],\n  status: \"pending\"\n};\nthis.setWorkflowStaticData('global').signals = this.getWorkflowStaticData('global').signals || {};\nthis.getWorkflowStaticData('global').signals[signalId] = signal;\nreturn [{ json: { success: true, signalId } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Pending Signals (GET)",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "GET",
+            "path": "mt5-signals",
+            "responseMode": "onReceived",
+            "responseData": "lastNode",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Pending Signals",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const signals = this.getWorkflowStaticData('global').signals || {};\nconst pendingSignals = Object.values(signals).filter(signal => signal.status === 'pending');\nreturn [{ json: pendingSignals }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Confirm Signal Processed (POST)",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "confirm-signal",
+            "responseMode": "onReceived",
+            "responseData": "lastNode",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 200,
+            "y": 700
+          }
+        },
+        {
+          "id": "6",
+          "label": "Mark Signal Processed",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const signalId = $json[\"signalId\"];\nconst signals = this.getWorkflowStaticData('global').signals || {};\nif (signals[signalId]) {\n  delete signals[signalId];\n  return [{ json: { success: true } }];\n} else {\n  return [{ json: { success: false, message: \"Signal not found\" } }];\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 700
+          }
+        },
+        {
+          "id": "7",
+          "label": "Clear all signals (POST)",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "clear-signals",
+            "responseMode": "onReceived",
+            "responseData": "lastNode",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 200,
+            "y": 900
+          }
+        },
+        {
+          "id": "8",
+          "label": "Clear Signals",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "this.getWorkflowStaticData('global').signals = {};\nreturn [{ json: { success: true } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 900
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1921,
+    "completion_tokens": 1193,
+    "total_tokens": 3114
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:49:47.651397"
+}

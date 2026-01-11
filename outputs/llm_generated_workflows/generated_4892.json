@@ -1,0 +1,113 @@
+{
+  "template_id": "4892",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow for the AI-Powered Stock Chart Analysis Bot for Telegram.",
+    "workflowPlan": {
+      "name": "AI-Powered Stock Chart Analysis Bot for Telegram",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "botToken": "YOUR_TELEGRAM_BOT_TOKEN"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Edit Image",
+          "nodeType": "n8n-nodes-base.editImage",
+          "typeVersion": 1,
+          "params": {
+            "operations": [
+              {
+                "operation": "resize",
+                "width": 512,
+                "height": 512
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "LangChain Chain",
+          "nodeType": "n8n-nodes-base.langChain",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4-vision",
+            "systemPrompt": "Act as a professional stock analyst. Analyze the stock chart image for stock name, price trend, support/resistance levels, and volume changes."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Parse JSON",
+          "nodeType": "n8n-nodes-base.jsonParse",
+          "typeVersion": 1,
+          "params": {
+            "sourceData": "={{$node[\"LangChain Chain\"].json[\"output\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$node[\"Parse JSON\"].json[\"content\"]}}",
+            "botToken": "YOUR_TELEGRAM_BOT_TOKEN"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 905,
+    "completion_tokens": 697,
+    "total_tokens": 1602
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:14:27.010545"
+}

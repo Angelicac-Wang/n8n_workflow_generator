@@ -1,0 +1,162 @@
+{
+  "template_id": "5910",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating Instagram Reels creation and posting using Veo3 and Blotato.",
+    "workflowPlan": {
+      "name": "Veo3 Instagram Reels Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger via Chat or Telegram",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "trigger-reel"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Video Prompt",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Make a reel for a luxury minimalist candle brand using calm aesthetics.",
+              "max_tokens": 100
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Video with Veo3",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.wavespeed.com/veo3/create",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "videoDescription": "{{$json['choices'][0]['text']}}",
+              "aspectRatio": "9:16",
+              "duration": 8
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Write Caption",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Write an engaging and playful caption for the video content.",
+              "max_tokens": 50
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log to Google Sheets",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values/{range}:append",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "values": [
+                [
+                  "{{$json['prompt']}}",
+                  "{{$json['videoUrl']}}",
+                  "{{$json['caption']}}",
+                  "Generated"
+                ]
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Auto-Publish to Instagram",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/publish",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "videoUrl": "{{$json['videoUrl']}}",
+              "caption": "{{$json['caption']}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 894,
+    "completion_tokens": 975,
+    "total_tokens": 1869
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:26:58.611559"
+}

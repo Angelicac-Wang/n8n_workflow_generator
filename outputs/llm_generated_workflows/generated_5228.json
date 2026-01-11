@@ -1,0 +1,182 @@
+{
+  "template_id": "5228",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Cinematic Video Generation with Vertex AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "generate-video",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseCode": 200,
+              "responseBody": "Video generation request received."
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"body\"][\"prompt\"]}}"
+                },
+                {
+                  "name": "accessToken",
+                  "value": "={{$json[\"body\"][\"accessToken\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Vertex AI Predict",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://vertex-ai.googleapis.com/v1/projects/YOUR_PROJECT_ID/locations/YOUR_LOCATION/models/VEO_3_MODEL_ID:predictLongRunning",
+            "method": "POST",
+            "authentication": "none",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$node[\"Set Parameters\"].json[\"accessToken\"]}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "prompt": "={{$node[\"Set Parameters\"].json[\"prompt\"]}}",
+              "durationSeconds": 10,
+              "aspectRatio": "16:9",
+              "generateAudio": true
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait for Completion",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 300
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Result",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$node[\"Vertex AI Predict\"].json[\"operationName\"]}}",
+            "method": "GET",
+            "authentication": "none",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$node[\"Set Parameters\"].json[\"accessToken\"]}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Convert to File",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fs = require('fs');\nconst videoData = $node[\"Fetch Result\"].json[\"videoData\"];\nconst buffer = Buffer.from(videoData, 'base64');\nfs.writeFileSync('/tmp/video.mp4', buffer);\nreturn [{ json: { filePath: '/tmp/video.mp4' } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "filePath": "={{$node[\"Convert to File\"].json[\"filePath\"]}}",
+            "parentId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1304,
+    "completion_tokens": 1157,
+    "total_tokens": 2461
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:17:53.557438"
+}

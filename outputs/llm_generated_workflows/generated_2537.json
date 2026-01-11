@@ -1,0 +1,248 @@
+{
+  "template_id": "2537",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Single Image Post with Facebook API",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Instagram Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "imageUrl",
+                  "value": "https://example.com/image.jpg"
+                },
+                {
+                  "name": "caption",
+                  "value": "Your caption here"
+                },
+                {
+                  "name": "instagramBusinessAccountId",
+                  "value": "your-instagram-business-account-id"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Prepare Instagram Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{instagramBusinessAccountId}/media",
+            "method": "POST",
+            "body": {
+              "image_url": "={{$json[\"imageUrl\"]}}",
+              "caption": "={{$json[\"caption\"]}}",
+              "access_token": "your-access-token"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Media Upload Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{mediaId}",
+            "method": "GET",
+            "qs": {
+              "fields": "status_code",
+              "access_token": "your-access-token"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Conditional Check",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"Check Media Upload Status\"].json[\"status_code\"]}}",
+                  "operation": "equal",
+                  "value2": "READY"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Publish Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{instagramBusinessAccountId}/media_publish",
+            "method": "POST",
+            "body": {
+              "creation_id": "={{$node[\"Prepare Instagram Media\"].json[\"id\"]}}",
+              "access_token": "your-access-token"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Post-Publish Check",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{mediaId}",
+            "method": "GET",
+            "qs": {
+              "fields": "status_code",
+              "access_token": "your-access-token"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Conditional Check for Publication",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"Post-Publish Check\"].json[\"status_code\"]}}",
+                  "operation": "equal",
+                  "value2": "PUBLISHED"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Email Notification Success",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Instagram Post Successful",
+            "text": "Your image has been successfully posted to Instagram."
+          },
+          "position": {
+            "x": 1800,
+            "y": 100
+          }
+        },
+        {
+          "id": "10",
+          "label": "Email Notification Failure",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Instagram Post Failed",
+            "text": "There was an error posting your image to Instagram."
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1210,
+    "completion_tokens": 1494,
+    "total_tokens": 2704
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:39:07.718520"
+}

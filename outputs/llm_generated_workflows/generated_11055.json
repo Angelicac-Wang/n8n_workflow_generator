@@ -1,0 +1,171 @@
+{
+  "template_id": "11055",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow will automate inventory cycle counts using Telegram and OpenAI's Whisper transcription.",
+    "workflowPlan": {
+      "name": "Inventory Cycle Count Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Command",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"message\"][\"text\"]}}",
+                  "operation": "contains",
+                  "value2": "/start"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Location Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Please proceed to the first location for counting."
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Receive Voice Message",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "voice",
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Transcribe Voice",
+          "nodeType": "n8n-nodes-base.openaiWhisper",
+          "typeVersion": 1,
+          "params": {
+            "audioFileUrl": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}",
+            "apiKey": "={{$credentials.openaiApi.apiKey}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Extract Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const transcription = $json[\"transcription\"];\nconst locationId = transcription.match(/location ID (\\d+)/i)[1];\nconst quantity = transcription.match(/number of units (\\d+)/i)[1];\nreturn [{ locationId, quantity }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "USER_ENTERED",
+            "values": "={{[{locationId: $json[\"locationId\"], quantity: $json[\"quantity\"]}]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Next Location",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Proceed to the next location."
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1176,
+    "completion_tokens": 1108,
+    "total_tokens": 2284
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:41:52.429116"
+}

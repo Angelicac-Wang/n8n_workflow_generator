@@ -1,0 +1,248 @@
+{
+  "template_id": "11463",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Dental Clinic Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "dental-clinic",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Switch",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "body.requestType",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "booking"
+              },
+              {
+                "operation": "equal",
+                "value": "rescheduling"
+              },
+              {
+                "operation": "equal",
+                "value": "canceling"
+              },
+              {
+                "operation": "equal",
+                "value": "insurance"
+              },
+              {
+                "operation": "equal",
+                "value": "availability"
+              },
+              {
+                "operation": "equal",
+                "value": "appointmentLookup"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Supabase Booking",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "appointments",
+            "data": {
+              "patientPhone": "={{$json[\"body\"][\"phoneNumber\"]}}",
+              "appointmentTime": "={{$json[\"body\"][\"appointmentTime\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Supabase Rescheduling",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "table": "appointments",
+            "updateKey": "patientPhone",
+            "updateValue": "={{$json[\"body\"][\"phoneNumber\"]}}",
+            "data": {
+              "appointmentTime": "={{$json[\"body\"][\"newAppointmentTime\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Supabase Canceling",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "delete",
+            "table": "appointments",
+            "deleteKey": "patientPhone",
+            "deleteValue": "={{$json[\"body\"][\"phoneNumber\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Supabase Insurance",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "patients",
+            "selectFields": "insuranceStatus",
+            "filterKey": "phoneNumber",
+            "filterValue": "={{$json[\"body\"][\"phoneNumber\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Supabase Availability",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "appointments",
+            "selectFields": "appointmentTime",
+            "filterKey": "doctorId",
+            "filterValue": "={{$json[\"body\"][\"doctorId\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Supabase Appointment Lookup",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "appointments",
+            "selectFields": "appointmentTime, doctorId",
+            "filterKey": "patientPhone",
+            "filterValue": "={{$json[\"body\"][\"phoneNumber\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Webhook Response",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "Request processed successfully."
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 2
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 3
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 4
+        },
+        {
+          "from": "2",
+          "to": "8",
+          "outputIndex": 5
+        },
+        {
+          "from": "3",
+          "to": "9"
+        },
+        {
+          "from": "4",
+          "to": "9"
+        },
+        {
+          "from": "5",
+          "to": "9"
+        },
+        {
+          "from": "6",
+          "to": "9"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 770,
+    "completion_tokens": 1448,
+    "total_tokens": 2218
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:50:48.473851"
+}

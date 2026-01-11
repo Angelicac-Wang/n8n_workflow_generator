@@ -1,0 +1,188 @@
+{
+  "template_id": "12178",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Market Intelligence Tool",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Poll Google Trends RSS",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://trends.google.com/trends/trendingsearches/daily/rss?geo={{countryCode}}",
+            "method": "GET",
+            "responseFormat": "xml"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract TikTok Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/tiktok-scraper/run-sync-get-dataset-items",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer {{apifyApiToken}}"
+              }
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Instagram Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/instagram-scraper/run-sync-get-dataset-items",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer {{apifyApiToken}}"
+              }
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Twitter Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/twitter-scraper/run-sync-get-dataset-items",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer {{apifyApiToken}}"
+              }
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Aggregate Data",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Custom JS logic to clean and merge data */ });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Analyze with Google Gemini",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/analyze",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer {{googleGeminiApiKey}}"
+              }
+            },
+            "responseFormat": "json",
+            "body": {
+              "data": "{{ $json }}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send to Discord",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "{{discordWebhookUrl}}",
+            "method": "POST",
+            "body": {
+              "content": "Here is the trend report: {{ $json }}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 768,
+    "completion_tokens": 1096,
+    "total_tokens": 1864
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:18:12.265765"
+}

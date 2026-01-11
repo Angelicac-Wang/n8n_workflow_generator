@@ -1,0 +1,182 @@
+{
+  "template_id": "8223",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow will automate posting different content to X and Threads.",
+    "workflowPlan": {
+      "name": "Different X and Threads Content Auto Poster",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "1CtpVHtzu_y9KoELS7Cee3BDivtRN2zVg-Uuy7uZD4ko",
+            "range": "Sheet1!A1:D10"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Shorten URL",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api-ssl.bitly.com/v4/shorten",
+            "method": "POST",
+            "body": {
+              "long_url": "={{$json[\"url\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload IMG",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.getlate.dev/upload",
+            "method": "POST",
+            "body": {
+              "image_url": "={{$json[\"image_url\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Post to X",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.getlate.dev/post/twitter",
+            "method": "POST",
+            "body": {
+              "content": "={{$json[\"content_x\"]}}",
+              "account_id": "your-twitter-account-id"
+            },
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post to Threads",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.getlate.dev/post/threads",
+            "method": "POST",
+            "body": {
+              "content": "={{$json[\"content_threads\"]}}",
+              "account_id": "your-threads-account-id"
+            },
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "1CtpVHtzu_y9KoELS7Cee3BDivtRN2zVg-Uuy7uZD4ko",
+            "range": "Sheet1!E1:E10",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "Posted"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1001,
+    "completion_tokens": 1120,
+    "total_tokens": 2121
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:34:11.516940"
+}

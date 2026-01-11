@@ -1,0 +1,186 @@
+{
+  "template_id": "9843",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Prompt To Video with Music & YouTube Upload",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger (Daily)",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Pending Prompt from Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:E",
+            "filter": {
+              "field": "Status",
+              "value": "Pending"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gemini Prompt Parser",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/parse",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"Prompt\"]}}"
+            },
+            "authentication": "geminiApiKey"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "MagicHour Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.magichour.com/generate",
+            "method": "POST",
+            "body": {
+              "parsedPrompt": "={{$json[\"parsedPrompt\"]}}"
+            },
+            "authentication": "magicHourApiKey"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "MediaFX Audio Mix",
+          "nodeType": "n8n-nodes-mediafx.audioMix",
+          "typeVersion": 1,
+          "params": {
+            "videoUrl": "={{$json[\"videoUrl\"]}}",
+            "audioUrl": "={{$json[\"Background Music URL\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Gemini Metadata Generator",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/metadata",
+            "method": "POST",
+            "body": {
+              "videoUrl": "={{$json[\"videoUrl\"]}}"
+            },
+            "authentication": "geminiApiKey"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "YouTube Upload",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "videoUrl": "={{$json[\"mixedVideoUrl\"]}}",
+            "title": "={{$json[\"title\"]}}",
+            "description": "={{$json[\"description\"]}}",
+            "tags": "={{$json[\"tags\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Row in Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:E",
+            "updateData": {
+              "Status": "Done",
+              "YouTube URL": "={{$json[\"youtubeUrl\"]}}",
+              "Metadata": "={{$json[\"metadata\"]}}",
+              "Date Generated": "={{$now}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1276,
+    "completion_tokens": 1163,
+    "total_tokens": 2439
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:42:29.122015"
+}

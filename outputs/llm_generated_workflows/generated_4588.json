@@ -1,0 +1,118 @@
+{
+  "template_id": "4588",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the market research and intelligence gathering tool.",
+    "workflowPlan": {
+      "name": "Market Research Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Web Crawling",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.firecrawl.com/crawl",
+            "method": "POST",
+            "body": {
+              "targetUrls": [
+                "https://example.com"
+              ],
+              "apiKey": "FIRECRAWL_API_KEY"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Content Filtering",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter(item => item.json.content.includes('AI') || item.json.content.includes('technology'));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Summarization",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Summarize the following article in 3 points: {{content}}",
+              "max_tokens": 150,
+              "apiKey": "OPENAI_API_KEY"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Slack Delivery",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "webhookUri": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+            "text": "New Market Insight: {{summary}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1291,
+    "completion_tokens": 709,
+    "total_tokens": 2000
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:11:15.605047"
+}

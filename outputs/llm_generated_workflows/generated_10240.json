@@ -1,0 +1,179 @@
+{
+  "template_id": "10240",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "WhatsApp Customer Support Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-webhook"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Message Data",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "chatId",
+                "value": "={{$json[\"body\"][\"chatId\"]}}"
+              },
+              {
+                "name": "messageText",
+                "value": "={{$json[\"body\"][\"message\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Classify User Intent",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"messageText\"]}}",
+                  "operation": "contains",
+                  "value2": "hi"
+                },
+                {
+                  "value1": "={{$json[\"messageText\"]}}",
+                  "operation": "contains",
+                  "value2": "hello"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Respond to Greeting",
+          "nodeType": "respondText",
+          "typeVersion": 1,
+          "params": {
+            "text": "Hello! How can I assist you today?"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Product Inquiry",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"messageText\"]}}",
+                  "operation": "contains",
+                  "value2": "product"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Product Response",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "response",
+                "value": "Here are our available products: [Product List]"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "AI Fallback",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini",
+            "method": "POST",
+            "body": {
+              "message": "={{$json[\"messageText\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4777,
+    "completion_tokens": 950,
+    "total_tokens": 5727
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:30:08.350917"
+}

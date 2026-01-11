@@ -1,0 +1,92 @@
+{
+  "template_id": "2669",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow creates a documentation system for n8n instances using Docsify.js.",
+    "workflowPlan": {
+      "name": "n8n Documentation System",
+      "nodes": [
+        {
+          "id": "webhook_1",
+          "label": "Documentation Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "docsify",
+            "method": "GET"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "httpRequest_1",
+          "label": "Fetch Workflows",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$env.N8N_INSTANCE_URL}}/workflows",
+            "method": "GET",
+            "authentication": "none"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "function_1",
+          "label": "Generate Documentation",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const workflows = items[0].json;\nconst docs = workflows.map(workflow => {\n  return {\n    name: workflow.name,\n    description: `Documentation for ${workflow.name}`,\n    mermaidDiagram: `graph TD; ${workflow.nodes.map(node => node.name).join(' --> ')}`\n  };\n});\nreturn docs.map(doc => ({ json: doc }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "httpRequest_2",
+          "label": "Send to Docsify",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$env.DOCSIFY_URL}}/update",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={ \"docs\": $json }"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "webhook_1",
+          "to": "httpRequest_1"
+        },
+        {
+          "from": "httpRequest_1",
+          "to": "function_1"
+        },
+        {
+          "from": "function_1",
+          "to": "httpRequest_2"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 889,
+    "completion_tokens": 620,
+    "total_tokens": 1509
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:42:11.479307"
+}

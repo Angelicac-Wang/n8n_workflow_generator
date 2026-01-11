@@ -1,0 +1,135 @@
+{
+  "template_id": "3053",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Telegram Stock Analysis Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Process Message",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { message: $json[\"message\"][\"text\"] || \"\" } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Transcribe Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/audio/transcriptions",
+            "method": "POST",
+            "bodyParameters": {
+              "audio": "={{$json[\"audio\"]}}"
+            },
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Stock Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.stockdata.com/v1/quotes",
+            "method": "GET",
+            "queryParameters": {
+              "symbol": "={{$json[\"message\"]}}"
+            },
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Chart",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.chartgenerator.com/v1/create",
+            "method": "POST",
+            "bodyParameters": {
+              "data": "={{$json[\"stockData\"]}}"
+            },
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "Here is your stock analysis chart.",
+            "attachments": "={{$json[\"chartUrl\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 900,
+    "completion_tokens": 803,
+    "total_tokens": 1703
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:51:18.033606"
+}

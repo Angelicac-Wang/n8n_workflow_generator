@@ -1,0 +1,190 @@
+{
+  "template_id": "12392",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a complete YouTube video automation workflow to create videos from start to finish.",
+    "workflowPlan": {
+      "name": "YouTube Video Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Stock Videos",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://pixabay.com/api/videos/",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "key",
+                "value": "YOUR_PIXABAY_API_KEY"
+              },
+              {
+                "name": "q",
+                "value": "nature"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Script",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "prompt": "Generate a script for a 5-10 minute YouTube video about nature.",
+              "max_tokens": 500
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Narration",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "text": "{{$json[\"choices\"][0][\"text\"]}}",
+              "voice": "en_us_male"
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_ELEVENLABS_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Render Video",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.shotstack.io/stage/render",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "timeline": {
+                "soundtrack": {
+                  "src": "{{$json[\"audio_url\"]}}",
+                  "effect": "fadeInFadeOut"
+                },
+                "tracks": [
+                  {
+                    "clips": [
+                      {
+                        "asset": {
+                          "type": "video",
+                          "src": "{{$node[\"Fetch Stock Videos\"].json[\"hits\"][0][\"videos\"][\"medium\"][\"url\"]}}"
+                        },
+                        "start": 0,
+                        "length": 60,
+                        "transition": {
+                          "in": "fade",
+                          "out": "fade"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "headers": [
+              {
+                "name": "x-api-key",
+                "value": "YOUR_SHOTSTACK_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to Google Drive",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_GOOGLE_DRIVE_API_TOKEN"
+              }
+            ],
+            "formData": [
+              {
+                "name": "metadata",
+                "value": "{\"name\":\"video.mp4\",\"mimeType\":\"video/mp4\"}",
+                "type": "application/json"
+              },
+              {
+                "name": "file",
+                "value": "{{$node[\"Render Video\"].json[\"url\"]}}",
+                "type": "file"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 709,
+    "completion_tokens": 1097,
+    "total_tokens": 1806
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:27:29.043001"
+}

@@ -1,0 +1,197 @@
+{
+  "template_id": "11043",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Convert Viral Videos into AI Avatar Swaps and Publish on TikTok",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "params": {
+            "botToken": "={{$credentials.telegramApiToken}}",
+            "updateType": "message",
+            "options": {
+              "allowedUpdates": [
+                "message"
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.replicate.com/v1/audio/extract",
+            "method": "POST",
+            "body": {
+              "url": "={{$json[\"message\"][\"caption\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "replicateApi": "={{$credentials.replicateApiKey}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Replace Character",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.falwan.com/replace",
+            "method": "POST",
+            "body": {
+              "videoUrl": "={{$json[\"message\"][\"caption\"]}}",
+              "avatarImage": "={{$json[\"message\"][\"photo\"][0][\"file_id\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "falApi": "={{$credentials.falApiKey}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transform Voice",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.falchatterbox.com/transform",
+            "method": "POST",
+            "body": {
+              "audioUrl": "={{$node[\"2\"].json[\"audioUrl\"]}}",
+              "targetVoiceAudioUrl": "={{$workflow.parameters.targetVoiceAudioUrl}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "falApi": "={{$credentials.falApiKey}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Video and Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.falffmpeg.com/merge",
+            "method": "POST",
+            "body": {
+              "videoUrl": "={{$node[\"3\"].json[\"videoUrl\"]}}",
+              "audioUrl": "={{$node[\"4\"].json[\"audioUrl\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "falApi": "={{$credentials.falApiKey}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$credentials.googleSheets.sheetId}}",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{$json[\"message\"][\"caption\"]}}",
+                "={{$node[\"5\"].json[\"outputUrl\"]}}",
+                "={{new Date().toISOString()}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish to TikTok",
+          "nodeType": "n8n-nodes-base.blotato",
+          "params": {
+            "operation": "publish",
+            "platform": "tiktok",
+            "videoUrl": "={{$node[\"5\"].json[\"outputUrl\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Confirmation",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Your video has been successfully published on TikTok!"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1341,
+    "completion_tokens": 1283,
+    "total_tokens": 2624
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:41:05.163036"
+}

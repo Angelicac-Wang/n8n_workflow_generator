@@ -1,0 +1,150 @@
+{
+  "template_id": "11411",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Viral Video Discovery and Reporting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scrape TikTok",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TIKTOK_TASK_ID/run-sync-get-dataset-items",
+            "method": "GET",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "headerName": "Authorization",
+                "headerValue": "Bearer YOUR_APIFY_API_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Instagram",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_INSTAGRAM_TASK_ID/run-sync-get-dataset-items",
+            "method": "GET",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "headerName": "Authorization",
+                "headerValue": "Bearer YOUR_APIFY_API_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Content",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "headerName": "Authorization",
+                "headerValue": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            },
+            "body": {
+              "prompt": "Analyze the following videos for engagement, growth rate, and recency: {{input}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Sheets",
+          "nodeType": "googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "data": "{{input}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Daily Digest Email",
+          "nodeType": "emailSend",
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "Daily Viral Video Report",
+            "text": "Here are the top viral videos for today: {{input}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Super Viral Alert",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+            "method": "POST",
+            "body": {
+              "text": "Super viral content detected: {{input}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 915,
+    "completion_tokens": 889,
+    "total_tokens": 1804
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:49:31.229894"
+}

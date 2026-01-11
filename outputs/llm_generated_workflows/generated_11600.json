@@ -1,0 +1,253 @@
+{
+  "template_id": "11600",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the Zoho CRM - Smart Meeting Scheduler.",
+    "workflowPlan": {
+      "name": "Zoho CRM - Smart Meeting Scheduler",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Zoho CRM Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "zoho-crm-new-lead",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Lead Details",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.zohoapis.com/crm/v2/Leads/{{leadId}}",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credential": "Zoho CRM OAuth2"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Detect Lead Timezone",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const country = item.json.Country;\nconst state = item.json.State;\n// Add logic to detect timezone based on country/state\nreturn [{ json: { timezone: 'America/New_York' } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "calendar": "primary",
+            "operation": "getAllEvents",
+            "timeMin": "={{$now}}",
+            "timeMax": "={{$addDays($now, 7)}}",
+            "credentials": "Google Calendar OAuth2"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Time Slots",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Logic to generate time slots based on availability\nreturn [{ json: { slots: ['2023-10-10T10:00:00Z', '2023-10-10T11:00:00Z'] } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Slot Availability",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"slots\"].length > 0}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Zoom Meeting",
+          "nodeType": "n8n-nodes-base.zoom",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createMeeting",
+            "topic": "New Lead Meeting",
+            "startTime": "={{$json[\"slots\"][0]}}",
+            "duration": 30,
+            "credentials": "Zoom OAuth"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Personalized Invite",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.ai/generate",
+            "method": "POST",
+            "body": {
+              "prompt": "Generate a meeting invite for a new lead.",
+              "timezone": "={{$json[\"timezone\"]}}"
+            },
+            "authentication": "apiKey",
+            "apiKey": {
+              "credential": "Gemini AI API key"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Meeting Invite",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendEmail",
+            "to": "={{$('Detect Lead Timezone').item.json.Email}}",
+            "subject": "Your Meeting with Us",
+            "html": "={{$json[\"body\"]}}",
+            "credentials": "Gmail OAuth2"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Log Meeting in Zoho CRM",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.zohoapis.com/crm/v2/Leads/{{leadId}}",
+            "method": "PATCH",
+            "body": {
+              "Meeting_Scheduled": true,
+              "Meeting_Details": "={{$json[\"zoomLink\"]}}"
+            },
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credential": "Zoho CRM OAuth2"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Fallback Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendEmail",
+            "to": "={{$('Detect Lead Timezone').item.json.Email}}",
+            "subject": "No Available Slots",
+            "text": "Unfortunately, we have no available slots in the next few days.",
+            "credentials": "Gmail OAuth2"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "11",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1858,
+    "completion_tokens": 1685,
+    "total_tokens": 3543
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:54:12.127582"
+}

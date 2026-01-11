@@ -1,0 +1,317 @@
+{
+  "template_id": "3442",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated POV Video Creation and Distribution",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *",
+            "timezone": "UTC"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Load Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:A100"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Video Captions",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate video captions for the idea: {{$json[\"idea\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Image Prompts",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate image prompts for the idea: {{$json[\"idea\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Images",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.piapi.com/flux",
+            "method": "POST",
+            "body": {
+              "prompt": "{{$json[\"image_prompts\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Video Clips",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.piapi.com/kling",
+            "method": "POST",
+            "body": {
+              "images": "{{$json[\"generated_images\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Voiceover Script",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a voiceover script for the captions: {{$json[\"captions\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Voiceover Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "method": "POST",
+            "body": {
+              "text": "{{$json[\"voiceover_script\"]}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Upload Voiceover to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "voiceover.mp3",
+            "fileContent": "{{$json[\"voiceover_audio\"]}}",
+            "folderId": "your-google-drive-folder-id"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Assemble Video",
+          "nodeType": "n8n-nodes-base.creatomate",
+          "typeVersion": 1,
+          "params": {
+            "templateId": "your-creatomate-template-id",
+            "assets": {
+              "videoClips": "{{$json[\"video_clips\"]}}",
+              "captions": "{{$json[\"captions\"]}}",
+              "voiceover": "{{$json[\"voiceover_audio_url\"]}}"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Upload Final Video to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "final_video.mp4",
+            "fileContent": "{{$json[\"final_video\"]}}",
+            "folderId": "your-google-drive-folder-id"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Generate Social Media Description",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a social media description for the video: {{$json[\"final_video_url\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Distribute Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/v1/upload",
+            "method": "POST",
+            "body": {
+              "video": "{{$json[\"final_video_url\"]}}",
+              "description": "{{$json[\"social_media_description\"]}}"
+            }
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        },
+        {
+          "id": "14",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": {
+              "video_link": "{{$json[\"final_video_url\"]}}",
+              "status": "Completed"
+            }
+          },
+          "position": {
+            "x": 2800,
+            "y": 300
+          }
+        },
+        {
+          "id": "15",
+          "label": "Notify on Discord",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "your-discord-webhook-url",
+            "content": "Video creation and distribution completed for idea: {{$json[\"idea\"]}}"
+          },
+          "position": {
+            "x": 3000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        },
+        {
+          "from": "14",
+          "to": "15"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1662,
+    "completion_tokens": 2049,
+    "total_tokens": 3711
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:58:03.750036"
+}

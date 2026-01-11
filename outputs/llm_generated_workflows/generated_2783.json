@@ -1,0 +1,169 @@
+{
+  "template_id": "2783",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Weekly Online Marketing Data Report",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Time Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 7,
+                  "weekday": "monday"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Retrieve Current Year Data",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "sub_workflow_current_year"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Retrieve Previous Year Data",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "sub_workflow_previous_year"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Prepare and Analyze Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Prepare the marketing data in tabular form and provide a brief analysis.",
+              "max_tokens": 150
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "httpBasicAuth": {
+                "user": "your_api_key"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your_email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Weekly Marketing Data Report",
+            "text": "Here is your weekly marketing data report."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Prepare Telegram Summary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Summarize the marketing data for Telegram.",
+              "max_tokens": 50
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "httpBasicAuth": {
+                "user": "your_api_key"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your_telegram_chat_id",
+            "text": "Here is a brief summary of your weekly marketing data."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 924,
+    "completion_tokens": 990,
+    "total_tokens": 1914
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:44:57.499367"
+}

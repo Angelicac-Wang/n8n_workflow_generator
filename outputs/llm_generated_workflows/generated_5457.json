@@ -1,0 +1,154 @@
+{
+  "template_id": "5457",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates posting to Instagram Business and Facebook Pages using the Meta Graph API, supporting both short-lived and long-lived tokens with token refresh logic.",
+    "workflowPlan": {
+      "name": "Social Media Automation with Meta Graph API",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "social-media-post",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Post Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "caption",
+                "type": "string",
+                "value": "={{$json[\"caption\"]}}"
+              },
+              {
+                "name": "image_url",
+                "type": "string",
+                "value": "={{$json[\"image_url\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Post to Instagram",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{{INSTAGRAM_BUSINESS_ACCOUNT_ID}}/media",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "bodyParameters": [
+              {
+                "name": "image_url",
+                "value": "={{$json[\"image_url\"]}}"
+              },
+              {
+                "name": "caption",
+                "value": "={{$json[\"caption\"]}}"
+              },
+              {
+                "name": "access_token",
+                "value": "={{$json[\"access_token\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Publish Instagram Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{{INSTAGRAM_MEDIA_ID}}/media_publish",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "bodyParameters": [
+              {
+                "name": "access_token",
+                "value": "={{$json[\"access_token\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Post to Facebook Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{{FACEBOOK_PAGE_ID}}/photos",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "bodyParameters": [
+              {
+                "name": "url",
+                "value": "={{$json[\"image_url\"]}}"
+              },
+              {
+                "name": "caption",
+                "value": "={{$json[\"caption\"]}}"
+              },
+              {
+                "name": "access_token",
+                "value": "={{$json[\"access_token\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 625,
+    "completion_tokens": 924,
+    "total_tokens": 1549
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:20:26.434023"
+}

@@ -1,0 +1,176 @@
+{
+  "template_id": "10867",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated AI Video Generation and Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduler Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 12,
+                  "unit": "hours"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Random Template Selector",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const templates = ['Template 1', 'Template 2', 'Template 3'];\nconst randomIndex = Math.floor(Math.random() * templates.length);\nreturn [{ json: { template: templates[randomIndex] } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent (Google Gemini)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "body": {
+              "template": "={{$json[\"template\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Video Generation with KIE AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kieai.com/video/generate",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Polling & Retrieval",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kieai.com/video/status",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "queryParameters": [
+              {
+                "name": "videoId",
+                "value": "={{$json[\"videoId\"]}}"
+              }
+            ],
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Media Upload to Blotato",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/media/upload",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "body": {
+              "videoUrl": "={{$json[\"videoUrl\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Automatic Posting to Social Platforms",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/media/publish",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "body": {
+              "mediaId": "={{$json[\"mediaId\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1605,
+    "completion_tokens": 1082,
+    "total_tokens": 2687
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:38:06.337757"
+}

@@ -1,0 +1,106 @@
+{
+  "template_id": "11131",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Scrape and Analyze Amazon Product Info with Decodo + OpenAI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Input Fields",
+          "nodeType": "set",
+          "params": {
+            "fields": {
+              "product_url": "https://www.amazon.in/Sony-DualSense-Controller-Grey-PlayStation/dp/B0BQXZ11B8"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Amazon Product Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "={{$node[\"Set Input Fields\"].json[\"product_url\"]}}",
+            "method": "GET",
+            "authentication": "={{$credentials.DecodoCredentials}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Product Details",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return { productDetails: JSON.parse($node[\"Scrape Amazon Product Page\"].json[\"body\"]) };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Product Summary",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "gpt-4.1-mini",
+            "prompt": "Generate a descriptive summary for the following product: {{$node[\"Extract Product Details\"].json[\"productDetails\"]}}",
+            "apiKey": "={{$credentials.OpenAi}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Export to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": "={{$node[\"Generate Product Summary\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1392,
+    "completion_tokens": 675,
+    "total_tokens": 2067
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:43:07.739288"
+}

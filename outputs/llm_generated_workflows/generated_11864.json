@@ -1,0 +1,208 @@
+{
+  "template_id": "11864",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily Learner Engagement Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Retrieve Learner Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.lmsplatform.com/learners",
+            "method": "GET",
+            "authentication": "lmsApiAuth"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Engagement with OpenAI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engagement-analysis",
+            "method": "POST",
+            "authentication": "openAiApiKey",
+            "body": {
+              "data": "={{$json[\"learnerData\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Evaluate Quiz Scores",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.lmsplatform.com/quiz-scores",
+            "method": "GET",
+            "authentication": "lmsApiAuth"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Performance Summaries",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return { performanceSummary: 'Generated summary based on analysis and scores' };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Progress Reports to Learners",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "params": {
+            "to": "={{$json[\"learnerEmails\"]}}",
+            "subject": "Your Daily Progress Report",
+            "text": "={{$json[\"performanceSummary\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Identify At-Risk Learners",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"engagementScore\"]}}",
+                  "operation": "smaller",
+                  "value2": 50
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Email Instructors on At-Risk Cases",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "params": {
+            "to": "instructors@example.com",
+            "subject": "At-Risk Learner Alert",
+            "text": "A learner is identified as at-risk. Please review their progress."
+          },
+          "position": {
+            "x": 1600,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "Generate Learning Paths",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return { learningPath: 'Generated learning path for improvement' };"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Trigger Manager Notifications",
+          "nodeType": "n8n-nodes-base.gmailSend",
+          "params": {
+            "to": "managers@example.com",
+            "subject": "Daily Learner Engagement Summary",
+            "text": "Daily summary of learner engagement and at-risk cases."
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 716,
+    "completion_tokens": 1238,
+    "total_tokens": 1954
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:04:14.139620"
+}

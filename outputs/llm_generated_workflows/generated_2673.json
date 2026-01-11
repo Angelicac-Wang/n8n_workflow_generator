@@ -1,0 +1,157 @@
+{
+  "template_id": "2673",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Analytics Weekly Report",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Time Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 7,
+                  "dayOfWeek": 1
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Analytics Data (Last 7 Days)",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "typeVersion": 1,
+          "params": {
+            "metrics": "ga:sessions,ga:pageviews",
+            "dimensions": "ga:date",
+            "dateRange": {
+              "startDate": "7daysAgo",
+              "endDate": "today"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Analytics Data (Last Year)",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "typeVersion": 1,
+          "params": {
+            "metrics": "ga:sessions,ga:pageviews",
+            "dimensions": "ga:date",
+            "dateRange": {
+              "startDate": "1yearAgo",
+              "endDate": "358daysAgo"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Prepare and Analyze Data",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const lastWeekData = items[0].json;\nconst lastYearData = items[1].json;\n// Perform analysis and prepare summary\nreturn [{json: {summary: 'Summary of data analysis'}}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Weekly Google Analytics Report",
+            "text": "{{$json.summary}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Prepare Telegram Message",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const summary = items[0].json.summary;\n// Shorten and prepare for Telegram\nreturn [{json: {telegramMessage: 'Shortened summary'}}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your-telegram-chat-id",
+            "text": "{{$json.telegramMessage}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 779,
+    "completion_tokens": 953,
+    "total_tokens": 1732
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:42:17.607793"
+}

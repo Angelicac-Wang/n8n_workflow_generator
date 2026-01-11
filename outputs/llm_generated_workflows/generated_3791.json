@@ -1,0 +1,188 @@
+{
+  "template_id": "3791",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn Lead Generation and Enrichment",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "lead-generation"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Apollo Lead Discovery",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apollo.io/v1/leads",
+            "method": "GET",
+            "authentication": "genericCredential",
+            "queryParameters": [
+              {
+                "name": "keywords",
+                "value": "={{$json[\"keywords\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract LinkedIn Username",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const url = item.json.linkedin_url;\n  const username = url.split('/').pop();\n  item.json.username = username;\n  return item;\n});"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Apollo Email Lookup",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apollo.io/v1/leads/{{ $json[\"apollo_user_id\"] }}/email",
+            "method": "GET",
+            "authentication": "genericCredential"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Email Verification",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.mail.so/verify",
+            "method": "POST",
+            "authentication": "genericCredential",
+            "bodyParameters": [
+              {
+                "name": "email",
+                "value": "={{$json[\"email\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "LinkedIn Profile Summary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapidapi.com/linkedin/profile/{{ $json[\"username\"] }}",
+            "method": "GET",
+            "authentication": "genericCredential"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Recent Activity Collection",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapidapi.com/linkedin/activity/{{ $json[\"username\"] }}",
+            "method": "GET",
+            "authentication": "genericCredential"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "1d99PlHkp9RPeSAtmATgQ4OC4Selcp8JSFLNuKx-n1EQ",
+            "range": "Sheet1!A:F",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "={{$json[\"name\"]}}",
+                "={{$json[\"title\"]}}",
+                "={{$json[\"company\"]}}",
+                "={{$json[\"linkedin_url\"]}}",
+                "={{$json[\"email\"]}}",
+                "={{$json[\"profile_summary\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1696,
+    "completion_tokens": 1196,
+    "total_tokens": 2892
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:03:17.585483"
+}

@@ -1,0 +1,178 @@
+{
+  "template_id": "5466",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for a virtual receptionist handling restaurant bookings.",
+    "workflowPlan": {
+      "name": "Virtual Receptionist for Restaurant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "VAPI Call",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "vapi-capture-details"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract User Details",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "name",
+                "value": "={{$json[\"name\"]}}"
+              },
+              {
+                "name": "bookingTime",
+                "value": "={{$json[\"bookingTime\"]}}"
+              },
+              {
+                "name": "numberOfPeople",
+                "value": "={{$json[\"numberOfPeople\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Availability",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT * FROM availability WHERE time = $1 AND seats >= $2",
+            "queryParams": "={{[$json[\"bookingTime\"], $json[\"numberOfPeople\"]]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "If Table Available",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"length\"]}}",
+                  "operation": "greater",
+                  "value2": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Book Table",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "INSERT INTO bookings (name, time, people) VALUES ($1, $2, $3)",
+            "queryParams": "={{[$json[\"name\"], $json[\"bookingTime\"], $json[\"numberOfPeople\"]]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Confirmation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://vapi.example.com/send-confirmation",
+            "method": "POST",
+            "body": {
+              "name": "={{$json[\"name\"]}}",
+              "bookingTime": "={{$json[\"bookingTime\"]}}",
+              "numberOfPeople": "={{$json[\"numberOfPeople\"]}}",
+              "message": "Your table has been successfully booked."
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Unavailability Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://vapi.example.com/send-unavailability",
+            "method": "POST",
+            "body": {
+              "name": "={{$json[\"name\"]}}",
+              "bookingTime": "={{$json[\"bookingTime\"]}}",
+              "numberOfPeople": "={{$json[\"numberOfPeople\"]}}",
+              "message": "Sorry, no tables are available at your requested time."
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 769,
+    "completion_tokens": 1139,
+    "total_tokens": 1908
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:20:36.183564"
+}

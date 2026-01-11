@@ -1,0 +1,166 @@
+{
+  "template_id": "12037",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for automating daily contract monitoring, analysis, and negotiation.",
+    "workflowPlan": {
+      "name": "Automated Contract Monitoring and Negotiation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Contract Data Source",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.contractsource.com/contracts",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "GPT-4 Contract Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{$env.OPENAI_API_KEY}}",
+            "model": "gpt-4",
+            "prompt": "Analyze the following contract for risks and issues: {{$json[\"contract\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Risk Identification",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"riskLevel\"]}}",
+                  "operation": "greaterThan",
+                  "value2": "medium"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Negotiation Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.negotiationagent.com/start",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "contractId": "={{$json[\"contractId\"]}}",
+              "issues": "={{$json[\"issues\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Financial Impact Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.financialmodel.com/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "contractId": "={{$json[\"contractId\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Planning Systems",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.planningsystem.com/update",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "contractId": "={{$json[\"contractId\"]}}",
+              "negotiationOutcome": "={{$json[\"negotiationOutcome\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "2",
+          "to": "1"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 717,
+    "completion_tokens": 1010,
+    "total_tokens": 1727
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:11:40.297847"
+}

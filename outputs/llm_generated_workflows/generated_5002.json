@@ -1,0 +1,165 @@
+{
+  "template_id": "5002",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered LinkedIn Post Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "On Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "linkedin-post-topic",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Mapper (Field Mapping)",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "addField": [
+                {
+                  "name": "topic",
+                  "value": "={{$json[\"body\"][\"topic\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent (Content Generation)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/content",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={ \"topic\": $json[\"topic\"] }"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Normalizer (Data Cleanup)",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ text: $json[\"data\"][\"text\"], imagePrompt: $json[\"data\"][\"imagePrompt\"] }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Text to Image (Image Generation)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gen-imager.p.rapidapi.com/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "X-RapidAPI-Key": "YOUR_RAPIDAPI_KEY"
+              }
+            },
+            "bodyParametersJson": "={ \"prompt\": $json[\"imagePrompt\"] }"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Decoder (Base64 Decoding)",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const buffer = Buffer.from($json[\"image\"], 'base64'); return [{ imageBuffer: buffer.toString('binary') }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "LinkedIn (Post Creation)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/posts",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_LINKEDIN_ACCESS_TOKEN"
+              }
+            },
+            "bodyParametersJson": "={ \"text\": $json[\"text\"], \"image\": $json[\"imageBuffer\"] }"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1548,
+    "completion_tokens": 1036,
+    "total_tokens": 2584
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:15:27.314921"
+}

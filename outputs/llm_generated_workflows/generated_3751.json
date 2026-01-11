@@ -1,0 +1,143 @@
+{
+  "template_id": "3751",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to aggregate crypto news and send summaries to Telegram.",
+    "workflowPlan": {
+      "name": "Crypto News Aggregator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Keyword Extraction",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Extract the main topic from this text: {{$json[\"message\"][\"text\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "RSS Feed",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "urls": [
+              "https://cointelegraph.com/rss",
+              "https://bitcoinmagazine.com/.rss/full/",
+              "https://www.coindesk.com/arc/outboundfeeds/rss/",
+              "https://bitcoinist.com/feed/",
+              "https://www.newsbtc.com/feed/",
+              "https://cryptopotato.com/feed/",
+              "https://99bitcoins.com/feed/",
+              "https://cryptobriefing.com/feed/",
+              "https://crypto.news/feed/"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Articles",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"AI Keyword Extraction\"].json[\"choices\"][0][\"text\"]}}",
+                  "operation": "contains",
+                  "value2": "={{$json[\"title\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Summarization",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Summarize the following articles and analyze market sentiment: {{$json[\"title\"]}} - {{$json[\"link\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "{{$node[\"AI Summarization\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1172,
+    "completion_tokens": 886,
+    "total_tokens": 2058
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:02:51.332679"
+}

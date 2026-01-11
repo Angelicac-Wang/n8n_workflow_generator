@@ -1,0 +1,250 @@
+{
+  "template_id": "11821",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow template for event management with registration and check-in flows.",
+    "workflowPlan": {
+      "name": "Event Management Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Registration",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "register"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Ticket ID",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "add": [
+                {
+                  "name": "ticketId",
+                  "value": "={{$json[\"id\"]}}-{{Date.now()}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Store in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{[{\"Ticket ID\": $json[\"ticketId\"], \"Event ID\": $json[\"eventId\"], \"Name\": $json[\"name\"], \"Email\": $json[\"email\"], \"Ticket Type\": $json[\"ticketType\"], \"Registered At\": new Date().toISOString()}]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create QR Code",
+          "nodeType": "n8n-nodes-base.qrCode",
+          "typeVersion": 1,
+          "params": {
+            "data": "={{$json[\"ticketId\"]}}",
+            "size": 200
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Confirmation Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"email\"]}}",
+            "subject": "Your Event Registration Confirmation",
+            "text": "Thank you for registering. Your ticket ID is {{$json[\"ticketId\"]}}.",
+            "attachments": [
+              {
+                "binaryPropertyName": "data",
+                "fileName": "qrcode.png"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Receive Check-in",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "checkin"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Validate Ticket",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "filter": {
+              "column": "Ticket ID",
+              "value": "={{$json[\"ticketId\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Check Duplicate",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"Checked In\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Check-in Status",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!G:H",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{[{\"Checked In\": \"Yes\", \"Check-in Time\": new Date().toISOString()}]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send VIP Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "VIP-Arrivals",
+            "text": "VIP {{$json[\"name\"]}} has arrived."
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "11",
+          "label": "Return Attendance Stats",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "add": [
+                {
+                  "name": "attendanceStats",
+                  "value": "={{'Total Checked In: ' + $items(\"9\").length}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 700
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "9",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 753,
+    "completion_tokens": 1561,
+    "total_tokens": 2314
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:02:53.942731"
+}

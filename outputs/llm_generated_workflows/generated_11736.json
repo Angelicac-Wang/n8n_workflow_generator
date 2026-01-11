@@ -1,0 +1,236 @@
+{
+  "template_id": "11736",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan to automate document understanding and processing.",
+    "workflowPlan": {
+      "name": "Document Understanding Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Document Upload",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "document-upload"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check File Type",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"headers\"][\"content-type\"]}}",
+                  "operation": "contains",
+                  "value2": "pdf"
+                },
+                {
+                  "value1": "={{$json[\"headers\"][\"content-type\"]}}",
+                  "operation": "contains",
+                  "value2": "text"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Text from PDF",
+          "nodeType": "n8n-nodes-base.pdfExtract",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Text from TXT",
+          "nodeType": "n8n-nodes-base.textExtract",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Summary & Q&A",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "body": {
+              "prompt": "Extracted text: {{$json[\"text\"]}}. Generate a 150-200 word summary and 5 Q&A pairs.",
+              "max_tokens": 500
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Validate AI Output",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"choices\"][0][\"text\"]}}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log Invalid Output",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "InvalidOutputs!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Prepare Final Response",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "json": [
+                {
+                  "name": "summary",
+                  "value": "={{$json[\"choices\"][0][\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Response to Webhook",
+          "nodeType": "n8n-nodes-base.httpResponse",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": "={{$json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Slack Preview",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "YOUR_SLACK_CHANNEL",
+            "text": "Summary Preview: {{substring($json[\"summary\"], 0, 300)}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1013,
+    "completion_tokens": 1402,
+    "total_tokens": 2415
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:59:16.351804"
+}

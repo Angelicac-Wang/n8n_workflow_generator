@@ -1,0 +1,155 @@
+{
+  "template_id": "11762",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI E-E-A-T WordPress Blog Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "blog-input",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate SEO Metadata & Outline",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer {{OPENAI_API_KEY}}",
+                "Content-Type": "application/json"
+              }
+            },
+            "body": {
+              "prompt": "Generate SEO metadata and outline for the blog: {{$json[\"body\"]}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Full HTML Blog",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer {{OPENAI_API_KEY}}",
+                "Content-Type": "application/json"
+              }
+            },
+            "body": {
+              "prompt": "Write a full HTML blog post based on the outline: {{$node[\"2\"].json[\"choices\"][0][\"text\"]}}",
+              "max_tokens": 1000
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Featured Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer {{OPENAI_API_KEY}}",
+                "Content-Type": "application/json"
+              }
+            },
+            "body": {
+              "prompt": "Generate a featured image for the blog: {{$json[\"body\"]}}",
+              "n": 1,
+              "size": "1024x1024"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create WordPress Draft",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "{{WP_SITE_URL}}/wp-json/wp/v2/posts",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "auth": {
+                "type": "basicAuth",
+                "user": "{{WP_USER}}",
+                "password": "{{WP_PASSWORD}}"
+              }
+            },
+            "body": {
+              "title": "Draft Blog Post",
+              "content": "{{$node[\"3\"].json[\"choices\"][0][\"text\"]}}",
+              "status": "draft",
+              "featured_media": "{{$node[\"4\"].json[\"data\"][0][\"url\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 655,
+    "completion_tokens": 1003,
+    "total_tokens": 1658
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:59:35.468279"
+}

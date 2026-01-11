@@ -1,0 +1,117 @@
+{
+  "template_id": "2566",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Interviewer with Multi-Page Forms",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "ai-interview",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Session in Redis",
+          "nodeType": "n8n-nodes-base.redis",
+          "typeVersion": 1,
+          "params": {
+            "operation": "set",
+            "keyName": "session_{{$json[\"headers\"][\"x-session-id\"]}}",
+            "value": "{}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent Question Loop",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const questions = [\"What is your name?\", \"What is your favorite color?\", \"What is your hobby?\"];\nlet index = 0;\n\nwhile (index < questions.length) {\n  const question = questions[index];\n  // Simulate asking a question and getting a response\n  const response = await askQuestion(question);\n  // Store response in Redis\n  await redis.set(`session_${sessionId}`, JSON.stringify({...sessionData, [question]: response}));\n  index++;\n}\n\nasync function askQuestion(question) {\n  // Simulate asking question to the user\n  return \"Sample response\";\n}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "End Interview",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"endInterview\"]}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json[\"sessionData\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 905,
+    "completion_tokens": 784,
+    "total_tokens": 1689
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:39:42.581619"
+}

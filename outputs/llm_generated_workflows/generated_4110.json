@@ -1,0 +1,249 @@
+{
+  "template_id": "4110",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's the workflow plan for cloning a viral TikTok and auto-posting it to multiple platforms.",
+    "workflowPlan": {
+      "name": "Clone Viral TikTok and Auto-Post",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "telegramApi": "={{$credentials.telegramApi}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download TikTok Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"message\"][\"text\"]}}",
+            "responseFormat": "file",
+            "download": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Transcribe Audio",
+          "nodeType": "n8n-nodes-base.googleCloudSpeechToText",
+          "typeVersion": 1,
+          "params": {
+            "audio": "={{$node[\"Download TikTok Video\"].binary[\"data\"]}}",
+            "languageCode": "en-US"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{$node[\"Transcribe Audio\"].json[\"transcription\"]}}",
+                "={{$node[\"Download TikTok Video\"].json[\"caption\"]}}",
+                "={{$node[\"Download TikTok Video\"].json[\"thumbnail\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate New Content Idea",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.perplexity.ai/generate",
+            "method": "POST",
+            "body": {
+              "prompt": "Generate a new content idea based on: {{$node[\"Transcribe Audio\"].json[\"transcription\"]}}",
+              "apiKey": "={{$credentials.perplexityApiKey}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Rewrite Script and Caption",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Rewrite the following script and caption: {{$node[\"Generate New Content Idea\"].json[\"idea\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Video with Avatar",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.captions.ai/generate",
+            "method": "POST",
+            "body": {
+              "script": "={{$node[\"Rewrite Script and Caption\"].json[\"text\"]}}",
+              "avatar": "your-avatar-name",
+              "apiKey": "={{$credentials.captionsApiKey}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Add Subtitles and Overlay",
+          "nodeType": "n8n-nodes-base.json2video",
+          "typeVersion": 1,
+          "params": {
+            "video": "={{$node[\"Generate Video with Avatar\"].binary[\"data\"]}}",
+            "subtitles": "={{$node[\"Rewrite Script and Caption\"].json[\"text\"]}}",
+            "overlayText": "={{$node[\"Rewrite Script and Caption\"].json[\"caption\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Save Metadata to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!D:F",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{$node[\"Add Subtitles and Overlay\"].json[\"videoUrl\"]}}",
+                "={{$node[\"Rewrite Script and Caption\"].json[\"caption\"]}}",
+                "={{$node[\"Add Subtitles and Overlay\"].json[\"overlayText\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Video to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Here is your preview video: {{$node[\"Add Subtitles and Overlay\"].json[\"videoUrl\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Auto-Publish Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/publish",
+            "method": "POST",
+            "body": {
+              "videoUrl": "={{$node[\"Add Subtitles and Overlay\"].json[\"videoUrl\"]}}",
+              "platformIds": "your-platform-ids",
+              "apiKey": "={{$credentials.blotatoApiKey}}"
+            }
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1145,
+    "completion_tokens": 1761,
+    "total_tokens": 2906
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:07:38.319321"
+}

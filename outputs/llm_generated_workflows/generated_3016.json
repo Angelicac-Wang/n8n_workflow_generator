@@ -1,0 +1,126 @@
+{
+  "template_id": "3016",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Attachments Gmail to Drive and Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "watch",
+            "filters": {
+              "labelIds": [
+                "UNREAD"
+              ],
+              "hasAttachment": true
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Attachment",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "downloadAttachment",
+            "messageId": "={{$json[\"id\"]}}",
+            "attachmentId": "={{$json[\"payload\"][\"parts\"][0][\"body\"][\"attachmentId\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"filename\"]}}",
+            "fileContent": "={{$binary[\"data\"]}}",
+            "parentId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Invoice Data",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Extract the invoice date, description, and amount from this PDF: {{$json[\"data\"]}}",
+            "temperature": 0.2
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Add to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "data": [
+              [
+                "={{$json[\"invoice_date\"]}}",
+                "={{$json[\"description\"]}}",
+                "={{$json[\"amount\"]}}",
+                "={{$json[\"filename\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 916,
+    "completion_tokens": 754,
+    "total_tokens": 1670
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:50:35.199875"
+}

@@ -1,0 +1,245 @@
+{
+  "template_id": "10008",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Shopify Digital Product Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger Node",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Airtable Fetch Images",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "baseId": "your_base_id",
+            "tableId": "your_table_id"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Drive Fetch Images",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "'your_folder_id' in parents"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Gemini Image Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/analyze",
+            "method": "POST",
+            "body": {
+              "image_url": "={{$json[\"image_url\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "geminiApi": "Gemini API"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Airtable Store Analysis",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "your_base_id",
+            "tableId": "your_table_id",
+            "updateKey": "id",
+            "updateKeyValue": "={{$json[\"id\"]}}",
+            "fields": {
+              "Analyzed Data": "={{$json[\"analysis_results\"]}}",
+              "Status": "Used"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Shopify Collections",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-01/collections.json",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "shopifyApi": "Shopify API"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Product Details",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/generate",
+            "method": "POST",
+            "body": {
+              "analysis_results": "={{$json[\"analysis_results\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "geminiApi": "Gemini API"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Airtable Save Generated Products",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "your_base_id",
+            "tableId": "your_table_id",
+            "fields": {
+              "Product Details": "={{$json[\"product_details\"]}}",
+              "Status": "Generated"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Post Products to Shopify",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-01/products.json",
+            "method": "POST",
+            "body": {
+              "product": "={{$json[\"product_details\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "shopifyApi": "Shopify API"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update Status in Airtable",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "your_base_id",
+            "tableId": "your_table_id",
+            "updateKey": "id",
+            "updateKeyValue": "={{$json[\"id\"]}}",
+            "fields": {
+              "Status": "Posted"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1266,
+    "completion_tokens": 1498,
+    "total_tokens": 2764
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:24:38.116529"
+}

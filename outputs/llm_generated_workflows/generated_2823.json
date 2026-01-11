@@ -1,0 +1,148 @@
+{
+  "template_id": "2823",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Analysis and Automated Email Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets - Read Leads",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:E"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Twitter API - Fetch Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.twitter.com/2/users/by/username/{{ $json[\"Twitter handle\"] }}",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "LinkedIn API - Fetch Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/me?projection=(id,firstName,lastName,profilePicture(displayImage~:playableStreams))",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI - Generate Email Content",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a personalized email subject and body for {{ $json[\"name\"] }} based on their Twitter and LinkedIn data.",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "{{ $json[\"email\"] }}",
+            "subject": "{{ $json[\"subject\"] }}",
+            "text": "{{ $json[\"body\"] }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!E:E",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              {
+                "range": "Sheet1!E{{ $json[\"rowNumber\"] }}",
+                "values": [
+                  [
+                    "done"
+                  ]
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 994,
+    "completion_tokens": 908,
+    "total_tokens": 1902
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:46:35.595677"
+}

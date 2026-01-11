@@ -1,0 +1,212 @@
+{
+  "template_id": "9712",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Product Photography With Nano Banana and Jotform",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "jotform-trigger",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "filter": {
+              "field": "Status",
+              "value": "Pending"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "3",
+          "label": "Data Preparation",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "Product Name",
+                "value": "={{$json[\"Product Name\"]}}"
+              },
+              {
+                "name": "Product Description",
+                "value": "={{$json[\"Product Description\"]}}"
+              },
+              {
+                "name": "Product Image",
+                "value": "={{$json[\"Product Image\"]}}"
+              },
+              {
+                "name": "Requirement",
+                "value": "={{$json[\"Requirement\"]}}"
+              },
+              {
+                "name": "Reference Image 1",
+                "value": "={{$json[\"Reference Image 1\"]}}"
+              },
+              {
+                "name": "Reference Image 2",
+                "value": "={{$json[\"Reference Image 2\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Download Images",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"Product Image\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Analysis & Prompt Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini-nano-banana.com/generate-prompt",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "productDetails": "={{$json[\"Product Description\"]}}",
+              "requirements": "={{$json[\"Requirement\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Photo Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini-nano-banana.com/generate-image",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "productImage": "={{$binary[\"data\"]}}",
+              "referenceImages": [
+                "={{$json[\"Reference Image 1\"]}}",
+                "={{$json[\"Reference Image 2\"]}}"
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"Product Name\"]}}.jpg",
+            "fileData": "={{$binary[\"data\"]}}",
+            "parentId": "your-google-drive-folder-id"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "updateData": {
+              "Status": "Completed",
+              "Generated Image": "={{$json[\"webViewLink\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1487,
+    "completion_tokens": 1320,
+    "total_tokens": 2807
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:41:35.655864"
+}

@@ -1,0 +1,178 @@
+{
+  "template_id": "6137",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to build a RAG pipeline for n8n documentation.",
+    "workflowPlan": {
+      "name": "RAG Pipeline for n8n Documentation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start Indexing",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Documentation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://docs.n8n.io/",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Chunks",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "function processChunks(data) { /* logic to break data into chunks */ }"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Gemini Chunk Embedding",
+          "nodeType": "n8n-nodes-base.gemini",
+          "params": {
+            "apiKey": "={{$credentials.geminiApiKey}}",
+            "operation": "embed"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Vector Store",
+          "nodeType": "n8n-nodes-base.simpleVectorStore",
+          "params": {
+            "operation": "store",
+            "data": "={{$json['embedding']}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "RAG Chatbot",
+          "nodeType": "n8n-nodes-base.webhook",
+          "params": {
+            "httpMethod": "POST",
+            "path": "rag-chatbot"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Gemini Query Embedding",
+          "nodeType": "n8n-nodes-base.gemini",
+          "params": {
+            "apiKey": "={{$credentials.geminiApiKey}}",
+            "operation": "embed"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Retrieve Relevant Chunks",
+          "nodeType": "n8n-nodes-base.simpleVectorStore",
+          "params": {
+            "operation": "retrieve",
+            "query": "={{$json['queryEmbedding']}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Gemini Answer Generation",
+          "nodeType": "n8n-nodes-base.gemini",
+          "params": {
+            "apiKey": "={{$credentials.geminiApiKey}}",
+            "operation": "generate",
+            "context": "={{$json['retrievedChunks']}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Respond to User",
+          "nodeType": "n8n-nodes-base.respondText",
+          "params": {
+            "text": "={{$json['answer']}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1227,
+    "completion_tokens": 1046,
+    "total_tokens": 2273
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:28:38.961854"
+}

@@ -1,0 +1,112 @@
+{
+  "template_id": "3770",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow sets up an MCP server using n8n to manage and execute workflows for an MCP client.",
+    "workflowPlan": {
+      "name": "MCP Server Setup",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "MCP Trigger",
+          "nodeType": "n8n-nodes-langchain.mcptrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Search Workflows",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-n8n-instance/api/workflows",
+            "method": "GET",
+            "authentication": "none",
+            "queryParameters": [
+              {
+                "name": "tags",
+                "value": "mcp"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Redis Add Workflow",
+          "nodeType": "n8n-nodes-base.redis",
+          "typeVersion": 1,
+          "params": {
+            "operation": "set",
+            "key": "availableWorkflows",
+            "value": "={{$json[\"workflowId\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Redis List Workflows",
+          "nodeType": "n8n-nodes-base.redis",
+          "typeVersion": 1,
+          "params": {
+            "operation": "get",
+            "key": "availableWorkflows"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Execute Workflow",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "={{$json[\"workflowId\"]}}",
+            "inputData": "={{$json[\"inputData\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1305,
+    "completion_tokens": 611,
+    "total_tokens": 1916
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:02:57.941818"
+}

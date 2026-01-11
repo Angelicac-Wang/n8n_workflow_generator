@@ -1,0 +1,223 @@
+{
+  "template_id": "5941",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Comment Engagement",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 15,
+                  "unit": "minutes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Configure Post & Message",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "postUrl",
+                  "value": "YOUR_INSTAGRAM_POST_URL"
+                },
+                {
+                  "name": "replyMessage",
+                  "value": "YOUR_DM_MESSAGE"
+                },
+                {
+                  "name": "profileUsername",
+                  "value": "YOUR_PROFILE_USERNAME"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Comments",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/instagram/comments",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "postUrl",
+                "value": "={{$json[\"postUrl\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "uploadPostApi": {
+                "id": "YOUR_UPLOAD_POST_API_CREDENTIALS"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Read Contacted Users",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:E"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Filter New Comments",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"comment_id\"]}}",
+                  "operation": "notIn",
+                  "value2": "={{$node[\"Read Contacted Users\"].json[\"comment_id\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send DM",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/instagram/send-dm",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "username",
+                "value": "={{$json[\"username\"]}}"
+              },
+              {
+                "name": "message",
+                "value": "={{$json[\"replyMessage\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "uploadPostApi": {
+                "id": "YOUR_UPLOAD_POST_API_CREDENTIALS"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Record Contacted User",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:E",
+            "data": [
+              {
+                "name": "comment_id",
+                "value": "={{$json[\"comment_id\"]}}"
+              },
+              {
+                "name": "username",
+                "value": "={{$json[\"username\"]}}"
+              },
+              {
+                "name": "message_sent",
+                "value": "={{$json[\"replyMessage\"]}}"
+              },
+              {
+                "name": "timestamp",
+                "value": "={{$now}}"
+              },
+              {
+                "name": "post_url",
+                "value": "={{$json[\"postUrl\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1387,
+    "completion_tokens": 1257,
+    "total_tokens": 2644
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:27:30.851274"
+}

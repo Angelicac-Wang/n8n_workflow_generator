@@ -1,0 +1,138 @@
+{
+  "template_id": "12371",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "WooCommerce Seasonal Sales Planning & Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduled Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay",
+                  "hour": 8,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Sales Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.your-ecommerce-platform.com/sales",
+            "method": "GET",
+            "authentication": "oAuth2Api",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Calculate Trends",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const current = $json[\"current\"];\nconst vsMonth = $json[\"vsMonth\"];\nconst vsYear = $json[\"vsYear\"];\n\nreturn [{\n  revenue: {\n    current: current.revenue,\n    vsMonth: ((current.revenue - vsMonth.revenue) / vsMonth.revenue) * 100,\n    vsYear: ((current.revenue - vsYear.revenue) / vsYear.revenue) * 100\n  },\n  orders: {\n    current: current.orders,\n    vsMonth: ((current.orders - vsMonth.orders) / vsMonth.orders) * 100,\n    vsYear: ((current.orders - vsYear.orders) / vsYear.orders) * 100\n  }\n}];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Identify Top SKU",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const salesData = $json[\"salesData\"];\nconst topSKU = salesData.reduce((max, item) => item.sales > max.sales ? item : max, salesData[0]);\n\nreturn [{\n  topSKU: topSKU.name\n}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Format Report",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "report",
+                  "value": "Revenue: Current: $json[\"revenue\"][\"current\"], vs Month: $json[\"revenue\"][\"vsMonth\"], vs Year: $json[\"revenue\"][\"vsYear\"]\nOrders: Current: $json[\"orders\"][\"current\"], vs Month: $json[\"orders\"][\"vsMonth\"], vs Year: $json[\"orders\"][\"vsYear\"]\nTop SKU: $json[\"topSKU\"]"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your-channel-id",
+            "text": "Sales Performance Report:\n{{ $json[\"report\"] }}",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1921,
+    "completion_tokens": 1055,
+    "total_tokens": 2976
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:25:57.214277"
+}

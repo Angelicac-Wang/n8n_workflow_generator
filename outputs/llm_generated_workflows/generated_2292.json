@@ -1,0 +1,120 @@
+{
+  "template_id": "2292",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow demonstrates how to create an AI agent using LangChain and SQLite to process natural language queries and interact with a SQLite database.",
+    "workflowPlan": {
+      "name": "LangChain SQLite Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Download SQLite Database",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/chinook.zip",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract ZIP File",
+          "nodeType": "n8n-nodes-base.zip",
+          "typeVersion": 1,
+          "params": {
+            "operation": "extract",
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Webhook for Chat Input",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-input"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Load SQLite Database",
+          "nodeType": "n8n-nodes-base.sqlite",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "databaseFileName": "chinook.db"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "LangChain Agent",
+          "nodeType": "n8n-nodes-base.langChain",
+          "typeVersion": 1,
+          "params": {
+            "input": "={{$json[\"body\"]}}",
+            "database": "={{$node[\"Load SQLite Database\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond with AI Output",
+          "nodeType": "respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$node[\"LangChain Agent\"].json[\"output\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 736,
+    "completion_tokens": 686,
+    "total_tokens": 1422
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:33:51.625943"
+}

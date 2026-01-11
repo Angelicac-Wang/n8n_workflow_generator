@@ -1,0 +1,118 @@
+{
+  "template_id": "12315",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the Stripe Invoice Reminder Workflow.",
+    "workflowPlan": {
+      "name": "Stripe Invoice Reminder Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Stripe Trigger",
+          "nodeType": "n8n-nodes-base.stripeTrigger",
+          "typeVersion": 1,
+          "params": {
+            "event": "charge.expired"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Customer Info",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "customerEmail",
+                  "value": "={{$json[\"data\"][\"object\"][\"billing_details\"][\"email\"]}}"
+                },
+                {
+                  "name": "customerName",
+                  "value": "={{$json[\"data\"][\"object\"][\"billing_details\"][\"name\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Draft Payment Reminder",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Draft a friendly payment reminder for {{customerName}} regarding their failed payment."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Stripe Invoice",
+          "nodeType": "n8n-nodes-base.stripe",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createInvoice",
+            "customer": "={{$json[\"data\"][\"object\"][\"customer\"]}}",
+            "auto_advance": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"customerEmail\"]}}",
+            "subject": "Payment Reminder",
+            "text": "={{$node[\"Draft Payment Reminder\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 707,
+    "completion_tokens": 704,
+    "total_tokens": 1411
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:24:07.843867"
+}

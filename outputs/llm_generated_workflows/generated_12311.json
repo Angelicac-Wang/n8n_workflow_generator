@@ -1,0 +1,314 @@
+{
+  "template_id": "12311",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Send Personalized DMs to LinkedIn Profile Visitors",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Weekly Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 9,
+                  "minute": 0,
+                  "weekday": 1
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Profile Visitors",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.connectsafely.ai/visitors",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "queryParameters": [
+              {
+                "name": "timeRange",
+                "value": "past_7_days"
+              }
+            ],
+            "headerParameters": [],
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Visitors",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check if Already Contacted",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "lookup",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "lookupColumn": "B",
+            "lookupValue": "={{$json[\"linkedinUrl\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Connection Degree",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"connectionDegree\"] === 1}}",
+                  "operation": "true"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate DM for Connected User",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const footer = `\\n\\n Your Name`;\nconst messages = [\n  \"Noticed you recently checked out my profile... I've been working on [YOUR PRODUCT]  [BRIEF DESCRIPTION].\",\n];\nreturn [{ json: { message: messages[Math.floor(Math.random() * messages.length)] + footer } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send DM",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.connectsafely.ai/send-dm",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParameters": [
+              {
+                "name": "message",
+                "value": "={{$json[\"message\"]}}"
+              },
+              {
+                "name": "recipient",
+                "value": "={{$json[\"linkedinUrl\"]}}"
+              }
+            ],
+            "headerParameters": [],
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log DM Sent to Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{$json[\"name\"]}}",
+                "={{$json[\"linkedinUrl\"]}}",
+                "\"DONE\""
+              ]
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Generate Message for New Connection",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const footer = `\\n\\n Your Name`;\nconst messages = [\n  \"Hi [NAME], I noticed you visited my profile and wanted to connect. I've been working on [YOUR PRODUCT] and would love to share more.\",\n];\nreturn [{ json: { message: messages[Math.floor(Math.random() * messages.length)] + footer } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Connection Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.connectsafely.ai/send-connection-request",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParameters": [
+              {
+                "name": "message",
+                "value": "={{$json[\"message\"]}}"
+              },
+              {
+                "name": "recipient",
+                "value": "={{$json[\"linkedinUrl\"]}}"
+              }
+            ],
+            "headerParameters": [],
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "11",
+          "label": "Log Connection Request to Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{$json[\"name\"]}}",
+                "={{$json[\"linkedinUrl\"]}}",
+                "\"DONE\""
+              ]
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 400
+          }
+        },
+        {
+          "id": "12",
+          "label": "Wait Between Messages",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "interval": {
+              "value": 2,
+              "unit": "minutes"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "5",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "8",
+          "to": "12"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2878,
+    "completion_tokens": 1964,
+    "total_tokens": 4842
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:24:00.432419"
+}

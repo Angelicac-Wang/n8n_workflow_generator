@@ -1,0 +1,130 @@
+{
+  "template_id": "10063",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Video Generator for eCommerce Product Catalogs",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "catalog-page",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Firecrawl Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.firecrawl.com/scrape",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "url": "={{$json[\"body\"][\"catalogUrl\"]}}",
+              "apiKey": "YOUR_FIRECRAWL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Veo Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/veo/v3.1/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "images": "={{$json[\"body\"][\"images\"]}}",
+              "apiKey": "YOUR_GOOGLE_VEO_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Poll for Completion",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/veo/v3.1/status",
+            "method": "GET",
+            "jsonParameters": true,
+            "options": {},
+            "queryParametersJson": {
+              "requestId": "={{$json[\"body\"][\"requestId\"]}}",
+              "apiKey": "YOUR_GOOGLE_VEO_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Drive Upload",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"body\"][\"videoName\"]}}",
+            "fileContent": "={{$json[\"body\"][\"videoContent\"]}}",
+            "parents": [
+              "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 926,
+    "completion_tokens": 808,
+    "total_tokens": 1734
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:25:51.034684"
+}

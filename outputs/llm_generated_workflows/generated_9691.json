@@ -1,0 +1,191 @@
+{
+  "template_id": "9691",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "SOL/USDT Multi-Timeframe AI Market Analyzer and Trader with Telegram Approval",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Hourly Trigger",
+          "nodeType": "cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyHour"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch SOL Market Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://min-api.cryptocompare.com/data/v2/histominute?fsym=SOL&tsym=USDT&limit=60",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Market Analyzer",
+          "nodeType": "ai",
+          "typeVersion": 1,
+          "params": {
+            "input": "{{$node[\"Fetch SOL Market Data\"].json}}",
+            "model": "gpt-3.5-turbo",
+            "prompt": "Analyze the market data and provide sentiment, recommended position, stop-loss, take-profit levels, and confidence rating."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Balance Check",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.afkcrypto.com/v1/wallets/balances?chain=solana",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Telegram Approval Message",
+          "nodeType": "telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "text": "AI Analysis: {{$node[\"AI Market Analyzer\"].json}}. Approve or Decline the trade?",
+            "buttons": [
+              {
+                "text": "Approve",
+                "callbackData": "approve"
+              },
+              {
+                "text": "Decline",
+                "callbackData": "decline"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Trade Execution",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.afkcrypto.com/v1/trade/swap",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "body": {
+              "from": "USDT",
+              "to": "SOL",
+              "amount": "{{$node[\"Balance Check\"].json.balance * 0.01}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Live Trade Monitoring",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://min-api.cryptocompare.com/data/price?fsym=SOL&tsyms=USDT",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Telegram Notification",
+          "nodeType": "telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "text": "Trade result: {{$node[\"Live Trade Monitoring\"].json}}. Updated balance: {{$node[\"Balance Check\"].json.balance}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1365,
+    "completion_tokens": 1176,
+    "total_tokens": 2541
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:41:27.078282"
+}

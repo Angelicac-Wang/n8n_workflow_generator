@@ -1,0 +1,137 @@
+{
+  "template_id": "11914",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Real Estate Lead Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "property-inquiry"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Data Cleaning",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const cleanedData = {\n  location: item.location.trim().toLowerCase(),\n  propertyType: item.propertyType.trim().toLowerCase(),\n  budget: parseFloat(item.budget.replace(/[^0-9.-]+/g, \"\")),\n  contactDetails: item.contactDetails.trim()\n};\nreturn [cleanedData];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Airtable Property Match",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "baseId": "appXXXXXXXXXX",
+            "tableId": "Properties",
+            "filterByFormula": "AND({City} = '{{ $json[\"location\"] }}', {PropertyType} = '{{ $json[\"propertyType\"] }}', {Price} <= {{ $json[\"budget\"] }} * 1.05)"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Email to Buyer",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"contactDetails\"]}}",
+            "subject": "Matched Properties for You",
+            "body": "Here are the properties matching your criteria: {{ $json[\"properties\"] }}",
+            "html": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store Lead in Airtable",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "appXXXXXXXXXX",
+            "tableId": "Buyers",
+            "fields": {
+              "Name": "={{$json[\"contactDetails\"]}}",
+              "Location": "={{$json[\"location\"]}}",
+              "PropertyType": "={{$json[\"propertyType\"]}}",
+              "Budget": "={{$json[\"budget\"]}}",
+              "Status": "New"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Notify Sales Team on Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "sales-team",
+            "text": "New lead: {{ $json[\"contactDetails\"] }} looking for a {{ $json[\"propertyType\"] }} in {{ $json[\"location\"] }}. Budget: {{ $json[\"budget\"] }}."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1108,
+    "completion_tokens": 969,
+    "total_tokens": 2077
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:06:28.475298"
+}

@@ -1,0 +1,96 @@
+{
+  "template_id": "7753",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Eisenhower Matrix Email Classification",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerOn": "new_email",
+            "includeAttachments": false,
+            "pollingInterval": "1m",
+            "onlyUnread": true
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Classifier",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.1-mini",
+            "prompt": "Classify the following email into one of four categories: Urgent + Important, Not Urgent + Important, Urgent + Not Important, Not Urgent + Not Important. Email content: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gmail Label",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "addLabel",
+            "labelId": "={{$node[\"OpenAI Classifier\"].json[\"labelId\"]}}",
+            "messageId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Archive Low Priority",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "modify",
+            "messageId": "={{$json[\"id\"]}}",
+            "removeLabelIds": [
+              "INBOX"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1312,
+    "completion_tokens": 575,
+    "total_tokens": 1887
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:32:48.242463"
+}

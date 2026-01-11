@@ -1,0 +1,139 @@
+{
+  "template_id": "3460",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Graphic Design Team - Generate and Review AI Images",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Setup Gmail",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "your-email@example.com",
+            "subject": "Setup Confirmation",
+            "text": "Google Drive folders and CSV file have been created."
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Google Drive Folders",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createFolder",
+            "folderName": "Graphic_Design_Team"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate AI Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.ideogram.com/generate",
+            "method": "POST",
+            "body": {
+              "prompt": "Creative brief details"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Review Image Quality",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "evaluate",
+            "input": "Image URL from HTTP Request"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets - Add Metadata",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": [
+              [
+                "Image URL",
+                "Creation Date",
+                "Prompt"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email Notification",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "your-email@example.com",
+            "subject": "AI Image Generation Complete",
+            "text": "Your AI-generated images have been reviewed and stored."
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1221,
+    "completion_tokens": 773,
+    "total_tokens": 1994
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:58:22.147662"
+}

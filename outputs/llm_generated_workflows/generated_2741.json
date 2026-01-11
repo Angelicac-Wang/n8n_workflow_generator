@@ -1,0 +1,148 @@
+{
+  "template_id": "2741",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Financial Analysis Tool",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "List Of Files To Load",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:A"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File From Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"fileId\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse PDF",
+          "nodeType": "n8n-nodes-base.pdf",
+          "typeVersion": 1,
+          "params": {
+            "operation": "parse",
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Embeddings",
+          "nodeType": "n8n-nodes-base.googleAI",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateEmbeddings",
+            "model": "text-embedding-004",
+            "text": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Pinecone",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upsert",
+            "index": "company-earnings",
+            "vectors": "={{$json[\"embeddings\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "systemPrompt": "Analyze the company's quarterly earnings and generate a report.",
+            "vectorStoreTool": "pinecone",
+            "index": "company-earnings"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Report to Google Docs",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "documentTitle": "Quarterly Earnings Report",
+            "content": "={{$json[\"report\"]}}",
+            "folderId": "your-google-drive-folder-id"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1002,
+    "completion_tokens": 870,
+    "total_tokens": 1872
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:43:55.397029"
+}

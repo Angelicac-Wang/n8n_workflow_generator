@@ -1,0 +1,165 @@
+{
+  "template_id": "12100",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow allows you to run prompts against LLM models via OpenRouter and calculate the costs in real-time.",
+    "workflowPlan": {
+      "name": "LLM Cost Calculation with OpenRouter",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Models",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/models",
+            "method": "GET",
+            "authentication": {
+              "type": "apiKey",
+              "properties": {
+                "apiKey": "={{$credentials.openRouterApiKey}}"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Select Model and Prompt",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "select-model-prompt",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Prompt to OpenRouter",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/prompt",
+            "method": "POST",
+            "body": {
+              "model": "={{$json[\"model\"]}}",
+              "prompt": "={{$json[\"prompt\"]}}"
+            },
+            "authentication": {
+              "type": "apiKey",
+              "properties": {
+                "apiKey": "={{$credentials.openRouterApiKey}}"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Token Usage",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const inputTokens = $json[\"input_tokens\"];\nconst outputTokens = $json[\"output_tokens\"];\nreturn { inputTokens, outputTokens };"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Real-Time Pricing",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/pricing",
+            "method": "GET",
+            "authentication": {
+              "type": "apiKey",
+              "properties": {
+                "apiKey": "={{$credentials.openRouterApiKey}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Calculate Cost",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const inputTokens = $json[\"inputTokens\"];\nconst outputTokens = $json[\"outputTokens\"];\nconst pricing = $json[\"pricing\"];\nconst cost = (inputTokens + outputTokens) * pricing;\nreturn { cost };"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Display Result",
+          "nodeType": "respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "The cost for your prompt is: ${{$json[\"cost\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 880,
+    "completion_tokens": 1009,
+    "total_tokens": 1889
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:14:38.817182"
+}

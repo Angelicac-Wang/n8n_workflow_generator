@@ -1,0 +1,193 @@
+{
+  "template_id": "10468",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Meeting Scheduler",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp-trigger",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Intent Agent (Gemini)",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/intent",
+            "method": "POST",
+            "body": {
+              "message": "={{$json[\"body\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Sheets - Find Contact",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values/{range}",
+            "method": "GET",
+            "queryParameters": {
+              "spreadsheetId": "your_spreadsheet_id",
+              "range": "Contacts!A:C"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get Events",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "method": "GET",
+            "queryParameters": {
+              "timeMin": "={{$json[\"startTime\"]}}",
+              "timeMax": "={{$json[\"endTime\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Correction Agent + Intent Check",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/correction",
+            "method": "POST",
+            "body": {
+              "intent": "={{$json[\"intent\"]}}",
+              "details": "={{$json[\"details\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Calendar Agent (Gemini)",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/calendar",
+            "method": "POST",
+            "body": {
+              "action": "={{$json[\"action\"]}}",
+              "eventDetails": "={{$json[\"eventDetails\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create / Update / Delete Event",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "method": "POST",
+            "body": {
+              "summary": "={{$json[\"summary\"]}}",
+              "start": {
+                "dateTime": "={{$json[\"startTime\"]}}"
+              },
+              "end": {
+                "dateTime": "={{$json[\"endTime\"]}}"
+              },
+              "attendees": "={{$json[\"attendees\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Response Node",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "body": {
+              "to": "={{$json[\"contactNumber\"]}}",
+              "message": "Meeting scheduled successfully!"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 930,
+    "completion_tokens": 1171,
+    "total_tokens": 2101
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:33:42.197415"
+}

@@ -1,0 +1,122 @@
+{
+  "template_id": "2866",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Scrape Latest 20 TechCrunch Articles",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger Execution Manually",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Request to TechCrunch",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://techcrunch.com/",
+            "method": "GET",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Articles",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$node[\"Request to TechCrunch\"].json[\"data\"]}}",
+            "cssSelector": ".post-block",
+            "returnArray": true
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Article Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const title = item.json.html.match(/<h2 class=\"post-block__title\">(.*?)<\\/h2>/)[1];\n  const link = item.json.html.match(/<a href=\"(.*?)\"/)[1];\n  const author = item.json.html.match(/<span class=\"river-byline__authors\">(.*?)<\\/span>/)[1];\n  const date = item.json.html.match(/<time datetime=\"(.*?)\">/)[1];\n  return {\n    json: {\n      title,\n      link,\n      author,\n      date\n    }\n  };\n}).slice(0, 20);"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Set Result Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "title",
+                  "value": "={{$json[\"title\"]}}"
+                },
+                {
+                  "name": "link",
+                  "value": "={{$json[\"link\"]}}"
+                },
+                {
+                  "name": "author",
+                  "value": "={{$json[\"author\"]}}"
+                },
+                {
+                  "name": "date",
+                  "value": "={{$json[\"date\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 943,
+    "completion_tokens": 810,
+    "total_tokens": 1753
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:47:49.748425"
+}

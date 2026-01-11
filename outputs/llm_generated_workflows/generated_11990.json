@@ -1,0 +1,123 @@
+{
+  "template_id": "11990",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the RAG Configuration Assistant.",
+    "workflowPlan": {
+      "name": "RAG Configuration Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "form-submission"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"useCase\": \"={{$json[\"useCase\"]}}\", \"documentType\": \"={{$json[\"documentType\"]}}\", \"pages\": \"={{$json[\"pages\"]}}\", \"budget\": \"={{$json[\"budget\"]}}\", \"queryVolume\": \"={{$json[\"queryVolume\"]}}\" }"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Recommendation Engine",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { embeddingModel: 'model-x', chunkSize: 512, vectorStore: 'store-y' };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Report Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.htmlreportgenerator.com/create",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"recommendations\": \"={{$json[\"recommendations\"]}}\" }"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Email Delivery",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"email\"]}}",
+            "subject": "RAG Configuration Recommendations",
+            "html": "={{$json[\"htmlReport\"]}}",
+            "attachments": [
+              {
+                "binaryPropertyName": "workflowJson",
+                "fileName": "RAG_Workflow.json"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 840,
+    "completion_tokens": 792,
+    "total_tokens": 1632
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:08:38.337601"
+}

@@ -1,0 +1,114 @@
+{
+  "template_id": "10889",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Auto Rename n8n Workflow Nodes with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Workflow JSON",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.n8n.io/workflows/{{workflowId}}",
+            "method": "GET",
+            "authentication": "n8nApi"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Node Names with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.openrouter.ai/generate-names",
+            "method": "POST",
+            "authentication": "openRouterApi",
+            "body": {
+              "workflowJson": "={{$json[\"data\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Validate AI Response",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{Object.keys($json[\"data\"]).length}}",
+                  "operation": "notEqual",
+                  "value2": "={{Object.keys($node[\"Fetch Workflow JSON\"].json[\"data\"]).length}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Workflow with New Names",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.n8n.io/workflows/{{workflowId}}",
+            "method": "PATCH",
+            "authentication": "n8nApi",
+            "body": {
+              "nodes": "={{$json[\"data\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1050,
+    "completion_tokens": 658,
+    "total_tokens": 1708
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:38:51.216574"
+}

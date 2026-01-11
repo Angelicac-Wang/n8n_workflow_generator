@@ -1,0 +1,171 @@
+{
+  "template_id": "5195",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Product Research & SEO Content Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "product-title-input",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Custom Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/customsearch/v1",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "key",
+                "value": "YOUR_GOOGLE_API_KEY"
+              },
+              {
+                "name": "cx",
+                "value": "YOUR_SEARCH_ENGINE_ID"
+              },
+              {
+                "name": "q",
+                "value": "={{$json[\"body\"][\"title\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "titles",
+                "value": "={{$json[\"items\"].map(item => item.title)}}"
+              },
+              {
+                "name": "snippets",
+                "value": "={{$json[\"items\"].map(item => item.snippet)}}"
+              },
+              {
+                "name": "keywords",
+                "value": "={{$json[\"items\"].map(item => item.pagemap.metatags[0][\"keywords\"])}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Content Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.langchain.com/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "model": "google-gemini",
+              "input": {
+                "titles": "={{$json[\"titles\"]}}",
+                "snippets": "={{$json[\"snippets\"]}}",
+                "keywords": "={{$json[\"keywords\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Organize Content",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "SEO Data",
+                "value": "={{$json[\"seoData\"]}}"
+              },
+              {
+                "name": "Product Content",
+                "value": "={{$json[\"productContent\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "spreadsheetId": "YOUR_SPREADSHEET_ID",
+            "sheetName": "SEO Content",
+            "fields": "SEO Data, Product Content",
+            "data": "={{[{\"SEO Data\": $json[\"SEO Data\"], \"Product Content\": $json[\"Product Content\"]}]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1047,
+    "completion_tokens": 1035,
+    "total_tokens": 2082
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:17:30.604411"
+}

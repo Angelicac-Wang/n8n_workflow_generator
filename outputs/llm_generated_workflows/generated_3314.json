@@ -1,0 +1,141 @@
+{
+  "template_id": "3314",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "WebSecScan: AI-Powered Website Security Auditor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "websecscan",
+            "method": "POST",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Header Configuration Audit",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"prompt\": \"Analyze the HTTP headers for security issues on the following website: {{$json[\"body\"][\"url\"]}}\", \"max_tokens\": 1000 }",
+            "authentication": "={{$credentials.openaiApi}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request - Vulnerability Assessment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"prompt\": \"Identify potential vulnerabilities on the following website: {{$json[\"body\"][\"url\"]}}\", \"max_tokens\": 1000 }",
+            "authentication": "={{$credentials.openaiApi}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Function - Analyze Results",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const headerResults = items[0].json;\nconst vulnerabilityResults = items[1].json;\n// Analyze and calculate security grade\nconst securityGrade = 'A'; // Placeholder logic\nreturn [{ json: { headerResults, vulnerabilityResults, securityGrade } }];"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "HTML Report Generation",
+          "nodeType": "n8n-nodes-base.html",
+          "typeVersion": 1,
+          "params": {
+            "html": "<html><body><h1>Security Report</h1><p>Security Grade: {{$json[\"securityGrade\"]}}</p><h2>Header Analysis</h2><pre>{{$json[\"headerResults\"]}}</pre><h2>Vulnerability Assessment</h2><pre>{{$json[\"vulnerabilityResults\"]}}</pre></body></html>"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Security Report",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "Website Security Report",
+            "htmlBody": "={{$json[\"html\"]}}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1045,
+    "completion_tokens": 1019,
+    "total_tokens": 2064
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:55:48.884274"
+}

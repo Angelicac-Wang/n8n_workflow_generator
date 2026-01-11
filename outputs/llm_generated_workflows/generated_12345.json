@@ -1,0 +1,120 @@
+{
+  "template_id": "12345",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Scrape Physician Profiles to Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Define Location",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "Location",
+                  "value": "City"
+                },
+                {
+                  "name": "State",
+                  "value": "State"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Data",
+          "nodeType": "n8n-nodes-base.browserAct",
+          "typeVersion": 1,
+          "params": {
+            "task": "Physician Profile Enricher",
+            "location": "={{$json[\"Location\"]}}",
+            "state": "={{$json[\"State\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse JSON",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return JSON.parse(items[0].json.data);"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Update Database",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1",
+            "key": "Name",
+            "valueInputMode": "USER_ENTERED",
+            "fields": "Name,Specialty,Address"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Notify Team",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your-slack-channel",
+            "text": "Physician profiles have been updated successfully."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1161,
+    "completion_tokens": 654,
+    "total_tokens": 1815
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:25:18.783559"
+}

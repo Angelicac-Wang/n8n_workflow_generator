@@ -1,0 +1,119 @@
+{
+  "template_id": "11993",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to create an intelligent Facebook Messenger chatbot.",
+    "workflowPlan": {
+      "name": "Intelligent Facebook Messenger Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Verification",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "GET",
+            "path": "facebook-webhook",
+            "responseMode": "onReceived",
+            "options": {
+              "responseCode": 200,
+              "responseData": "={{$json[\"hub.challenge\"]}}",
+              "responseContentType": "text/plain"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Message Reception",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "facebook-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "3",
+          "label": "Batch Messages",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": 3
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o-mini/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"prompt\": \"{{$json[\"message\"]}}\", \"max_tokens\": 150 }"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Response Delivery",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/me/messages",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{ \"recipient\": { \"id\": \"{{$json[\"sender_id\"]}}\" }, \"message\": { \"text\": \"{{$json[\"response\"]}}\" } }"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 806,
+    "completion_tokens": 745,
+    "total_tokens": 1551
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:08:43.898389"
+}

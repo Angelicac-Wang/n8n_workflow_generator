@@ -1,0 +1,223 @@
+{
+  "template_id": "4404",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "One-way Sync: Telegram to Notion, Google Drive, and Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{$credentials.telegramApi}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Classify Message Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message\"][\"type\"]}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "text"
+              },
+              {
+                "operation": "equal",
+                "value": "photo"
+              },
+              {
+                "operation": "equal",
+                "value": "document"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Append Text to Notion",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "appendBlock",
+            "blockId": "={{$credentials.notionBlockId}}",
+            "content": "={{$json[\"message\"][\"text\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload Image to imgbb",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.imgbb.com/1/upload",
+            "method": "POST",
+            "body": {
+              "key": "={{$credentials.imgbbApiKey}}",
+              "image": "={{$json[\"message\"][\"photo\"]}}"
+            },
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Add Image to Notion",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "appendBlock",
+            "blockId": "={{$credentials.notionBlockId}}",
+            "content": "![Image]({{ $node[\"Upload Image to imgbb\"].json[\"data\"][\"url\"] }})"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Download Document",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"message\"][\"document\"][\"fileUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"message\"][\"document\"][\"fileName\"]}}",
+            "fileContent": "={{$node[\"Download Document\"].binary[\"data\"]}}",
+            "parents": [
+              "{{$credentials.googleDriveFolderId}}"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log Metadata in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$credentials.googleSheetId}}",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{$json[\"message\"][\"document\"][\"fileName\"]}}",
+                "={{$node[\"Upload to Google Drive\"].json[\"id\"]}}",
+                "={{$json[\"message\"][\"date\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Confirmation to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Your message has been processed and stored successfully."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 2
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "3",
+          "to": "9"
+        },
+        {
+          "from": "5",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 956,
+    "completion_tokens": 1417,
+    "total_tokens": 2373
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:09:51.756501"
+}

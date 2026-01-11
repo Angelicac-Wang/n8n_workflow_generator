@@ -1,0 +1,267 @@
+{
+  "template_id": "11879",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Client Brief Analysis and Reporting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "FOLDER_ID_FOR_CLIENT_BRIEFS",
+            "watchFor": "file",
+            "events": [
+              "add"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "clientSummariesFolderId",
+                  "value": "FOLDER_ID_FOR_REPORTS"
+                },
+                {
+                  "name": "accountManagerEmail",
+                  "value": "ACCOUNT_MANAGER_EMAIL"
+                },
+                {
+                  "name": "trackingSheetId",
+                  "value": "TRACKING_SHEET_ID"
+                },
+                {
+                  "name": "errorNotificationEmail",
+                  "value": "ERROR_NOTIFICATION_EMAIL"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "File Type Check & Text Extraction",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fileType = $node[\"Google Drive Trigger\"].json[\"mimeType\"];\nlet extractedText = \"\";\nif (fileType.includes(\"pdf\")) {\n  // Extract text from PDF\n} else if (fileType.includes(\"vnd.openxmlformats-officedocument.wordprocessingml.document\")) {\n  // Extract text from DOCX\n} else if (fileType.includes(\"plain\")) {\n  // Extract text from TXT\n} else {\n  throw new Error(\"Unsupported file type\");\n}\nreturn [{ json: { extractedText } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extraction Validation",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"extractedText\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Error Notification",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"errorNotificationEmail\"]}}",
+            "subject": "Error in Text Extraction",
+            "text": "Text extraction failed or file is empty."
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.groq.ai/analyze",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"extractedText\"]}}",
+              "model": "llama3"
+            },
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Industry Research",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json[\"clientIndustry\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Report Generation",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const analysis = $node[\"AI Analysis\"].json;\nconst research = $node[\"Industry Research\"].json;\nconst report = `Client Needs: ${analysis.clientNeeds}\\nGoals: ${analysis.goals}\\nChallenges: ${analysis.challenges}\\nIndustry Insights: ${research.insights}`;\nreturn [{ json: { report } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Google Doc Creation",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "documentTitle": "Client Brief Report",
+            "content": "={{$json[\"report\"]}}",
+            "parentFolderId": "={{$json[\"clientSummariesFolderId\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Logging",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$json[\"trackingSheetId\"]}}",
+            "range": "Brief Analysis Log",
+            "data": [
+              [
+                "={{$node[\"Google Drive Trigger\"].json[\"name\"]}}",
+                "={{$node[\"Google Doc Creation\"].json[\"documentId\"]}}",
+                "={{new Date().toISOString()}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Notification",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"accountManagerEmail\"]}}",
+            "subject": "New Client Brief Report",
+            "text": "A new client brief report has been generated. Check the Google Doc here: https://docs.google.com/document/d/{{$node[\"Google Doc Creation\"].json[\"documentId\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1025,
+    "completion_tokens": 1816,
+    "total_tokens": 2841
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:04:36.038817"
+}

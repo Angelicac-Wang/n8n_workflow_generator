@@ -1,0 +1,190 @@
+{
+  "template_id": "12173",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Invoice Processing Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "polling": true,
+            "filters": {
+              "labelIds": [
+                "INBOX"
+              ],
+              "searchQuery": "has:attachment"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Code Node",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Restructure attachments */ return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "PDF Extraction",
+          "nodeType": "n8n-nodes-base.pdfExtract",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Invoice Recognition",
+          "nodeType": "n8n-nodes-base.aiInvoiceRecognition",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "={{ $credentials.openai.apiKey }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Invoice Data Extractor",
+          "nodeType": "n8n-nodes-base.aiInvoiceDataExtractor",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              "date_email",
+              "date_invoice",
+              "invoice_nr",
+              "description",
+              "provider",
+              "net_amount",
+              "vat",
+              "gross_amount",
+              "label",
+              "currency"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Drive Upload",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"invoice_nr\"]}}.pdf",
+            "parents": [
+              "{{ $credentials.googleDrive.folderId }}"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Google Sheets Append",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{ $credentials.googleSheets.sheetId }}",
+            "range": "Sheet1!A:J",
+            "data": [
+              "={{$json[\"date_email\"]}}",
+              "={{$json[\"date_invoice\"]}}",
+              "={{$json[\"invoice_nr\"]}}",
+              "={{$json[\"description\"]}}",
+              "={{$json[\"provider\"]}}",
+              "={{$json[\"net_amount\"]}}",
+              "={{$json[\"vat\"]}}",
+              "={{$json[\"gross_amount\"]}}",
+              "={{$json[\"label\"]}}",
+              "={{$node[\"Google Drive Upload\"].json[\"webViewLink\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Mark Gmail as Read",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "modify",
+            "messageId": "={{$json[\"id\"]}}",
+            "labelIds": [
+              "READ"
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1097,
+    "completion_tokens": 1103,
+    "total_tokens": 2200
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:18:03.153196"
+}

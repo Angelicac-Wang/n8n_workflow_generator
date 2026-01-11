@@ -1,0 +1,82 @@
+{
+  "template_id": "2712",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow creates a dynamic form with a dropdown field that updates based on data from Google Sheets.",
+    "workflowPlan": {
+      "name": "Dynamic Dropdown Form",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Poll Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1:A100",
+            "polling": true,
+            "pollingInterval": 3600
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Format Dropdown Options",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "options",
+                  "value": "={{$json[\"data\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Webhook for Form",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "form-submission",
+            "responseMode": "onReceived",
+            "responseData": "={{$json[\"options\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 667,
+    "completion_tokens": 442,
+    "total_tokens": 1109
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:43:14.685984"
+}

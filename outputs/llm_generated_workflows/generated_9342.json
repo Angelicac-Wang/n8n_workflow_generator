@@ -1,0 +1,214 @@
+{
+  "template_id": "9342",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated YouTube Script Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "youtube-script-generator",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Topic",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "topic",
+                "value": "={{$json[\"body\"][\"topic\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Tavily AI Research - Shorts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.tavily.com/research",
+            "method": "POST",
+            "body": {
+              "topic": "={{$json[\"topic\"]}}",
+              "format": "shorts"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentialType": "tavilyApi"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Gemini - Write Shorts Script",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/write",
+            "method": "POST",
+            "body": {
+              "research": "={{$json[\"data\"]}}",
+              "format": "shorts"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentialType": "googleGeminiApi"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Docs - Save Shorts Script",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "title": "Shorts Script - {{$json[\"topic\"]}}",
+            "content": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Tavily AI Research - Long-Form",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.tavily.com/research",
+            "method": "POST",
+            "body": {
+              "topic": "={{$json[\"topic\"]}}",
+              "format": "long-form"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentialType": "tavilyApi"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Google Gemini - Create Outline",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/outline",
+            "method": "POST",
+            "body": {
+              "research": "={{$json[\"data\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentialType": "googleGeminiApi"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Google Gemini - Write Long-Form Script",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/write",
+            "method": "POST",
+            "body": {
+              "outline": "={{$json[\"data\"]}}",
+              "format": "long-form"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentialType": "googleGeminiApi"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Google Docs - Save Long-Form Script",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "title": "Long-Form Script - {{$json[\"topic\"]}}",
+            "content": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1013,
+    "completion_tokens": 1348,
+    "total_tokens": 2361
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:39:13.426205"
+}

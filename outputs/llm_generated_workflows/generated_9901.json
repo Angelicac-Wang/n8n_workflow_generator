@@ -1,0 +1,272 @@
+{
+  "template_id": "9901",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Agent Interface",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook (GET)",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "GET",
+            "path": "ai-chat",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Code Node",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "// Paste the entire content of main.js here"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Respond to Webhook",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseDataSource": "firstIncomingItem",
+            "responseBinaryPropertyName": "data"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Webhook (POST)",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "webhook-endpoint",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "Switch",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "json.body.agent_type",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "general"
+              },
+              {
+                "operation": "equal",
+                "value": "database"
+              },
+              {
+                "operation": "equal",
+                "value": "web"
+              },
+              {
+                "operation": "equal",
+                "value": "rag"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "6",
+          "label": "General AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "{{$json[\"body\"][\"message\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Database AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "{{$json[\"body\"][\"message\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Web AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "{{$json[\"body\"][\"message\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 700
+          }
+        },
+        {
+          "id": "9",
+          "label": "RAG AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "{{$json[\"body\"][\"message\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 800
+          }
+        },
+        {
+          "id": "10",
+          "label": "Format Response",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const webhookData = $('Webhook').first().json.body;\nconst aiResponse = $input.first().json;\n\nreturn [{\n  json: {\n    response: aiResponse.output || aiResponse.text || aiResponse.response,\n    agent_type: webhookData.agent_type,\n    user_message: webhookData.message,\n    timestamp: new Date().toISOString()\n  }\n}];"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        },
+        {
+          "id": "11",
+          "label": "Respond to Webhook",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseDataSource": "firstIncomingItem"
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 2
+        },
+        {
+          "from": "5",
+          "to": "9",
+          "outputIndex": 3
+        },
+        {
+          "from": "6",
+          "to": "10"
+        },
+        {
+          "from": "7",
+          "to": "10"
+        },
+        {
+          "from": "8",
+          "to": "10"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2511,
+    "completion_tokens": 1689,
+    "total_tokens": 4200
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:43:41.980728"
+}

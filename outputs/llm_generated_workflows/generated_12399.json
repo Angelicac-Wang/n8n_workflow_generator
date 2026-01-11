@@ -1,0 +1,156 @@
+{
+  "template_id": "12399",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Monitor Expiring EntraID Application Secrets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get EntraID Applications and Secrets",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.microsoft.com/v1.0/applications",
+            "method": "GET",
+            "authentication": "oAuth2Api",
+            "responseFormat": "json",
+            "oAuth2Api": {
+              "credentials": "Microsoft Graph OAuth2"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Credentials",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Expiring Credentials",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const daysBeforeExpiry = $node[\"Set Variables\"].json[\"daysBeforeExpiry\"];\nconst currentDate = new Date();\nconst expiryDate = new Date(item.json.expiryDate);\nconst timeDiff = expiryDate - currentDate;\nconst daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));\nif (daysDiff <= daysBeforeExpiry) {\n  return item;\n}\nreturn null;"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "notificationEmail",
+                  "value": "example@example.com"
+                }
+              ],
+              "number": [
+                {
+                  "name": "daysBeforeExpiry",
+                  "value": 14
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate HTML Report",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "let html = '<table><tr><th>Application Name</th><th>App ID</th><th>Credential Type</th><th>Credential Name + ID</th><th>Days Remaining</th></tr>';\nitems.forEach(item => {\n  html += `<tr><td>${item.json.applicationName}</td><td>${item.json.appId}</td><td>${item.json.credentialType}</td><td>${item.json.credentialName}</td><td>${item.json.daysRemaining}</td></tr>`;\n});\nhtml += '</table>';\nreturn [{ json: { html } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "toEmail": "={{$node[\"Set Variables\"].json[\"notificationEmail\"]}}",
+            "subject": "Expiring EntraID Application Secrets Report",
+            "html": "={{$node[\"Generate HTML Report\"].json[\"html\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 990,
+    "completion_tokens": 1102,
+    "total_tokens": 2092
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:27:49.632631"
+}

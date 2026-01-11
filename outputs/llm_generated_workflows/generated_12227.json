@@ -1,0 +1,177 @@
+{
+  "template_id": "12227",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "HubSpot Closed-Won to Lookalike Prospects",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Companies",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "company",
+            "operation": "getAll",
+            "returnAll": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Top Companies",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const topPercent = 0.1; // Adjust the top percentage as needed\nconst companies = items;\ncompanies.sort((a, b) => b.json.properties.annualrevenue - a.json.properties.annualrevenue);\nconst topCompanies = companies.slice(0, Math.ceil(companies.length * topPercent));\nreturn topCompanies.map(company => ({ json: { domain: company.json.properties.domain } }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "CompanyEnrich API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.companyenrich.com/similar",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "domains": "={{$json[\"domain\"]}}"
+            },
+            "headerParametersJson": {
+              "Authorization": "Bearer YOUR_COMPANY_ENRICH_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Split Results",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Normalize Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const company = item.json;\n  return {\n    json: {\n      domain: company.domain,\n      name: company.name,\n      industry: company.industry,\n      revenue: company.revenue\n    }\n  };\n});"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Append to Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1",
+            "keyRow": 1,
+            "valueInputMode": "USER_ENTERED",
+            "options": {
+              "valueRenderOption": "UNFORMATTED_VALUE"
+            },
+            "data": [
+              {
+                "key": "domain",
+                "value": "={{$json[\"domain\"]}}"
+              },
+              {
+                "key": "name",
+                "value": "={{$json[\"name\"]}}"
+              },
+              {
+                "key": "industry",
+                "value": "={{$json[\"industry\"]}}"
+              },
+              {
+                "key": "revenue",
+                "value": "={{$json[\"revenue\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 930,
+    "completion_tokens": 1134,
+    "total_tokens": 2064
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:20:26.620576"
+}

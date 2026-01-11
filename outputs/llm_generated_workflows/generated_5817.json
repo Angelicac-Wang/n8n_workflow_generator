@@ -1,0 +1,138 @@
+{
+  "template_id": "5817",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the Weekly AI Trend Alerter with arXiv and Weaviate.",
+    "workflowPlan": {
+      "name": "Weekly AI Trend Alerter",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Articles from arXiv",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=10&sortBy=submittedDate&sortOrder=descending",
+            "method": "GET",
+            "responseFormat": "xml"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Process Article Data",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "const parseXml = require('xml2js').parseStringPromise;\nconst articles = [];\nparseXml(items).then(result => {\n  const entries = result.feed.entry;\n  entries.forEach(entry => {\n    articles.push({\n      title: entry.title[0],\n      abstract: entry.summary[0],\n      link: entry.id[0]\n    });\n  });\n  return articles;\n});"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Enrich with LLM",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "prompt": "Enrich the following article with topics and impact: {{ $json[\"abstract\"] }}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Insert into Weaviate",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "http://localhost:8080/v1/objects",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "class": "Article",
+              "properties": {
+                "title": "{{ $json[\"title\"] }}",
+                "abstract": "{{ $json[\"abstract\"] }}",
+                "topics": "{{ $json[\"topics\"] }}",
+                "impact": "{{ $json[\"impact\"] }}"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Weekly Summary",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "const articles = $json;\nlet summary = 'Weekly AI Research Summary:\\n';\narticles.forEach(article => {\n  summary += `Title: ${article.title}\\nAbstract: ${article.abstract}\\nLink: ${article.link}\\n\\n`;\n});\nreturn { summary };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "emailSend",
+          "params": {
+            "fromEmail": "your-email@gmail.com",
+            "toEmail": "recipient-email@gmail.com",
+            "subject": "Weekly AI Research Summary",
+            "text": "{{ $json[\"summary\"] }}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1951,
+    "completion_tokens": 986,
+    "total_tokens": 2937
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:25:06.875285"
+}

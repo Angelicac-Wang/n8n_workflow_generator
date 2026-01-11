@@ -1,0 +1,156 @@
+{
+  "template_id": "5303",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating website audits and optimizations.",
+    "workflowPlan": {
+      "name": "Website Audit and Optimization Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Sitemap",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"sitemap_url\"]}}",
+            "responseFormat": "xml"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract URLs",
+          "nodeType": "n8n-nodes-base.xml",
+          "typeVersion": 1,
+          "params": {
+            "options": {
+              "attributeNamePrefix": "",
+              "ignoreAttributes": false
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Search Console Data",
+          "nodeType": "n8n-nodes-base.googleSearchConsole",
+          "typeVersion": 1,
+          "params": {
+            "resource": "searchAnalytics",
+            "method": "query",
+            "siteUrl": "={{$json[\"search_console_selector\"]}}",
+            "startDate": "={{$json[\"analysis_start_date\"]}}",
+            "endDate": "={{$json[\"analysis_end_date\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Analytics Data",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "typeVersion": 1,
+          "params": {
+            "propertyId": "={{$json[\"analytics_selector_id\"]}}",
+            "startDate": "={{$json[\"analysis_start_date\"]}}",
+            "endDate": "={{$json[\"analysis_end_date\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Data Processing",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "o4-mini",
+            "prompt": "Analyze the following data for SEO improvements: {{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Recommendations",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "recommendations",
+                  "value": "={{$node[\"AI Data Processing\"].json[\"recommendations\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "toEmail": "={{$json[\"report_receiver\"]}}",
+            "subject": "SEO Audit Recommendations",
+            "text": "Here are your SEO audit recommendations: {{$json[\"recommendations\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1231,
+    "completion_tokens": 949,
+    "total_tokens": 2180
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:18:52.252857"
+}

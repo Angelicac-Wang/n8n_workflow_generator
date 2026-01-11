@@ -1,0 +1,175 @@
+{
+  "template_id": "11985",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Auto-Post Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Instagram Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.instagram.com/me/media",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "fields",
+                "value": "id,caption,media_type,media_url"
+              },
+              {
+                "name": "access_token",
+                "value": "YOUR_INSTAGRAM_ACCESS_TOKEN"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Caption and Image Prompt",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { caption: 'Generated Caption', prompt: 'Generated Image Prompt' } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Image with NanoBanana",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/nanobanana",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "={{$node[\"Generate Caption and Image Prompt\"].json[\"prompt\"]}}"
+              },
+              {
+                "name": "api_key",
+                "value": "YOUR_OPENROUTER_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Airtable",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": [
+              {
+                "name": "fields",
+                "value": "{\"caption\":\"{{$node[\"Generate Caption and Image Prompt\"].json[\"caption\"]}}\",\"img_prompt\":\"{{$node[\"Generate Caption and Image Prompt\"].json[\"prompt\"]}}\",\"data_binary\":\"{{$node[\"Create Image with NanoBanana\"].binary}}\"}"
+              }
+            ],
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_AIRTABLE_API_KEY",
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "New Instagram post ready: {{$node[\"Generate Caption and Image Prompt\"].json[\"caption\"]}}",
+            "additionalFields": {
+              "replyMarkup": {
+                "inline_keyboard": [
+                  [
+                    {
+                      "text": "Confirm",
+                      "callback_data": "confirm"
+                    },
+                    {
+                      "text": "Regenerate",
+                      "callback_data": "regenerate"
+                    },
+                    {
+                      "text": "Cancel",
+                      "callback_data": "cancel"
+                    }
+                  ]
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1401,
+    "completion_tokens": 1062,
+    "total_tokens": 2463
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:08:31.880680"
+}

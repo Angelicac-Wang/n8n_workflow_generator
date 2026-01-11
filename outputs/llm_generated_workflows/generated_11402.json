@@ -1,0 +1,150 @@
+{
+  "template_id": "11402",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "SEO Audit and Report Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Read URLs from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:A"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Page Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.decodo.com/scrape",
+            "method": "POST",
+            "body": {
+              "url": "={{$json[\"url\"]}}"
+            },
+            "jsonParameters": true,
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer your_decodo_api_key"
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract SEO Elements",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { title: $json.title, metaDescription: $json.metaDescription, canonical: $json.canonical, h1: $json.h1, h2: $json.h2, visibleText: $json.visibleText };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze with AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Analyze the following SEO elements and provide an executive summary: {{$json}}",
+              "max_tokens": 150
+            },
+            "jsonParameters": true,
+            "authentication": {
+              "type": "headerAuth",
+              "headerAuth": {
+                "name": "Authorization",
+                "value": "Bearer your_openai_api_key"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save Results to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet2!A:F",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email Report",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "SEO Audit Report",
+            "html": "<p>Here is your SEO audit report:</p><pre>{{$json}}</pre>"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 863,
+    "completion_tokens": 937,
+    "total_tokens": 1800
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:49:05.225336"
+}

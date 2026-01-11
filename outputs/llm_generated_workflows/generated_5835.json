@@ -1,0 +1,312 @@
+{
+  "template_id": "5835",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Video Generation and Upload",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 5,
+                  "unit": "minutes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get New Video",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "filters": {
+              "field": "VIDEO",
+              "value": "",
+              "operation": "isEmpty"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "prompt": "={{$json[\"PROMPT\"]}}",
+              "duration": "={{$json[\"DURATION\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.run/veo3/generate",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Key YOURAPIKEY"
+            },
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "duration": "={{$json[\"duration\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait 60 sec.",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": 60
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Get Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.run/veo3/status",
+            "method": "GET",
+            "headers": {
+              "Authorization": "Key YOURAPIKEY"
+            },
+            "queryParameters": {
+              "videoId": "={{$json[\"videoId\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Get Url Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.run/veo3/video",
+            "method": "GET",
+            "headers": {
+              "Authorization": "Key YOURAPIKEY"
+            },
+            "queryParameters": {
+              "videoId": "={{$json[\"videoId\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Title",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Generate an SEO-optimized title for a video with the prompt: {{$json[\"prompt\"]}}",
+            "maxTokens": 10
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Get File Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Upload Video to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"title\"]}}.mp4",
+            "fileContent": "={{$json[\"file\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/youtube/upload",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Apikey YOUR_API_KEY"
+            },
+            "body": {
+              "username": "YOUR_USERNAME",
+              "videoFile": "={{$json[\"file\"]}}",
+              "title": "={{$json[\"title\"]}}"
+            }
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Upload to TikTok",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/tiktok/upload",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Apikey YOUR_API_KEY"
+            },
+            "body": {
+              "username": "YOUR_USERNAME",
+              "videoFile": "={{$json[\"file\"]}}",
+              "title": "={{$json[\"title\"]}}"
+            }
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "updateData": {
+              "range": "Sheet1!C:D",
+              "values": [
+                [
+                  "={{$json[\"videoUrl\"]}}",
+                  "={{$json[\"youtubeUrl\"]}}"
+                ]
+              ]
+            }
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1478,
+    "completion_tokens": 1909,
+    "total_tokens": 3387
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:25:41.402905"
+}

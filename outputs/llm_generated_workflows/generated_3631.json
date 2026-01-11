@@ -1,0 +1,178 @@
+{
+  "template_id": "3631",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow sets up a PostgreSQL MCP server with triggers and handlers for select, insert, and update operations.",
+    "workflowPlan": {
+      "name": "PostgreSQL MCP Server",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "MCP Server Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "mcp-server-trigger",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "PostgreSQL Read-Only Query 1",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT * FROM hr_table WHERE condition = true"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "PostgreSQL Read-Only Query 2",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT * FROM sales_table WHERE condition = true"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Custom Workflow Trigger",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "customWorkflowId"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Switch Operation",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "operation",
+            "rules": [
+              {
+                "value": "select",
+                "operation": "equal"
+              },
+              {
+                "value": "insert",
+                "operation": "equal"
+              },
+              {
+                "value": "update",
+                "operation": "equal"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "PostgreSQL Select",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT * FROM {{table}} WHERE {{conditions}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "PostgreSQL Insert",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "INSERT INTO {{table}} ({{columns}}) VALUES ({{values}})"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "PostgreSQL Update",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "UPDATE {{table}} SET {{columnValues}} WHERE {{conditions}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 2
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1028,
+    "completion_tokens": 1043,
+    "total_tokens": 2071
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:00:57.249289"
+}

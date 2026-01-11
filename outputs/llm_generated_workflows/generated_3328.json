@@ -1,0 +1,147 @@
+{
+  "template_id": "3328",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Multilingual Video Content Creator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Quotes",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:E",
+            "filter": {
+              "field": "CreateStatus",
+              "value": "",
+              "operation": "equals"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Video & Music",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "'your_video_folder_id' in parents",
+            "fileType": "video"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Select Random Quote",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const quotes = items[0].json;\nconst randomIndex = Math.floor(Math.random() * quotes.length);\nreturn [{ json: quotes[randomIndex] }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "ffmpeg",
+            "arguments": [
+              "-i",
+              "video.mp4",
+              "-vf",
+              "'drawtext=fontfile=/path/to/Kanit-Regular.ttf:text='{{ $json[\"Quote\"] }} - {{ $json[\"Author\"] }}':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2'",
+              "-c:a",
+              "copy",
+              "output.mp4"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "uploadVideo",
+            "video": "output.mp4",
+            "title": "{{ $json[\"Quote\"] }}",
+            "description": "Inspirational quote by {{ $json[\"Author\"] }}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:E",
+            "key": "Index",
+            "value": "{{ $json[\"Index\"] }}",
+            "data": {
+              "CreateStatus": "DONE",
+              "YoutubeURL": "{{ $node[\"Upload to YouTube\"].json[\"url\"] }}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1108,
+    "completion_tokens": 919,
+    "total_tokens": 2027
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:55:58.105208"
+}

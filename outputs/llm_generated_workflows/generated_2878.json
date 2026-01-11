@@ -1,0 +1,123 @@
+{
+  "template_id": "2878",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "DeepResearch Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "deepresearch",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Notion Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.notion.com/v1/pages",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"parent\": { \"database_id\": \"YOUR_DATABASE_ID\" }, \"properties\": { \"title\": { \"title\": [{ \"text\": { \"content\": \"Research Report\" } }] } } }",
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Web Search & Scrape",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TASK_ID/runs",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"query\": \"{{ $json[\"body\"][\"query\"] }}\", \"depth\": \"{{ $json[\"body\"][\"depth\"] }}\", \"breadth\": \"{{ $json[\"body\"][\"breadth\"] }}\" }",
+            "authentication": "apiKey"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Reasoning LLM",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/o3-mini/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"prompt\": \"{{ $json[\"webScrapeResults\"] }}\", \"max_tokens\": 1000 }",
+            "authentication": "apiKey"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Notion Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.notion.com/v1/pages/{{ $json[\"notionPageId\"] }}",
+            "method": "PATCH",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "{ \"properties\": { \"content\": { \"rich_text\": [{ \"text\": { \"content\": \"{{ $json[\"llmOutput\"] }}\" } }] } } }",
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1271,
+    "completion_tokens": 884,
+    "total_tokens": 2155
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:48:07.352123"
+}

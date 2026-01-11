@@ -1,0 +1,163 @@
+{
+  "template_id": "3342",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow plan for the AI-Powered Cold Outreach Engine.",
+    "workflowPlan": {
+      "name": "AI-Powered Cold Outreach Engine",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Entry",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "start-outreach",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Maps Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "query",
+                "value": "={{$json[\"product_name\"]}}"
+              },
+              {
+                "name": "key",
+                "value": "YOUR_GOOGLE_MAPS_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract URLs",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "websiteUrls",
+                "value": "={{$json[\"results\"].map(result => result[\"website\"])}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Email Discovery",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.email-discovery-service.com/find",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "urls",
+                "value": "={{$json[\"websiteUrls\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Email Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ],
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "Generate a personalized outreach email for {{$json[\"product_name\"]}} using the website content from {{$json[\"websiteUrls\"]}}"
+              },
+              {
+                "name": "max_tokens",
+                "value": 200
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"emails\"]}}",
+            "subject": "Introducing {{$json[\"product_name\"]}}",
+            "text": "={{$json[\"choices\"][0][\"text\"]}}",
+            "sendAs": "your-email@gmail.com"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1014,
+    "completion_tokens": 965,
+    "total_tokens": 1979
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:56:20.978986"
+}

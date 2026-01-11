@@ -1,0 +1,226 @@
+{
+  "template_id": "10029",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "PDF Invoice Extractor (AI)",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "params": {
+            "event": "fileCreated",
+            "folderId": "google drive folder id",
+            "polling": "everyMinute",
+            "credentials": "googleDriveOAuth2Api"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File From Google",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "download",
+            "fileId": "={{ $json.id }}",
+            "credentials": "googleDriveOAuth2Api"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract from File",
+          "nodeType": "n8n-nodes-base.extractText",
+          "params": {
+            "operation": "pdf",
+            "options": {
+              "ocr": true
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Message a model",
+          "nodeType": "@n8n/n8n-nodes-langchain.openAi",
+          "params": {
+            "model": "gpt-4.1",
+            "messageRole": "system",
+            "jsonOutput": true,
+            "credentials": "openAiApi"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create or update an account",
+          "nodeType": "n8n-nodes-base.salesforce",
+          "params": {
+            "resource": "account",
+            "operation": "upsert",
+            "externalIdField": "tax_id__c",
+            "externalIdValue": "={{ $json.message.content.buyer.tax_id }}",
+            "name": "={{ $json.message.content.buyer.name }}",
+            "credentials": "salesforceOAuth2Api"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create an opportunity",
+          "nodeType": "n8n-nodes-base.salesforce",
+          "params": {
+            "resource": "opportunity",
+            "name": "={{ $('Message a model').item.json.message.content.invoice.code }}",
+            "closeDate": "={{ $('Message a model').item.json.message.content.invoice.issue_date }}",
+            "stage": "Closed Won",
+            "amount": "={{ $('Message a model').item.json.message.content.summary.grand_total }}",
+            "accountId": "={{ $json.id }}",
+            "credentials": "salesforceOAuth2Api"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Build SOQL",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "language": "JavaScript",
+            "code": "const pricebook2Id = '01sxxxxxxxxxxxxxxx';\nconst products = $('Message a model').first().json.message.content.products;\nconst codes = [...new Set(products.map(p => p.code))];\nconst soql = `SELECT Id, Product2.ProductCode FROM PricebookEntry WHERE Pricebook2Id = '${pricebook2Id}' AND Product2.ProductCode IN ('${codes.join(\"','\")}')`;\nreturn { soql, codes };"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Query PricebookEntries",
+          "nodeType": "n8n-nodes-base.salesforce",
+          "params": {
+            "resource": "search",
+            "query": "={{ $json.soql }}",
+            "credentials": "salesforceOAuth2Api"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Code in JavaScript",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "language": "JavaScript",
+            "code": "const opportunityId = $('Create an opportunity').first().json.id;\nconst lines = $('Message a model').first().json.message.content.products;\nconst pbeRows = items;\nconst records = lines.map(line => {\n  const pbe = pbeRows.find(row => row.json.Product2.ProductCode === line.code);\n  if (!pbe) throw new Error(`Missing PBE mapping for product code: ${line.code}`);\n  return {\n    OpportunityId: opportunityId,\n    PricebookEntryId: pbe.json.Id,\n    Quantity: line.quantity,\n    UnitPrice: line.unit_price\n  };\n});\nreturn { body: { allOrNone: false, records } };"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Create Opportunity Line Items",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "method": "POST",
+            "url": "https://<your-instance>.my.salesforce.com/services/data/v65.0/composite/sobjects",
+            "authentication": "salesforceOAuth2Api",
+            "jsonParameters": true,
+            "body": "={{ $json.body }}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Update File to One Drive",
+          "nodeType": "n8n-nodes-base.microsoftOneDrive",
+          "params": {
+            "operation": "upload",
+            "fileName": "={{ $json.name }}",
+            "parentFolderId": "onedrive folder id",
+            "binaryData": true,
+            "credentials": "microsoftOneDriveOAuth2Api"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "11"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2217,
+    "completion_tokens": 1657,
+    "total_tokens": 3874
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:24:50.960624"
+}

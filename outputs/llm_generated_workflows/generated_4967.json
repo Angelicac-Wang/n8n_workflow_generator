@@ -1,0 +1,126 @@
+{
+  "template_id": "4967",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to transform your creative sparks into professional Instagram Reel scripts using Telegram and OpenAI.",
+    "workflowPlan": {
+      "name": "Instagram Reel Script Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Transcribe Voice Note",
+          "nodeType": "n8n-nodes-base.openAIAudioTranscription",
+          "typeVersion": 1,
+          "params": {
+            "audioProperty": "file",
+            "audioFormat": "ogg",
+            "model": "whisper-1",
+            "audioFile": "={{$json[\"file\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Reel Script",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate a complete Instagram Reel script with hooks, script, captions, and visual concepts based on the following idea: {{$json[\"text\"]}}",
+            "maxTokens": 500
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chatId\"]}}",
+            "text": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D",
+            "data": [
+              [
+                "={{$now}}",
+                "={{$json[\"text\"]}}",
+                "={{$json[\"choices\"][0][\"text\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1689,
+    "completion_tokens": 791,
+    "total_tokens": 2480
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:14:56.615627"
+}

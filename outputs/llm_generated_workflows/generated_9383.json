@@ -1,0 +1,160 @@
+{
+  "template_id": "9383",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Law Firm Client Intake and Scheduling",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "JotForm Trigger",
+          "nodeType": "n8n-nodes-base.jotformTrigger",
+          "params": {
+            "formId": "252801824783057"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Append or Update Row in Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "appendOrUpdate",
+            "sheetName": "Law Client Enquiries",
+            "key": "Email Address",
+            "data": {
+              "Full Name": "={{$json[\"Full Name\"]}}",
+              "Email Address": "={{$json[\"Email Address\"]}}",
+              "Phone Number": "={{$json[\"Phone Number\"]}}",
+              "client type": "={{$json[\"I am a...\"]}}",
+              "Legal Service of Interest": "={{$json[\"Legal Service of Interest\"]}}",
+              "Brief Message": "={{$json[\"Brief Message\"]}}",
+              "How Did You Hear About Us?": "={{$json[\"How Did You Hear About Us?\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.googleGeminiChat",
+          "params": {
+            "prompt": "Generate a welcome message for {{$json[\"Full Name\"]}} interested in {{$json[\"Legal Service of Interest\"]}}.",
+            "persona": "Alex, a legal intake assistant"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Message",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "params": {
+            "phoneNumber": "={{$json[\"Phone Number\"]}}",
+            "message": "={{$node[\"3\"].output}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.whatsappTrigger",
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "6",
+          "label": "If Message Not Empty",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"message\"]}}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "AI Agent1",
+          "nodeType": "n8n-nodes-base.googleGeminiChat",
+          "params": {
+            "prompt": "Assist {{$json[\"Full Name\"]}} with scheduling a consultation.",
+            "persona": "Alex, a legal intake assistant"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Message1",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "params": {
+            "phoneNumber": "={{$json[\"Phone Number\"]}}",
+            "message": "={{$node[\"7\"].output}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2142,
+    "completion_tokens": 1022,
+    "total_tokens": 3164
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:40:04.640695"
+}

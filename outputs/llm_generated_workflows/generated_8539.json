@@ -1,0 +1,150 @@
+{
+  "template_id": "8539",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Job Search Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Config",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "MyCV": "{{paste your CV here}}",
+              "JobKeywords": "engineer, product manager",
+              "JobsToScrape": 50,
+              "HomeLocation": "Breda, Netherlands",
+              "MaxCommuteMinutes": 60,
+              "TargetLanguage": "English",
+              "ExperienceLevel": "mid_senior",
+              "Under10Applicants": true
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Jobs",
+          "nodeType": "n8n-nodes-base.apify",
+          "params": {
+            "apiToken": "{{Apify API Token}}",
+            "keywords": "={{$json[\"JobKeywords\"]}}",
+            "maxResults": "={{$json[\"JobsToScrape\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Triage & Smart Filtering",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "params": {
+            "apiKey": "{{Google Cloud API Key}}",
+            "prompt": "Extract job language, work model, and seniority level. Filter based on {{$json[\"TargetLanguage\"]}}, {{$json[\"ExperienceLevel\"]}}."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Commute Check",
+          "nodeType": "n8n-nodes-base.googleMaps",
+          "params": {
+            "apiKey": "{{Google Maps API Key}}",
+            "origin": "={{$json[\"HomeLocation\"]}}",
+            "destination": "={{$node[\"AI Triage & Smart Filtering\"].json[\"jobLocation\"]}}",
+            "mode": "driving",
+            "maxDuration": "={{$json[\"MaxCommuteMinutes\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Deep Analysis vs. CV",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "params": {
+            "apiKey": "{{Google Cloud API Key}}",
+            "prompt": "Compare job description against {{$json[\"MyCV\"]}} and generate match score."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log & Alert",
+          "nodeType": "n8n-nodes-base.supabase",
+          "params": {
+            "projectUrl": "{{Supabase Project URL}}",
+            "serviceRoleKey": "{{Supabase Service Role Key}}",
+            "table": "JobMatches",
+            "data": "={{$node[\"AI Deep Analysis vs. CV\"].json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Telegram Alert",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "botToken": "{{Telegram Bot Token}}",
+            "chatId": "{{Telegram Chat ID}}",
+            "message": "New job match found with score: {{$node[\"AI Deep Analysis vs. CV\"].json[\"matchScore\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1641,
+    "completion_tokens": 998,
+    "total_tokens": 2639
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:34:59.439700"
+}

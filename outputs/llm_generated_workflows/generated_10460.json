@@ -1,0 +1,305 @@
+{
+  "template_id": "10460",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Stock Market Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay",
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Stock Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.alphavantage.co/query",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "function",
+                "value": "TIME_SERIES_DAILY"
+              },
+              {
+                "name": "symbol",
+                "value": "AAPL"
+              },
+              {
+                "name": "apikey",
+                "value": "your_alpha_vantage_api_key"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch News",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://newsapi.org/v2/everything",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "stock market"
+              },
+              {
+                "name": "apiKey",
+                "value": "your_news_api_key"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Ratings",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/ratings",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "symbol",
+                "value": "AAPL"
+              },
+              {
+                "name": "apikey",
+                "value": "your_ratings_api_key"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Sentiment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/sentiment",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "symbol",
+                "value": "AAPL"
+              },
+              {
+                "name": "apikey",
+                "value": "your_sentiment_api_key"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 800
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items;"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Report",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Combine stock data, news, ratings, and sentiment into a market report.",
+            "apiKey": "your_openai_api_key"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Validate with Anthropic",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/validate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "report",
+                "value": "={{$json[\"report\"]}}"
+              }
+            ],
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer your_anthropic_api_key"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Validate with Gemini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gemini.com/validate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "report",
+                "value": "={{$json[\"report\"]}}"
+              }
+            ],
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer your_gemini_api_key"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Evaluate Consensus",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items;"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Telegram Alert",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your_telegram_chat_id",
+            "text": "Market insights and recommendations: {{ $json[\"consensus\"] }}",
+            "botToken": "your_telegram_bot_token"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "10"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 941,
+    "completion_tokens": 1697,
+    "total_tokens": 2638
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:33:10.732314"
+}

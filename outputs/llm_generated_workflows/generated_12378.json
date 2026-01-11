@@ -1,0 +1,167 @@
+{
+  "template_id": "12378",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating multilingual audio content creation.",
+    "workflowPlan": {
+      "name": "Multilingual Audio Content Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Source Text",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "receive-text"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Translate Text",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.translation-service.com/translate",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"body\"][\"text\"]}}",
+              "targetLanguages": [
+                "en",
+                "es",
+                "fr",
+                "de"
+              ]
+            },
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Validate Translation Quality",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"score\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 0.8
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/text-to-speech",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"translatedText\"]}}",
+              "voiceModel": "={{$json[\"language\"]}}"
+            },
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Calculate Audio Metrics",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { duration: $json[\"audioDuration\"] };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"language\"]}}_audio.mp3",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "content-updates",
+            "text": "New multilingual audio content has been uploaded to Google Drive."
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 735,
+    "completion_tokens": 972,
+    "total_tokens": 1707
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:26:30.071713"
+}

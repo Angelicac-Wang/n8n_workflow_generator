@@ -1,0 +1,181 @@
+{
+  "template_id": "2681",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automate the curation and sharing of trending GitHub discussions from Hacker News to Twitter and LinkedIn.",
+    "workflowPlan": {
+      "name": "GitHub Discussions to Social Media",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Crawl Hacker News",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://hacker-news.firebaseio.com/v0/topstories.json",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Filter GitHub Posts",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"title\"]}}",
+                  "operation": "contains",
+                  "value2": "GitHub"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch GitHub Details",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Social Media Post",
+          "nodeType": "openai",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a social media post for Twitter and LinkedIn based on the following GitHub discussion: {{$json[\"title\"]}}. Include a link: {{$json[\"url\"]}}.",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Post to Twitter",
+          "nodeType": "twitter",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post to LinkedIn",
+          "nodeType": "linkedin",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log to Airtable",
+          "nodeType": "airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "your_base_id",
+            "tableId": "your_table_id",
+            "fields": {
+              "Title": "={{$json[\"title\"]}}",
+              "URL": "={{$json[\"url\"]}}",
+              "Post Content": "={{$json[\"choices\"][0][\"text\"]}}",
+              "Status": "Posted",
+              "Timestamp": "={{$now}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Notify via Telegram",
+          "nodeType": "telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your_telegram_chat_id",
+            "text": "Posted new GitHub discussion to Twitter and LinkedIn: {{$json[\"title\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1157,
+    "completion_tokens": 1095,
+    "total_tokens": 2252
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:42:37.059686"
+}

@@ -1,0 +1,201 @@
+{
+  "template_id": "11499",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Meta Ads to Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "cronExpression": "0 5 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Config",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "adAccountId",
+                  "value": "act_123456789012345"
+                },
+                {
+                  "name": "datePreset",
+                  "value": "yesterday"
+                },
+                {
+                  "name": "sheetId",
+                  "value": "your_google_sheet_id"
+                },
+                {
+                  "name": "sheetName",
+                  "value": "Meta_Daily_Data"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Meta Insights",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{adAccountId}/insights",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "date_preset",
+                "value": "={{$json[\"datePreset\"]}}"
+              },
+              {
+                "name": "level",
+                "value": "campaign"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Code",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items.map(item => { /* Flatten and calculate KPIs */ return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$json[\"sheetId\"]}}",
+            "range": "={{$json[\"sheetName\"]}}",
+            "valueInputMode": "RAW",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Set Backfill Config",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "backfillSince",
+                  "value": "2022-01-01"
+                },
+                {
+                  "name": "backfillUntil",
+                  "value": "2022-12-31"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Meta Insights (time_range)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{adAccountId}/insights",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json",
+            "queryParameters": [
+              {
+                "name": "time_range",
+                "value": "{\"since\":\"{{$json[\"backfillSince\"]}}\",\"until\":\"{{$json[\"backfillUntil\"]}}\"}"
+              },
+              {
+                "name": "level",
+                "value": "campaign"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1354,
+    "completion_tokens": 1137,
+    "total_tokens": 2491
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:51:44.322049"
+}

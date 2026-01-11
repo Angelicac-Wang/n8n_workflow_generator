@@ -1,0 +1,203 @@
+{
+  "template_id": "12038",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate tenant analytics and churn risk evaluation.",
+    "workflowPlan": {
+      "name": "Tenant Analytics and Churn Risk Evaluation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Retrieve Tenant Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.tenantdata.com/profiles",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Retrieve Service Requests",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.servicerequests.com/requests",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Retrieve Feedback Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.feedback.com/data",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Churn Risk",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "body": {
+              "model": "gpt-4",
+              "prompt": "Analyze tenant data for churn risk.",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Evaluate Engagement Levels",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "{{ $json[\"risk_score\"] }}",
+                  "operation": "greaterThan",
+                  "value2": 0.7
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Notify Retention Specialists",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.slack.com/notify",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "body": {
+              "channel": "#retention",
+              "text": "High-risk tenant detected, please engage."
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Engagement Email",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.gmail.com/send",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "body": {
+              "to": "{{ $json[\"tenant_email\"] }}",
+              "subject": "We Value Your Stay",
+              "body": "We noticed you might be at risk of leaving. Here's a special offer just for you!"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update CRM",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.crm.com/update",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "body": {
+              "tenant_id": "{{ $json[\"tenant_id\"] }}",
+              "risk_score": "{{ $json[\"risk_score\"] }}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 697,
+    "completion_tokens": 1221,
+    "total_tokens": 1918
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:11:51.349173"
+}

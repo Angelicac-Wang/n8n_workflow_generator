@@ -1,0 +1,151 @@
+{
+  "template_id": "12127",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Meeting Assistant: Sync Fireflies Transcripts to ClickUp & Gmail",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Transcripts",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fireflies.ai/v1/transcripts",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Filter Today's Meetings",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter(item => new Date(item.json.date).toDateString() === new Date().toDateString());"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Task Extraction",
+          "nodeType": "openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Extract tasks assigned to the host from the following transcript: {{transcript}}",
+            "apiKey": "YOUR_OPENAI_API_KEY"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create ClickUp Task",
+          "nodeType": "clickUp",
+          "typeVersion": 1,
+          "params": {
+            "workspaceId": "YOUR_WORKSPACE_ID",
+            "spaceId": "YOUR_SPACE_ID",
+            "listId": "YOUR_LIST_ID",
+            "taskName": "{{taskName}}",
+            "taskDescription": "{{taskDescription}}",
+            "priority": "{{priority}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Summary to Telegram",
+          "nodeType": "telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "YOUR_CHAT_ID",
+            "message": "Summary of tasks for approval: {{summary}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Draft Follow-up Email",
+          "nodeType": "openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Draft a professional follow-up email based on the following summary: {{summary}}",
+            "apiKey": "YOUR_OPENAI_API_KEY"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email via Gmail",
+          "nodeType": "gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "{{participantEmail}}",
+            "subject": "Meeting Follow-up",
+            "body": "{{emailBody}}",
+            "authentication": "gmailAuth"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 982,
+    "completion_tokens": 898,
+    "total_tokens": 1880
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:16:32.814788"
+}

@@ -1,0 +1,163 @@
+{
+  "template_id": "1960",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to populate a Pinecone index with vectors from a Bitcoin whitepaper, wait for a chat message, and generate a response using OpenAI.",
+    "workflowPlan": {
+      "name": "Bitcoin Whitepaper Chat Response",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Read Bitcoin Whitepaper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/bitcoin-whitepaper.pdf",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert PDF to Text",
+          "nodeType": "n8n-nodes-base.pdfExtract",
+          "typeVersion": 1,
+          "params": {
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Vectors",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEmbedding",
+            "model": "text-embedding-ada-002",
+            "text": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upsert to Pinecone",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upsert",
+            "index": "bitcoin-whitepaper",
+            "vectors": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait for Chat Message",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Convert Message to Vector",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEmbedding",
+            "model": "text-embedding-ada-002",
+            "text": "={{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Query Pinecone",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "typeVersion": 1,
+          "params": {
+            "operation": "query",
+            "index": "bitcoin-whitepaper",
+            "vector": "={{$json[\"data\"]}}",
+            "topK": 5
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Chat Response",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createCompletion",
+            "model": "text-davinci-003",
+            "prompt": "Based on the following context: {{$json[\"data\"]}}, generate a response to the user query."
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 551,
+    "completion_tokens": 1005,
+    "total_tokens": 1556
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:30:29.148845"
+}

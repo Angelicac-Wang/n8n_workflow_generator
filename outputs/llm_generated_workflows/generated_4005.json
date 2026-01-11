@@ -1,0 +1,140 @@
+{
+  "template_id": "4005",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LinkedIn Content Automation",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "googleSheets",
+          "label": "Fetch Data from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D",
+            "filter": {
+              "field": "Status",
+              "value": "Pending"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "openAI",
+          "label": "Generate LinkedIn Post Content",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Create a LinkedIn post based on the following description and instructions: {{Post Description}}, {{Instructions}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "formatData",
+          "label": "Format & Prepare Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "emailContent",
+                "value": "Generated Content: {{Generated Content}}, Original Description: {{Post Description}}, Instructions: {{Instructions}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "gmail",
+          "label": "Send for Approval",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "your-email@example.com",
+            "subject": "LinkedIn Post Approval",
+            "body": "Please review the following LinkedIn post content: {{emailContent}}. Approve or suggest edits."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "imageFetch",
+          "label": "Optional Image Fetch",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "{{Image URL}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "googleSheets"
+        },
+        {
+          "from": "googleSheets",
+          "to": "openAI"
+        },
+        {
+          "from": "openAI",
+          "to": "formatData"
+        },
+        {
+          "from": "formatData",
+          "to": "gmail"
+        },
+        {
+          "from": "googleSheets",
+          "to": "imageFetch"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 945,
+    "completion_tokens": 802,
+    "total_tokens": 1747
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:05:43.627169"
+}

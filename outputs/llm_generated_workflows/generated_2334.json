@@ -1,0 +1,77 @@
+{
+  "template_id": "2334",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow will organize files in a local directory using AI to determine the best subdirectory for each new file.",
+    "workflowPlan": {
+      "name": "File Organizer with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "File Trigger",
+          "nodeType": "n8n-nodes-base.fileTrigger",
+          "typeVersion": 1,
+          "params": {
+            "path": "/path/to/your/directory",
+            "pollingInterval": 60
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.mistral.ai/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "filename": "={{$json[\"fileName\"]}}",
+              "filetype": "={{$json[\"fileExtension\"]}}",
+              "subdirectories": "={{$json[\"subdirectories\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Move File",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "mv {{$json[\"filePath\"]}} {{$json[\"suggestedPath\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 834,
+    "completion_tokens": 451,
+    "total_tokens": 1285
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:34:32.948664"
+}

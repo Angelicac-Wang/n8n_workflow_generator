@@ -1,0 +1,76 @@
+{
+  "template_id": "2384",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to interact with local LLMs using Ollama.",
+    "workflowPlan": {
+      "name": "Chat with Local LLMs via Ollama",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Chat Message",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "receive-chat-message",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Send to Ollama",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://localhost:8000/api/chat",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "={{$json[\"body\"][\"message\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Return LLM Response",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"body\"][\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 717,
+    "completion_tokens": 425,
+    "total_tokens": 1142
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:35:25.175053"
+}

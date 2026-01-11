@@ -1,0 +1,97 @@
+{
+  "template_id": "4881",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to turn ideas into videos using Google Sheets, Fal.AI, and Veo 3.",
+    "workflowPlan": {
+      "name": "Google Sheets to Video",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheetsTrigger",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "100ur8DnU_q2YIAx15ccMfEWC43Di_G7hj19csjxg73A",
+            "range": "Sheet1!A:C",
+            "authentication": "serviceAccount",
+            "watchFor": "addRow"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fal.AI Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/create-video",
+            "method": "POST",
+            "authentication": "none",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "idea": "={{$json[\"idea\"]}}",
+              "shape": "={{$json[\"shape\"]}}",
+              "sound": "={{$json[\"sound\"]}}"
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_FAL_AI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "100ur8DnU_q2YIAx15ccMfEWC43Di_G7hj19csjxg73A",
+            "range": "Sheet1!D:D",
+            "authentication": "serviceAccount",
+            "valueInputMode": "RAW",
+            "data": [
+              {
+                "range": "Sheet1!D{{=$json[\"rowNumber\"]}}",
+                "values": [
+                  [
+                    "={{$node[\"Fal.AI Request\"].json[\"videoLink\"]}}"
+                  ]
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 801,
+    "completion_tokens": 626,
+    "total_tokens": 1427
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:14:20.608891"
+}

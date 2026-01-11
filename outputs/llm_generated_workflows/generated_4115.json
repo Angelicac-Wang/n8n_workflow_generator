@@ -1,0 +1,195 @@
+{
+  "template_id": "4115",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Crypto Market Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": "*",
+                  "minute": "0"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request (CoinGecko)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.coingecko.com/api/v3/coins/markets",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "vs_currency",
+                  "value": "usd"
+                },
+                {
+                  "name": "order",
+                  "value": "market_cap_desc"
+                },
+                {
+                  "name": "per_page",
+                  "value": "10"
+                },
+                {
+                  "name": "page",
+                  "value": "1"
+                },
+                {
+                  "name": "price_change_percentage",
+                  "value": "24h,7d,30d"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split In Batches",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Function (Calculate Market Metrics)",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const marketMetrics = items[0].json;\nmarketMetrics.weightedVolatility = ...; // Calculate\nmarketMetrics.marketCapToVolumeRatio = ...; // Calculate\nmarketMetrics.priceToATHRatio = ...; // Calculate\nmarketMetrics.compositeMarketScore = ...; // Calculate\nreturn [{ json: marketMetrics }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "IF & Switch",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "{{ $json[\"price_change_percentage_24h\"] > 5 }}"
+                },
+                {
+                  "value1": "{{ $json[\"price_change_percentage_24h\"] < -5 }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "NoOp & Merge",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "passThrough"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Function (Generate Portfolio Summary)",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const portfolioSummary = ...; // Generate summary\nreturn [{ json: { portfolioSummary } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Webhook Response",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "responseMode": "onReceived",
+            "path": "cryptoanalysis"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1193,
+    "completion_tokens": 1130,
+    "total_tokens": 2323
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:07:47.863965"
+}

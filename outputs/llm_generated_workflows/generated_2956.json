@@ -1,0 +1,144 @@
+{
+  "template_id": "2956",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to interact with an AI agent for YouTube video analysis.",
+    "workflowPlan": {
+      "name": "YouTube Video AI Agent Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "youtube-video-ai",
+            "httpMethod": "POST",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Get Video Details",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "part",
+                  "value": "snippet,contentDetails"
+                },
+                {
+                  "name": "id",
+                  "value": "={{$json[\"videoId\"]}}"
+                },
+                {
+                  "name": "key",
+                  "value": "YOUR_YOUTUBE_API_KEY"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request - Get Transcript",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/getTranscript",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "videoId",
+                  "value": "={{$json[\"videoId\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Agent Interaction",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/aiAgent",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "videoDetails",
+                  "value": "={{$node[\"HTTP Request - Get Video Details\"].json}}"
+                },
+                {
+                  "name": "transcript",
+                  "value": "={{$node[\"HTTP Request - Get Transcript\"].json}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with AI Analysis",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$node[\"AI Agent Interaction\"].json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 982,
+    "completion_tokens": 829,
+    "total_tokens": 1811
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:49:34.598664"
+}

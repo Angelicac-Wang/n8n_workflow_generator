@@ -1,0 +1,150 @@
+{
+  "template_id": "8966",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "HubSpot Call Log and Task Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "Contact Email",
+                "type": "string"
+              },
+              {
+                "name": "Call Transcript",
+                "type": "string"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HubSpot Contact Lookup",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "contact",
+            "operation": "get",
+            "email": "={{$json[\"Contact Email\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Summarize and Task Draft",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Summarize the following call transcript in 120-160 words and propose one follow-up task. Transcript: {{$json[\"Call Transcript\"]}}",
+            "maxTokens": 300
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Log Call to HubSpot",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "engagement",
+            "operation": "create",
+            "engagementType": "call",
+            "properties": {
+              "subject": "Call Summary",
+              "body": "={{$json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Task in HubSpot",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "task",
+            "operation": "create",
+            "properties": {
+              "subject": "Follow-up Task",
+              "body": "={{$json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Contact from Transcript",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "contact",
+            "operation": "update",
+            "email": "={{$json[\"Contact Email\"]}}",
+            "properties": {
+              "city": "={{$json[\"city\"]}}",
+              "country": "={{$json[\"country\"]}}",
+              "jobTitle": "={{$json[\"jobTitle\"]}}",
+              "jobFunction": "={{$json[\"jobFunction\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 984,
+    "completion_tokens": 912,
+    "total_tokens": 1896
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:37:37.096518"
+}

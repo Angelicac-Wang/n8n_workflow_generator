@@ -1,0 +1,170 @@
+{
+  "template_id": "12054",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Auto-clip Long Videos into Viral Short Clips",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Collect Video URL",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "collect-video-url",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Clipping Project",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.vizard.ai/create-project",
+            "method": "POST",
+            "body": {
+              "videoUrl": "={{$json[\"body\"][\"videoUrl\"]}}",
+              "viralScore": "={{$json[\"body\"][\"viralScore\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Poll Project Status",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.vizard.ai/project-status",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "projectId",
+                "value": "={{$node[\"Create Clipping Project\"].json[\"projectId\"]}}"
+              }
+            ],
+            "json": true
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Clips by Viral Score",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"viralScore\"]}}",
+                  "operation": "greaterThan",
+                  "value2": "={{$node[\"Set Configuration\"].json[\"viralScoreThreshold\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish Clips",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.socialplatform.com/publish",
+            "method": "POST",
+            "body": {
+              "clipUrl": "={{$json[\"clipUrl\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log Results to Google Sheets",
+          "nodeType": "googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1",
+            "data": [
+              [
+                "={{$json[\"clipUrl\"]}}",
+                "={{$json[\"viralScore\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Set Configuration",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "viralScoreThreshold": 70
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 632,
+    "completion_tokens": 960,
+    "total_tokens": 1592
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:12:44.347552"
+}

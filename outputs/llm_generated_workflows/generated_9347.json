@@ -1,0 +1,138 @@
+{
+  "template_id": "9347",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for creating a Messenger AI Agent.",
+    "workflowPlan": {
+      "name": "Messenger AI Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Messenger Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "messenger-webhook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Detect Message Type",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"entry\"][0][\"messaging\"][0][\"message\"][\"text\"]}}",
+                  "operation": "notEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Prepare Text Prompt",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "add": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"entry\"][0][\"messaging\"][0][\"message\"][\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "body": {
+                "prompt": "={{$json[\"prompt\"]}}",
+                "max_tokens": 150
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Response to Messenger",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v11.0/me/messages",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "body": {
+                "recipient": {
+                  "id": "={{$json[\"entry\"][0][\"messaging\"][0][\"sender\"][\"id\"]}}"
+                },
+                "message": {
+                  "text": "={{$json[\"choices\"][0][\"text\"]}}"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 842,
+    "completion_tokens": 816,
+    "total_tokens": 1658
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:39:20.645783"
+}

@@ -1,0 +1,118 @@
+{
+  "template_id": "2320",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates the extraction of data from PDF invoices received via email and saves it to Google Sheets.",
+    "workflowPlan": {
+      "name": "PDF Invoice Data Extraction",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Email Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "criteria": "has:attachment",
+            "label": "inbox"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Attachments",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "downloadAttachment",
+            "attachmentPropertyName": "attachments"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "LlamaParse PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.llamaparse.com/parse",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "file": "={{$json[\"attachments\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_LLAMA_PARSE_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process with GPT",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "complete",
+            "model": "text-davinci-003",
+            "prompt": "Extract relevant data from the following markdown: {{$json[\"markdown\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 821,
+    "completion_tokens": 702,
+    "total_tokens": 1523
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:34:08.378052"
+}

@@ -1,0 +1,171 @@
+{
+  "template_id": "12167",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to handle email replies for scheduling.",
+    "workflowPlan": {
+      "name": "Email Reply Handling for Scheduling",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerOn": "newEmail",
+            "filters": {
+              "from": "example@example.com",
+              "subject": "Availability Options"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Text Analysis",
+          "nodeType": "n8n-nodes-base.textAnalysis",
+          "typeVersion": 1,
+          "params": {
+            "operation": "extract",
+            "textProperty": "text",
+            "extractType": "intent"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "If Confirmed",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"intent\"]}}",
+                  "operation": "equal",
+                  "value2": "confirm"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Calendar Event",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendarId": "primary",
+            "start": "={{$json[\"startTime\"]}}",
+            "end": "={{$json[\"endTime\"]}}",
+            "summary": "Scheduled Meeting"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Confirmation Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "Meeting Confirmation",
+            "body": "Your meeting has been confirmed for the proposed time."
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "If Alternative Requested",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"intent\"]}}",
+                  "operation": "equal",
+                  "value2": "alternative"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Follow-up Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"from\"]}}",
+            "subject": "Alternative Time Slots",
+            "body": "Please provide alternative time slots for scheduling."
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 648,
+    "completion_tokens": 978,
+    "total_tokens": 1626
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:17:47.592295"
+}

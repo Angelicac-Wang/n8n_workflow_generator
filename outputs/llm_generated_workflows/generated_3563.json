@@ -1,0 +1,137 @@
+{
+  "template_id": "3563",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Phone Agent with RetellAI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "RetellAI Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "n8n_call",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Summarization",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Summarize the following conversation and extract key details such as names, contact info, and dates: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendarId": "primary",
+            "start": "{{$json[\"data\"][\"date\"]}}",
+            "end": "{{$json[\"data\"][\"date\"]}}",
+            "summary": "Appointment with {{$json[\"data\"][\"name\"]}}",
+            "description": "Contact: {{$json[\"data\"][\"contact\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Qdrant Information Retrieval",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://QDRANTURL/collections/COLLECTION/points/search",
+            "method": "POST",
+            "body": {
+              "query": "{{$json[\"body\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI RAG Response",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Using the following information, respond to the query: {{$json[\"body\"]}}. Retrieved data: {{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "CHAT_ID",
+            "text": "New call processed. Summary: {{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1318,
+    "completion_tokens": 873,
+    "total_tokens": 2191
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:59:39.849700"
+}

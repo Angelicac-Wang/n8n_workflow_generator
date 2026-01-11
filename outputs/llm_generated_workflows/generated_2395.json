@@ -1,0 +1,135 @@
+{
+  "template_id": "2395",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a demo workflow to showcase how to use Supabase to embed a document, retrieve information from the vector store via chat, and update the database.",
+    "workflowPlan": {
+      "name": "Supabase Document Embed and Retrieve",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "document-upload"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Upload Document",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-upload-service.com/upload",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "document": "={{$json[\"body\"][\"document\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Embed Document in Supabase",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-supabase-instance.supabase.co/rest/v1/documents",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "document_url": "={{$node[\"Upload Document\"].json[\"body\"][\"url\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "supabaseApi": "Supabase API"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Retrieve Information via Chat",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-ai-model.com/chat",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "query": "={{$json[\"body\"][\"query\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "aiModelApi": "AI Model API"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Supabase Database",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-supabase-instance.supabase.co/rest/v1/documents",
+            "method": "PATCH",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "query_result": "={{$node[\"Retrieve Information via Chat\"].json[\"body\"][\"result\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "supabaseApi": "Supabase API"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 582,
+    "completion_tokens": 861,
+    "total_tokens": 1443
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:35:43.319933"
+}

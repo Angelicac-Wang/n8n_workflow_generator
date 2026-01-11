@@ -1,0 +1,133 @@
+{
+  "template_id": "3132",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Trending Content Research Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Google Trends RSS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US",
+            "method": "GET",
+            "responseFormat": "xml"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Trending Keywords",
+          "nodeType": "n8n-nodes-base.xml",
+          "params": {
+            "dataPropertyName": "items",
+            "xpath": "//item"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Article Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "={{$json[\"link\"]}}",
+            "method": "GET",
+            "responseFormat": "text"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Summarize Content with Jina AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.jina.ai/v1/summarize",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "body": {
+              "text": "={{$json[\"content\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:Q",
+            "valueInputMode": "RAW",
+            "data": [
+              [
+                "idea",
+                "={{$json[\"title\"]}}",
+                "={{$json[\"approx_traffic\"]}}",
+                "={{$json[\"pubDate\"]}}",
+                "={{$json[\"link1\"]}}",
+                "={{$json[\"title1\"]}}",
+                "={{$json[\"link2\"]}}",
+                "={{$json[\"title2\"]}}",
+                "={{$json[\"link3\"]}}",
+                "={{$json[\"title3\"]}}",
+                "={{$json[\"image1\"]}}",
+                "={{$json[\"source1\"]}}",
+                "={{$json[\"image2\"]}}",
+                "={{$json[\"source2\"]}}",
+                "={{$json[\"image3\"]}}",
+                "={{$json[\"source3\"]}}",
+                "={{$json[\"summary\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1135,
+    "completion_tokens": 835,
+    "total_tokens": 1970
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:53:26.509770"
+}

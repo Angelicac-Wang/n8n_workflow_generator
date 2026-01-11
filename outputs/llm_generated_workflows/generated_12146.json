@@ -1,0 +1,161 @@
+{
+  "template_id": "12146",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to build and deploy a custom-trained AI Chatbot using Google Gemini and Pinecone.",
+    "workflowPlan": {
+      "name": "AI Chatbot Deployment",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "initialize-knowledge-base",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Decodo Content Extraction",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.decodo.com/extract",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "url",
+                "value": "={{$json[\"body\"][\"url\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "decodoApi"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gemini Embedding",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/embedding",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "text",
+                "value": "={{$json[\"body\"][\"content\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "googleGeminiApi"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Pinecone Storage",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.pinecone.io/vectors/upsert",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "vector",
+                "value": "={{$json[\"body\"][\"embedding\"]}}"
+              },
+              {
+                "name": "index",
+                "value": "supportbot"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "pineconeApi"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "chat-trigger",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/chat",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "query",
+                "value": "={{$json[\"body\"][\"message\"]}}"
+              },
+              {
+                "name": "context",
+                "value": "={{$json[\"body\"][\"context\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentialType": "googleGeminiApi"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1386,
+    "completion_tokens": 968,
+    "total_tokens": 2354
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:16:55.550260"
+}

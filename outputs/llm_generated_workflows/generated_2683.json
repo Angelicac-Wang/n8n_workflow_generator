@@ -1,0 +1,172 @@
+{
+  "template_id": "2683",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Smart Agent for Meeting Task Management",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Capture Meeting Completion",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "meeting-completion"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Retrieve Meeting Details",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fireflies.ai/graphql",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "body": {
+              "query": "{ meeting(id: \"{{$json[\"meetingId\"]}}\") { transcript participants } }"
+            },
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_FIRELIES_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Transcript with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "body": {
+              "prompt": "Extract tasks from the following transcript: {{$json[\"data\"][\"meeting\"][\"transcript\"]}}",
+              "max_tokens": 150
+            },
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Tasks in Airtable",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "bodyContentType": "json"
+            },
+            "body": {
+              "fields": {
+                "Task": "{{$json[\"choices\"][0][\"text\"]}}",
+                "Meeting ID": "{{$json[\"meetingId\"]}}"
+              }
+            },
+            "headerAuth": {
+              "name": "Authorization",
+              "value": "Bearer YOUR_AIRTABLE_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Notify Clients",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "{{$json[\"data\"][\"meeting\"][\"participants\"][0][\"email\"]}}",
+            "subject": "New Tasks from Meeting",
+            "text": "You have new tasks from the recent meeting: {{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Schedule Follow-Up",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "calendar": "primary",
+            "start": "{{$json[\"data\"][\"meeting\"][\"endTime\"]}}",
+            "end": "{{$json[\"data\"][\"meeting\"][\"endTime\"]}}",
+            "summary": "Follow-Up Meeting",
+            "description": "Follow-up on tasks from meeting ID: {{$json[\"meetingId\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1024,
+    "completion_tokens": 1146,
+    "total_tokens": 2170
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:42:52.374692"
+}

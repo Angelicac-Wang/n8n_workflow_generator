@@ -1,0 +1,135 @@
+{
+  "template_id": "2453",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan to create a Telegram bot with memory capabilities using OpenAI and Supabase.",
+    "workflowPlan": {
+      "name": "Telegram Bot with Memory",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive New Message",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check User in Database",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "telegram_users",
+            "query": "telegram_id",
+            "queryValue": "={{$json[\"message\"][\"from\"][\"id\"]}}",
+            "supabaseUrl": "={{$env.SUPABASE_URL}}",
+            "supabaseKey": "={{$env.SUPABASE_KEY}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create New User",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "telegram_users",
+            "data": {
+              "telegram_id": "={{$json[\"message\"][\"from\"][\"id\"]}}",
+              "openai_thread_id": "={{$json[\"message\"][\"message_id\"]}}"
+            },
+            "supabaseUrl": "={{$env.SUPABASE_URL}}",
+            "supabaseKey": "={{$env.SUPABASE_KEY}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Start or Continue Conversation with OpenAI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "model": "text-davinci-003",
+              "prompt": "={{$json[\"message\"][\"text\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer {{$env.OPENAI_API_KEY}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Reply to User",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"choices\"][0][\"text\"]}}",
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1188,
+    "completion_tokens": 919,
+    "total_tokens": 2107
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:37:15.273406"
+}

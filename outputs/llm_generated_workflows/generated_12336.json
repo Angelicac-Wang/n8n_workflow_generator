@@ -1,0 +1,173 @@
+{
+  "template_id": "12336",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Monitor GitHub Repositories for Unauthorized Actions",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "GitHub Trigger",
+          "nodeType": "n8n-nodes-base.githubTrigger",
+          "typeVersion": 1,
+          "params": {
+            "events": [
+              "push",
+              "member",
+              "public"
+            ],
+            "owner": "your-github-username",
+            "repository": "your-repository-name",
+            "authentication": "={{ $credentials.githubApi }}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Lookup User Role",
+          "nodeType": "n8n-nodes-base.dataTableRead",
+          "typeVersion": 1,
+          "params": {
+            "table": "it_whitelist",
+            "filter": {
+              "field": "github_username",
+              "value": "={{ $json.actor.login }}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Switch Event Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "PushEvent"
+              },
+              {
+                "operation": "equal",
+                "value": "MemberEvent"
+              },
+              {
+                "operation": "equal",
+                "value": "PublicEvent"
+              }
+            ],
+            "property": "={{ $json.type }}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Push Event",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.role }}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Member & Public Event",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.role }}",
+                  "operation": "notEqual",
+                  "value2": "admin"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Alert to Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "your-slack-channel",
+            "text": "Unauthorized action detected: {{ $json.type }} by {{ $json.actor.login }} on {{ $json.repo.name }}",
+            "authentication": "={{ $credentials.slackApi }}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 2
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 770,
+    "completion_tokens": 930,
+    "total_tokens": 1700
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:24:57.080797"
+}

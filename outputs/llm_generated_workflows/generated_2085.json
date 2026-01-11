@@ -1,0 +1,112 @@
+{
+  "template_id": "2085",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow that allows you to ask questions about data in a Google Sheet using GPT-4.",
+    "workflowPlan": {
+      "name": "Google Sheets Data Query via Chat",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-interface"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const { Configuration, OpenAIApi } = require('openai');\nconst configuration = new Configuration({ apiKey: $node[\"Set\"].json[\"apiKey\"] });\nconst openai = new OpenAIApi(configuration);\n\nasync function run() {\n  const response = await openai.createCompletion({\n    model: \"gpt-4\",\n    prompt: $json[\"query\"],\n    max_tokens: 150\n  });\n  return response.data.choices[0].text;\n}\n\nreturn run();"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Sheets Query",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "A:Z"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Respond",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "{{$node[\"AI Agent\"].json}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Set API Key",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "apiKey",
+                  "value": "your-openai-api-key"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "2"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 681,
+    "completion_tokens": 718,
+    "total_tokens": 1399
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:31:10.724179"
+}

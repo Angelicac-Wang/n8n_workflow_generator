@@ -1,0 +1,195 @@
+{
+  "template_id": "11618",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow for automating LLM response quality evaluation using Contextual AI's LMUnit.",
+    "workflowPlan": {
+      "name": "LLM Response Quality Evaluation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "trigger-chat",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI GPT-4.1",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4.1/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "credentialType": "openAIApi"
+            },
+            "options": {},
+            "bodyParameters": {
+              "mode": "json",
+              "parameters": {
+                "prompt": "={{$json[\"prompt\"]}}",
+                "max_tokens": 100
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Claude 4.5 Sonnet",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/v1/claude/4.5/sonnet",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "credentialType": "anthropicApi"
+            },
+            "options": {},
+            "bodyParameters": {
+              "mode": "json",
+              "parameters": {
+                "prompt": "={{$json[\"prompt\"]}}",
+                "max_tokens": 100
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Gemini 2.5 Flash",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.dev/gemini/v2.5/flash",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "credentialType": "geminiApi"
+            },
+            "options": {},
+            "bodyParameters": {
+              "mode": "json",
+              "parameters": {
+                "prompt": "={{$json[\"prompt\"]}}",
+                "max_tokens": 100
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "LMUnit Evaluation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.contextual.ai/lmunit/evaluate",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "credentialType": "contextualAIApi"
+            },
+            "options": {},
+            "bodyParameters": {
+              "mode": "json",
+              "parameters": {
+                "responses": [
+                  "={{$node[\"OpenAI GPT-4.1\"].json[\"choices\"][0][\"text\"]}}",
+                  "={{$node[\"Claude 4.5 Sonnet\"].json[\"choices\"][0][\"text\"]}}",
+                  "={{$node[\"Gemini 2.5 Flash\"].json[\"choices\"][0][\"text\"]}}"
+                ],
+                "criteria": [
+                  "clarity",
+                  "conciseness"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Format Summary",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "summary",
+                  "value": "={{$node[\"LMUnit Evaluation\"].json[\"summary\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1089,
+    "completion_tokens": 1210,
+    "total_tokens": 2299
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:54:58.815097"
+}

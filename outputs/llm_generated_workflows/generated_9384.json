@@ -1,0 +1,152 @@
+{
+  "template_id": "9384",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily AI News Digest from Hacker News",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Start",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get AI Stories",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://hacker-news.firebaseio.com/v0/newstories.json",
+            "options": {},
+            "responseFormat": "json",
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter AI Stories",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const oneDayAgo = new Date();\noneDayAgo.setDate(oneDayAgo.getDate() - 1);\n\nreturn items.filter(item => {\n  const storyDate = new Date(item.json.time * 1000);\n  return storyDate > oneDayAgo && item.json.title.includes('AI');\n});"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Scrape Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "options": {},
+            "responseFormat": "text",
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Summarize with GPT",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Summarize the following content in two sentences: {{$json[\"content\"]}}",
+            "maxTokens": 100
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create HTML Email",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "let emailContent = '<h1>Daily AI News Digest</h1><ul>';\nitems.forEach(item => {\n  emailContent += `<li><strong>${item.json.title}</strong>: ${item.json.summary}</li>`;\n});\nemailContent += '</ul>';\nreturn [{ json: { emailContent } }];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.smtp",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Your Daily AI News Digest",
+            "html": "={{$json[\"emailContent\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1046,
+    "completion_tokens": 993,
+    "total_tokens": 2039
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:40:12.478690"
+}

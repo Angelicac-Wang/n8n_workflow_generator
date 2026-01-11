@@ -1,0 +1,162 @@
+{
+  "template_id": "9253",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to set up the AI UGC Video Automation System.",
+    "workflowPlan": {
+      "name": "AI UGC Video Automation",
+      "nodes": [
+        {
+          "id": "telegramTrigger",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "imageAnalysis",
+          "label": "Image Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/analyze",
+            "method": "POST",
+            "body": {
+              "image": "={{$json[\"message\"][\"photo\"][0][\"file_id\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "promptGeneration",
+          "label": "Prompt Generation",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { prompt: `Create a UGC video with ${$json.productDetails} and ${$json.characterDetails}.` };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "imageCreation",
+          "label": "Image Creation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.key.ai/v4/image",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "aspect_ratio": "2:3"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "videoClipGeneration",
+          "label": "Video Clip Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.key.ai/v3/video",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "image": "={{$json[\"imageUrl\"]}}",
+              "aspect_ratio": "2:3"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "videoMerge",
+          "label": "Video Merge",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.file.ai/ffmpeg/merge",
+            "method": "POST",
+            "body": {
+              "video_urls": "={{$json[\"videoUrls\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendVideo",
+          "label": "Send Video",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chat\"][\"id\"]}}",
+            "text": "Your UGC video is ready: {{$json[\"videoUrl\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "telegramTrigger",
+          "to": "imageAnalysis"
+        },
+        {
+          "from": "imageAnalysis",
+          "to": "promptGeneration"
+        },
+        {
+          "from": "promptGeneration",
+          "to": "imageCreation"
+        },
+        {
+          "from": "imageCreation",
+          "to": "videoClipGeneration"
+        },
+        {
+          "from": "videoClipGeneration",
+          "to": "videoMerge"
+        },
+        {
+          "from": "videoMerge",
+          "to": "sendVideo"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1175,
+    "completion_tokens": 1021,
+    "total_tokens": 2196
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:38:38.810857"
+}

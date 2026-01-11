@@ -1,0 +1,346 @@
+{
+  "template_id": "10850",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Video Generation with Telegram Bot and Gemini API Auto-Post to TikTok, Instagram & Facebook",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Listen for incoming events",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Voice or Text",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "text": "={{$json[\"message\"][\"text\"] || \"\"}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "A Voice?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message\"][\"voice\"] !== undefined}}",
+                  "operation": "equal",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get Voice File",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getFile",
+            "fileId": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Speech to Text",
+          "nodeType": "n8n-nodes-base.openaiWhisper",
+          "typeVersion": 1,
+          "params": {
+            "audioFile": "={{$binary.data}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.openaiChat",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "systemMessage": "You are a video prompt assistant for Telegram. 1. Analyze the users message and create a video prompt. 2. Create relevant social media text with hashtags. 3. Present both to the user and ask for feedback. 4. If the user requests changes, refine and present again. 5. Only when the user says approved or ok, output a final JSON: { \"videoPrompt\": \"...\", \"socialMediaText\": \"...\" }"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Parse AI Output",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const output = JSON.parse(items[0].json.text);\nreturn [{ json: { videoPrompt: output.videoPrompt, socialMediaText: output.socialMediaText } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Inform user about processing",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Okay. Your video is being prepared now. I'll let you know as soon as it's online."
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Save Prompt & Post-Text",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A1",
+            "data": "={{[{ videoPrompt: $json[\"videoPrompt\"], socialMediaText: $json[\"socialMediaText\"] }]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Generate a video",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "model": "models/veo-3.0-fast-generate-001",
+            "prompt": "={{$json[\"videoPrompt\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Upload video",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "video.mp4",
+            "fileContent": "={{$binary.data}}",
+            "folderId": "your_google_drive_folder_id"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Download Video from Drive1",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"fileId\"]}}"
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Upload media1",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/upload",
+            "method": "POST",
+            "body": {
+              "file": "={{$binary.data}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your_blotato_api_key"
+            }
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        },
+        {
+          "id": "14",
+          "label": "Create TikTok post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/tiktok/post",
+            "method": "POST",
+            "body": {
+              "mediaUrl": "={{$json[\"url\"]}}",
+              "caption": "={{$json[\"socialMediaText\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your_blotato_api_key"
+            }
+          },
+          "position": {
+            "x": 2800,
+            "y": 200
+          }
+        },
+        {
+          "id": "15",
+          "label": "Create post1",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/instagram/post",
+            "method": "POST",
+            "body": {
+              "mediaUrl": "={{$json[\"url\"]}}",
+              "caption": "={{$json[\"socialMediaText\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your_blotato_api_key"
+            }
+          },
+          "position": {
+            "x": 2800,
+            "y": 300
+          }
+        },
+        {
+          "id": "16",
+          "label": "Create Facebook post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/facebook/post",
+            "method": "POST",
+            "body": {
+              "mediaUrl": "={{$json[\"url\"]}}",
+              "caption": "={{$json[\"socialMediaText\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer your_blotato_api_key"
+            }
+          },
+          "position": {
+            "x": 2800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        },
+        {
+          "from": "13",
+          "to": "15"
+        },
+        {
+          "from": "13",
+          "to": "16"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 3809,
+    "completion_tokens": 2317,
+    "total_tokens": 6126
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:37:48.893192"
+}

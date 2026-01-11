@@ -1,0 +1,109 @@
+{
+  "template_id": "9602",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate job application tailoring.",
+    "workflowPlan": {
+      "name": "Job Application Tailoring Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Job Listings",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.joblistings.com/fetch",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Score Fit Against Resume",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const resume = $resumeData; const jobs = items[0].json; return jobs.map(job => { job.score = calculateFitScore(job, resume); return { json: job }; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Draft Cover Letter",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { const job = item.json; job.coverLetter = draftCoverLetter(job); return { json: job }; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Sheet",
+          "nodeType": "googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A1",
+            "valueInputOption": "RAW",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Notify User",
+          "nodeType": "emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "your_email@example.com",
+            "subject": "Top Job Matches",
+            "text": "Check your Google Sheet for the top job matches and tailored cover letters."
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 839,
+    "completion_tokens": 646,
+    "total_tokens": 1485
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:40:47.363446"
+}

@@ -1,0 +1,113 @@
+{
+  "template_id": "3146",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Download TikTok Videos Without Watermark",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "download-tiktok-video",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Fetch TikTok Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"tiktokUrl\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Video URL",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const videoUrlRegex = /https:\\/\\/v[\\w.-]+\\/video\\/\\d+\\/[\\w.-]+\\/\\d+\\/\\w+\\/\\w+\\/\\w+\\/\\w+\\/\\w+\\/\\w+/;\nconst match = videoUrlRegex.exec(items[0].json[\"body\"]);\nif (match) {\n  return [{ json: { videoUrl: match[0] } }];\n} else {\n  throw new Error('Video URL not found');\n}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request - Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file",
+            "fileName": "={{\"TikTokVideo_\" + Date.now() + \".mp4\"}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$binary.data.fileName}}",
+            "binaryData": true,
+            "parents": [
+              "root"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 884,
+    "completion_tokens": 754,
+    "total_tokens": 1638
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:53:53.529049"
+}

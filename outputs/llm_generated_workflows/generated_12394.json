@@ -1,0 +1,200 @@
+{
+  "template_id": "12394",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "GitLab Wrapped Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "gitlab-wrapped",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Variables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "username",
+                  "value": "={{$json[\"body\"][\"username\"]}}"
+                },
+                {
+                  "name": "pat",
+                  "value": "={{$json[\"body\"][\"pat\"]}}"
+                },
+                {
+                  "name": "gitlabUrl",
+                  "value": "={{$json[\"body\"][\"gitlabUrl\"] || \"https://gitlab.com\"}}"
+                },
+                {
+                  "name": "year",
+                  "value": "={{$json[\"body\"][\"year\"] || \"2025\"}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fork Project",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"gitlabUrl\"]}}/api/v4/projects/michaelangelorivera%2Fgitlab-wrapped/fork",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "PRIVATE-TOKEN",
+                "value": "={{$json[\"pat\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Configure CI/CD Variables",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"gitlabUrl\"]}}/api/v4/projects/{{$json[\"username\"]}}%2Fgitlab-wrapped/variables",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "PRIVATE-TOKEN",
+                "value": "={{$json[\"pat\"]}}"
+              }
+            },
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "YEAR",
+                  "value": "={{$json[\"year\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Trigger Pipeline",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"gitlabUrl\"]}}/api/v4/projects/{{$json[\"username\"]}}%2Fgitlab-wrapped/pipeline",
+            "method": "POST",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "PRIVATE-TOKEN",
+                "value": "={{$json[\"pat\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Monitor Pipeline",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"gitlabUrl\"]}}/api/v4/projects/{{$json[\"username\"]}}%2Fgitlab-wrapped/pipelines",
+            "method": "GET",
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "PRIVATE-TOKEN",
+                "value": "={{$json[\"pat\"]}}"
+              }
+            },
+            "pollTimes": {
+              "interval": 120,
+              "limit": 10
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond with URL",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "Your GitLab Wrapped is being generated. It will be available at: https://{{$json[\"username\"]}}.gitlab.io/gitlab-wrapped"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 769,
+    "completion_tokens": 1275,
+    "total_tokens": 2044
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:27:39.059827"
+}

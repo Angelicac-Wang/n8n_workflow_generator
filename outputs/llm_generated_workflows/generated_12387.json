@@ -1,0 +1,161 @@
+{
+  "template_id": "12387",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to monitor domain expiration dates and send reminders via Telegram.",
+    "workflowPlan": {
+      "name": "Domain Expiration Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read Domains from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch WHOIS Information",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.whois.com/whois",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "domain",
+                "value": "={{$json[\"domain\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract WHOIS Data",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "provider": "ollama",
+            "prompt": "Extract expiration date, domain owner, and status from WHOIS data: {{$json[\"body\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Expiration Date",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{new Date($json[\"expirationDate\"]).getTime()}}",
+                  "operation": "less",
+                  "value2": "={{new Date().getTime() + 90 * 24 * 60 * 60 * 1000}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Reminder",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "your-telegram-chat-id",
+            "text": "Domain {{$json[\"domain\"]}} is expiring on {{$json[\"expirationDate\"]}}. Owner: {{$json[\"owner\"]}}. Status: {{$json[\"status\"]}}."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Record Notification Date",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "add": {
+                "notificationDate": "={{new Date().toISOString()}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 762,
+    "completion_tokens": 986,
+    "total_tokens": 1748
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:27:16.835732"
+}

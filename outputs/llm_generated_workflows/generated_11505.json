@@ -1,0 +1,190 @@
+{
+  "template_id": "11505",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Podcast to Viral Clips Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "podcast-to-clips"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Podcast Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"podcastUrl\"]}}",
+            "responseFormat": "file",
+            "download": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Download Attention Retainer Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"retainerUrl\"]}}",
+            "responseFormat": "file",
+            "download": true
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract Audio from Podcast",
+          "nodeType": "n8n-nodes-base.audioProcessing",
+          "typeVersion": 1,
+          "params": {
+            "operation": "extractAudio",
+            "inputFile": "={{$node[\"Download Podcast Video\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Highlight Extraction",
+          "nodeType": "n8n-nodes-base.aiProcessing",
+          "typeVersion": 1,
+          "params": {
+            "operation": "extractHighlights",
+            "audioFile": "={{$node[\"Extract Audio from Podcast\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Merge and Edit Video",
+          "nodeType": "n8n-nodes-base.videoProcessing",
+          "typeVersion": 1,
+          "params": {
+            "operation": "mergeAndEdit",
+            "highlightFile": "={{$node[\"AI Highlight Extraction\"].binary[\"data\"]}}",
+            "retainerFile": "={{$node[\"Download Attention Retainer Video\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Captions",
+          "nodeType": "n8n-nodes-base.captionGeneration",
+          "typeVersion": 1,
+          "params": {
+            "videoFile": "={{$node[\"Merge and Edit Video\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Title",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateTitle",
+            "input": "={{$node[\"AI Highlight Extraction\"].json[\"highlights\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Post to Social Media",
+          "nodeType": "n8n-nodes-base.socialMediaPosting",
+          "typeVersion": 1,
+          "params": {
+            "videoFile": "={{$node[\"Generate Captions\"].binary[\"data\"]}}",
+            "title": "={{$node[\"Generate Title\"].json[\"title\"]}}",
+            "platforms": [
+              "TikTok",
+              "YouTube",
+              "Instagram",
+              "Twitter"
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "5",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1100,
+    "completion_tokens": 1171,
+    "total_tokens": 2271
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:51:54.027950"
+}

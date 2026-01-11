@@ -1,0 +1,186 @@
+{
+  "template_id": "11197",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for implementing a Retrieval-Augmented Generation (RAG) system using Google Gemini's File Search API.",
+    "workflowPlan": {
+      "name": "RAG System with Google Gemini",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Execute Workflow",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Store",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/fileSearchStores",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Store Name",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "storeName",
+                  "value": "={{$json[\"name\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "upload-file",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload File",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/upload",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "bodyContentType": "multipartFormData"
+            },
+            "bodyParametersMultipart": [
+              {
+                "name": "file",
+                "value": "={{$binary.data}}",
+                "type": "file"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "6",
+          "label": "Import to Store",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/{{$node[\"Set Store Name\"].json[\"storeName\"]}}/importFile",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{\"fileId\": \"{{$node[\"Upload File\"].json[\"id\"]}}\"}"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson"
+          },
+          "position": {
+            "x": 200,
+            "y": 900
+          }
+        },
+        {
+          "id": "8",
+          "label": "LangChain Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/generateContent",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParametersJson": "{\"storeName\": \"{{$node[\"Set Store Name\"].json[\"storeName\"]}}\", \"query\": \"{{$json[\"query\"]}}\"}"
+          },
+          "position": {
+            "x": 400,
+            "y": 900
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1526,
+    "completion_tokens": 1165,
+    "total_tokens": 2691
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:45:00.541241"
+}

@@ -1,0 +1,118 @@
+{
+  "template_id": "11813",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to fetch RSS feeds, summarize articles, and send notifications to Slack.",
+    "workflowPlan": {
+      "name": "RSS to Slack with AI Summarization",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Config",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "rssUrls",
+                  "value": "https://example.com/rss"
+                },
+                {
+                  "name": "takeCount",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch RSS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"rssUrls\"]}}",
+            "method": "GET",
+            "responseFormat": "xml"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Links",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const parser = require('fast-xml-parser');\nconst rss = parser.parse(items[0].json[\"body\"]);\nconst articles = rss.rss.channel.item.slice(0, parseInt($json[\"takeCount\"]));\nreturn articles.map(article => ({ json: { link: article.link } }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Summarize Article",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "model": "Gemini Chat Model",
+            "input": "={{$json[\"link\"]}}",
+            "operation": "summarize"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send to Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#general",
+            "text": "New Article Summary: {{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 677,
+    "completion_tokens": 711,
+    "total_tokens": 1388
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:02:28.572199"
+}

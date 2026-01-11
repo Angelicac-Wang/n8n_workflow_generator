@@ -1,0 +1,185 @@
+{
+  "template_id": "5755",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Photo Colorization and Social Media Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Photo Upload Form",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "photo-upload",
+            "method": "POST",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson",
+            "options": {
+              "responseHeaders": {
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Upload Image to ImgBB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.imgbb.com/1/upload",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "key",
+                "value": "YOUR_IMGBB_API_TOKEN"
+              },
+              {
+                "name": "image",
+                "value": "={{$json[\"body\"][\"image\"]}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Enhance and Colorize Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.flux.kontext.com/enhance",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "apiKey",
+                "value": "YOUR_FAL.AI_API_KEY"
+              },
+              {
+                "name": "imageUrl",
+                "value": "={{$json[\"data\"][\"url\"]}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Animated Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kling.video/animate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "apiKey",
+                "value": "YOUR_FAL.AI_API_KEY"
+              },
+              {
+                "name": "imageUrl",
+                "value": "={{$json[\"enhancedImageUrl\"]}}"
+              },
+              {
+                "name": "description",
+                "value": "={{$json[\"body\"][\"description\"]}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "animated-video.mp4",
+            "fileContent": "={{$json[\"animatedVideoUrl\"]}}",
+            "options": {}
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Multi-Platform Publishing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/publish",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "apiKey",
+                "value": "YOUR_UPLOAD_POST_API_KEY"
+              },
+              {
+                "name": "userId",
+                "value": "YOUR_UPLOAD_POST_USER_ID"
+              },
+              {
+                "name": "videoUrl",
+                "value": "={{$json[\"animatedVideoUrl\"]}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1502,
+    "completion_tokens": 1074,
+    "total_tokens": 2576
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:24:37.915817"
+}

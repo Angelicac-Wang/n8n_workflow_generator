@@ -1,0 +1,151 @@
+{
+  "template_id": "2549",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automate Google Analytics Reporting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get Page Engagement This Week",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "typeVersion": 1,
+          "params": {
+            "propertyId": "YOUR_PROPERTY_ID",
+            "metrics": [
+              "pageviews",
+              "sessions"
+            ],
+            "dateRange": "last7Days"
+          },
+          "position": {
+            "x": 200,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse - Get Page Engagement This Week",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { engagement: JSON.stringify(items[0].json) };"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Page Engagement Prior Week",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "typeVersion": 1,
+          "params": {
+            "propertyId": "YOUR_PROPERTY_ID",
+            "metrics": [
+              "pageviews",
+              "sessions"
+            ],
+            "dateRange": "previous7Days"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Parse - Get Page Engagement Prior Week",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { engagement: JSON.stringify(items[0].json) };"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Aggregate Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const engagementThisWeek = items[0].json.engagement;\nconst engagementPriorWeek = items[1].json.engagement;\nreturn { aggregatedData: { engagementThisWeek, engagementPriorWeek } };"
+          },
+          "position": {
+            "x": 600,
+            "y": 150
+          }
+        },
+        {
+          "id": "6",
+          "label": "Format Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const data = items[0].json.aggregatedData;\nconst html = `<html><body><h1>Google Analytics Report</h1><table><tr><th>Category</th><th>This Week</th><th>Prior Week</th></tr><tr><td>Engagement</td><td>${data.engagementThisWeek}</td><td>${data.engagementPriorWeek}</td></tr></table></body></html>`;\nreturn { htmlReport: html };"
+          },
+          "position": {
+            "x": 800,
+            "y": 150
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "Weekly Google Analytics Report",
+            "html": "={{$json[\"htmlReport\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 150
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1390,
+    "completion_tokens": 982,
+    "total_tokens": 2372
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:39:24.606870"
+}

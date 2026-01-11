@@ -1,0 +1,179 @@
+{
+  "template_id": "8375",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Cheap Nano Banana API - AI Image Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "generate-image",
+            "responseMode": "onReceived",
+            "responseData": "lastNode",
+            "responseContentType": "json",
+            "responsePropertyName": "data"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://bananaapi.com/api/n8n/generate/",
+            "method": "POST",
+            "authentication": "none",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "Authorization": "Bearer {{$json[\"api_token\"]}}"
+              }
+            },
+            "bodyParametersJson": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "outputFormat": "={{$json[\"Output Format\"] || \"PNG\"}}",
+              "imageSize": "={{$json[\"Image Size\"] || \"1:1\"}}",
+              "referenceImages": [
+                "={{$json[\"image_url_1\"]}}",
+                "={{$json[\"image_url_2\"]}}",
+                "={{$json[\"image_url_3\"]}}",
+                "={{$json[\"image_url_4\"]}}",
+                "={{$json[\"image_url_5\"]}}"
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "5s"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request - Check Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://bananaapi.com/api/n8n/image-status/{{$json[\"task_id\"]}}",
+            "method": "GET",
+            "authentication": "none",
+            "responseFormat": "json",
+            "options": {
+              "headers": {
+                "Authorization": "Bearer {{$json[\"api_token\"]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "If - Check Completion",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "value2": "completed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond with Image URL",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"image_url\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Loop Back",
+          "nodeType": "n8n-nodes-base.noOp",
+          "typeVersion": 1,
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1395,
+    "completion_tokens": 1094,
+    "total_tokens": 2489
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:34:31.623587"
+}

@@ -1,0 +1,133 @@
+{
+  "template_id": "5840",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating LinkedIn posts using AI for content creation, image generation, and hashtag optimization.",
+    "workflowPlan": {
+      "name": "Automated LinkedIn Post with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 0,
+                  "weekday": "1-5"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Content Topic Generator",
+          "nodeType": "n8n-nodes-base.googleGeminiChat",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a unique LinkedIn post topic related to [your industry]."
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Content Creator",
+          "nodeType": "n8n-nodes-base.googleGeminiChat",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Create a LinkedIn post based on the topic: {{$node[\"Content Topic Generator\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate an Image",
+          "nodeType": "n8n-nodes-base.openAIImageGeneration",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Create an image for the LinkedIn post: {{$node[\"Content Creator\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Hashtag Generator / SEO",
+          "nodeType": "n8n-nodes-base.googleGeminiChat",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate SEO-friendly hashtags for the post: {{$node[\"Content Creator\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create a Post",
+          "nodeType": "n8n-nodes-base.linkedIn",
+          "typeVersion": 1,
+          "params": {
+            "text": "{{$node[\"Content Creator\"].json[\"data\"]}}",
+            "image": "{{$node[\"Generate an Image\"].json[\"data\"]}}",
+            "hashtags": "{{$node[\"Hashtag Generator / SEO\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1300,
+    "completion_tokens": 833,
+    "total_tokens": 2133
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:25:46.995348"
+}

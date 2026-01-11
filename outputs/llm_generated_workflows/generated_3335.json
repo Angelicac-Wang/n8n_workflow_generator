@@ -1,0 +1,182 @@
+{
+  "template_id": "3335",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating the process of finding LinkedIn profiles and sending a follow-up email.",
+    "workflowPlan": {
+      "name": "LinkedIn Profile Finder and Email Outreach",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "form-trigger",
+            "method": "POST"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Build Search Query",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "query",
+                "value": "={{$json[\"name\"]}} {{$json[\"company\"]}} LinkedIn"
+              }
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Search via Bright Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/v1/search",
+            "method": "POST",
+            "body": {
+              "query": "={{$node[\"Build Search Query\"].json[\"query\"]}}"
+            },
+            "authentication": "brightDataApiKey"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract HTML Content",
+          "nodeType": "html",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$node[\"Google Search via Bright Data\"].json[\"body\"]}}",
+            "cssSelector": "body"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Parse LinkedIn Entries",
+          "nodeType": "openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Parse the LinkedIn profiles from the HTML content."
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Filter Relevant Profile",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"name\"]}}",
+                  "operation": "contains",
+                  "value2": "={{$node[\"Parse LinkedIn Entries\"].json[\"profileName\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Outreach Content",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "emailContent",
+                "value": "={{\"Dear \" + $node[\"Parse LinkedIn Entries\"].json[\"profileName\"] + \",\\n\\nWe found your LinkedIn profile and would like to connect...\"}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Email",
+          "nodeType": "smtp",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "LinkedIn Profile Found",
+            "text": "={{$node[\"Generate Outreach Content\"].json[\"emailContent\"]}}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1035,
+    "completion_tokens": 1077,
+    "total_tokens": 2112
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:56:06.571198"
+}

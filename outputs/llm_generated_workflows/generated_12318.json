@@ -1,0 +1,161 @@
+{
+  "template_id": "12318",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Social Media Content Creation",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "fetchBrandGuidelines",
+          "label": "Fetch Brand Guidelines",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "databasePage",
+            "databaseId": "YOUR_BRAND_GUIDELINES_DATABASE_ID"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "fetchPostTheme",
+          "label": "Fetch Post Theme",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "databasePage",
+            "databaseId": "YOUR_POST_THEME_DATABASE_ID"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "generateImagePrompt",
+          "label": "Generate Image Prompt",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Create an image prompt based on the theme and brand guidelines."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "generateImage",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/generate",
+            "method": "POST",
+            "bodyParameters": {
+              "prompt": "={{$node['generateImagePrompt'].json['choices'][0]['text']}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "writeCaption",
+          "label": "Write Caption",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Write a social media caption based on the theme and brand guidelines."
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "schedulePost",
+          "label": "Schedule Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.postiz.com/schedule",
+            "method": "POST",
+            "bodyParameters": {
+              "image_url": "={{$node['generateImage'].json['image_url']}}",
+              "caption": "={{$node['writeCaption'].json['choices'][0]['text']}}",
+              "platforms": [
+                "LinkedIn",
+                "Twitter",
+                "Facebook",
+                "Instagram"
+              ],
+              "integration_id": "YOUR_POSTIZ_INTEGRATION_ID"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "fetchBrandGuidelines"
+        },
+        {
+          "from": "fetchBrandGuidelines",
+          "to": "fetchPostTheme"
+        },
+        {
+          "from": "fetchPostTheme",
+          "to": "generateImagePrompt"
+        },
+        {
+          "from": "generateImagePrompt",
+          "to": "generateImage"
+        },
+        {
+          "from": "fetchPostTheme",
+          "to": "writeCaption"
+        },
+        {
+          "from": "generateImage",
+          "to": "schedulePost"
+        },
+        {
+          "from": "writeCaption",
+          "to": "schedulePost"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 832,
+    "completion_tokens": 984,
+    "total_tokens": 1816
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:24:14.617829"
+}

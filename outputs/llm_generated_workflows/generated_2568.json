@@ -1,0 +1,122 @@
+{
+  "template_id": "2568",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Notion to Supabase RAG Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Notion Get Updated Pages",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "databasePage",
+            "databaseId": "YOUR_NOTION_DATABASE_ID",
+            "returnAll": true,
+            "filters": {
+              "updated_time": {
+                "is_not_empty": true
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Supabase Upsert Embeddings",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "YOUR_SUPABASE_URL",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "bodyParametersJson": "{ \"pageId\": \"={{$json[\"id\"]}}\", \"content\": \"={{$json[\"content\"]}}\" }"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Notion Retrieve Page Content",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "get",
+            "resource": "page",
+            "pageId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Token Splitter",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const chunkSize = 200;\nconst overlap = 20;\nconst content = $json[\"content\"];\nconst chunks = [];\nfor (let i = 0; i < content.length; i += chunkSize - overlap) {\n  chunks.push(content.slice(i, i + chunkSize));\n}\nreturn chunks.map(chunk => ({ json: { chunk } }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 928,
+    "completion_tokens": 762,
+    "total_tokens": 1690
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:39:57.565120"
+}

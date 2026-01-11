@@ -1,0 +1,143 @@
+{
+  "template_id": "2931",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow integrates AI-powered agents to provide weather information and Wikipedia summaries using local LLMs.",
+    "workflowPlan": {
+      "name": "AI-Powered Weather and Wikipedia Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "User Input",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "user-input",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseBody": "Received"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://localhost:5000/ollama-api",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "query",
+                "value": "={{$json[\"body\"][\"query\"]}}"
+              }
+            ],
+            "options": {
+              "responseFormat": "json"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Weather Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://api.weatherapi.com/v1/current.json",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "key",
+                "value": "YOUR_WEATHER_API_KEY"
+              },
+              {
+                "name": "q",
+                "value": "={{$json[\"location\"]}}"
+              }
+            ],
+            "options": {
+              "responseFormat": "json"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wikipedia Summary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://en.wikipedia.org/api/rest_v1/page/summary/{{$json[\"topic\"]}}",
+            "method": "GET",
+            "options": {
+              "responseFormat": "json"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond to User",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 879,
+    "completion_tokens": 814,
+    "total_tokens": 1693
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:49:02.090989"
+}

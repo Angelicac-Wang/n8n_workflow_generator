@@ -1,0 +1,129 @@
+{
+  "template_id": "12299",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to transform questions into five distinct explanations and deliver them via Telegram while saving to Google Docs.",
+    "workflowPlan": {
+      "name": "Question to Explanations Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create 5 Explanations",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return [{json: {audience: 'kids', question: $json[\"message\"].text}}, {json: {audience: 'teenagers', question: $json[\"message\"].text}}, {json: {audience: 'graduates', question: $json[\"message\"].text}}, {json: {audience: 'PhD researchers', question: $json[\"message\"].text}}, {json: {audience: 'business executives', question: $json[\"message\"].text}}];"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-3",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {},
+            "bodyParameters": {
+              "mode": "json",
+              "json": {
+                "prompt": "Explain the question for {{audience}}: {{question}}",
+                "max_tokens": 150
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Format Telegram Messages",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return [{json: {text: 'Explanations for your question: ' + $json[\"message\"].text}}, ...items.map(item => ({json: {text: item.json.choices[0].text}}))];"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Telegram Messages",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "chatId": "={{$json[\"message\"].chat.id}}",
+            "text": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Docs Append",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "params": {
+            "documentId": "YOUR_GOOGLE_DOC_ID",
+            "content": "={{$json[\"text\"]}}",
+            "mode": "append"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 959,
+    "completion_tokens": 892,
+    "total_tokens": 1851
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:23:21.215251"
+}

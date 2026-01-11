@@ -1,0 +1,408 @@
+{
+  "template_id": "11572",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "News Aggregation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule NewsAPI Top Headlines",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Call NewsAPI - Top Headlines",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://newsapi.org/v2/top-headlines?apiKey=API_KEY",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Normalize NewsAPI Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "source_category": "Top Headlines",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"description\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"source\"][\"name\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"urlToImage\"]}}",
+              "publisher_date": "={{$json[\"publishedAt\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store in NocoDB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://nocodb.example.com/api/v1/db/data/v1/your-table",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParameters": {
+              "source_category": "={{$json[\"source_category\"]}}",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"summary\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"sources\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"images\"]}}",
+              "publisher_date": "={{$json[\"publisher_date\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Schedule NewsAPI Categories",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Call NewsAPI - Categories",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://newsapi.org/v2/top-headlines?category=business&apiKey=API_KEY",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Normalize NewsAPI Categories Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "source_category": "Business",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"description\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"source\"][\"name\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"urlToImage\"]}}",
+              "publisher_date": "={{$json[\"publishedAt\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Store Categories in NocoDB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://nocodb.example.com/api/v1/db/data/v1/your-table",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParameters": {
+              "source_category": "={{$json[\"source_category\"]}}",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"summary\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"sources\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"images\"]}}",
+              "publisher_date": "={{$json[\"publisher_date\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Schedule Mediastack",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 700
+          }
+        },
+        {
+          "id": "10",
+          "label": "Call Mediastack",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://api.mediastack.com/v1/news?access_key=ACCESS_KEY",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 700
+          }
+        },
+        {
+          "id": "11",
+          "label": "Normalize Mediastack Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "source_category": "General",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"description\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"source\"][\"name\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"image\"]}}",
+              "publisher_date": "={{$json[\"published_at\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 700
+          }
+        },
+        {
+          "id": "12",
+          "label": "Store Mediastack in NocoDB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://nocodb.example.com/api/v1/db/data/v1/your-table",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParameters": {
+              "source_category": "={{$json[\"source_category\"]}}",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"summary\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"sources\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"images\"]}}",
+              "publisher_date": "={{$json[\"publisher_date\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 700
+          }
+        },
+        {
+          "id": "13",
+          "label": "Schedule CurrentsAPI",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 900
+          }
+        },
+        {
+          "id": "14",
+          "label": "Call CurrentsAPI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.currentsapi.services/v1/latest-news?apiKey=API_KEY",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 900
+          }
+        },
+        {
+          "id": "15",
+          "label": "Normalize CurrentsAPI Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "source_category": "Latest News",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"description\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"source\"][\"name\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"image\"]}}",
+              "publisher_date": "={{$json[\"published\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 900
+          }
+        },
+        {
+          "id": "16",
+          "label": "Store CurrentsAPI in NocoDB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://nocodb.example.com/api/v1/db/data/v1/your-table",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "options": {
+              "bodyContentType": "json"
+            },
+            "bodyParameters": {
+              "source_category": "={{$json[\"source_category\"]}}",
+              "title": "={{$json[\"title\"]}}",
+              "summary": "={{$json[\"summary\"]}}",
+              "author": "={{$json[\"author\"]}}",
+              "sources": "={{$json[\"sources\"]}}",
+              "content": "={{$json[\"content\"]}}",
+              "images": "={{$json[\"images\"]}}",
+              "publisher_date": "={{$json[\"publisher_date\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 900
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        },
+        {
+          "from": "14",
+          "to": "15"
+        },
+        {
+          "from": "15",
+          "to": "16"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 890,
+    "completion_tokens": 2916,
+    "total_tokens": 3806
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:53:02.145777"
+}

@@ -1,0 +1,155 @@
+{
+  "template_id": "2648",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow template for automating blog content generation using AI.",
+    "workflowPlan": {
+      "name": "Automated Blog Content Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Latest Articles",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://n8n.io/blog",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Article Bodies",
+          "nodeType": "n8n-nodes-base.html",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$json[\"data\"]}}",
+            "cssSelector": ".article-body"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Convert to Markdown",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "value": {
+              "markdown": "={{$json[\"html\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Writing Style",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3",
+            "prompt": "Analyze the writing style and structure of the following markdown content: {{$json[\"markdown\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Identify Brand Voice",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3",
+            "prompt": "Identify the brand voice characteristics in the following markdown content: {{$json[\"markdown\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate New Article",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3",
+            "prompt": "Using the analyzed style and brand voice, generate a new article on the topic of 'AI in Automation'."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Draft to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-wordpress-site.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "title": "AI in Automation",
+              "content": "={{$json[\"text\"]}}",
+              "status": "draft"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 866,
+    "completion_tokens": 939,
+    "total_tokens": 1805
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:41:34.048783"
+}

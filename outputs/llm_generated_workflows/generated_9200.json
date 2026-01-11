@@ -1,0 +1,240 @@
+{
+  "template_id": "9200",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating video ads with NanoBanana, Seedream 4, ChatGPT Image, and Veo 3.",
+    "workflowPlan": {
+      "name": "Automate Video Ads",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Input",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "chatId": "",
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Ad Ideas",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate creative ad ideas based on the following input: {{$json[\"message\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Product Visuals - Seedream 4.0",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.seedream.com/v4/generate",
+            "method": "POST",
+            "body": {
+              "input": "={{$json[\"choices\"][0][\"text\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Product Visuals - NanoBanana",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.nanobanana.com/edit",
+            "method": "POST",
+            "body": {
+              "input": "={{$json[\"choices\"][0][\"text\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Product Visuals - ChatGPT Image",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "image-alpha-001",
+            "prompt": "Create a creative variation of the product visual based on: {{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "6",
+          "label": "Produce Cinematic Video Ads",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.veo3.com/create",
+            "method": "POST",
+            "body": {
+              "script": "={{$json[\"choices\"][0][\"text\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Merge Video Clips",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.fal.ai/merge",
+            "method": "POST",
+            "body": {
+              "clips": "={{$json[\"videos\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Publish to Platforms",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/publish",
+            "method": "POST",
+            "body": {
+              "videoUrl": "={{$json[\"mergedVideoUrl\"]}}",
+              "platforms": [
+                "TikTok",
+                "Instagram",
+                "LinkedIn",
+                "X",
+                "Threads",
+                "Facebook",
+                "Pinterest",
+                "Bluesky",
+                "YouTube"
+              ]
+            },
+            "json": true
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Store Metadata",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Notify via Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "",
+            "text": "Your ad video has been published: {{$json[\"videoUrl\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1306,
+    "completion_tokens": 1487,
+    "total_tokens": 2793
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:38:31.759202"
+}

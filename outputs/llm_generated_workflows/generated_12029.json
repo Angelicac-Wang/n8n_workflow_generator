@@ -1,0 +1,167 @@
+{
+  "template_id": "12029",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating monthly revenue aggregation and tax forecasting.",
+    "workflowPlan": {
+      "name": "Monthly Revenue Aggregation and Tax Forecasting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Stripe Revenue",
+          "nodeType": "n8n-nodes-base.stripeTrigger",
+          "typeVersion": 1,
+          "params": {
+            "events": [
+              "payment_intent.succeeded"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "PayPal Revenue",
+          "nodeType": "n8n-nodes-base.paypalTrigger",
+          "typeVersion": 1,
+          "params": {
+            "events": [
+              "PAYMENT.SALE.COMPLETED"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Shopify Revenue",
+          "nodeType": "n8n-nodes-base.shopifyTrigger",
+          "typeVersion": 1,
+          "params": {
+            "resource": "orders",
+            "operation": "getAll"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "4",
+          "label": "Aggregate Revenue",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const aggregatedData = items.reduce((acc, item) => { /* aggregation logic */ return acc; }, {}); return [{ json: aggregatedData }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "GPT-4 Tax Forecast",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Analyze the following revenue data and forecast tax obligations: {{ $json }}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Report",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "report": "Tax Forecast Report: {{ $json }}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "agent@example.com",
+            "subject": "Monthly Tax Forecast Report",
+            "body": "{{ $json.report }}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Store in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "{{ $json }}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 738,
+    "completion_tokens": 963,
+    "total_tokens": 1701
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:11:09.537624"
+}

@@ -1,0 +1,156 @@
+{
+  "template_id": "12221",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Phishing Lookout (Typosquatting) and Brand Domain Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Poll crt.sh",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://crt.sh/?q=%.yourbrand.com&output=json",
+            "method": "GET",
+            "responseFormat": "json",
+            "pollTimes": {
+              "mode": "everyInterval",
+              "value": 3600
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Split Out",
+          "nodeType": "splitInBatches",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter & Deduplicate",
+          "nodeType": "code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const myDomains = ['yourdomain.com'];\nreturn items.filter(item => !myDomains.includes(item.json.domain));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Urlscan.io Scan",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://urlscan.io/api/v1/scan/",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {
+              "headers": {
+                "API-Key": "your-urlscan-api-key"
+              }
+            },
+            "body": {
+              "url": "={{$json[\"domain\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait 30 Seconds",
+          "nodeType": "wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "30"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Scan Results",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://urlscan.io/api/v1/result/{{$json[\"uuid\"]}}/",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Slack Alert",
+          "nodeType": "slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "alerts",
+            "text": "Suspicious domain detected: {{$json[\"domain\"]}}\nReport: {{$json[\"result\"]}}\nScreenshot: {{$json[\"screenshot\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "2"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 882,
+    "completion_tokens": 895,
+    "total_tokens": 1777
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:20:05.935924"
+}

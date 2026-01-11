@@ -1,0 +1,162 @@
+{
+  "template_id": "2006",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for fetching and processing page content using the ReAct AI Agent.",
+    "workflowPlan": {
+      "name": "Page Content Fetch and Process",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Chat",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "LangChain ReAct Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { query: { url: 'https://example.com', method: 'full', maxlimit: 70000 } };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"query\"][\"url\"]}}",
+            "method": "GET",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process HTML",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const cheerio = require('cheerio');\nconst $ = cheerio.load($json[\"body\"]);\n$('script, style').remove();\nconst body = $('body').html();\nreturn { data: body };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Convert to Markdown",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const turndownService = new TurndownService();\nconst markdown = turndownService.turndown($json[\"data\"]);\nreturn { markdown: markdown };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Length",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"markdown\"].length}}",
+                  "operation": "smaller",
+                  "value2": "={{$json[\"query\"][\"maxlimit\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Return Content",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"markdown\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Error Message",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "Content is too long to process."
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 837,
+    "completion_tokens": 1026,
+    "total_tokens": 1863
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:30:46.873400"
+}

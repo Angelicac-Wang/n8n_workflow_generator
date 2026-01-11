@@ -1,0 +1,103 @@
+{
+  "template_id": "2273",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automate Daily LinkedIn Posts from Notion",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Post from Notion",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "resource": "databasePage",
+            "databaseId": "YOUR_NOTION_DATABASE_ID",
+            "filters": {
+              "property": "Date",
+              "date": {
+                "equals": "={{new Date().toISOString().split('T')[0]}}"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Format Post Content",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { return { json: { content: item.json.properties.Content, imageUrl: item.json.properties.ImageUrl } }; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Post on LinkedIn",
+          "nodeType": "n8n-nodes-base.linkedin",
+          "typeVersion": 1,
+          "params": {
+            "operation": "post",
+            "text": "={{$json[\"content\"]}}",
+            "imageUrl": "={{$json[\"imageUrl\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Update Notion Status",
+          "nodeType": "n8n-nodes-base.notion",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "resource": "page",
+            "pageId": "={{$node[\"Fetch Post from Notion\"].json[\"id\"]}}",
+            "properties": {
+              "Status": {
+                "select": {
+                  "name": "Posted"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 528,
+    "completion_tokens": 597,
+    "total_tokens": 1125
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:33:37.030803"
+}

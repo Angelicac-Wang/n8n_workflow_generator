@@ -1,0 +1,169 @@
+{
+  "template_id": "3796",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to generate a Meeting Briefing email when a new event is scheduled on Google Calendar.",
+    "workflowPlan": {
+      "name": "Meeting Briefing Email",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Calendar Trigger",
+          "nodeType": "n8n-nodes-base.googleCalendarTrigger",
+          "typeVersion": 1,
+          "params": {
+            "calendar": "primary",
+            "operation": "watch",
+            "resource": "events",
+            "event": "create"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Attendees",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "attendees",
+                "value": "={{ $json[\"attendees\"] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Loop Over Attendees",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1,
+            "input": "attendees"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Person Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/person_search",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Bearer {{ YOUR_API_KEY }}"
+            },
+            "body": {
+              "email": "={{ $json[\"email\"] }}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Company Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/company_search",
+            "method": "POST",
+            "headers": {
+              "Authorization": "Bearer {{ YOUR_API_KEY }}"
+            },
+            "body": {
+              "company": "={{ $json[\"company\"] }}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Compile Briefing",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "briefing",
+                "value": "={{ $json[\"person_info\"] }} works at {{ $json[\"company_info\"] }}."
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "Meeting Briefing",
+            "body": "={{ $json[\"briefing\"] }}",
+            "additionalFields": {
+              "from": "your-email@example.com"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 673,
+    "completion_tokens": 969,
+    "total_tokens": 1642
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:03:26.293668"
+}

@@ -1,0 +1,198 @@
+{
+  "template_id": "10462",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automate invoice management via WhatsApp.",
+    "workflowPlan": {
+      "name": "Automated Invoice Management via WhatsApp",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-invoice",
+            "responseMode": "onReceived",
+            "responseData": "default"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Attachment",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"attachmentUrl\"]}}",
+            "responseFormat": "file",
+            "download": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Text with OCR",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.ocr.space/parse/image",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "apikey",
+                  "value": "YOUR_OCR_SPACE_API_KEY"
+                },
+                {
+                  "name": "file",
+                  "value": "={{$binary.data}}"
+                }
+              ]
+            },
+            "options": {
+              "bodyContentType": "multipart-form-data"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Summarize with AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "prompt",
+                  "value": "Summarize this invoice: {{$json[\"ParsedResults\"][0][\"ParsedText\"]}}"
+                },
+                {
+                  "name": "max_tokens",
+                  "value": 150
+                }
+              ]
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Invoices!A1",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"body\"][\"fileName\"]}}",
+            "binaryData": true,
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Reply with Summary",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v13.0/me/messages",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "recipient",
+                  "value": "{ \"id\": \"{{$json[\"body\"][\"senderId\"]}}\" }"
+                },
+                {
+                  "name": "message",
+                  "value": "{ \"text\": \"Invoice Summary: {{$json[\"choices\"][0][\"text\"]}}\" }"
+                }
+              ]
+            },
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer YOUR_WHATSAPP_CLOUD_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 738,
+    "completion_tokens": 1226,
+    "total_tokens": 1964
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:33:24.667900"
+}

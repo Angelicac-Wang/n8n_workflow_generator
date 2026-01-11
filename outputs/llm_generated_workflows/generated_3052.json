@@ -1,0 +1,205 @@
+{
+  "template_id": "3052",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Effortless Task Management: Create Todoist Tasks from Telegram with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Switch",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message\"][\"voice\"] ? \"voice\" : \"text\"}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "voice"
+              },
+              {
+                "operation": "equal",
+                "value": "text"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Telegram Get Voice",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "resource": "file",
+            "operation": "download",
+            "fileId": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Whisper",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "resource": "audio",
+            "operation": "transcribe",
+            "audioFile": "={{$json[\"file\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Edit Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "taskText",
+                "value": "={{$json[\"text\"] || $json[\"message\"][\"text\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Basic LLM Chain",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "resource": "text",
+            "operation": "generate",
+            "prompt": "Break down the following task into sub-tasks: {{$json[\"taskText\"]}}",
+            "model": "gpt-3.5-turbo"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Structured Output Parser",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return JSON.parse($json[\"choices\"][0][\"text\"]);"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Todoist",
+          "nodeType": "n8n-nodes-base.todoist",
+          "typeVersion": 1,
+          "params": {
+            "resource": "task",
+            "operation": "create",
+            "content": "={{$json[\"subTasks\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "send",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Tasks created in Todoist: {{$json[\"subTasks\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1164,
+    "completion_tokens": 1230,
+    "total_tokens": 2394
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:51:11.888929"
+}

@@ -1,0 +1,149 @@
+{
+  "template_id": "3161",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Social Media Content Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Content Ideas",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Social Media Post",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "Generate a social media post based on this idea: {{$json[\"Idea\"]}}",
+            "maxTokens": 100
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Target Platform",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "Twitter",
+                  "operation": "equal",
+                  "value2": "{{$json[\"Platform\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Post to Twitter",
+          "nodeType": "n8n-nodes-base.twitter",
+          "typeVersion": 1,
+          "params": {
+            "resource": "tweet",
+            "operation": "create",
+            "text": "{{$json[\"Generated Post\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Post to LinkedIn",
+          "nodeType": "n8n-nodes-base.linkedIn",
+          "typeVersion": 1,
+          "params": {
+            "resource": "post",
+            "operation": "create",
+            "text": "{{$json[\"Generated Post\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "{{$json[\"Idea\"]}}",
+                "Posted",
+                "{{$json[\"Generated Post\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 871,
+    "completion_tokens": 836,
+    "total_tokens": 1707
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:54:13.215048"
+}

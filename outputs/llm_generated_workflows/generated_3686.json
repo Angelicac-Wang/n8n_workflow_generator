@@ -1,0 +1,157 @@
+{
+  "template_id": "3686",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Gmail Inbox Organizer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "watch",
+            "labelIds": [
+              "INBOX"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Filter MustRead",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "{{$json[\"subject\"]}}",
+                  "operation": "contains",
+                  "value2": "urgent"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Label MustRead",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "modify",
+            "messageId": "={{$json[\"id\"]}}",
+            "labelIds": [
+              "MustRead"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter NotNeed",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "{{$json[\"subject\"]}}",
+                  "operation": "contains",
+                  "value2": "newsletter"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Label NotNeed",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "modify",
+            "messageId": "={{$json[\"id\"]}}",
+            "labelIds": [
+              "NotNeed"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Archive Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "resource": "message",
+            "operation": "modify",
+            "messageId": "={{$json[\"id\"]}}",
+            "removeLabelIds": [
+              "INBOX"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 734,
+    "completion_tokens": 817,
+    "total_tokens": 1551
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:01:59.353488"
+}

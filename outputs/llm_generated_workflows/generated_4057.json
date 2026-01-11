@@ -1,0 +1,139 @@
+{
+  "template_id": "4057",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Email Response with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "newEmail",
+            "credentials": "Gmail OAuth2"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Classify Email",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Classify if this email is an enquiry: {{emailContent}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Enquiries",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "{{ $node[\"Classify Email\"].json[\"classification\"] }}",
+                  "operation": "equals",
+                  "value2": "enquiry"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Dumpling AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.dumplingai.com/search",
+            "method": "POST",
+            "bodyParameters": {
+              "agentId": "your-dumpling-agent-id",
+              "apiKey": "your-dumpling-api-key",
+              "query": "{{emailContent}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Response",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Generate a response using this context: {{ $node[\"Dumpling AI Agent\"].json[\"results\"] }}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email Response",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "{{ $node[\"Gmail Trigger\"].json[\"from\"] }}",
+            "subject": "Re: {{ $node[\"Gmail Trigger\"].json[\"subject\"] }}",
+            "message": "{{ $node[\"Generate Response\"].json[\"text\"] }}",
+            "credentials": "Gmail OAuth2"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1006,
+    "completion_tokens": 856,
+    "total_tokens": 1862
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:06:36.380217"
+}

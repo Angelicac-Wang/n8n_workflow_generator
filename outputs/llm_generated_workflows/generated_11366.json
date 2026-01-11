@@ -1,0 +1,119 @@
+{
+  "template_id": "11366",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates crypto market analysis by combining candlestick data with news sentiment to generate AI-backed trading signals.",
+    "workflowPlan": {
+      "name": "Crypto Market Analysis and Signal Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Candlestick Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.crypto.com/v1/candlestick",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "interval",
+                "value": "15m,1h,1d"
+              },
+              {
+                "name": "apiKey",
+                "value": "YOUR_CRYPTO_PRICE_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch News Sentiment",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.cryptonews.com/v1/sentiment",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "apiKey",
+                "value": "YOUR_CRYPTO_NEWS_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Analysis",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/analyze",
+            "method": "POST",
+            "body": {
+              "candlestickData": "={{$node[\"Fetch Candlestick Data\"].json}}",
+              "newsSentiment": "={{$node[\"Fetch News Sentiment\"].json}}"
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_AI_MODEL_API_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Telegram Alert",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
+            "method": "POST",
+            "body": {
+              "chat_id": "YOUR_CHAT_ID",
+              "text": "={{$node[\"AI Analysis\"].json.result}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 842,
+    "completion_tokens": 692,
+    "total_tokens": 1534
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:48:19.692401"
+}

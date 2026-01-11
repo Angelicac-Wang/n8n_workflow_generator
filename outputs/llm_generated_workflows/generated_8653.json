@@ -1,0 +1,146 @@
+{
+  "template_id": "8653",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Intelligence Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Person Details",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "person-details"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Discovery Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/discovery",
+            "method": "POST",
+            "body": {
+              "name": "={{$json[\"name\"]}}",
+              "company": "={{$json[\"company\"]}}",
+              "location": "={{$json[\"location\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_BRIGHT_DATA_TOKEN_HERE"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Profile Validator",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.confidenceScore = Math.random(); return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Profiles",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/analyze",
+            "method": "POST",
+            "body": {
+              "profiles": "={{$json}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_BRIGHT_DATA_TOKEN_HERE"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Intelligence Report",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "={{'Generate a comprehensive social media intelligence report for: ' + JSON.stringify($json)}}",
+              "max_tokens": 1500
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Google Doc",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "documentTitle": "Social Media Intelligence Report",
+            "content": "={{$json}}",
+            "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 954,
+    "completion_tokens": 884,
+    "total_tokens": 1838
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:36:00.915895"
+}

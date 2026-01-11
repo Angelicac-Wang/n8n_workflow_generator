@@ -1,0 +1,155 @@
+{
+  "template_id": "12291",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan to automate AI-powered search insights by combining SE Ranking AI Search data with OpenAI summarization.",
+    "workflowPlan": {
+      "name": "AI-Powered Search Insights Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Input Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "fields": {
+              "target_site": "yourdomain.com",
+              "engine": "ai-overview",
+              "source": "us"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch AI Search Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.seranking.com/ai-search/visibility",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Token YOUR_SE_RANKING_API_KEY"
+              }
+            ],
+            "queryParameters": [
+              {
+                "name": "domain",
+                "value": "={{$json[\"target_site\"]}}"
+              },
+              {
+                "name": "engine",
+                "value": "={{$json[\"engine\"]}}"
+              },
+              {
+                "name": "region",
+                "value": "={{$json[\"source\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Summarize Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4.1-mini/completions",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            ],
+            "body": {
+              "prompt": "Summarize the following AI search visibility data: {{$json[\"data\"]}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Enrich Data",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "fields": {
+              "original_data": "={{$json[\"data\"]}}",
+              "summary": "={{$json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Write to Disk",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "params": {
+            "fileName": "/path/to/output.json",
+            "data": "={{JSON.stringify($json)}}",
+            "fileFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1207,
+    "completion_tokens": 917,
+    "total_tokens": 2124
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:22:51.732306"
+}

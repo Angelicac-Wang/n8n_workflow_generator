@@ -1,0 +1,161 @@
+{
+  "template_id": "8972",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Vapi AI to Google Calendar Appointment Booking",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "vapi-webhook",
+            "responseMode": "onReceived",
+            "responseData": "lastNode",
+            "productionUrl": "https://your-n8n-instance.com/webhook/vapi-webhook"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Route by Tool Name",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "propertyName": "message.toolCalls[0].function.name",
+            "rules": [
+              {
+                "operation": "equal",
+                "value1": "checkAvailability"
+              },
+              {
+                "operation": "equal",
+                "value1": "bookAppointment"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Calendar Events",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendar": "primary",
+            "timeMin": "={{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"initialSearchDateTime\"]}}",
+            "timeMax": "={{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"initialSearchDateTime\"]}}",
+            "credentials": "Google Calendar OAuth"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calculate Potential Slots",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "// Custom code to calculate potential slots"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Available Times",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "Available times are: ..."
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Book Appointment in Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendar": "primary",
+            "start": "={{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"startDateTime\"]}}",
+            "end": "={{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"endDateTime\"]}}",
+            "summary": "Appointment with {{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"clientName\"]}}",
+            "description": "Service: {{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"serviceType\"]}}, Address: {{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"propertyAddress\"]}}",
+            "credentials": "Google Calendar OAuth"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Booking Confirmation",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "Booking confirmed for {{$json[\"message\"][\"toolCalls\"][0][\"arguments\"][\"clientName\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1425,
+    "completion_tokens": 1103,
+    "total_tokens": 2528
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:37:52.230398"
+}

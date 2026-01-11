@@ -1,0 +1,142 @@
+{
+  "template_id": "12048",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily AI News Digest to Telegram",
+      "nodes": [
+        {
+          "id": "trigger",
+          "label": "Daily 8 AM Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "fetchNews",
+          "label": "Fetch AI News",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://news.google.com/rss/search?q=AI&hl=en-US&gl=US&ceid=US:en",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "filterNews",
+          "label": "Smart Filtering",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const articles = items[0].json.items;\nconst uniqueArticles = [...new Map(articles.map(item => [item.link, item])).values()];\nuniqueArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));\nreturn uniqueArticles.slice(0, 5).map(article => ({ json: article }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "summarizeNews",
+          "label": "AI Summarization",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Summarize the following AI news articles in a concise and engaging way: {{input}}",
+            "input": "={{$json[\"title\"] + \": \" + $json[\"description\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "generateImage",
+          "label": "Visual Generation",
+          "nodeType": "n8n-nodes-base.dalle",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Create a futuristic image based on today's AI news context",
+            "model": "dalle-3"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "sendToTelegram",
+          "label": "Send to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$workflow.variables.telegramChatId}}",
+            "text": "={{$json[\"summary\"]}}",
+            "parseMode": "Markdown"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "interactiveChat",
+          "label": "Interactive Chat",
+          "nodeType": "n8n-nodes-base.chat",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "You can ask follow-up questions about the news here."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger",
+          "to": "fetchNews"
+        },
+        {
+          "from": "fetchNews",
+          "to": "filterNews"
+        },
+        {
+          "from": "filterNews",
+          "to": "summarizeNews"
+        },
+        {
+          "from": "summarizeNews",
+          "to": "generateImage"
+        },
+        {
+          "from": "generateImage",
+          "to": "sendToTelegram"
+        },
+        {
+          "from": "sendToTelegram",
+          "to": "interactiveChat"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1135,
+    "completion_tokens": 964,
+    "total_tokens": 2099
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:12:37.023139"
+}

@@ -1,0 +1,116 @@
+{
+  "template_id": "2529",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow for removing backgrounds from images stored in Google Drive using the PhotoRoom API.",
+    "workflowPlan": {
+      "name": "Google Drive Image Background Removal",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "file",
+            "driveId": "",
+            "folderId": "your-folder-id",
+            "pollingInterval": 60
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "PhotoRoom API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.photoroom.com/v1/remove-background",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerParameters": [
+              {
+                "name": "x-api-key",
+                "value": "your-photoroom-api-key"
+              }
+            ],
+            "bodyParameters": [
+              {
+                "name": "image_file",
+                "value": "={{$binary.data}}"
+              },
+              {
+                "name": "bg_color",
+                "value": "white"
+              },
+              {
+                "name": "padding",
+                "value": "10"
+              }
+            ],
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload Processed Image",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"name\"]}}_bg_removed.png",
+            "parentId": "your-output-folder-id",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 742,
+    "completion_tokens": 656,
+    "total_tokens": 1398
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:38:42.489222"
+}

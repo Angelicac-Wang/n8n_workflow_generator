@@ -1,0 +1,126 @@
+{
+  "template_id": "2644",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Image Generation and Storage",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Image Parameters",
+          "nodeType": "set",
+          "params": {
+            "fields": {
+              "prompt": "Thai young woman net idol 25 yrs old, walking on the street",
+              "width": 1024,
+              "height": 768,
+              "steps": 30,
+              "guidanceScale": 3.5
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Request Image Generation",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.fal.ai/flux/generate",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerParameters": {
+              "Authorization": "Bearer YOUR_FAL_AI_API_KEY"
+            },
+            "bodyParameters": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "width": "={{$json[\"width\"]}}",
+              "height": "={{$json[\"height\"]}}",
+              "steps": "={{$json[\"steps\"]}}",
+              "guidanceScale": "={{$json[\"guidanceScale\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Monitor Image Status",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.fal.ai/flux/status",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "headerParameters": {
+              "Authorization": "Bearer YOUR_FAL_AI_API_KEY"
+            },
+            "queryParameters": {
+              "taskId": "={{$node[\"Request Image Generation\"].json[\"taskId\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Download Generated Image",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "={{$node[\"Monitor Image Status\"].json[\"imageUrl\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Save to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "upload",
+            "fileName": "generated_image.png",
+            "fileContent": "={{$node[\"Download Generated Image\"].binary}}",
+            "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1045,
+    "completion_tokens": 765,
+    "total_tokens": 1810
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:41:27.498495"
+}

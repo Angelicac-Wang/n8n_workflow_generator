@@ -1,0 +1,161 @@
+{
+  "template_id": "9341",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for automating video generation using OpenAI's Sora 2 API.",
+    "workflowPlan": {
+      "name": "Sora 2 Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Text Prompt Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "videoPrompt",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Sora 2 Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/sora2/video",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"body\"][\"prompt\"]}}"
+                }
+              ]
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer Your_API_Key"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait for Video",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "interval",
+            "intervalDuration": 300
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/sora2/video/status",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "video_id",
+                  "value": "={{$node[\"Sora 2 Video Generation\"].json[\"video_id\"]}}"
+                }
+              ]
+            },
+            "headers": [
+              {
+                "name": "Authorization",
+                "value": "Bearer Your_API_Key"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$node[\"Get Video Status\"].json[\"download_url\"]}}",
+            "method": "GET",
+            "options": {
+              "fullResponse": true
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Video",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "generated_video.mp4",
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 999,
+    "completion_tokens": 930,
+    "total_tokens": 1929
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:39:01.681730"
+}

@@ -1,0 +1,196 @@
+{
+  "template_id": "11660",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI Council: Multi-Model Consensus with Peer Review",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "ask-question",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Gemini Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/gemini",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "question": "={{$json[\"body\"][\"question\"]}}"
+            },
+            "authentication": "={{$credentials.openRouter}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Llama Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/llama",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "question": "={{$json[\"body\"][\"question\"]}}"
+            },
+            "authentication": "={{$credentials.openRouter}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Gemma Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/gemma",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "question": "={{$json[\"body\"][\"question\"]}}"
+            },
+            "authentication": "={{$credentials.openRouter}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Mistral Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/mistral",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "question": "={{$json[\"body\"][\"question\"]}}"
+            },
+            "authentication": "={{$credentials.openRouter}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 700
+          }
+        },
+        {
+          "id": "6",
+          "label": "Peer Review",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const reviews = [];\nconst models = ['Gemini', 'Llama', 'Gemma', 'Mistral'];\nmodels.forEach((model, index) => {\n  const response = items[index].json;\n  reviews.push({\n    model,\n    pros: `Pros of ${model} response`,\n    cons: `Cons of ${model} response`,\n    assessment: `Overall assessment of ${model} response`\n  });\n});\nreturn [{ json: { reviews } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "DeepSeek R1",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/deepseek",
+            "method": "POST",
+            "jsonParameters": true,
+            "bodyParametersJson": {
+              "reviews": "={{$json[\"reviews\"]}}"
+            },
+            "authentication": "={{$credentials.openRouter}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Respond with Final Answer",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"finalAnswer\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 986,
+    "completion_tokens": 1294,
+    "total_tokens": 2280
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:56:50.954748"
+}

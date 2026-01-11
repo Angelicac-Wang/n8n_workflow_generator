@@ -1,0 +1,121 @@
+{
+  "template_id": "4086",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan to integrate Supabase, Google Drive, and an AI agent for document management.",
+    "workflowPlan": {
+      "name": "AI Document Management Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Supabase Fetch Files",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-supabase-url/rest/v1/files",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Drive Watch",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerOn": "file",
+            "folderId": "your-folder-id",
+            "events": [
+              "add",
+              "update"
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Parse Document",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://llamaparse-api-url/parse",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "fileUrl",
+                  "value": "={{$node[\"Google Drive Watch\"].json[\"webViewLink\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Agent Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "ai-agent",
+            "responseMode": "onReceived",
+            "responseData": "lastNode"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1141,
+    "completion_tokens": 693,
+    "total_tokens": 1834
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:07:01.149776"
+}

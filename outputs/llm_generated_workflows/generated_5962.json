@@ -1,0 +1,100 @@
+{
+  "template_id": "5962",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "SEO Keyword Ranking Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Bright Data Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/v1/scrape",
+            "method": "POST",
+            "authentication": {
+              "type": "oAuth2",
+              "credentials": "brightDataApi"
+            },
+            "body": {
+              "keywords": [
+                "your",
+                "keywords",
+                "here"
+              ],
+              "searchEngine": "google"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": {
+              "type": "oAuth2",
+              "credentials": "openAiApi"
+            },
+            "body": {
+              "prompt": "Analyze the following keyword ranking data for SEO opportunities: {{ $json }}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "{{ $json.keyword }}",
+                "{{ $json.rank }}",
+                "{{ $json.competitor }}",
+                "{{ $json.opportunity }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 989,
+    "completion_tokens": 542,
+    "total_tokens": 1531
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:27:39.652763"
+}

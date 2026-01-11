@@ -1,0 +1,227 @@
+{
+  "template_id": "2856",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to create YouTube Shorts from Google News trends.",
+    "workflowPlan": {
+      "name": "Automated YouTube Shorts Creator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Google News Trends",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://newsapi.org/v2/top-headlines",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "apiKey",
+                "value": "YOUR_GOOGLE_NEWS_API_KEY"
+              },
+              {
+                "name": "category",
+                "value": "entertainment"
+              },
+              {
+                "name": "country",
+                "value": "us"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Transcript",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.deepseek.ai/transcript",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "articleContent",
+                "value": "={{$json[\"articles\"][0][\"content\"]}}"
+              }
+            ],
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_DEEPSEEK_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Voiceover",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/tts",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "text",
+                "value": "={{$node[\"Generate Transcript\"].json[\"transcript\"]}}"
+              }
+            ],
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_ELEVENLABS_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Visuals",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "={{$node[\"Fetch Google News Trends\"].json[\"articles\"][0][\"title\"]}}"
+              }
+            ],
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "name": "Authorization",
+                "value": "Bearer YOUR_OPENAI_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Compile Video",
+          "nodeType": "customNode",
+          "typeVersion": 1,
+          "params": {
+            "videoLength": "60",
+            "audioFile": "={{$node[\"Generate Voiceover\"].json[\"audioUrl\"]}}",
+            "imageFile": "={{$node[\"Generate Visuals\"].json[\"imageUrl\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to YouTube",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/upload/youtube/v3/videos",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "title",
+                "value": "={{$node[\"Fetch Google News Trends\"].json[\"articles\"][0][\"title\"]}}"
+              },
+              {
+                "name": "description",
+                "value": "={{$node[\"Fetch Google News Trends\"].json[\"articles\"][0][\"description\"]}}"
+              },
+              {
+                "name": "videoFile",
+                "value": "={{$node[\"Compile Video\"].json[\"videoUrl\"]}}"
+              }
+            ],
+            "authentication": {
+              "type": "oauth2",
+              "properties": {
+                "credentials": "YOUR_YOUTUBE_OAUTH_CREDENTIALS"
+              }
+            }
+          },
+          "position": {
+            "x": 1700,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save to Google Sheets",
+          "nodeType": "googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "values": [
+              "={{$node[\"Fetch Google News Trends\"].json[\"articles\"][0][\"title\"]}}",
+              "={{$node[\"Fetch Google News Trends\"].json[\"articles\"][0][\"description\"]}}",
+              "={{$node[\"Upload to YouTube\"].json[\"videoId\"]}}"
+            ]
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 804,
+    "completion_tokens": 1418,
+    "total_tokens": 2222
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:47:17.068802"
+}

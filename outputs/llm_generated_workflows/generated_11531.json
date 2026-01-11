@@ -1,0 +1,231 @@
+{
+  "template_id": "11531",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Auto-Send DMs to LinkedIn Commenters",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "formFields": [
+              {
+                "name": "LinkedIn Post URL",
+                "type": "string"
+              },
+              {
+                "name": "Trigger Keyword",
+                "type": "string"
+              },
+              {
+                "name": "Content Link",
+                "type": "string"
+              },
+              {
+                "name": "Your Name",
+                "type": "string"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Comments",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.connectsafely.ai/linkedin/comments",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "postUrl",
+                "value": "={{$json[\"LinkedIn Post URL\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.connectSafelyApi}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Each Comment",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Detect Keyword Match",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const keyword = $json[\"Trigger Keyword\"].toLowerCase();\nconst commentText = $json[\"commentText\"].toLowerCase();\nreturn [{ json: { isKeywordMatch: commentText.includes(keyword) } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "If Keyword Match",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"isKeywordMatch\"]}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Connection",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.connectsafely.ai/linkedin/checkConnection",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "commenterId",
+                "value": "={{$json[\"commenterId\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.connectSafelyApi}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "If Connected",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"isConnected\"]}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send DM with Link",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.connectsafely.ai/linkedin/sendMessage",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "recipientId",
+                "value": "={{$json[\"commenterId\"]}}"
+              },
+              {
+                "name": "message",
+                "value": "Hey {{$json[\"commenterName\"]}}! Thanks for your comment on my post! As promised, here's the link you requested: {{$json[\"Content Link\"]}}. If you have any questions or want more resources like this, just let me know! Best, {{$json[\"Your Name\"]}}"
+              }
+            ],
+            "authentication": "={{$credentials.connectSafelyApi}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Wait: Rate Limiting",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": "={{Math.floor(Math.random() * (1800 - 900 + 1)) + 900}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2991,
+    "completion_tokens": 1427,
+    "total_tokens": 4418
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:52:18.891085"
+}

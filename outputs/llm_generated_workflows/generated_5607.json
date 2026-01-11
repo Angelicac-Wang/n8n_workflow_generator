@@ -1,0 +1,89 @@
+{
+  "template_id": "5607",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Scientific PDF Summarizer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Local File Trigger",
+          "nodeType": "n8n-nodes-base.localFileTrigger",
+          "typeVersion": 1,
+          "params": {
+            "path": "/path/to/your/pdf/folder",
+            "pollingInterval": 60
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read PDF",
+          "nodeType": "n8n-nodes-base.readPDF",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{$json[\"filePath\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4o",
+          "nodeType": "n8n-nodes-base.openAI",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "your-openai-api-key",
+            "model": "gpt-4o",
+            "prompt": "You are a research expert who is providing data to another researcher. Summarize the following scientific article with headings: Introduction, Methods, Results, Summary, Conclusion.\n\n{{$json[\"text\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Write Text File",
+          "nodeType": "n8n-nodes-base.writeTextFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "/path/to/your/summaries/folder/summary.txt",
+            "data": "={{$json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1418,
+    "completion_tokens": 543,
+    "total_tokens": 1961
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:21:39.080001"
+}

@@ -1,0 +1,211 @@
+{
+  "template_id": "3277",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow plan for the Smart Email Auto-Responder with AI Classification.",
+    "workflowPlan": {
+      "name": "Smart Email Auto-Responder",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Gmail Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "polling": true,
+            "interval": "1h",
+            "filters": {
+              "from": {
+                "notContains": "@syncbricks.com"
+              },
+              "subject": {
+                "notContains": "Re:"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "LangChain Text Classifier",
+          "nodeType": "n8n-nodes-base.langChain",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-classification",
+            "categories": [
+              "Guest Post",
+              "YouTube Review",
+              "Udemy Course Inquiry"
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Gemini (Optional)",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "action": "classify",
+            "enhance": true
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "SMTP Send - Guest Post",
+          "nodeType": "n8n-nodes-base.smtpSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@domain.com",
+            "toEmail": "={{$json[\"from\"]}}",
+            "subject": "Guest Post Inquiry Response",
+            "html": "<p>Thank you for your interest in guest posting. Here are our guidelines...</p>"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "SMTP Send - YouTube Review",
+          "nodeType": "n8n-nodes-base.smtpSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@domain.com",
+            "toEmail": "={{$json[\"from\"]}}",
+            "subject": "YouTube Review Inquiry Response",
+            "html": "<p>Thank you for your interest in a YouTube review. Here are our packages...</p>"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "SMTP Send - Udemy Course",
+          "nodeType": "n8n-nodes-base.smtpSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@domain.com",
+            "toEmail": "={{$json[\"from\"]}}",
+            "subject": "Udemy Course Inquiry Response",
+            "html": "<p>Thank you for your interest in our Udemy courses. Here is more information...</p>"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Gmail: Mark as Read",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "action": "markAsRead",
+            "messageId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Gmail: Apply Label",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "action": "addLabel",
+            "labelName": "Handled by Bot",
+            "messageId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Brevo: Create/Update Contact",
+          "nodeType": "n8n-nodes-base.brevo",
+          "typeVersion": 1,
+          "params": {
+            "email": "={{$json[\"from\"]}}",
+            "listIds": [
+              1
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 2
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1522,
+    "completion_tokens": 1297,
+    "total_tokens": 2819
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:54:57.985909"
+}

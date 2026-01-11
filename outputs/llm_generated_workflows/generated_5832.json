@@ -1,0 +1,159 @@
+{
+  "template_id": "5832",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for capturing and processing leads.",
+    "workflowPlan": {
+      "name": "Lead Capture and Enrichment Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "FormTrigger Node",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "lead-capture",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Enrich Lead",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apollo.io/v1/people/match",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Lead Scoring",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "model": "LangChain",
+            "input": "jobTitle, industry",
+            "output": "score"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Score",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$node[\"Lead Scoring\"].json[\"score\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 6
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Email Composer",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "model": "LangChain",
+            "input": "jobTitle, company",
+            "output": "emailContent"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "subject": "Personalized Outreach",
+            "content": "={{$node[\"Email Composer\"].json[\"emailContent\"]}}",
+            "to": "={{$node[\"FormTrigger Node\"].json[\"email\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log Lead",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$node[\"Enrich Lead\"].json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 854,
+    "completion_tokens": 943,
+    "total_tokens": 1797
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:25:25.509512"
+}

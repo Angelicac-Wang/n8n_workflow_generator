@@ -1,0 +1,537 @@
+{
+  "template_id": "11138",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Foto Creation Bot with Approval Loop",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Listen for incoming events",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramBotApiKey}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Voice or Text",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "text": "={{$json[\"message\"][\"text\"] || $json[\"message\"][\"voice\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "A Voice?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message\"][\"voice\"] !== undefined}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get Voice File",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getFile",
+            "fileId": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Speech to Text",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "transcribeAudio",
+            "audioFile": "={{$node[\"Get Voice File\"].json[\"file_path\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "model": "gpt-4.1-mini",
+            "prompt": "Generate a videoPrompt and socialMediaText based on: {{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send questions or proposal to user",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"chat\"][\"id\"]}}",
+            "text": "={{$node[\"AI Agent\"].json[\"choices\"][0][\"message\"][\"content\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Approved from user?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"message\"][\"text\"]}}",
+                  "operation": "contains",
+                  "value2": "ok"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Parse AI Output",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const output = JSON.parse($node[\"AI Agent\"].json[\"choices\"][0][\"message\"][\"content\"]);\nreturn [{ json: output }];"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Inform user about processing",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"chat\"][\"id\"]}}",
+            "text": "Okay. Your image is being prepared now..."
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        },
+        {
+          "id": "11",
+          "label": "Save Prompt & Post-Text",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:B",
+            "data": "={{[$node[\"Parse AI Output\"].json[\"videoPrompt\"], $node[\"Parse AI Output\"].json[\"socialMediaText\"]]}}"
+          },
+          "position": {
+            "x": 2200,
+            "y": 200
+          }
+        },
+        {
+          "id": "12",
+          "label": "Generate an image",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateImage",
+            "model": "models/gemini-2.5-flash-image",
+            "prompt": "={{$node[\"Parse AI Output\"].json[\"videoPrompt\"]}}"
+          },
+          "position": {
+            "x": 2400,
+            "y": 200
+          }
+        },
+        {
+          "id": "13",
+          "label": "Send a photo message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendPhoto",
+            "chatId": "={{$json[\"chat\"][\"id\"]}}",
+            "photo": "={{$node[\"Generate an image\"].json[\"image_url\"]}}"
+          },
+          "position": {
+            "x": 2600,
+            "y": 200
+          }
+        },
+        {
+          "id": "14",
+          "label": "Send message and wait for response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"chat\"][\"id\"]}}",
+            "text": "Is the image good? Reply with 'Approve' to continue."
+          },
+          "position": {
+            "x": 2800,
+            "y": 200
+          }
+        },
+        {
+          "id": "15",
+          "label": "Upload image1",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "generated-image.jpg",
+            "fileContent": "={{$node[\"Generate an image\"].json[\"image_url\"]}}"
+          },
+          "position": {
+            "x": 3000,
+            "y": 200
+          }
+        },
+        {
+          "id": "16",
+          "label": "Download image from Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$node[\"Upload image1\"].json[\"id\"]}}"
+          },
+          "position": {
+            "x": 3200,
+            "y": 200
+          }
+        },
+        {
+          "id": "17",
+          "label": "If1",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"message\"][\"text\"]}}",
+                  "operation": "contains",
+                  "value2": "Approve"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 3400,
+            "y": 200
+          }
+        },
+        {
+          "id": "18",
+          "label": "Upload media1",
+          "nodeType": "n8n-nodes-base.blotato",
+          "typeVersion": 1,
+          "params": {
+            "operation": "uploadMedia",
+            "file": "={{$node[\"Download image from Drive\"].json[\"file_path\"]}}"
+          },
+          "position": {
+            "x": 3600,
+            "y": 200
+          }
+        },
+        {
+          "id": "19",
+          "label": "Create instagram Post",
+          "nodeType": "n8n-nodes-base.blotato",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createPost",
+            "platform": "instagram",
+            "mediaUrl": "={{$node[\"Upload media1\"].json[\"url\"]}}",
+            "text": "={{$node[\"Parse AI Output\"].json[\"socialMediaText\"]}}"
+          },
+          "position": {
+            "x": 3800,
+            "y": 100
+          }
+        },
+        {
+          "id": "20",
+          "label": "Create x post",
+          "nodeType": "n8n-nodes-base.blotato",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createPost",
+            "platform": "x",
+            "mediaUrl": "={{$node[\"Upload media1\"].json[\"url\"]}}",
+            "text": "={{$node[\"Parse AI Output\"].json[\"socialMediaText\"]}}"
+          },
+          "position": {
+            "x": 3800,
+            "y": 200
+          }
+        },
+        {
+          "id": "21",
+          "label": "Create FB post",
+          "nodeType": "n8n-nodes-base.blotato",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createPost",
+            "platform": "facebook",
+            "mediaUrl": "={{$node[\"Upload media1\"].json[\"url\"]}}",
+            "text": "={{$node[\"Parse AI Output\"].json[\"socialMediaText\"]}}"
+          },
+          "position": {
+            "x": 3800,
+            "y": 300
+          }
+        },
+        {
+          "id": "22",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": 5000
+          },
+          "position": {
+            "x": 4000,
+            "y": 100
+          }
+        },
+        {
+          "id": "23",
+          "label": "Check Post Status",
+          "nodeType": "n8n-nodes-base.blotato",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getPostStatus",
+            "postId": "={{$node[\"Create instagram Post\"].json[\"id\"]}}"
+          },
+          "position": {
+            "x": 4200,
+            "y": 100
+          }
+        },
+        {
+          "id": "24",
+          "label": "Published to Instagram?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"Check Post Status\"].json[\"status\"]}}",
+                  "operation": "equals",
+                  "value2": "published"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 4400,
+            "y": 100
+          }
+        },
+        {
+          "id": "25",
+          "label": "Confirm publishing to Instagram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"chat\"][\"id\"]}}",
+            "text": "Your image has been published to Instagram!"
+          },
+          "position": {
+            "x": 4600,
+            "y": 100
+          }
+        },
+        {
+          "id": "26",
+          "label": "Send Instagram Error Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"chat\"][\"id\"]}}",
+            "text": "There was an error publishing to Instagram."
+          },
+          "position": {
+            "x": 4600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        },
+        {
+          "from": "14",
+          "to": "15"
+        },
+        {
+          "from": "15",
+          "to": "16"
+        },
+        {
+          "from": "16",
+          "to": "17"
+        },
+        {
+          "from": "17",
+          "to": "18",
+          "outputIndex": 0
+        },
+        {
+          "from": "18",
+          "to": "19"
+        },
+        {
+          "from": "18",
+          "to": "20"
+        },
+        {
+          "from": "18",
+          "to": "21"
+        },
+        {
+          "from": "19",
+          "to": "22"
+        },
+        {
+          "from": "22",
+          "to": "23"
+        },
+        {
+          "from": "23",
+          "to": "24"
+        },
+        {
+          "from": "24",
+          "to": "25",
+          "outputIndex": 0
+        },
+        {
+          "from": "24",
+          "to": "26",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2081,
+    "completion_tokens": 3572,
+    "total_tokens": 5653
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:43:44.659856"
+}

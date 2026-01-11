@@ -1,0 +1,129 @@
+{
+  "template_id": "7677",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to generate AI images and videos using KIE.AI's Midjourney API.",
+    "workflowPlan": {
+      "name": "KIE.AI Midjourney API Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "On Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "generate-content",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set API Key",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "api_key",
+                  "value": "={{$json[\"api_key\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request to KIE.AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/generate",
+            "method": "POST",
+            "authentication": "none",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": "={\"tasktype\": $json[\"tasktype\"], \"prompt\": $json[\"prompt\"], \"imgurl\": $json[\"imgurl\"], \"api_key\": $json[\"api_key\"]}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.kie.ai/status",
+            "method": "POST",
+            "authentication": "none",
+            "responseFormat": "json",
+            "jsonParameters": true,
+            "options": {
+              "pollTimes": {
+                "interval": 10,
+                "max": 30
+              }
+            },
+            "bodyParametersJson": "={\"task_id\": $json[\"task_id\"], \"api_key\": $json[\"api_key\"]}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Result",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"result\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1321,
+    "completion_tokens": 799,
+    "total_tokens": 2120
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:32:29.777457"
+}

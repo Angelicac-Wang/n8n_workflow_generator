@@ -1,0 +1,211 @@
+{
+  "template_id": "11735",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Creating an automated workflow for transforming HR policy PDFs into onboarding videos.",
+    "workflowPlan": {
+      "name": "HR Onboarding Video Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive PDF via Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "hr-onboarding-pdf",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"pdfUrl\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Text from PDF",
+          "nodeType": "n8n-nodes-base.pdf",
+          "typeVersion": 1,
+          "params": {
+            "operation": "extractText",
+            "input": "={{$node[\"Download PDF\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Simplify Policy Language",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.1-mini",
+            "prompt": "Simplify the following HR policy text: {{$node[\"Extract Text from PDF\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Video Script",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4.1-mini",
+            "prompt": "Create a friendly onboarding video script from the simplified policy: {{$node[\"Simplify Policy Language\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate HeyGen Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v1/videos",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "script": "={{$node[\"Create Video Script\"].json[\"choices\"][0][\"text\"]}}",
+              "avatarId": "YOUR_AVATAR_ID",
+              "voiceId": "YOUR_VOICE_ID"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.heygen.com/v1/videos/{{$node[\"Generate HeyGen Video\"].json[\"videoId\"]}}/status",
+            "method": "GET",
+            "options": {},
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download Completed Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$node[\"Generate HeyGen Video\"].json[\"videoUrl\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Upload Video to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "Onboarding_Video.mp4",
+            "fileContent": "={{$node[\"Download Completed Video\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Return Video URL via Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "responseMode": "onReceived",
+            "responseData": {
+              "videoUrl": "={{$node[\"Upload Video to Google Drive\"].json[\"webViewLink\"]}}"
+            }
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 953,
+    "completion_tokens": 1400,
+    "total_tokens": 2353
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:59:08.397119"
+}

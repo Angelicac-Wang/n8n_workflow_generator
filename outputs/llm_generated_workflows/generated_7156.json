@@ -1,0 +1,152 @@
+{
+  "template_id": "7156",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Sheets and GPT-4o Integration",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Rows from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate 1 Row of Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "Name",
+                  "value": "John Doe"
+                },
+                {
+                  "name": "Email",
+                  "value": "john.doe@example.com"
+                },
+                {
+                  "name": "Topic",
+                  "value": "AI in Healthcare"
+                },
+                {
+                  "name": "Submitted",
+                  "value": "Yes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Append Data to Google",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "model": "gpt-4o",
+            "prompt": "={{$json[\"Topic\"]}}",
+            "outputFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Sheets data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1",
+            "key": "Email",
+            "keyValue": "={{$json[\"Email\"]}}",
+            "data": [
+              {
+                "name": "Description",
+                "value": "={{$node[\"OpenAI Chat Model\"].json[\"description\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1173,
+    "completion_tokens": 848,
+    "total_tokens": 2021
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:30:51.307289"
+}

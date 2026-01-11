@@ -1,0 +1,129 @@
+{
+  "template_id": "4551",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating document processing and semantic search using Google Drive, Supabase, and OpenAI.",
+    "workflowPlan": {
+      "name": "Document Processing and Semantic Search",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "file",
+            "filters": {
+              "mimeType": [
+                "application/pdf",
+                "text/csv",
+                "application/vnd.google-apps.document"
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Text",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const mimeType = items[0].json.mimeType;\nif (mimeType === 'application/pdf') {\n  // Extract text from PDF\n} else if (mimeType === 'text/csv') {\n  // Extract text from CSV\n} else if (mimeType === 'application/vnd.google-apps.document') {\n  // Extract text from Google Doc\n}\nreturn items;"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Chunk Text",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const chunkSize = 1000;\nconst overlap = 100;\n// Logic to split text into chunks with overlap\nreturn items;"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Enhance and Store Embeddings",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.supabase.io/v1/embeddings",
+            "method": "POST",
+            "body": {
+              "text": "={{$json['chunkedText']}}"
+            },
+            "authentication": "supabaseApiKey"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Chat Interface",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "method": "POST",
+            "body": {
+              "model": "gpt-3.5-turbo",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are a helpful assistant."
+                },
+                {
+                  "role": "user",
+                  "content": "={{$json['userQuery']}}"
+                }
+              ]
+            },
+            "authentication": "openaiApiKey"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1146,
+    "completion_tokens": 827,
+    "total_tokens": 1973
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:10:53.726905"
+}

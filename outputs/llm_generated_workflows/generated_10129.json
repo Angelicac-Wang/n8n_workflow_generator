@@ -1,0 +1,170 @@
+{
+  "template_id": "10129",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Create LinkedIn Post from Telegram Voice or Text Message with AI Image",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi}}",
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Transcribe Voice Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/audio/transcriptions",
+            "method": "POST",
+            "authentication": "={{$credentials.openAIApi}}",
+            "body": {
+              "file": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}",
+              "model": "whisper-1"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Format LinkedIn Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/completions",
+            "method": "POST",
+            "authentication": "={{$credentials.openAIApi}}",
+            "body": {
+              "model": "text-davinci-003",
+              "prompt": "Format the following text into a professional LinkedIn post: {{$json[\"text\"]}}",
+              "max_tokens": 2500
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Image Prompt",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { prompt: `Create an image for: ${$json[\"choices\"][0][\"text\"]}` };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create AI Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "authentication": "={{$credentials.openAIApi}}",
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}",
+              "n": 1,
+              "size": "1024x1024"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post to LinkedIn",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/ugcPosts",
+            "method": "POST",
+            "authentication": "={{$credentials.linkedinOAuth2Api}}",
+            "body": {
+              "author": "urn:li:person:YOUR_PERSON_ID",
+              "lifecycleState": "PUBLISHED",
+              "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                  "shareCommentary": {
+                    "text": "={{$json[\"choices\"][0][\"text\"]}}"
+                  },
+                  "shareMediaCategory": "IMAGE",
+                  "media": [
+                    {
+                      "status": "READY",
+                      "description": {
+                        "text": "AI generated image"
+                      },
+                      "media": "={{$json[\"data\"][0][\"url\"]}}",
+                      "title": {
+                        "text": "AI Image"
+                      }
+                    }
+                  ]
+                }
+              },
+              "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+              }
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1039,
+    "completion_tokens": 1086,
+    "total_tokens": 2125
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:27:49.495787"
+}

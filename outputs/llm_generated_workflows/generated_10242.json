@@ -1,0 +1,155 @@
+{
+  "template_id": "10242",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Resume & Cover Letter Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "resume-cover-letter",
+            "method": "POST",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Data from Data Table",
+          "nodeType": "n8n-nodes-base.n8nDataTable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "tableName": "Experience"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Cover Letter",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "model": "openai-gpt-3",
+            "prompt": "Generate a cover letter for the following job listing: {{$json[\"body\"][\"job_description\"]}} using the experience: {{$node[\"2\"].json}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate HTML Resume",
+          "nodeType": "n8n-nodes-base.html",
+          "typeVersion": 1,
+          "params": {
+            "template": "<html><body><h1>Resume</h1><p>Role: {{$node[\"2\"].json[\"role\"]}}</p><p>Summary: {{$node[\"2\"].json[\"summary\"]}}</p></body></html>"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Convert HTML to PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://gotenberg:3000/forms/chromium/convert/html",
+            "method": "POST",
+            "body": {
+              "files": [
+                {
+                  "name": "resume.html",
+                  "content": "{{$node[\"4\"].json}}"
+                }
+              ]
+            },
+            "options": {
+              "json": true
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload PDF to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "Resume.pdf",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond with Success",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "Resume and cover letter generated successfully."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1155,
+    "completion_tokens": 946,
+    "total_tokens": 2101
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:30:25.478176"
+}

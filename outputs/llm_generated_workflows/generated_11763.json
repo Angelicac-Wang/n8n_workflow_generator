@@ -1,0 +1,113 @@
+{
+  "template_id": "11763",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to monitor website downtime and send alerts via email and Telegram.",
+    "workflowPlan": {
+      "name": "Website Downtime Checker",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://example.com",
+            "method": "GET",
+            "timeout": 3000
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "IF Node",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"statusCode\"]}}",
+                  "operation": "notEqual",
+                  "value2": "200"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "params": {
+            "waitFor": "300"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Email Alert",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "alert-recipient@example.com",
+            "subject": "Website Down Alert",
+            "text": "The website is down."
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Telegram Alert",
+          "nodeType": "n8n-nodes-base.telegram",
+          "params": {
+            "chatId": "your-chat-id",
+            "text": "The website is down.",
+            "botToken": "your-telegram-bot-token"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1096,
+    "completion_tokens": 608,
+    "total_tokens": 1704
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:59:40.240961"
+}

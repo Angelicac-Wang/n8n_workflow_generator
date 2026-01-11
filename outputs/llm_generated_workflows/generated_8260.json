@@ -1,0 +1,129 @@
+{
+  "template_id": "8260",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow for integrating Chatwoot with an AI Assistant using n8n.",
+    "workflowPlan": {
+      "name": "Multichannel AI Assistant Demo for Chatwoot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chatwoot Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chatwoot-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Filter Incoming Messages",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message_type\"]}}",
+                  "operation": "equal",
+                  "value2": "incoming"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Retrieve Conversation History",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourchatwooturl.com/api/v1/conversations/{{$json[\"conversation_id\"]}}/messages",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "api_access_token",
+              "value": "your_api_access_token"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process with AI Assistant",
+          "nodeType": "n8n-nodes-base.llm",
+          "typeVersion": 1,
+          "params": {
+            "provider": "openrouter",
+            "prompt": "Process this conversation history and generate a response: {{$json[\"messages\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Response to Chatwoot",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourchatwooturl.com/api/v1/conversations/{{$json[\"conversation_id\"]}}/messages",
+            "method": "POST",
+            "authentication": "headerAuth",
+            "headerAuth": {
+              "name": "api_access_token",
+              "value": "your_api_access_token"
+            },
+            "body": {
+              "content": "={{$node[\"Process with AI Assistant\"].json[\"response\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 975,
+    "completion_tokens": 791,
+    "total_tokens": 1766
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:34:16.776352"
+}

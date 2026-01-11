@@ -1,0 +1,125 @@
+{
+  "template_id": "3150",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to extract and clean Google News URLs from an RSS feed.",
+    "workflowPlan": {
+      "name": "Google News RSS Cleaner",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Google News RSS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://news.google.com/rss?hl=en&gl=US",
+            "method": "GET",
+            "responseFormat": "string"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Limit Results",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const limit = 10;\nreturn items.slice(0, limit);"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Encoded Content",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$json[\"body\"]}}",
+            "cssSelector": "link",
+            "returnArray": true
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Decode URLs",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const url = decodeURIComponent(item.json.link);\n  return { json: { url } };\n});"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Remove Unwanted Characters",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const cleanUrl = item.json.url.replace(/\\?.*$/, '');\n  return { json: { cleanUrl } };\n});"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Aggregate Results",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "cleanUrls": "={{$json[\"cleanUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 859,
+    "completion_tokens": 768,
+    "total_tokens": 1627
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:54:00.645961"
+}

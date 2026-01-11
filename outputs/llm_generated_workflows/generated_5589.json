@@ -1,0 +1,203 @@
+{
+  "template_id": "5589",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to turn your Telegram bot into a smart, multi-modal AI assistant.",
+    "workflowPlan": {
+      "name": "Telegram AI Assistant with RAG",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updates": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Message Router",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message\"][\"type\"]}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "voice"
+              },
+              {
+                "operation": "equal",
+                "value": "image"
+              },
+              {
+                "operation": "equal",
+                "value": "text"
+              },
+              {
+                "operation": "equal",
+                "value": "document"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Voice to Text",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/voice-to-text",
+            "method": "POST",
+            "body": "={{$json[\"message\"][\"voice\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Image to Text",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/image-to-text",
+            "method": "POST",
+            "body": "={{$json[\"message\"][\"image\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Document Router",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message\"][\"document\"][\"extension\"]}}",
+            "rules": [
+              {
+                "operation": "in",
+                "value": ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.json,.xml"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Process Document",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/document-to-text",
+            "method": "POST",
+            "body": "={{$json[\"message\"][\"document\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "RAG Processing",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const question = $json[\"text\"];\n// Query Supabase for similar chunks\n// Rank and inject into OpenAI prompt\n// Return OpenAI response\nreturn { response: \"AI response based on RAG\" };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 2
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 3
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1362,
+    "completion_tokens": 1231,
+    "total_tokens": 2593
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:21:26.629215"
+}

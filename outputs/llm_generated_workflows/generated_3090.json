@@ -1,0 +1,141 @@
+{
+  "template_id": "3090",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for a Multi-AI Agent Chatbot that queries Postgres/Supabase databases and generates charts using QuickChart.",
+    "workflowPlan": {
+      "name": "Multi-AI Agent Chatbot for Postgres and QuickChart",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "When Chat Message Received",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Tool Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const input = items[0].json;\nconst message = input.message.toLowerCase();\nif (message.includes('chart')) {\n  return [{ json: { action: 'generate_chart', message } }];\n} else {\n  return [{ json: { action: 'query_database', message } }];\n}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Query Database",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT * FROM users WHERE message = $json.message",
+            "additionalFields": {
+              "schema": "public"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Chart",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://quickchart.io/chart",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "chart": {
+                "type": "bar",
+                "data": {
+                  "labels": [
+                    "January",
+                    "February",
+                    "March"
+                  ],
+                  "datasets": [
+                    {
+                      "label": "Sales",
+                      "data": [
+                        65,
+                        59,
+                        80
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Result",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "Here's the result: {{$json.result}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 934,
+    "completion_tokens": 817,
+    "total_tokens": 1751
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:52:41.553406"
+}

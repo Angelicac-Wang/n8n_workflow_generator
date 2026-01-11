@@ -1,0 +1,167 @@
+{
+  "template_id": "5611",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered Lead Generation with Apollo, GPT-4, and Telegram to Database",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Whisper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/audio/transcriptions",
+            "method": "POST",
+            "bodyParameters": {
+              "file": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}",
+              "model": "whisper-1"
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/completions",
+            "method": "POST",
+            "bodyParameters": {
+              "model": "gpt-4",
+              "prompt": "Extract search parameters from the following text: {{$json[\"text\"]}}",
+              "max_tokens": 100
+            },
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Apollo.io Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apollo.io/v1/contacts/search",
+            "method": "POST",
+            "bodyParameters": {
+              "location": "={{$json[\"location\"]}}",
+              "industry": "={{$json[\"industry\"]}}",
+              "job_title": "={{$json[\"job_title\"]}}"
+            },
+            "authentication": "apiKey"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Email Verification",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"email_verified\"]}}",
+                  "operation": "is",
+                  "value2": "true"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Database Insert",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "query": "INSERT INTO leads (first_name, last_name, email, linkedin_url, job_title, company_name, industry, location) VALUES ('{{$json[\"first_name\"]}}', '{{$json[\"last_name\"]}}', '{{$json[\"email\"]}}', '{{$json[\"linkedin_url\"]}}', '{{$json[\"job_title\"]}}', '{{$json[\"company_name\"]}}', '{{$json[\"industry\"]}}', '{{$json[\"location\"]}}')"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Success Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"chat_id\"]}}",
+            "text": "Lead generation successful! New leads have been added to the database."
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1582,
+    "completion_tokens": 1105,
+    "total_tokens": 2687
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:21:57.305933"
+}

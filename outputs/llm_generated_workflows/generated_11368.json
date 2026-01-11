@@ -1,0 +1,154 @@
+{
+  "template_id": "11368",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Personal Expense Tracker Bot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "telegramTrigger",
+          "params": {
+            "botToken": "={{$credentials.telegramApiToken}}",
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Authorization",
+          "nodeType": "if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message\"][\"from\"][\"id\"]}}",
+                  "operation": "equal",
+                  "value2": "={{$credentials.authorizedUserId}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Unauthorized Message",
+          "nodeType": "telegramSendMessage",
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "You are not authorized to use this bot."
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Message",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "const message = $json[\"message\"][\"text\"];\nif (message.includes(\"spent\")) {\n  return [{\n    type: \"text\",\n    content: message\n  }];\n} else {\n  return [];\n}"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Processing",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openrouter.ai/process",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"content\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer {{$credentials.openRouterApiKey}}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store Expense",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.ainoflow.io/store",
+            "method": "POST",
+            "body": "={{$json}}",
+            "headers": {
+              "Authorization": "Bearer {{$credentials.ainoflowApiKey}}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Confirmation",
+          "nodeType": "telegramSendMessage",
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Expense added successfully!"
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1638,
+    "completion_tokens": 886,
+    "total_tokens": 2524
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:48:31.182471"
+}

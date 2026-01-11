@@ -1,0 +1,156 @@
+{
+  "template_id": "9896",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Product Video Creator with Nano Banana & Veo 3.1 via Telegram",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Design Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://vertexai.googleapis.com/v1/projects/{{$credentials.googleApi.projectId}}/locations/us-central1/models/nano-banana:predict",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "instances": [
+                {
+                  "image": "={{$json[\"message\"][\"photo\"][0][\"file_id\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Enhanced Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://vertexai.googleapis.com/v1/projects/{{$credentials.googleApi.projectId}}/locations/us-central1/models/nano-banana:predict",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "instances": [
+                {
+                  "prompt": "={{$node[\"AI Design Analysis\"].json[\"predictions\"][0][\"prompt\"]}}",
+                  "aspectRatio": "9:16"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Initiate Veo 3.1 Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://vertexai.googleapis.com/v1/projects/{{$credentials.googleApi.projectId}}/locations/us-central1/models/veo-3.1:predict",
+            "method": "POST",
+            "authentication": "oAuth2",
+            "body": {
+              "instances": [
+                {
+                  "image": "={{$node[\"Generate Enhanced Image\"].json[\"predictions\"][0][\"image\"]}}",
+                  "durationSeconds": 8,
+                  "resolution": "1080p",
+                  "generateAudio": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Processing Delay (30s)",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": {
+              "value": 30
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Video to Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Your video is ready! Check it out: {{$node[\"Initiate Veo 3.1 Video Generation\"].json[\"predictions\"][0][\"videoUrl\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1209,
+    "completion_tokens": 1017,
+    "total_tokens": 2226
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:43:30.340884"
+}

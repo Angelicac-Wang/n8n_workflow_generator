@@ -1,0 +1,155 @@
+{
+  "template_id": "10870",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Audio Transcription Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "upload-audio",
+            "responseMode": "onReceived",
+            "responseData": {
+              "responseCode": 200,
+              "responseBody": "File received"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Split File",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fileChunks = splitFileIntoChunks($binary.data, 4 * 1024 * 1024);\nreturn fileChunks.map((chunk, index) => ({ json: { index, chunk } }));"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload to FileFlows",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://fileflows-instance/upload",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "file",
+                "value": "={{$json.chunk}}"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transcribe with Whisper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/whisper/transcriptions",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": [
+              {
+                "name": "file",
+                "value": "={{$json.chunk}}"
+              },
+              {
+                "name": "language",
+                "value": "fr"
+              }
+            ],
+            "options": {}
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Transcriptions",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const transcriptions = items.map(item => item.json.transcription);\nreturn [{ json: { transcription: transcriptions.join('\\n') } }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@gmail.com",
+            "toEmail": "={{$json.email}}",
+            "subject": "Your Transcription",
+            "text": "={{$json.transcription}}",
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 587,
+              "secure": false,
+              "user": "your-email@gmail.com",
+              "password": "your-email-password"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 778,
+    "completion_tokens": 931,
+    "total_tokens": 1709
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:38:20.390480"
+}

@@ -1,0 +1,178 @@
+{
+  "template_id": "5128",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Content Sharing Across Social Media",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Input Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "url",
+                  "value": "https://example.com/article"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Gemini Chat Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini",
+            "method": "POST",
+            "body": {
+              "url": "={{$json[\"url\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": "Google Gemini API"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "ScreenshotOne",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.screenshotone.com/capture",
+            "method": "POST",
+            "body": {
+              "url": "={{$json[\"url\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": "ScreenshotOne API"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload Post X",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/x",
+            "method": "POST",
+            "body": {
+              "content": "={{$node[\"Google Gemini Chat Model\"].json[\"xContent\"]}}",
+              "image": "={{$node[\"ScreenshotOne\"].json[\"imageUrl\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": "Upload Post API"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload Post LinkedIn",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/linkedin",
+            "method": "POST",
+            "body": {
+              "content": "={{$node[\"Google Gemini Chat Model\"].json[\"linkedinContent\"]}}",
+              "image": "={{$node[\"ScreenshotOne\"].json[\"imageUrl\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": "Upload Post API"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload Post Threads",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.upload-post.com/threads",
+            "method": "POST",
+            "body": {
+              "content": "={{$node[\"Google Gemini Chat Model\"].json[\"threadsContent\"]}}",
+              "image": "={{$node[\"ScreenshotOne\"].json[\"imageUrl\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "credentials": "Upload Post API"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Reddit",
+          "nodeType": "n8n-nodes-base.reddit",
+          "typeVersion": 1,
+          "params": {
+            "resource": "post",
+            "operation": "create",
+            "title": "={{$node[\"Google Gemini Chat Model\"].json[\"redditTitle\"]}}",
+            "text": "={{$node[\"Google Gemini Chat Model\"].json[\"redditContent\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 800
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "2",
+          "to": "6"
+        },
+        {
+          "from": "2",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1461,
+    "completion_tokens": 1149,
+    "total_tokens": 2610
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:15:57.427095"
+}

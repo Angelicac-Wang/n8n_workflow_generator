@@ -1,0 +1,232 @@
+{
+  "template_id": "6027",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Powered B2B Prospecting Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Search Companies on LinkedIn",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.ghostgenius.fr/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "location",
+                "value": "=Sheet1!A2"
+              },
+              {
+                "name": "companySize",
+                "value": "=Sheet1!B2"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Enrich Company Details",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.ghostgenius.fr/enrich",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "companyId",
+                "value": "={{$json[\"companyId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Score Company",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Score this company based on fit with our product: {{$json[\"companyDetails\"]}}",
+              "max_tokens": 10
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Qualified Companies",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$json[\"score\"]}}",
+                  "operation": "greaterThan",
+                  "value2": 7
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Google Sheets",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values/{range}:append",
+            "method": "POST",
+            "body": {
+              "values": [
+                "={{$json[\"qualifiedCompanyDetails\"]}}"
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Find Decision Makers",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.linkedin.com/v2/salesNavigator",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "companyId",
+                "value": "={{$json[\"companyId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Outreach Sequence",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Generate a personalized 3-email sequence for {{$json[\"decisionMakerDetails\"]}}",
+              "max_tokens": 150
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Retrieve Verified Emails",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.emailverification.com/verify",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "email",
+                "value": "={{$json[\"email\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Store Contact Data",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values/{range}:append",
+            "method": "POST",
+            "body": {
+              "values": [
+                "={{$json[\"contactData\"]}}"
+              ]
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 781,
+    "completion_tokens": 1344,
+    "total_tokens": 2125
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:28:16.639804"
+}

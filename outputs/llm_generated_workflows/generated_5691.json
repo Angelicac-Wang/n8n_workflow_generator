@@ -1,0 +1,132 @@
+{
+  "template_id": "5691",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Lead Contact Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Load Leads from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Leads!A:C"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Search LinkedIn via Apify",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "apify-google-search",
+            "input": {
+              "queries": "={{$json[\"First Name\"]}} {{$json[\"Last Name\"]}} {{$json[\"Company\"]}} LinkedIn"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch LinkedIn Profile",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "apify-linkedin-profile",
+            "input": {
+              "profileUrl": "={{$json[\"results\"][0][\"url\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Company Profile",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "apify-linkedin-company",
+            "input": {
+              "companyUrl": "={{$json[\"companyUrl\"] || $json[\"results\"][0][\"url\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Personalized Email",
+          "nodeType": "n8n-nodes-base.openRouter",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a personalized outreach email for {{$json[\"First Name\"]}} {{$json[\"Last Name\"]}} at {{$json[\"Company\"]}} based on their LinkedIn profile and company information."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email via Gmail",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{$json[\"Email\"]}}",
+            "subject": "Personalized Outreach",
+            "body": "={{$json[\"emailContent\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 732,
+    "completion_tokens": 823,
+    "total_tokens": 1555
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:23:48.067796"
+}

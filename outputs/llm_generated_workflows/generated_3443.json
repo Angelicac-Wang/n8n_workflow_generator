@@ -1,0 +1,146 @@
+{
+  "template_id": "3443",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Maps Data Extraction for Lead Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Maps Scraper",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.googlemapsscraper.com/v1/scrape",
+            "method": "POST",
+            "body": {
+              "location": "New York",
+              "businessCategory": "restaurants",
+              "countryCode": "US"
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "headerName": "Authorization",
+              "headerValue": "Bearer YOUR_GOOGLE_MAPS_SCRAPER_API_KEY"
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Website Content Crawler",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.websitecontentcrawler.com/v1/extract",
+            "method": "POST",
+            "body": {
+              "websiteUrl": "={{$json[\"website\"]}}"
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "headerName": "Authorization",
+              "headerValue": "Bearer YOUR_WEBSITE_CONTENT_CRAWLER_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI Data Processing",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "Process the following business data: {{$json}}",
+              "max_tokens": 100
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "headerName": "Authorization",
+              "headerValue": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              "={{$json[\"businessName\"]}}",
+              "={{$json[\"address\"]}}",
+              "={{$json[\"phone\"]}}",
+              "={{$json[\"email\"]}}",
+              "={{$json[\"website\"]}}"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Search API",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://serpapi.com/search",
+            "method": "GET",
+            "query": {
+              "q": "={{$json[\"businessName\"]}}",
+              "api_key": "YOUR_SERPAPI_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 968,
+    "completion_tokens": 893,
+    "total_tokens": 1861
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:58:10.711084"
+}

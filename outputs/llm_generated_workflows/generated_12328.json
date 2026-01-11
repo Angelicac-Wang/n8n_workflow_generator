@@ -1,0 +1,314 @@
+{
+  "template_id": "12328",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily ClosedLost Deal Analysis and Re-engagement Strategy",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Many Deals",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.yourcrm.com/deals",
+            "method": "GET",
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter ClosedLost Deals",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "operation": "equal",
+                  "value2": "ClosedLost"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Edit Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "amount",
+                  "value": "={{$json[\"amount\"]}}"
+                },
+                {
+                  "name": "industry",
+                  "value": "={{$json[\"industry\"]}}"
+                },
+                {
+                  "name": "owner",
+                  "value": "={{$json[\"owner\"]}}"
+                },
+                {
+                  "name": "lossReason",
+                  "value": "={{$json[\"lossReason\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Brief Explanation Creator",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "input": "={{$json[\"lossReason\"]}}",
+            "model": "text-davinci-003",
+            "prompt": "Classify the primary loss category and provide a confidence-backed explanation."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Parse AI Output",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "JavaScript",
+            "code": "return { lossCategory: $json[\"lossCategory\"], explanation: $json[\"explanation\"] };"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Merge Deal Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "mergeByIndex"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Feedback Creator",
+          "nodeType": "n8n-nodes-base.ai",
+          "typeVersion": 1,
+          "params": {
+            "input": "={{$json[\"lossCategory\"]}}",
+            "model": "text-davinci-003",
+            "prompt": "Generate a practical re-engagement strategy."
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Parse Revival Strategy",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "JavaScript",
+            "code": "return { strategy: $json[\"strategy\"] };"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Merge Final Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "mergeByIndex"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Build Email Summary",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "JavaScript",
+            "code": "return { emailContent: `<html><body><h1>Deal Analysis Summary</h1>${$json[\"summary\"]}</body></html>` };"
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "stakeholders@company.com",
+            "subject": "Daily ClosedLost Deal Analysis",
+            "html": "={{$json[\"emailContent\"]}}"
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Build Slack Summary",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "JavaScript",
+            "code": "return { slackContent: `Deal Analysis Summary: ${$json[\"summary\"]}` };"
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        },
+        {
+          "id": "14",
+          "label": "Send Slack Message",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "#sales-insights",
+            "text": "={{$json[\"slackContent\"]}}"
+          },
+          "position": {
+            "x": 2800,
+            "y": 300
+          }
+        },
+        {
+          "id": "15",
+          "label": "Log Results",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{$json[\"finalData\"]}}"
+          },
+          "position": {
+            "x": 3000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "10",
+          "to": "13"
+        },
+        {
+          "from": "13",
+          "to": "14"
+        },
+        {
+          "from": "10",
+          "to": "15"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 935,
+    "completion_tokens": 1923,
+    "total_tokens": 2858
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:24:50.223270"
+}

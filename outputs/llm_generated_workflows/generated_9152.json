@@ -1,0 +1,154 @@
+{
+  "template_id": "9152",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Generated Video Ad Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Submit Creative Brief",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "submit-creative-brief",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Upload Product Image",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "upload-product-image",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "3",
+          "label": "Log Project in Airtable",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "application": "YOUR_AIRTABLE_APP_ID",
+            "table": "YOUR_TABLE_NAME",
+            "fields": {
+              "Image Prompt": "={{$node[\"Submit Creative Brief\"].json[\"body\"][\"prompt\"]}}",
+              "Image": "={{$node[\"Upload Product Image\"].json[\"body\"][\"imageUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Creative Analysis",
+          "nodeType": "n8n-nodes-langchain.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_GEMINI_API_KEY",
+            "prompt": "={{$node[\"Submit Creative Brief\"].json[\"body\"][\"prompt\"]}}",
+            "imageUrl": "={{$node[\"Upload Product Image\"].json[\"body\"][\"imageUrl\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Video with Veo 3",
+          "nodeType": "n8n-nodes-langchain.googleVeo",
+          "typeVersion": 1,
+          "params": {
+            "projectId": "YOUR_PROJECT_ID",
+            "location": "YOUR_LOCATION",
+            "creativeBrief": "={{$node[\"AI Creative Analysis\"].json[\"brief\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Retrieve Final Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://veo3.googleapis.com/v1/projects/YOUR_PROJECT_ID/locations/YOUR_LOCATION/videos",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Make Video Available for Download",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "Video": "={{$node[\"Retrieve Final Video\"].json[\"file\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1370,
+    "completion_tokens": 993,
+    "total_tokens": 2363
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:38:09.889446"
+}

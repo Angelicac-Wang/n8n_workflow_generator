@@ -1,0 +1,307 @@
+{
+  "template_id": "5711",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "AI-Driven Trading Bot with Alpaca",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 9,
+                  "minute": 0,
+                  "weekday": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ]
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Alpaca Account Balance",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://paper-api.alpaca.markets/v2/account",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Log Balance to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "BalanceLog!A:C",
+            "key": "date",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              {
+                "key": "date",
+                "value": "={{$now}}"
+              },
+              {
+                "key": "balance",
+                "value": "={{$json['cash']}}"
+              },
+              {
+                "key": "equity",
+                "value": "={{$json['equity']}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Sentiment Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.your-sentiment-analysis.com/results",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Filter Top 4 Stocks",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "functionCode": "const sentimentData = items[0].json;\nconst topStocks = sentimentData.sort((a, b) => b.sentimentScore - a.sentimentScore).slice(0, 4);\nreturn topStocks.map(stock => ({ json: stock }));"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Open Positions",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://paper-api.alpaca.markets/v2/positions",
+            "method": "GET",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Decision Engine",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "functionCode": "const topStocks = items[0].json;\nconst openPositions = items[1].json;\n\nconst sellList = openPositions.filter(position => !topStocks.find(stock => stock.symbol === position.symbol));\nconst buyList = topStocks.filter(stock => !openPositions.find(position => position.symbol === stock.symbol));\n\nconst totalSellValue = sellList.reduce((acc, position) => acc + parseFloat(position.market_value), 0);\nconst buyAmountPerStock = totalSellValue / buyList.length;\n\nreturn [{ json: { sellList, buyList, buyAmountPerStock } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Execute Sell Orders",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Sell Stock",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://paper-api.alpaca.markets/v2/orders",
+            "method": "DELETE",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParameters": {
+              "symbol": "={{$json['symbol']}}",
+              "qty": "={{$json['qty']}}"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Wait for Sell Orders",
+          "nodeType": "n8n-nodes-base.wait",
+          "params": {
+            "waitFor": "2m"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Execute Buy Orders",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 2200,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Buy Stock",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://paper-api.alpaca.markets/v2/orders",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json",
+            "bodyParameters": {
+              "symbol": "={{$json['symbol']}}",
+              "notional": "={{$json['buyAmountPerStock']}}",
+              "side": "buy",
+              "type": "market",
+              "time_in_force": "day"
+            }
+          },
+          "position": {
+            "x": 2400,
+            "y": 300
+          }
+        },
+        {
+          "id": "13",
+          "label": "Log Trades to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "TradeLog!A:E",
+            "key": "date",
+            "valueInputMode": "USER_ENTERED",
+            "data": [
+              {
+                "key": "date",
+                "value": "={{$now}}"
+              },
+              {
+                "key": "symbol",
+                "value": "={{$json['symbol']}}"
+              },
+              {
+                "key": "action",
+                "value": "={{$json['side']}}"
+              },
+              {
+                "key": "amount",
+                "value": "={{$json['notional'] || $json['qty']}}"
+              },
+              {
+                "key": "price",
+                "value": "={{$json['filled_avg_price']}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 2600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        },
+        {
+          "from": "12",
+          "to": "13"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1232,
+    "completion_tokens": 1891,
+    "total_tokens": 3123
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:24:22.554704"
+}

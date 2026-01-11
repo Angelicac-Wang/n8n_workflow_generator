@@ -1,0 +1,199 @@
+{
+  "template_id": "10898",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "OWASP Scanner Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "owasp-scan",
+            "responseMode": "onReceived",
+            "responseData": "noData"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Headers",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}{{$json[\"body\"][\"endpoint\"]}}",
+            "method": "HEAD"
+          },
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request - Cookies",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}{{$json[\"body\"][\"endpoint\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request - CORS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}{{$json[\"body\"][\"endpoint\"]}}",
+            "method": "OPTIONS"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "HTTP Request - HTTPS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}{{$json[\"body\"][\"endpoint\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "HTTP Request - Methods",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"url\"]}}{{$json[\"body\"][\"endpoint\"]}}",
+            "method": "OPTIONS"
+          },
+          "position": {
+            "x": 400,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Function - Analyze",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { report: 'OWASP analysis results' } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Markdown Report",
+          "nodeType": "n8n-nodes-base.markdown",
+          "typeVersion": 1,
+          "params": {
+            "data": "={{$node[\"Function - Analyze\"].json[\"report\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Email Report",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"body\"][\"email\"]}}",
+            "subject": "OWASP Scan Report",
+            "text": "Attached is the OWASP scan report.",
+            "attachments": [
+              {
+                "binaryPropertyName": "data"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "1",
+          "to": "6"
+        },
+        {
+          "from": "2",
+          "to": "7"
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 774,
+    "completion_tokens": 1213,
+    "total_tokens": 1987
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:38:58.901219"
+}

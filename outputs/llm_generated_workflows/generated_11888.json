@@ -1,0 +1,152 @@
+{
+  "template_id": "11888",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Audio to Searchable Knowledge Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook for Audio Upload",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "audio-upload",
+            "responseMode": "onReceived",
+            "responseData": "allData"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AssemblyAI Transcription",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.assemblyai.com/v2/transcript",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParameters": [
+              {
+                "name": "audio_url",
+                "value": "={{$json[\"body\"][\"audioUrl\"]}}"
+              },
+              {
+                "name": "speaker_labels",
+                "value": "true"
+              },
+              {
+                "name": "summary_type",
+                "value": "bullets"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Sheets Log",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "RAW",
+            "data": [
+              [
+                "={{$json[\"body\"][\"fileName\"]}}",
+                "={{$json[\"body\"][\"status\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 500
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Gemini Embedding",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/embedding",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParameters": [
+              {
+                "name": "text",
+                "value": "={{$json[\"transcription\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Pinecone Store Embeddings",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-pinecone-index-url/vectors/upsert",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "options": {},
+            "bodyParameters": [
+              {
+                "name": "vectors",
+                "value": "={{$json[\"embeddings\"]}}"
+              },
+              {
+                "name": "metadata",
+                "value": "={{$json[\"metadata\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 834,
+    "completion_tokens": 880,
+    "total_tokens": 1714
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:05:19.685817"
+}

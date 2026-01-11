@@ -1,0 +1,173 @@
+{
+  "template_id": "8326",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow plan for an AI-powered appointment scheduling system using Google Calendar and Sheets.",
+    "workflowPlan": {
+      "name": "AI-Powered Appointment Scheduling",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "appointment-scheduling",
+            "responseMode": "onReceived",
+            "responseData": "firstEntryJson"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Response",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Welcome the customer and answer general questions about services, pricing, location, and hours.",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Identify Service",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "service",
+                  "operation": "contains",
+                  "value2": "request"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Availability",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendarId": "calendar-id-here",
+            "options": {
+              "timeMin": "={{$now}}",
+              "timeMax": "={{$now.addDays(10)}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Collect Customer Details",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "name": "={{$json[\"name\"]}}",
+              "phone": "={{$json[\"phone\"]}}",
+              "email": "={{$json[\"email\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Appointment",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendarId": "calendar-id-here",
+            "start": "={{$json[\"start\"]}}",
+            "end": "={{$json[\"end\"]}}",
+            "summary": "Appointment with {{$json[\"name\"]}}",
+            "description": "Service: {{$json[\"service\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "sheet-id-here",
+            "range": "Appointments!A1",
+            "fields": {
+              "client_number": "={{$json[\"client_number\"]}}",
+              "client_name": "={{$json[\"name\"]}}",
+              "event_id": "={{$json[\"event_id\"]}}",
+              "summary": "={{$json[\"summary\"]}}",
+              "services": "={{$json[\"service\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1350,
+    "completion_tokens": 1083,
+    "total_tokens": 2433
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:34:23.904939"
+}

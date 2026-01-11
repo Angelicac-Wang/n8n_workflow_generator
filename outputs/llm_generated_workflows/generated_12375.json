@@ -1,0 +1,197 @@
+{
+  "template_id": "12375",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Community Contest Tracker",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 21 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get FB Comments",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/{Post ID}/comments",
+            "method": "GET",
+            "authentication": "facebookApi"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Past Winners",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "baseId": "{Airtable Base ID}",
+            "table": "Winners"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Pre-Filter (Blocklist)",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const blocklist = new Set($node[\"Get Past Winners\"].json.map(winner => winner.fields['Facebook ID']));\nconst filteredComments = $node[\"Get FB Comments\"].json.filter(comment => !blocklist.has(comment.from.id) && comment.message.length > 2);\nreturn filteredComments.map(comment => ({ json: comment }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Sentiment Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o-mini",
+            "prompt": "Analyze the sentiment of the following comment and determine if it is positive: {{$json[\"message\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Filter Positive Comments",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "Positive",
+                  "operation": "contains",
+                  "value2": "{{$json[\"choices\"][0].text}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Pick Winner",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const positiveComments = items.filter(item => item.json.choices[0].text.includes('Positive'));\nconst winner = positiveComments[Math.floor(Math.random() * positiveComments.length)];\nreturn [winner];"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Save Winner",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "{Airtable Base ID}",
+            "table": "Winners",
+            "fields": {
+              "Name": "{{$json[\"from\"][\"name\"]}}",
+              "Facebook ID": "{{$json[\"from\"][\"id\"]}}",
+              "Comment": "{{$json[\"message\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Announce Winner",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "@mychannel",
+            "text": "Congratulations to {{$json[\"from\"][\"name\"]}} for winning today's contest with the comment: {{$json[\"message\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2052,
+    "completion_tokens": 1291,
+    "total_tokens": 3343
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:26:14.893640"
+}

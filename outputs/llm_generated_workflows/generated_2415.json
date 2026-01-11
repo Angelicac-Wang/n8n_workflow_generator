@@ -1,0 +1,118 @@
+{
+  "template_id": "2415",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow template generates a custom AI chat assistant based on a Notion database schema.",
+    "workflowPlan": {
+      "name": "Notion AI Assistant Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "notion-assistant",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Get Notion Schema",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"body\"][\"notionDatabaseUrl\"]}}",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set - Prepare AI Assistant",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "assistantConfig",
+                  "value": "={{$node[\"HTTP Request - Get Notion Schema\"].json}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request - Generate AI Assistant",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.anthropic.com/generate-assistant",
+            "method": "POST",
+            "body": {
+              "schema": "={{$node[\"Set - Prepare AI Assistant\"].json[\"assistantConfig\"]}}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Assistant",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "text": "AI Assistant generated successfully. Configuration: {{$node[\"HTTP Request - Generate AI Assistant\"].json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 866,
+    "completion_tokens": 701,
+    "total_tokens": 1567
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:36:22.634161"
+}

@@ -1,0 +1,150 @@
+{
+  "template_id": "9652",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Post Automation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Quote",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a unique quote for Instagram post",
+            "maxTokens": 60
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Duplicates",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const fs = require('fs');\nconst filePath = '/home/node/instagram_posts.txt';\nconst newQuote = items[0].json.text;\n\nif (fs.existsSync(filePath)) {\n  const existingQuotes = fs.readFileSync(filePath, 'utf-8').split('\\n');\n  if (existingQuotes.includes(newQuote)) {\n    return [{ json: { duplicate: true } }];\n  }\n}\n\nfs.appendFileSync(filePath, newQuote + '\\n');\nreturn [{ json: { duplicate: false, quote: newQuote } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.gemini",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Create an image for Instagram post",
+            "style": "artistic"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Prepare Email",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "subject",
+                  "value": "Your Daily Instagram Post"
+                },
+                {
+                  "name": "body",
+                  "value": "Here is your Instagram post for today:\n\nTitle: Inspiring Quote\nCaption: {{$json[\"quote\"]}}\nHashtags: #inspiration #dailyquote\n\nPlease find the attached image."
+                }
+              ],
+              "binary": [
+                {
+                  "name": "attachment",
+                  "value": "data:image/png;base64,{{$binary[\"data\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.smtp",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient-email@example.com",
+            "subject": "={{$json[\"subject\"]}}",
+            "text": "={{$json[\"body\"]}}",
+            "attachments": "={{$json[\"attachment\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 912,
+    "completion_tokens": 984,
+    "total_tokens": 1896
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:41:05.562848"
+}

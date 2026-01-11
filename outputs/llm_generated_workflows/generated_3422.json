@@ -1,0 +1,94 @@
+{
+  "template_id": "3422",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to access real-time cryptocurrency prices and market data using CoinMarketCap API.",
+    "workflowPlan": {
+      "name": "Crypto Market Data Fetcher",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "crypto-data",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get CoinMarketCap Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",
+            "method": "GET",
+            "authentication": "headerAuth",
+            "options": {},
+            "headers": [
+              {
+                "name": "X-CMC_PRO_API_KEY",
+                "value": "={{$credentials.coinmarketcapApiKey}}"
+              }
+            ],
+            "queryParameters": [
+              {
+                "name": "start",
+                "value": "1"
+              },
+              {
+                "name": "limit",
+                "value": "10"
+              },
+              {
+                "name": "convert",
+                "value": "USD"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Respond with Data",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"data\"]}}",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1194,
+    "completion_tokens": 507,
+    "total_tokens": 1701
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:57:25.705448"
+}

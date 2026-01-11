@@ -1,0 +1,111 @@
+{
+  "template_id": "2271",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automatically generate draft replies in Gmail.",
+    "workflowPlan": {
+      "name": "Gmail Draft Reply Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Email Trigger",
+          "nodeType": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerOn": "newEmail",
+            "emailAddress": "your-email@gmail.com"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Assess Email",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Determine if a response is necessary for the following email: {{$json[\"body\"]}}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Email Reply",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4-turbo",
+            "prompt": "Generate a professional reply for the following email: {{$json[\"body\"]}}",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Convert to HTML",
+          "nodeType": "n8n-nodes-base.htmlConvert",
+          "typeVersion": 1,
+          "params": {
+            "text": "{{$json[\"reply\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Draft",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createDraft",
+            "emailAddress": "your-email@gmail.com",
+            "subject": "Re: {{$json[\"subject\"]}}",
+            "body": "{{$json[\"html\"]}}",
+            "threadId": "{{$json[\"threadId\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 808,
+    "completion_tokens": 667,
+    "total_tokens": 1475
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:33:31.278803"
+}

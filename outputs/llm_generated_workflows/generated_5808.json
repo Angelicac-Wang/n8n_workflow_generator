@@ -1,0 +1,146 @@
+{
+  "template_id": "5808",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Docs to PDF Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "TemplateList",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?mode=meta",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "GetMetaData",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?mode=meta&id={{ $json[\"id\"] }}",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "User Choice Match Check",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "{{ $json[\"nameID\"] }}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "CopyTemplate",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.googleapis.com/drive/v3/files/{{ $json[\"id\"] }}/copy",
+            "method": "POST",
+            "responseFormat": "json",
+            "authentication": "oAuth2"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "FillDocument",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
+            "method": "POST",
+            "responseFormat": "json",
+            "body": {
+              "id": "{{ $json[\"id\"] }}",
+              "data": "{{ $json[\"data\"] }}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate PDF Link",
+          "nodeType": "set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "pdfLink",
+                  "value": "https://drive.google.com/uc?export=download&id={{ $json[\"id\"] }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2601,
+    "completion_tokens": 826,
+    "total_tokens": 3427
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:24:59.768034"
+}

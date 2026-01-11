@@ -1,0 +1,290 @@
+{
+  "template_id": "10096",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Knowledge RAG & AI Chat Agent: Google Drive to Qdrant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "List Files",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "folderId": "YOUR_FOLDER_ID"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"id\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OCR Processing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.mistral.ai/ocr",
+            "method": "POST",
+            "body": {
+              "file": "={{$binary.data}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_MISTRAL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Metadata Extraction",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.mistral.ai/metadata",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"text\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_MISTRAL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Text Chunking & Embedding",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const text = $json[\"text\"];\nconst chunks = [];\nfor (let i = 0; i < text.length; i += 1000) {\n  chunks.push(text.slice(i, i + 1000));\n}\nreturn chunks.map(chunk => ({ text: chunk }));"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create Embeddings",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/embeddings",
+            "method": "POST",
+            "body": {
+              "input": "={{$json[\"text\"]}}",
+              "model": "text-embedding-3-small"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Store in Qdrant",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://YOUR_QDRANT_INSTANCE/v1/collections/docaiauto/points",
+            "method": "POST",
+            "body": {
+              "points": [
+                {
+                  "id": "={{$json[\"id\"]}}",
+                  "vector": "={{$json[\"embedding\"]}}",
+                  "payload": {
+                    "text": "={{$json[\"text\"]}}",
+                    "metadata": "={{$json[\"metadata\"]}}"
+                  }
+                }
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_QDRANT_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "method": "POST",
+            "body": {
+              "model": "gpt-3.5-turbo",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are a helpful assistant."
+                },
+                {
+                  "role": "user",
+                  "content": "={{$json[\"message\"]}}"
+                }
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "10",
+          "label": "RAG Retrieval",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://YOUR_QDRANT_INSTANCE/v1/collections/docaiauto/points/search",
+            "method": "POST",
+            "body": {
+              "vector": "={{$json[\"embedding\"]}}",
+              "limit": 5
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_QDRANT_API_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "11",
+          "label": "Web Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.tavily.com/search",
+            "method": "GET",
+            "headers": {
+              "Authorization": "Bearer YOUR_TAVILY_API_KEY"
+            },
+            "query": {
+              "q": "={{$json[\"message\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        },
+        {
+          "id": "12",
+          "label": "Final Response",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        },
+        {
+          "from": "10",
+          "to": "11"
+        },
+        {
+          "from": "11",
+          "to": "12"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 2221,
+    "completion_tokens": 1826,
+    "total_tokens": 4047
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:26:20.098452"
+}

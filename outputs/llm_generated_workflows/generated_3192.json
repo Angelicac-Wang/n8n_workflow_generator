@@ -1,0 +1,186 @@
+{
+  "template_id": "3192",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "IT Support Document Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "params": {
+            "folderId": "1RQvAHIw8cQbtwI9ZvdVV0k0x6TM6H12P",
+            "pollingInterval": "60"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Drive Download",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"fileId\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract from File",
+          "nodeType": "n8n-nodes-base.extractText",
+          "params": {
+            "filePath": "={{$node[\"Google Drive Download\"].json[\"path\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Data Cleaning",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "functionCode": "return items.map(item => { item.json.text = item.json.text.replace(/\\n/g, ' ').replace(/\\s+/g, ' ').replace(/[^\\w\\s]/gi, ''); return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Recursive Text Splitter",
+          "nodeType": "n8n-nodes-base.textSplitter",
+          "params": {
+            "text": "={{$node[\"Data Cleaning\"].json[\"text\"]}}",
+            "splitLength": 500
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Pinecone Vector Store",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "params": {
+            "operation": "upsert",
+            "text": "={{$node[\"Recursive Text Splitter\"].json[\"text\"]}}",
+            "indexName": "support-docs"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-query"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "8",
+          "label": "Pinecone Vector Store Query",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "params": {
+            "operation": "query",
+            "queryText": "={{$json[\"query\"]}}",
+            "indexName": "support-docs"
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Context Builder",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "functionCode": "const context = items.map(item => item.json.text).join(' '); return [{ json: { prompt: `${context} \\n\\nUser Query: ${$json[\"query\"]}` } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "10",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.openrouter.ai/v1/chat",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$node[\"Context Builder\"].json[\"prompt\"]}}"
+            },
+            "authentication": "predefinedCredentialType",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1433,
+    "completion_tokens": 1198,
+    "total_tokens": 2631
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:54:31.016572"
+}

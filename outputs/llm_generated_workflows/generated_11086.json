@@ -1,0 +1,186 @@
+{
+  "template_id": "11086",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Olostep Google Maps Lead Generation Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "lead-generation-form"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Maps Scraping",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.olostep.com/scrape",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "query": "={{$json[\"body\"][\"city\"]}} {{$json[\"body\"][\"businessType\"]}}"
+            },
+            "authentication": "={{$credentials.olostepApiKey}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Clean the Data",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => ({ json: item.json.data }));"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Remove Duplicates",
+          "nodeType": "function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const uniqueItems = []; const map = new Map(); for (const item of items) { if(!map.has(item.json.businessName)){ map.set(item.json.businessName, true); uniqueItems.push(item); } } return uniqueItems;"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Loop Through Each Business",
+          "nodeType": "splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Website Scraping",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.olostep.com/scrape",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "url": "={{$json[\"website\"]}}"
+            },
+            "authentication": "={{$credentials.olostepApiKey}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Store the Lead",
+          "nodeType": "googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Leads!A:F",
+            "data": [
+              [
+                "={{$json[\"businessName\"]}}",
+                "={{$json[\"location\"]}}",
+                "={{$json[\"website\"]}}",
+                "={{$json[\"phoneNumber\"]}}",
+                "={{$json[\"decisionMakerName\"]}}",
+                "={{$json[\"contactEmail\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Loop & Wait",
+          "nodeType": "wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": {
+              "value": 1,
+              "unit": "seconds"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1080,
+    "completion_tokens": 1110,
+    "total_tokens": 2190
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:42:37.175916"
+}

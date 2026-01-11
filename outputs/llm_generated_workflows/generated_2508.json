@@ -1,0 +1,159 @@
+{
+  "template_id": "2508",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow allows an AI Agent to generate SQL queries based on a database schema without accessing the actual data.",
+    "workflowPlan": {
+      "name": "Schema-Driven SQL Query Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "start-chat",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read Schema",
+          "nodeType": "n8n-nodes-base.readBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "/path/to/schema.sql"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "LangChain AI Agent",
+          "nodeType": "n8n-nodes-base.langchain",
+          "typeVersion": 1,
+          "params": {
+            "input": "={{$json[\"body\"][\"message\"]}}",
+            "schema": "={{$node[\"Read Schema\"].binary.data}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "IF Query Generated",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$node[\"LangChain AI Agent\"].json[\"query\"]}}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Execute SQL",
+          "nodeType": "n8n-nodes-base.mysql",
+          "typeVersion": 1,
+          "params": {
+            "query": "={{$node[\"LangChain AI Agent\"].json[\"query\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Format Results",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "formattedResults",
+                  "value": "={{$node[\"Execute SQL\"].json}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Respond",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{$node[\"LangChain AI Agent\"].json[\"response\"]}} \n\nResults: {{$node[\"Format Results\"].json[\"formattedResults\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1119,
+    "completion_tokens": 938,
+    "total_tokens": 2057
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:38:16.919416"
+}

@@ -1,0 +1,188 @@
+{
+  "template_id": "7372",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Trend Monitoring for Content Strategy",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Get Query",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Query!A:B"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Trend Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "engine",
+                "value": "google_trends"
+              },
+              {
+                "name": "hl",
+                "value": "fr"
+              },
+              {
+                "name": "gl",
+                "value": "FR"
+              },
+              {
+                "name": "q",
+                "value": "={{$json[\"Query\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "serpApiApi": "YOUR_SERPAPI_CREDENTIALS"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Article Collection",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://serpapi.com/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "engine",
+                "value": "google_news"
+              },
+              {
+                "name": "q",
+                "value": "={{$json[\"trending_topic\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "serpApiApi": "YOUR_SERPAPI_CREDENTIALS"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Scrape Articles",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.firecrawl.com/scrape",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "url",
+                "value": "={{$json[\"news_article_url\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "firecrawlApi": "YOUR_FIRECRAWL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Content Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.your-llm-provider.com/generate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "prompt",
+                "value": "Generate content suggestions based on the following articles: {{$json[\"article_content\"]}}"
+              }
+            ],
+            "authentication": "predefinedCredentialType",
+            "credentials": {
+              "aiModelApi": "YOUR_AI_MODEL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Results!A:D",
+            "data": [
+              "={{$json[\"trending_topic\"]}}",
+              "={{$json[\"growth_percentage\"]}}",
+              "={{$json[\"news_article_links\"]}}",
+              "={{$json[\"content_suggestions\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1445,
+    "completion_tokens": 1113,
+    "total_tokens": 2558
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:31:49.335308"
+}

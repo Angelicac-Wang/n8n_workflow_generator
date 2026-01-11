@@ -1,0 +1,177 @@
+{
+  "template_id": "10358",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates the creation and publishing of AI-generated videos using Veo 3.1, GPT-4, and Blotato.",
+    "workflowPlan": {
+      "name": "AI Video Creation & Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A2:F",
+            "valueRenderOption": "UNFORMATTED_VALUE"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Script with GPT-4",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "Generate a video script based on the following idea: {{$json[\"idea\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer your-openai-api-key"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Video with Veo 3.1",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://fal.ai/veo3.1/reference-to-video",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "script": "{{$node[\"Generate Script with GPT-4\"].json[\"choices\"][0][\"text\"]}}",
+              "images": [
+                "{{$json[\"url_1\"]}}",
+                "{{$json[\"url_2\"]}}",
+                "{{$json[\"url_3\"]}}"
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer your-veo-api-key"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload Video to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "generated_video.mp4",
+            "fileContent": "{{$node[\"Create Video with Veo 3.1\"].json[\"video_url\"]}}",
+            "parents": [
+              "your-google-drive-folder-id"
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish Video with Blotato",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.blotato.com/publish",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "video_url": "{{$node[\"Upload Video to Google Drive\"].json[\"webViewLink\"]}}",
+              "platforms": [
+                "TikTok",
+                "Instagram",
+                "Facebook",
+                "X",
+                "LinkedIn",
+                "YouTube"
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer your-blotato-api-key"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!G2:H2",
+            "valueInputOption": "USER_ENTERED",
+            "values": [
+              [
+                "{{$node[\"Upload Video to Google Drive\"].json[\"webViewLink\"]}}",
+                "Completed"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1374,
+    "completion_tokens": 1134,
+    "total_tokens": 2508
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:32:05.538005"
+}

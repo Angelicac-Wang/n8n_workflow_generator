@@ -1,0 +1,111 @@
+{
+  "template_id": "2993",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Instagram Reels Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Airtable - Fetch Creators",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "returnAll": true
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request - Fetch Reels",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.instagram.com/v1/users/{user-id}/media/recent",
+            "method": "GET",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Edify - Analyze Video",
+          "nodeType": "n8n-nodes-base.edify",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyze",
+            "videoUrl": "={{$json[\"data\"][\"videos\"][0][\"url\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Airtable - Save Insights",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "yourBaseId",
+            "tableId": "yourInsightsTableId",
+            "fields": {
+              "Video URL": "={{$json[\"videoUrl\"]}}",
+              "Insights": "={{$json[\"insights\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 943,
+    "completion_tokens": 653,
+    "total_tokens": 1596
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:50:23.451854"
+}

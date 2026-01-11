@@ -1,0 +1,109 @@
+{
+  "template_id": "10665",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a basic workflow plan for the Interactive Academic Chatbot.",
+    "workflowPlan": {
+      "name": "Interactive Academic Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "MongoDB Query",
+          "nodeType": "n8n-nodes-base.mongoDb",
+          "typeVersion": 1,
+          "params": {
+            "operation": "find",
+            "collection": "FAQs",
+            "query": "{}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "http://university-website.com/calendar",
+            "method": "GET"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTML Extract",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$node[\"HTTP Request\"].json[\"body\"]}}",
+            "cssSelector": ".calendar-date"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Telegram Send Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "={{$node[\"MongoDB Query\"].json[\"answer\"] || 'No answer found'}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 876,
+    "completion_tokens": 614,
+    "total_tokens": 1490
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:36:20.878043"
+}

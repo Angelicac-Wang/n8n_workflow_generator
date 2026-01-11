@@ -1,0 +1,206 @@
+{
+  "template_id": "10977",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Daily News Digest and Weekly Trend Report",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Keyword",
+          "nodeType": "set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "chatInput",
+                  "value": "technology"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch News",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://newsapi.org/v2/everything",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{$json[\"chatInput\"]}}"
+              },
+              {
+                "name": "apiKey",
+                "value": "YOUR_NEWSAPI_KEY"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Agent (Filter)",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openrouter.ai/filter",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"articles\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENROUTER_KEY"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Summarize Articles",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openrouter.ai/summarize",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"filtered_articles\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENROUTER_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Translate to Japanese",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.deepl.com/v2/translate",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"summaries\"]}}",
+              "target_lang": "JA"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_DEEPL_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post to Slack",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://slack.com/api/chat.postMessage",
+            "method": "POST",
+            "body": {
+              "channel": "YOUR_SLACK_CHANNEL",
+              "text": "={{$json[\"summaries\"]}} \n\n Japanese: \n {{$json[\"translated_text\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_SLACK_TOKEN"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Append to Google Sheets",
+          "nodeType": "googleSheets.append",
+          "params": {
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:D",
+            "values": [
+              "={{$json[\"title\"]}}",
+              "={{$json[\"author\"]}}",
+              "={{$json[\"summary\"]}}",
+              "={{$json[\"url\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Weekly Trend Report",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.openrouter.ai/analyze",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"weekly_data\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENROUTER_KEY"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "4",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1010,
+    "completion_tokens": 1169,
+    "total_tokens": 2179
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:39:43.859016"
+}

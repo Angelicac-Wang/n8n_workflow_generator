@@ -1,0 +1,151 @@
+{
+  "template_id": "4506",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow to automate YouTube video updates using Apify and LLM for metadata generation.",
+    "workflowPlan": {
+      "name": "YouTube Video Update Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "YouTube Trigger",
+          "nodeType": "n8n-nodes-base.youtubeTrigger",
+          "params": {
+            "channelId": "={{$json[\"channel_id\"]}}",
+            "event": "newVideo"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Apify Scrape",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TASK_ID/run-sync-get-dataset-items?token==[YOUR_API_TOKEN]",
+            "method": "GET"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait for Dataset",
+          "nodeType": "n8n-nodes-base.wait",
+          "params": {
+            "waitTime": 60000
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Metadata",
+          "nodeType": "n8n-nodes-base.if",
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"metadata_generated\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Metadata",
+          "nodeType": "n8n-nodes-base.llm",
+          "params": {
+            "model": "gpt-3",
+            "prompt": "Generate metadata for the following video: {{$json[\"video_title\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Format Data",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "formattedData",
+                  "value": "={{$json[\"metadata\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update YouTube Video",
+          "nodeType": "n8n-nodes-base.youtube",
+          "params": {
+            "operation": "update",
+            "videoId": "={{$json[\"video_id\"]}}",
+            "updateFields": {
+              "description": "={{$json[\"formattedData\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 953,
+    "completion_tokens": 857,
+    "total_tokens": 1810
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:10:41.888235"
+}

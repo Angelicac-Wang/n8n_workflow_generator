@@ -1,0 +1,140 @@
+{
+  "template_id": "8615",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan to connect a Telegram bot to Google Gemini for AI-generated responses.",
+    "workflowPlan": {
+      "name": "Telegram to Google Gemini AI Bot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi.botToken}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Message",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "message",
+                "value": "={{$json[\"message\"][\"text\"]}}"
+              },
+              {
+                "name": "userId",
+                "value": "={{$json[\"message\"][\"from\"][\"id\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Content (Optional)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/content",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send to Gemini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://gemini.googleapis.com/v1/ai",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"message\"]}}",
+              "context": "={{$json[\"content\"] || \"\"}}"
+            },
+            "responseFormat": "json",
+            "authentication": "={{$credentials.googleGeminiApi}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Reply",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{$credentials.telegramApi.botToken}}",
+            "chatId": "={{$json[\"userId\"]}}",
+            "text": "={{$json[\"response\"][\"text\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Delay",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "amount": 2,
+            "unit": "seconds"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1161,
+    "completion_tokens": 837,
+    "total_tokens": 1998
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:35:38.785525"
+}

@@ -1,0 +1,186 @@
+{
+  "template_id": "10070",
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "UGC Advertisement Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Input",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "telegramApi": "={{$credentials.telegramApi}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Analyze the product image and provide brand, colors, and target demographics.",
+              "max_tokens": 150
+            },
+            "authentication": "={{$credentials.openAIApi}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Script Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4o/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Generate a testimonial script based on the analysis.",
+              "max_tokens": 200
+            },
+            "authentication": "={{$credentials.openAIApi}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Character Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.wavespeed.ai/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "prompt": "Create a customer avatar for the testimonial.",
+              "style": "realistic"
+            },
+            "authentication": "={{$credentials.waveSpeedApi}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Voice Synthesis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/synthesize",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "text": "={{$node[\"Script Generation\"].json[\"choices\"][0][\"text\"]}}",
+              "voice": "natural"
+            },
+            "authentication": "={{$credentials.elevenLabsApi}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Video Production",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.wavespeed.ai/lipsync",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "image": "={{$node[\"Character Generation\"].json[\"image_url\"]}}",
+              "audio": "={{$node[\"Voice Synthesis\"].json[\"audio_url\"]}}"
+            },
+            "authentication": "={{$credentials.waveSpeedApi}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Content Delivery",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$node[\"Telegram Input\"].json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Your UGC video is ready!",
+            "attachments": [
+              {
+                "type": "video",
+                "file": "={{$node[\"Video Production\"].json[\"video_url\"]}}"
+              }
+            ],
+            "telegramApi": "={{$credentials.telegramApi}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1289,
+    "completion_tokens": 1215,
+    "total_tokens": 2504
+  },
+  "error": null,
+  "generated_at": "2026-01-11T16:25:59.310139"
+}

@@ -1,0 +1,186 @@
+{
+  "template_id": "3585",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here's a workflow designed to assist your restaurant with customer interactions and order processing.",
+    "workflowPlan": {
+      "name": "Restaurant Customer Interaction Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Incoming Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "incoming",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check ZIP Code",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://maps.googleapis.com/maps/api/geocode/json",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "address",
+                  "value": "={{$json[\"zip_code\"]}}"
+                },
+                {
+                  "name": "key",
+                  "value": "={{$credentials.googleMapsApiKey}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Menu",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.whatsapp.com/send",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "phone",
+                  "value": "={{$json[\"customer_phone\"]}}"
+                },
+                {
+                  "name": "text",
+                  "value": "Check out our menu: [link to menu images]"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Payment Link",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.asaas.com/api/v3/paymentLinks",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "value",
+                  "value": "={{$json[\"order_total\"]}}"
+                },
+                {
+                  "name": "description",
+                  "value": "Order Payment"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Notify Kitchen",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-kitchen-notification-endpoint.com",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "order_id",
+                  "value": "={{$json[\"order_id\"]}}"
+                },
+                {
+                  "name": "status",
+                  "value": "Payment Confirmed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store Data in Supabase",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://your-supabase-instance.supabase.co/rest/v1/n8n_workflow_followup",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "customer_id",
+                  "value": "={{$json[\"customer_id\"]}}"
+                },
+                {
+                  "name": "order_details",
+                  "value": "={{$json[\"order_details\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1614,
+    "completion_tokens": 1059,
+    "total_tokens": 2673
+  },
+  "error": null,
+  "generated_at": "2026-01-11T18:00:09.173428"
+}
