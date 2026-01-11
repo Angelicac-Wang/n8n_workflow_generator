@@ -73,10 +73,13 @@ class TaxonomySearchAgent:
         if not isinstance(node_content, dict):
             return False
         # 如果有 Nodes 或 mapped_nodes，且不是空的，則是葉子節點
+        # 或者如果有 name 和 mapped_nodes（新格式），也是葉子節點
         has_nodes = bool(node_content.get("Nodes") or node_content.get("mapped_nodes"))
+        # 新格式：如果包含 name 和 mapped_nodes，是葉子節點
+        has_name_and_nodes = bool(node_content.get("name") and node_content.get("mapped_nodes"))
         # 或者明確標記為 is_leaf
         is_leaf_flag = node_content.get('is_leaf', False)
-        return has_nodes or is_leaf_flag
+        return has_nodes or has_name_and_nodes or is_leaf_flag
     
     def _prepare_data(self, taxonomy_path: str):
         """準備 taxonomy 數據"""
@@ -89,9 +92,11 @@ class TaxonomySearchAgent:
             raw_taxonomy = json.load(f)
         
         # 保存原始 taxonomy 數據（用於 category 搜索）
-        # 提取 Taxonomy 根（如果存在）
+        # 提取 Taxonomy 根（支持 Taxonomy 和 Taxonomy_n8n）
         if "Taxonomy" in raw_taxonomy:
             self.raw_taxonomy_for_search = raw_taxonomy["Taxonomy"]
+        elif "Taxonomy_n8n" in raw_taxonomy:
+            self.raw_taxonomy_for_search = raw_taxonomy["Taxonomy_n8n"]
         else:
             self.raw_taxonomy_for_search = raw_taxonomy
         
@@ -100,10 +105,14 @@ class TaxonomySearchAgent:
         
         def traverse(node_name: str, node_content: Dict, current_path: List[str]):
             """遞歸遍歷 taxonomy（為所有節點生成 embedding）"""
-            full_path_list = current_path + [node_name]
+            # 新格式：如果節點有 name 欄位，使用 name 作為節點名稱
+            display_name = node_content.get("name", node_name)
+            full_path_list = current_path + [display_name]
             full_path_str = " -> ".join(full_path_list)
             
+            # 支持新舊格式：Description (舊) 或 description (新)
             description = node_content.get("Description", node_content.get("description", ""))
+            # 支持新舊格式：Nodes (舊) 或 mapped_nodes (新)
             mapped_nodes = node_content.get("Nodes", node_content.get("mapped_nodes", []))
             
             # 核心描述用於語義匹配（統一格式，不包含 Nodes，因為語義匹配主要看路徑和描述）
@@ -113,7 +122,7 @@ class TaxonomySearchAgent:
             texts_to_encode.append(combined_text)
             
             if self._is_leaf_node(node_content):
-                # 保存 example_use_cases（如果有的話）
+                # 保存 example_use_cases（如果有的話，舊格式才有）
                 example_use_cases = node_content.get("example_use_cases", [])
                 self.node_database.append({
                     "description": description,
@@ -125,16 +134,18 @@ class TaxonomySearchAgent:
             else:
                 # 遞歸處理子節點（子節點是直接作為字典的鍵，而不是在 "children" 鍵下）
                 for child_name, child_content in node_content.items():
-                    # 跳過特殊鍵
-                    if child_name in ["Description", "description", "Nodes", "mapped_nodes", "example_use_cases"]:
+                    # 跳過特殊鍵（支持新舊格式）
+                    if child_name in ["Description", "description", "Nodes", "mapped_nodes", "example_use_cases", "name"]:
                         continue
                     # 只處理字典類型的子節點
                     if isinstance(child_content, dict):
                         traverse(child_name, child_content, full_path_list)
         
-        # 提取 Taxonomy 根（如果存在）
+        # 提取 Taxonomy 根（支持 Taxonomy 和 Taxonomy_n8n）
         if "Taxonomy" in raw_taxonomy:
             taxonomy_root = raw_taxonomy["Taxonomy"]
+        elif "Taxonomy_n8n" in raw_taxonomy:
+            taxonomy_root = raw_taxonomy["Taxonomy_n8n"]
         else:
             taxonomy_root = raw_taxonomy
         
@@ -150,9 +161,12 @@ class TaxonomySearchAgent:
         # 構建 MCTS 樹
         def build_mcts_tree(node_name: str, node_content: Dict, current_path: List[str]) -> Dict:
             """構建 MCTS 樹結構"""
-            full_path_list = current_path + [node_name]
+            # 新格式：如果節點有 name 欄位，使用 name 作為節點名稱
+            display_name = node_content.get("name", node_name)
+            full_path_list = current_path + [display_name]
             full_path_str = " -> ".join(full_path_list)
             is_leaf = self._is_leaf_node(node_content)
+            # 支持新舊格式：Description (舊) 或 description (新)
             description = node_content.get("Description", node_content.get("description", ""))
             combined_text = f"{full_path_str}: {description}"
             
@@ -173,8 +187,8 @@ class TaxonomySearchAgent:
             if not is_leaf:
                 # 子節點是直接作為字典的鍵，而不是在 "children" 鍵下
                 for child_name, child_content in node_content.items():
-                    # 跳過特殊鍵
-                    if child_name in ["Description", "description", "Nodes", "mapped_nodes", "example_use_cases"]:
+                    # 跳過特殊鍵（支持新舊格式）
+                    if child_name in ["Description", "description", "Nodes", "mapped_nodes", "example_use_cases", "name"]:
                         continue
                     # 只處理字典類型的子節點
                     if isinstance(child_content, dict):
@@ -185,9 +199,11 @@ class TaxonomySearchAgent:
             return processed_node
         
         # ✅ 構建虛擬根節點 "Taxonomy"，將所有頂層分類作為其子節點（第二層）
-        # 提取 Taxonomy 根（如果存在）
+        # 提取 Taxonomy 根（支持 Taxonomy 和 Taxonomy_n8n）
         if "Taxonomy" in raw_taxonomy:
             taxonomy_root_for_tree = raw_taxonomy["Taxonomy"]
+        elif "Taxonomy_n8n" in raw_taxonomy:
+            taxonomy_root_for_tree = raw_taxonomy["Taxonomy_n8n"]
         else:
             taxonomy_root_for_tree = raw_taxonomy
         

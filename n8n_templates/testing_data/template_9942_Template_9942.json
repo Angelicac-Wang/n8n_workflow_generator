@@ -1,0 +1,1673 @@
+{
+  "metadata": {
+    "id": 9942,
+    "name": "Template 9942",
+    "description": "",
+    "views": 0,
+    "totalViews": 0,
+    "createdAt": "",
+    "extractedAt": "2026-01-11 12:35:50",
+    "source": "https://n8n.io/workflows/9942/",
+    "batch": 4
+  },
+  "workflow": {
+    "id": 9942,
+    "name": "RAG-powered document chat with Google Drive, OpenAI, and Pinecone Assistant",
+    "views": 1218,
+    "recentViews": 2,
+    "totalViews": 1218,
+    "createdAt": "2025-10-20T13:42:34.526Z",
+    "description": "## Try it out\n\nThis n8n workflow template lets you chat with your Google Drive documents (.docx, .json, .md, .txt, .pdf) using OpenAI and Pinecone Assistant. It retrieves relevant context from your files in real time so you can get accurate, context-aware answers about your proprietary data—without the need to train your own LLM.\n\n### What is Pinecone Assistant?\n\n[Pinecone Assistant](https://docs.pinecone.io/guides/assistant/overview) allows you to build production-grade chat and agent-based applications quickly. It abstracts the complexities of implementing retrieval-augmented (RAG) systems by managing the chunking, embedding, storage, query planning, vector search, model orchestration, reranking for you.\n\n### Prerequisites\n\n* A [Pinecone account](https://app.pinecone.io/) and [API key](https://app.pinecone.io/organizations/-/projects/-/keys)\n* A GCP project with [Google Drive API enabled and configured](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)\n  * Note: When setting up the OAuth consent screen, skip steps 8-10 if running on localhost\n* An [Open AI account](https://auth.openai.com/create-account) and [API key](https://platform.openai.com/settings/organization/api-keys)\n\n### Setup\n\n1. Create a Pinecone Assistant in the Pinecone Console [here](https://app.pinecone.io/organizations/-/projects/-/assistant) \n\t1. Name your Assistant `n8n-assistant` and create it in the `United States` region\n\t2. If you use a different name or region, update the related nodes to reflect these changes\n\t3. No need to configure a Chat model or Assistant instructions\n2. Setup your Google Drive OAuth2 API credential in n8n\n\t1. In the File added node -&gt; Credential to connect with, select Create new credential\n\t2. Set the Client ID and Client Secret from the values generated in the prerequisites\n\t3. Set the OAuth Redirect URL from the n8n credential in the Google Cloud Console ([instructions](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/#create-your-google-oauth-client-credentials))\n\t4. Name this credential `Google Drive account` so that other nodes reference it\n3. Setup Pinecone API key credential in n8n\n\t1. In the Upload file to assistant node -&gt; PineconeApi section, select Create new credential\n\t2. Paste in your Pinecone API key in the API Key field\n4. Setup Pinecone MCP Bearer auth credential in n8n\n\t1. In the Pinecone Assistant node -&gt; Credential for Bearer Auth section, select Create new credential\n\t2. Set the Bearer Token field to your Pinecone API key used in the previous step\n5. Setup the Open AI credential in n8n\n\t1. In the OpenAI Chat Model node -&gt; Credential to connect with, select Create new credential\n\t2. Set the API Key field to your OpenAI API key\n6. Add your files to a Drive folder named `n8n-pinecone-demo` in the root of your My Drive\n\t1. If you use a different folder name, you'll need to update the Google Drive triggers to reflect that change\n7. Activate the workflow or test it with a manual execution to ingest the documents\n8. Chat with your docs!\n\n### Ideas for customizing this workflow\n\n- Customize the System Message on the AI Agent node to your use case to indicate what kind of knowledge is stored in Pinecone Assistant\n- Change the top_k value of results returned from Assistant by adding \"and should set a top_k of 3\" to the System Message to help manage token consumption\n- Configure the Context Window Length in the Conversation Memory node\n- Swap out the Conversation Memory node for one that is more persistent\n- Make the [chat node publicly available](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.chattrigger/#make-chat-publicly-available) or [create your own chat interface](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.chattrigger/#mode) that calls the chat webhook URL.\n\n### Need help?\n\nYou can find help by asking in the [Pinecone Discord community](https://discord.gg/tJ8V62S3sH), asking on the [Pinecone Forum](https://community.pinecone.io/), or [filing an issue](https://github.com/pinecone-io/n8n-templates/issues/new/choose) on this repo.",
+    "workflow": {
+      "meta": {
+        "instanceId": "6ae6d27e57788e6797af2bf16734f2cac83ad4b8f8ebbf57445f55ef5d3a52da",
+        "templateCredsSetupCompleted": true
+      },
+      "nodes": [
+        {
+          "id": "42bb3e3b-1636-46e2-958e-64af75fade80",
+          "name": "Upload file to assistant",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1808,
+            -160
+          ],
+          "parameters": {
+            "url": "=https://prod-1-data.ke.pinecone.io/assistant/files/n8n-assistant",
+            "method": "POST",
+            "options": {},
+            "sendBody": true,
+            "sendQuery": true,
+            "contentType": "multipart-form-data",
+            "sendHeaders": true,
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "file",
+                  "parameterType": "formBinaryData",
+                  "inputDataFieldName": "data"
+                }
+              ]
+            },
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "metadata",
+                  "value": "={\n  \"external_file_id\": \"{{ $json.id }}\",\n  \"external_file_name\": \"{{ $json.name }}\"\n}"
+                }
+              ]
+            },
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "User-Agent",
+                  "value": "source_tag=n8n:http_node_pinecone_assistant"
+                }
+              ]
+            },
+            "nodeCredentialType": "pineconeApi"
+          },
+          "credentials": {
+            "pineconeApi": {
+              "id": "credential-id",
+              "name": "pineconeApi Credential"
+            },
+            "httpHeaderAuth": {
+              "id": "credential-id",
+              "name": "httpHeaderAuth Credential"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "df16c93e-d136-470e-981d-2c0cb0b8c75d",
+          "name": "Download file",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            1616,
+            -160
+          ],
+          "parameters": {
+            "fileId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $json.id }}"
+            },
+            "options": {
+              "fileName": "={{ $json.name }}"
+            },
+            "operation": "download"
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "credential-id",
+              "name": "googleDriveOAuth2Api Credential"
+            }
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "6b6b8e41-79a0-48a8-a8cc-077abb4e9593",
+          "name": "AI Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            1168,
+            624
+          ],
+          "parameters": {
+            "options": {
+              "systemMessage": "You are a helpful assistant that has access to one tool, Pinecone Assistant MCP server. This tool should use the get_context function. Include the file name and file url in citations wherever referenced in output."
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "a42a4cf7-abb2-4be4-a1b8-2bd8e12603c6",
+          "name": "OpenAI Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            1104,
+            848
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini"
+            },
+            "options": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "credential-id",
+              "name": "openAiApi Credential"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "4e8f58d3-9867-4783-9d6a-c3698fa67df9",
+          "name": "Delete file from assistant",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1216,
+            128
+          ],
+          "parameters": {
+            "url": "=https://prod-1-data.ke.pinecone.io/assistant/files/n8n-assistant/{{ $json.files[0].id }}",
+            "method": "DELETE",
+            "options": {
+              "response": {
+                "response": {
+                  "responseFormat": "text"
+                }
+              }
+            },
+            "sendHeaders": true,
+            "authentication": "predefinedCredentialType",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "User-Agent",
+                  "value": "source_tag=n8n:http_node_pinecone_assistant"
+                }
+              ]
+            },
+            "nodeCredentialType": "pineconeApi"
+          },
+          "credentials": {
+            "pineconeApi": {
+              "id": "credential-id",
+              "name": "pineconeApi Credential"
+            },
+            "httpHeaderAuth": {
+              "id": "credential-id",
+              "name": "httpHeaderAuth Credential"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "a1bee741-f334-4348-8364-70d078da2bb0",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            720,
+            -256
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1776,
+            "height": 640,
+            "content": "## 1. Add new or update files from Google Drive to Pinecone Assistant"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "61a18380-76af-4e1c-af56-3c80cd1ddc95",
+          "name": "File updated",
+          "type": "n8n-nodes-base.googleDriveTrigger",
+          "position": [
+            800,
+            128
+          ],
+          "parameters": {
+            "event": "fileUpdated",
+            "options": {},
+            "pollTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            },
+            "triggerOn": "specificFolder",
+            "folderToWatch": {
+              "__rl": true,
+              "mode": "list",
+              "value": "",
+              "cachedResultUrl": "",
+              "cachedResultName": "n8n-pinecone-demo"
+            }
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "credential-id",
+              "name": "googleDriveOAuth2Api Credential"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "af09de5a-495e-489e-9d05-1b434d4500d6",
+          "name": "File added",
+          "type": "n8n-nodes-base.googleDriveTrigger",
+          "position": [
+            800,
+            -160
+          ],
+          "parameters": {
+            "event": "fileCreated",
+            "options": {},
+            "pollTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            },
+            "triggerOn": "specificFolder",
+            "folderToWatch": {
+              "__rl": true,
+              "mode": "list",
+              "value": "",
+              "cachedResultUrl": "",
+              "cachedResultName": "n8n-pinecone-demo"
+            }
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "credential-id",
+              "name": "googleDriveOAuth2Api Credential"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "245b7f1d-66c5-4f96-acd9-14d75fe5b4a0",
+          "name": "Get file to delete",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1008,
+            128
+          ],
+          "parameters": {
+            "url": "https://prod-1-data.ke.pinecone.io/assistant/files/n8n-assistant",
+            "options": {},
+            "sendQuery": true,
+            "sendHeaders": true,
+            "authentication": "predefinedCredentialType",
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "filter",
+                  "value": "={\n  \"external_file_id\": \"{{ $json.id }}\"\n}"
+                }
+              ]
+            },
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "User-Agent",
+                  "value": "source_tag=n8n:http_node_pinecone_assistant"
+                }
+              ]
+            },
+            "nodeCredentialType": "pineconeApi"
+          },
+          "credentials": {
+            "pineconeApi": {
+              "id": "credential-id",
+              "name": "pineconeApi Credential"
+            },
+            "httpHeaderAuth": {
+              "id": "credential-id",
+              "name": "httpHeaderAuth Credential"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "b646d256-1ac7-452c-aa5e-a15cf7c6bee1",
+          "name": "Set file data",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1408,
+            128
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "={\n  \"id\": \"{{ $('File updated').item.json.id }}\",\n  \"name\": \"{{ $('File updated').item.json.name }}\"\n}\n"
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "8b073801-e2c5-48ec-adba-d80ee4634399",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            720,
+            512
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1344,
+            "height": 576,
+            "content": "## 2. Chat with your docs"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2774dcc8-f067-4a81-bfa6-7559c93c3320",
+          "name": "Chat input",
+          "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "position": [
+            800,
+            624
+          ],
+          "webhookId": "1bdcb9d4-a367-4d25-9405-ab765e595bf4",
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "8c2465d8-1dda-462e-9e85-42dc299cb32c",
+          "name": "Pinecone Assistant",
+          "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+          "position": [
+            1504,
+            864
+          ],
+          "parameters": {
+            "options": {},
+            "endpointUrl": "https://prod-1-data.ke.pinecone.io/mcp/assistants/n8n-assistant",
+            "authentication": "bearerAuth",
+            "serverTransport": "httpStreamable"
+          },
+          "credentials": {
+            "httpBearerAuth": {
+              "id": "credential-id",
+              "name": "httpBearerAuth Credential"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "2df456a3-331e-42ee-9f70-582e72d83e6f",
+          "name": "Sticky Note7",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -48,
+            -256
+          ],
+          "parameters": {
+            "width": 636,
+            "height": 1696,
+            "content": "![Pinecone logo](https://www.pinecone.io/images/pinecone-logo-for-n8n-templates.png)\n\n\n## Try it out\n\nThis n8n workflow template lets you chat with your Google Drive documents (.docx, .json, .md, .txt, .pdf) using OpenAI and Pinecone Assistant. It retrieves relevant context from your files in real time so you can get accurate, context-aware answers about your proprietary data—without the need to train your own LLM.\n\n### What is Pinecone Assistant?\n\n[Pinecone Assistant](https://docs.pinecone.io/guides/assistant/overview) allows you to build production-grade chat and agent-based applications quickly. It abstracts the complexities of implementing retrieval-augmented (RAG) systems by managing the chunking, embedding, storage, query planning, vector search, model orchestration, reranking for you.\n\n### Prerequisites\n\n* A [Pinecone account](https://app.pinecone.io/) and [API key](https://app.pinecone.io/organizations/-/projects/-/keys)\n* A GCP project with [Google Drive API enabled and configured](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)\n  * Note: When setting up the OAuth consent screen, skip steps 8-10 if running on localhost\n* An [Open AI account](https://auth.openai.com/create-account) and [API key](https://platform.openai.com/settings/organization/api-keys)\n\n### Setup\n\n1. Create a Pinecone Assistant in the Pinecone Console [here](https://app.pinecone.io/organizations/-/projects/-/assistant) \n\t1. Name your Assistant `n8n-assistant` and create it in the `United States` region\n\t2. If you use a different name or region, update the related nodes to reflect these changes\n\t3. No need to configure a Chat model or Assistant instructions\n2. Setup your Google Drive OAuth2 API credential in n8n\n\t1. In the File added node -> Credential to connect with, select Create new credential\n\t2. Set the Client ID and Client Secret from the values generated in the prerequisites\n\t3. Set the OAuth Redirect URL from the n8n credential in the Google Cloud Console ([instructions](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/#create-your-google-oauth-client-credentials))\n\t4. Name this credential `Google Drive account` so that other nodes reference it\n3. Setup Pinecone API key credential in n8n\n\t1. In the Upload file to assistant node -> PineconeApi section, select Create new credential\n\t2. Paste in your Pinecone API key in the API Key field\n4. Setup Pinecone MCP Bearer auth credential in n8n\n\t1. In the Pinecone Assistant node -> Credential for Bearer Auth section, select Create new credential\n\t2. Set the Bearer Token field to your Pinecone API key used in the previous step\n5. Setup the Open AI credential in n8n\n\t1. In the OpenAI Chat Model node -> Credential to connect with, select Create new credential\n\t2. Set the API Key field to your OpenAI API key\n6. Add your files to a Drive folder named `n8n-pinecone-demo` in the root of your My Drive\n\t1. If you use a different folder name, you'll need to update the Google Drive triggers to reflect that change\n7. Activate the workflow or test it with a manual execution to ingest the documents\n8. Chat with your docs!\n\n### Ideas for customizing this workflow\n\n- Customize the System Message on the AI Agent node to your use case to indicate what kind of knowledge is stored in Pinecone Assistant\n- Change the top_k value of results returned from Assistant by adding \"and should set a top_k of 3\" to the System Message to help manage token consumption\n- Configure the Context Window Length in the Conversation Memory node\n- Swap out the Conversation Memory node for one that is more persistent\n- Make the [chat node publicly available](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.chattrigger/#make-chat-publicly-available) or [create your own chat interface](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.chattrigger/#mode) that calls the chat webhook URL.\n\n### Need help?\n\nYou can find help by asking in the [Pinecone Discord community](https://discord.gg/tJ8V62S3sH), asking on the [Pinecone Forum](https://community.pinecone.io/), or [filing an issue](https://github.com/pinecone-io/n8n-templates/issues/new/choose) on this repo."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0e6c99c7-b606-49e2-8360-103364ab22d0",
+          "name": "Check file status",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1856,
+            128
+          ],
+          "parameters": {
+            "url": "=https://prod-1-data.ke.pinecone.io/assistant/files/n8n-assistant/{{ $json.id }}",
+            "options": {},
+            "sendHeaders": true,
+            "authentication": "predefinedCredentialType",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "User-Agent",
+                  "value": "source_tag=n8n:http_node_pinecone_assistant"
+                }
+              ]
+            },
+            "nodeCredentialType": "pineconeApi"
+          },
+          "credentials": {
+            "pineconeApi": {
+              "id": "credential-id",
+              "name": "pineconeApi Credential"
+            },
+            "httpHeaderAuth": {
+              "id": "credential-id",
+              "name": "httpHeaderAuth Credential"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "81b56a1e-ae46-4457-aaea-7dc5f8259d69",
+          "name": "Wait",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            2304,
+            128
+          ],
+          "webhookId": "67aeb741-7264-44d9-af9d-a349d1d32eac",
+          "parameters": {
+            "amount": 3
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "08870689-0537-49ab-9a12-07b4719f0500",
+          "name": "End if status Available",
+          "type": "n8n-nodes-base.switch",
+          "position": [
+            2064,
+            128
+          ],
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "outputKey": "Available",
+                  "conditions": {
+                    "options": {
+                      "version": 2,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "7d41378e-7b21-4dbf-8586-f027b3f57d91",
+                        "operator": {
+                          "name": "filter.operator.equals",
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "={{ $json.status }}",
+                        "rightValue": "Available"
+                      }
+                    ]
+                  },
+                  "renameOutput": true
+                },
+                {
+                  "outputKey": "Processing",
+                  "conditions": {
+                    "options": {
+                      "version": 2,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "5d7d1c72-0fdc-4258-ae0f-045f58c37242",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "={{ $json.status }}",
+                        "rightValue": "Processing"
+                      }
+                    ]
+                  },
+                  "renameOutput": true
+                }
+              ]
+            },
+            "options": {}
+          },
+          "typeVersion": 3.3
+        },
+        {
+          "id": "a743300c-c238-47ce-8c5b-fa266b0eb26d",
+          "name": "Conversation Memory",
+          "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "position": [
+            1264,
+            880
+          ],
+          "parameters": {},
+          "typeVersion": 1.3
+        },
+        {
+          "id": "5299b25d-e202-471e-9ff0-63ccd341f99d",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1424,
+            752
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 240,
+            "content": "![Pinecone logo](https://www.pinecone.io/images/pinecone-logo-for-n8n-templates.png)"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "85636b67-7657-42d3-80ce-56660b38d28f",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1136,
+            48
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 240,
+            "content": "![Pinecone logo](https://www.pinecone.io/images/pinecone-logo-for-n8n-templates.png)"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "aa6e7c58-f06a-4a69-87e6-46fa4b7b811b",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1744,
+            -240
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 240,
+            "content": "![Pinecone logo](https://www.pinecone.io/images/pinecone-logo-for-n8n-templates.png)"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "01f3bfb5-31ff-471f-9b9f-f38b9b6d762a",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1776,
+            48
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 240,
+            "content": "![Pinecone logo](https://www.pinecone.io/images/pinecone-logo-for-n8n-templates.png)"
+          },
+          "typeVersion": 1
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "Wait": {
+          "main": [
+            [
+              {
+                "node": "Check file status",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Chat input": {
+          "main": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "File added": {
+          "main": [
+            [
+              {
+                "node": "Download file",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "File updated": {
+          "main": [
+            [
+              {
+                "node": "Get file to delete",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Download file": {
+          "main": [
+            [
+              {
+                "node": "Upload file to assistant",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Set file data": {
+          "main": [
+            [
+              {
+                "node": "Download file",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check file status": {
+          "main": [
+            [
+              {
+                "node": "End if status Available",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get file to delete": {
+          "main": [
+            [
+              {
+                "node": "Delete file from assistant",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Pinecone Assistant": {
+          "ai_tool": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Conversation Memory": {
+          "ai_memory": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_memory",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "End if status Available": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Wait",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Upload file to assistant": {
+          "main": [
+            [
+              {
+                "node": "Check file status",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Delete file from assistant": {
+          "main": [
+            [
+              {
+                "node": "Set file data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 29,
+    "workflowInfo": {
+      "nodeCount": 22,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.switch": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 7
+        },
+        "n8n-nodes-base.googleDrive": {
+          "count": 1
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 4
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleDriveTrigger": {
+          "count": 2
+        },
+        "@n8n/n8n-nodes-langchain.chatTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.mcpClientTool": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.memoryBufferWindow": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "user": {
+      "name": "Pinecone",
+      "username": "pinecone",
+      "bio": "Helping you build knowledgeable AI.",
+      "verified": false,
+      "links": [
+        "https://www.pinecone.io/"
+      ],
+      "avatar": "https://gravatar.com/avatar/73629c1c01f8e74419dca10c8d0f03e1d1790f976ac25101cef29b1d0c1806bd?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "🧬",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "📈",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "✍️",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "🧾",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "🛳",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " 🪢",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "📜",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "💡",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "🎨",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "📱",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "🧰",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "🦄",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "📈",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "📈",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "🎡",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "✨",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "🤟",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "🛵",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "🏭",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "📈",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "📡",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "🧾",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "🔗",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "⚙️",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "⚡️",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "💡",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " 🕸️",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "📱",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "📹",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "🤖",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "🧰",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "📈",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "📈",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "🎡",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "🎖",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "🛵",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 58,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDrive",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " 🖥️",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "🧠",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Google Drive"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 112,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.switch",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "If",
+              "Path",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Branch",
+              "Case"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "☀️",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "👦",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "🏷️",
+                  "label": "How to automatically manage contributions to open-source projects"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.switch/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Switch",
+          "color": "#506000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "Switch",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "👥",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 531,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDriveTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.googledrivetrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Google Drive Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1163,
+        "icon": "fa:database",
+        "name": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.memorybufferwindow/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Memory"
+              ],
+              "Memory": [
+                "For beginners"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Simple Memory"
+        },
+        "iconData": {
+          "icon": "database",
+          "type": "icon"
+        },
+        "displayName": "Simple Memory",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1247,
+        "icon": "fa:comments",
+        "name": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.chattrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Langchain"
+            ]
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When chat message received"
+        },
+        "iconData": {
+          "icon": "comments",
+          "type": "icon"
+        },
+        "displayName": "Chat Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1292,
+        "icon": "file:../mcp.svg",
+        "name": "@n8n/n8n-nodes-langchain.mcpClientTool",
+        "codex": {
+          "data": {
+            "alias": [
+              "Model Context Protocol",
+              "MCP Client"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolmcp/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Model Context Protocol",
+                "Tools"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "MCP Client"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE5NSAxOTUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+Cgk8ZyBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CgkJPHBhdGggZD0iTTI1IDk3Ljg1MjhMOTIuODgyMyAyOS45NzA2QzEwMi4yNTUgMjAuNTk4IDExNy40NTEgMjAuNTk4IDEyNi44MjMgMjkuOTcwNlYyOS45NzA2QzEzNi4xOTYgMzkuMzQzMSAxMzYuMTk2IDU0LjUzOTEgMTI2LjgyMyA2My45MTE3TDc1LjU1ODEgMTE1LjE3NyIvPgoJCTxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiLz4KCQk8cGF0aCBkPSJNMTA5Ljg1MyA0Ni45NDExTDU5LjY0ODIgOTcuMTQ1N0M1MC4yNzU3IDEwNi41MTggNTAuMjc1NyAxMjEuNzE0IDU5LjY0ODIgMTMxLjA4N1YxMzEuMDg3QzY5LjAyMDggMTQwLjQ1OSA4NC4yMTY4IDE0MC40NTkgOTMuNTg5NCAxMzEuMDg3TDE0My43OTQgODAuODgyMiIvPgoJPC9nPgo8L3N2Zz4K"
+        },
+        "displayName": "MCP Client Tool",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 42,
+        "name": "Internal Wiki"
+      },
+      {
+        "id": 48,
+        "name": "AI RAG"
+      }
+    ],
+    "image": []
+  }
+}

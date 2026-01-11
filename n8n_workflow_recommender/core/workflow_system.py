@@ -270,8 +270,8 @@ class HybridWorkflowSystem:
             with open(taxonomy_file_path, 'r', encoding='utf-8') as f:
                 raw_taxonomy = json.load(f)
             
-            # 獲取 Taxonomy 根節點
-            taxonomy_root = raw_taxonomy.get("Taxonomy", raw_taxonomy)
+            # 獲取 Taxonomy 根節點（支持 Taxonomy 和 Taxonomy_n8n）
+            taxonomy_root = raw_taxonomy.get("Taxonomy", raw_taxonomy.get("Taxonomy_n8n", raw_taxonomy))
             
             # 直接提取第一層（頂層分類）
             for top_key, top_value in taxonomy_root.items():
@@ -285,8 +285,13 @@ class HybridWorkflowSystem:
                     else:
                         clean_name = top_key  # 如果格式不對，使用原始名稱
                     
-                    # 獲取描述
+                    # 獲取描述（支持新舊格式）
+                    # 新格式可能沒有 Description，需要從子節點或使用名稱作為描述
                     description = top_value.get("Description", top_value.get("description", clean_name))
+                    
+                    # 如果還是沒有描述，使用名稱作為描述
+                    if not description or description == clean_name:
+                        description = clean_name
                     
                     # 添加到 categories
                     categories[clean_name] = description

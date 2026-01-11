@@ -70,9 +70,9 @@ class WorkflowOrchestrator:
         base_dir = Path(__file__).resolve().parent.parent.parent
         paths = self.config.get('paths', {})
         
-        # 使用帶有 example_use_cases 的 taxonomy
+        # 使用 taxonomy_by_danial.json
         # 優先使用配置文件中的路徑，否則使用默認路徑
-        taxonomy_config_path = paths.get('taxonomy_path', '../data/taxonomy_full_with_examples.json')
+        taxonomy_config_path = paths.get('taxonomy_path', '../data/taxonomy_by_danial.json')
         if taxonomy_config_path.startswith('../'):
             self.taxonomy_path = base_dir / taxonomy_config_path[3:]
         else:

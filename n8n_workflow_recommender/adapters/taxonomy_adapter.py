@@ -56,23 +56,45 @@ def convert_taxonomy_to_mcts_format(taxonomy: Dict) -> Dict:
         
         current_path = parent_path + [node_key]
         
-        # 檢查是否為葉子節點（包含 Nodes 欄位）
-        if isinstance(node_content, dict) and "Nodes" in node_content:
+        # 檢查是否為葉子節點（包含 Nodes 或 mapped_nodes 欄位，或者包含 name 和 mapped_nodes）
+        # 支持新舊格式
+        is_leaf = False
+        if isinstance(node_content, dict):
+            # 舊格式：有 Nodes 欄位
+            if "Nodes" in node_content:
+                is_leaf = True
+            # 新格式：有 name 和 mapped_nodes 欄位
+            elif "name" in node_content and "mapped_nodes" in node_content:
+                is_leaf = True
+            # 舊格式：有 mapped_nodes 欄位（某些版本）
+            elif "mapped_nodes" in node_content and node_content.get("mapped_nodes"):
+                is_leaf = True
+        
+        if is_leaf:
             # 這是葉子節點
+            # 支持新舊格式：Nodes (舊) 或 mapped_nodes (新)
+            mapped_nodes = node_content.get("Nodes", node_content.get("mapped_nodes", []))
+            # 支持新舊格式：Description (舊) 或 description (新)
+            description = node_content.get("Description", node_content.get("description", ""))
+            # 新格式：如果節點有 name 欄位，使用它；否則使用 node_key
+            name = node_content.get("name", node_key)
+            
             return {
-                "name": node_key,
-                "description": node_content.get("Description", ""),
-                "mapped_nodes": node_content.get("Nodes", []),
+                "name": name,
+                "description": description,
+                "mapped_nodes": mapped_nodes,
                 "is_leaf": True,
                 "path": current_path
             }
         elif isinstance(node_content, dict):
             # 這是中間節點，遞歸處理子節點
             children = {}
-            description = node_content.get("Description", "")
+            # 支持新舊格式：Description (舊) 或 description (新)
+            description = node_content.get("Description", node_content.get("description", ""))
             
             for child_key, child_content in node_content.items():
-                if child_key == "Description":
+                # 跳過特殊鍵（支持新舊格式）
+                if child_key in ["Description", "description", "Nodes", "mapped_nodes", "name"]:
                     continue
                 children[child_key] = process_node(child_key, child_content, current_path)
             
@@ -94,11 +116,11 @@ def convert_taxonomy_to_mcts_format(taxonomy: Dict) -> Dict:
                 "path": current_path
             }
     
-    # 獲取 Taxonomy 根節點
-    taxonomy_root = taxonomy.get("Taxonomy", {})
+    # 獲取 Taxonomy 根節點（支持 Taxonomy 和 Taxonomy_n8n）
+    taxonomy_root = taxonomy.get("Taxonomy", taxonomy.get("Taxonomy_n8n", {}))
     
     if not taxonomy_root:
-        raise ValueError("Taxonomy 中沒有找到 'Taxonomy' 根節點")
+        raise ValueError("Taxonomy 中沒有找到 'Taxonomy' 或 'Taxonomy_n8n' 根節點")
     
     # 處理所有頂層分類
     mcts_taxonomy = {}
