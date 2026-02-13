@@ -1,0 +1,207 @@
+{
+  "template_id": 10358,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automate video content generation using AI and cloud services.",
+    "workflowPlan": {
+      "name": "AI Video Content Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheetsTrigger",
+          "params": {
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:Z1000"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Data",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "const parsedData = { /* your parsing logic */ }; return parsedData;"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Optimize for Veo",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "optimizedPrompt",
+                  "value": "={{$json[\"parsedData\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "GPT-4 API Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.openai.com/v1/engines/gpt-4/completions",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "body": {
+              "prompt": "={{$json[\"optimizedPrompt\"]}}",
+              "max_tokens": 150
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Veo Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://veo.api/video/generate",
+            "method": "POST",
+            "jsonParameters": true,
+            "body": {
+              "content": "={{$json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "upload",
+            "fileName": "generated_video.mp4",
+            "fileContent": "={{$binary.data}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Append to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1:Z1000",
+            "data": "={{[{\"Video URL\": $json[\"videoUrl\"], \"Status\": \"Completed\"}]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 689,
+    "completion_tokens": 1054,
+    "total_tokens": 1743
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:44:53.028351",
+  "generated_description": "This n8n workflow is designed to automate the process of generating and managing video content using AI and cloud services. It is triggered by a new entry in a Google Sheets document, which is monitored by the Google Sheets Trigger node. Once triggered, the workflow parses the input data from the sheet using custom code to prepare it for further processing.\n\nThe parsed data is then optimized for a video generation service called Veo through a configuration step. Following this, the workflow makes a call to the GPT-4 API to generate a response based on the optimized prompt. The response from GPT-4 is parsed and used to initiate a video generation request to the Veo service via an HTTP request.\n\nOnce the video is generated, it is downloaded using another HTTP request. The downloaded video is then uploaded to Google Drive for storage and sharing purposes. Additionally, the workflow appends relevant information about the video and the process to the original Google Sheets document, ensuring that all data is logged and accessible for future reference.\n\nOverall, this workflow streamlines the creation, storage, and documentation of AI-generated video content by integrating multiple services and automating repetitive tasks.",
+  "description_generation_usage": {
+    "prompt_tokens": 224,
+    "completion_tokens": 227,
+    "total_tokens": 451
+  },
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.48275862068965514,
+    "tp": 7,
+    "fp": 1,
+    "fn": 14,
+    "gt_node_count": 21,
+    "llm_node_count": 8,
+    "connection_precision": 0.6666666666666666,
+    "connection_recall": 0.3076923076923077,
+    "connection_f1": 0.42105263157894735,
+    "correct_connections": 4,
+    "gt_connection_count": 13,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.017857142857142856,
+    "usage": {
+      "prompt_tokens": 689,
+      "completion_tokens": 1054,
+      "total_tokens": 1743
+    },
+    "total_cost": 0.015092500000000002,
+    "description_generation_cost": 0.0028300000000000005,
+    "workflow_generation_cost": 0.0122625
+  },
+  "original_description": "# \ud83d\udca5 Automate AI Video Creation & Multi-Platform Publishing with Veo 3.1 & Blotato\n\n![Workflow Overview](https://www.dr-firas.com/veo31.png)\n\n### \ud83c\udfaf Who is this for?\nThis workflow is designed for **content creators, marketers, and automation enthusiasts** who want to produce professional AI-generated videos and publish them automatically on social media \u2014 without editing or manual uploads. Perfect for those using **Veo 3.1**, **GPT-4**, and **Blotato** to scale video creation.\n\n---\n\n### \ud83d\udca1 What problem is this workflow solving?\nCreating short-form content (TikTok, Instagram Reels, YouTube Shorts) is time-consuming \u2014 from writing scripts to video editing and posting.  \nThis workflow eliminates the manual steps by combining **AI storytelling + video generation + automated publishing**, letting you focus on creativity while your system handles production and distribution.\n\n---\n\n### \u2699\ufe0f What this workflow does\n1. **Reads new ideas from Google Sheets**  \n2. **Generates story scripts** using GPT-4  \n3. **Creates cinematic videos** using Veo 3.1 (`fal.ai/veo3.1/reference-to-video`) with 3 input reference images  \n4. **Uploads the final video** automatically to Google Drive  \n5. **Publishes the video** across multiple platforms (TikTok, Instagram, Facebook, X, LinkedIn, YouTube) via **Blotato**  \n6. **Updates Google Sheets** with video URL and status (Completed / Failed)\n\n---\n\n### \ud83e\udde9 Setup\n**Required accounts:**\n- [OpenAI](https://platform.openai.com/api-keys) \u2192 GPT-4 API key  \n- [fal.ai](https://fal.ai/dashboard/keys) \u2192 Veo 3.1 API key  \n- [Google Cloud Console](https://console.cloud.google.com) \u2192 Sheets & Drive connection  \n- [Blotato](https://blotato.com/?ref=firas) \u2192 API key for social media publishing  \n\n**Configuration steps:**\n1. Copy the **Google Sheets structure**:  \n   - A: `id_video`  \n   - B: `niche`  \n   - C: `idea`  \n   - D: `url_1`  \n   - E: `url_2`  \n   - F: `url_3`  \n   - G: `url_final`  \n   - H: `status`  \n\n2. Add your API keys to the **Workflow Configuration** node.  \n3. Insert three image URLs and a short idea into your sheet.  \n4. Wait for the automation to process and generate your video.  \n\n---\n\n### \ud83e\udde0 How to customize this workflow\n- **Change duration or aspect ratio** \u2192 Edit the Veo 3.1 node JSON body (`duration`, `aspect_ratio`)  \n- **Modify prompt style** \u2192 Adjust the \u201cOptimize Prompt for Veo\u201d node for your desired tone or cinematic look  \n- **Add more platforms** \u2192 Extend Blotato integration to publish on Pinterest, Reddit, or Threads  \n- **Enable Telegram Trigger** \u2192 Allow users to submit ideas and images directly via Telegram  \n\n---\n\n### \ud83d\ude80 Expected Outcome\nWithin **2\u20133 minutes**, your idea is transformed into a full cinematic AI video \u2014 complete with storytelling, visuals, and automatic posting to your social media channels.  \n\nSave hours of editing and focus on strategy, creativity, and growth.\n\n---\n\n### \ud83d\udc4b Need help or want to customize this?\n\ud83d\udce9 Contact: [LinkedIn](https://www.linkedin.com/in/dr-firas/)  \n\ud83d\udcfa YouTube: [@DRFIRASS](https://www.youtube.com/@DRFIRASS)  \n\ud83d\ude80 Workshops: [Mes Ateliers n8n](https://hotm.art/formation-n8n)\n\n---\n\ud83d\udcc4 **Documentation**: [Notion Guide](https://automatisation.notion.site/Automate-AI-Video-Creation-Multi-Platform-Publishing-with-Veo-3-1-Blotato-29c3d6550fd981cd982fd4a031bdfe07?source=copy_link)\n### Need help customizing?\nContact me for consulting and support : [Linkedin](https://www.linkedin.com/in/dr-firas/) / [Youtube](https://www.youtube.com/channel/UCriIQI8uaoEro5FEnOpeidQ) / [\ud83d\ude80 Mes Ateliers n8n  ](https://hotm.art/formation-n8n)"
+}

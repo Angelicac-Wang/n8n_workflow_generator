@@ -1,0 +1,250 @@
+{
+  "template_id": "11787",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'AI agent', 'persistent memory', 'chatbot', 'Telegram voice messages'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Telegram API for voice messages, Groq API for STT and TTS, n8n memory for game state persistence.",
+      "operations": "1. Receive voice message via chatTrigger, 2. Convert voice to text using Groq STT, 3. Load game state from memory, 4. Process game logic with AI agent, 5. Perform dice rolls if authorized, 6. Update game state, 7. Convert response to voice using Groq TTS, 8. Send response back to Telegram.",
+      "output_actions": "Narrated game response sent back to player via Telegram voice message.",
+      "nodes_plan": "chatTrigger (chat input), groqSTT (voice to text), memory (load state), agent (orchestrator), lmChatOpenAi (AI reasoning), diceRoll (custom logic), memory (save state), groqTTS (text to voice), telegramSendMessage (send response).",
+      "connections_plan": "chatTrigger \u2192 groqSTT \u2192 memory (load) \u2192 agent \u2192 lmChatOpenAi \u2192 diceRoll \u2192 memory (save) \u2192 groqTTS \u2192 telegramSendMessage."
+    },
+    "workflowPlan": {
+      "name": "Dungeons and Goblins AI Telegram Voice Adventure",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Groq STT",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.groq.com/stt",
+            "body": {
+              "file": "={{ $json['file'] }}"
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_GROQ_API_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Load Game State",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "operation": "load",
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are the Dungeon Master for a fantasy role-playing game. Narrate scenes, resolve mechanics, and manage game state.",
+            "options": {}
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Dice Roll Logic",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { if (item.json.requiresDiceRoll) { item.json.diceResult = Math.floor(Math.random() * 20) + 1; } return item; });"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Game State",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "operation": "save",
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Groq TTS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.groq.com/tts",
+            "body": {
+              "text": "={{ $json['responseText'] }}"
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_GROQ_API_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json['chatId'] }}",
+            "text": "={{ $json['voiceFile'] }}"
+          },
+          "position": {
+            "x": 1700,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8967,
+    "completion_tokens": 1583,
+    "total_tokens": 10550
+  },
+  "description_optimization": null,
+  "original_description": "## Dungeons and Goblins \u2014 AI Telegram Voice Adventure with Persistent Memory\n\nThis n8n template demonstrates how to use an AI agent with persistent memory to run a structured, rules-driven fantasy role-playing game entirely through Telegram voice messages. The workflow acts as a Dungeon Master, narrating scenes, resolving mechanics, performing dice rolls when authorized, and explicitly saving game state between turns.\n\n## How it works\n\n- A player actions are provided to Telegram bot via voice messages.\n\n- The AI agent loads the current game state from n8n memory.\n\n- A strict system prompt enforces rules, turn flow, and narration.\n\n- When an action requires a dice roll, the agent waits for player authorization.\n\n- Once authorized, the AI rolls, resolves the outcome, and applies changes.\n\n- All state updates are emitted as structured data and saved to memory.\n\n- The request and response are processed in Groq's STT and TTS.\n\n## Use cases\n\n- Solo text-based fantasy campaigns\n\n- Persistent AI-driven adventures\n\n- Testing stateful AI agents in n8n\n\n- Educational examples of memory-aware workflows\n\n## Requirements\n\n- Groq API token (free tier supported)\n\n- Telegram bot API token",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:57:14.528280",
+  "metrics": {
+    "node_type_precision": 0.5555555555555556,
+    "node_type_recall": 0.5555555555555556,
+    "node_type_f1": 0.5555555555555556,
+    "tp": 5,
+    "fp": 4,
+    "fn": 4,
+    "gt_node_count": 9,
+    "llm_node_count": 9,
+    "connection_precision": 0.125,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.14285714285714288,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.2,
+    "usage": {
+      "prompt_tokens": 8967,
+      "completion_tokens": 1583,
+      "total_tokens": 10550
+    },
+    "total_cost": 0.038247500000000004
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,173 @@
+{
+  "template_id": "12326",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or by a schedule to initiate the product creation process.",
+      "data_sources": "Telegram API for user interaction, WooCommerce API for product creation, and internal data tables for managing product data.",
+      "operations": "1. Receive user input via Telegram, 2. Update data tables with product information, 3. Generate product details (title, description, slug), 4. Create product in WooCommerce, 5. Reset data tables for next product creation.",
+      "output_actions": "Product created in WooCommerce and data tables reset for next use.",
+      "nodes_plan": "telegramTrigger (trigger), updateDataTables (set), generateProductDetails (code), createProductWooCommerce (httpRequest), resetDataTables (set)",
+      "connections_plan": "telegramTrigger -> updateDataTables -> generateProductDetails -> createProductWooCommerce -> resetDataTables"
+    },
+    "workflowPlan": {
+      "name": "WooCommerce Product Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "{{your bot token}}",
+            "updateType": "message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Update Data Tables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "chatId",
+                  "value": "={{ $json.message.chat.id }}"
+                },
+                {
+                  "name": "step",
+                  "value": "={{ $json.message.text }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Product Details",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return {\n  title: `Product Title for ${$json.step}`,\n  description: `Description for ${$json.step}`,\n  slug: `product-${$json.step.toLowerCase().replace(/\\s+/g, '-')}`\n};"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Product WooCommerce",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://yourwoocommerceapi.com/products",
+            "authentication": "oAuth2Api",
+            "body": {
+              "title": "={{ $json.title }}",
+              "description": "={{ $json.description }}",
+              "slug": "={{ $json.slug }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Reset Data Tables",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "chatId",
+                  "value": ""
+                },
+                {
+                  "name": "step",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5179,
+    "completion_tokens": 929,
+    "total_tokens": 6108
+  },
+  "description_optimization": null,
+  "original_description": "**How it Works?**\n\n1. User Answers Questions Prompted by the Telegram Bot\n2. Data Tables are updated to with relevant step of the process and a chat id\n3. Upon Approval, the Title, Description and Slug are created and then Product is created on WooCommerce via API request.\n4. Data Tables are reset and user is prompted to create another product.\n\n**Setup Steps:** (25 Minutes)\n1. Create a Telegram bot via @botfather on telegram\n2. Setup 2 Data Tables with names WooCommerce Product Manager & User_Images\n3. Add your  Preffered LLM Credentials and set credentials in telegram node \n4. In TelegramGroupMedia node and EditFields 1 node, add your bot token to replace {{your bot token}}\n5. Voila! Your Workflow is now configured.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T03:03:12.178475",
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.05747126436781609,
+    "node_type_f1": 0.10869565217391304,
+    "tp": 5,
+    "fp": 0,
+    "fn": 82,
+    "gt_node_count": 87,
+    "llm_node_count": 5,
+    "connection_precision": 0.5,
+    "connection_recall": 0.06060606060606061,
+    "connection_f1": 0.10810810810810813,
+    "correct_connections": 2,
+    "gt_connection_count": 33,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.4,
+    "usage": {
+      "prompt_tokens": 5179,
+      "completion_tokens": 929,
+      "total_tokens": 6108
+    },
+    "total_cost": 0.0222375
+  }
+}

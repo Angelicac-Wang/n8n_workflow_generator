@@ -1,0 +1,278 @@
+{
+  "template_id": "5614",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook that receives a URL submission from a form.",
+      "data_sources": "OpenAI API for GPT-4o and GPT-4o mini, SerpAPI for search engine data.",
+      "operations": "1. Receive URL submission, 2. Analyze domain details, 3. Review search engine signals, 4. Examine product and pricing patterns, 5. Assess content quality, 6. Aggregate findings, 7. Analyze aggregated data, 8. Generate report.",
+      "output_actions": "Provide a structured report with a scam likelihood score and insights to the user.",
+      "nodes_plan": "webhook (trigger), openAi (domain analysis), openAi (search engine analysis), openAi (pricing analysis), openAi (content analysis), set (aggregate results), openAi (final analysis), httpResponse (send report)",
+      "connections_plan": "webhook -> domainAnalysis -> searchEngineAnalysis -> pricingAnalysis -> contentAnalysis -> aggregateResults -> finalAnalysis -> httpResponse"
+    },
+    "workflowPlan": {
+      "name": "Website Legitimacy Assessment",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "submit-url"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Domain Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Analyze the domain age, SSL certificates, and TLD trustworthiness for the URL: {{$json.body.url}}"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Search Engine Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Review search engine results, forum mentions, and public scam reports for the URL: {{$json.body.url}}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Pricing Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Examine product pricing patterns and brand authenticity for the URL: {{$json.body.url}}"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Content Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Assess on-site content quality, including grammar, legitimacy of claims, and presence of business information for the URL: {{$json.body.url}}"
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Aggregate Results",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "domainAnalysis",
+                  "value": "={{$node[\"Domain Analysis\"].json}}"
+                },
+                {
+                  "name": "searchEngineAnalysis",
+                  "value": "={{$node[\"Search Engine Analysis\"].json}}"
+                },
+                {
+                  "name": "pricingAnalysis",
+                  "value": "={{$node[\"Pricing Analysis\"].json}}"
+                },
+                {
+                  "name": "contentAnalysis",
+                  "value": "={{$node[\"Content Analysis\"].json}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 250
+          }
+        },
+        {
+          "id": "7",
+          "label": "Final Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Based on the following analyses, assign a scam likelihood score (1-10) and provide a summary: Domain: {{$json.domainAnalysis}}, Search Engine: {{$json.searchEngineAnalysis}}, Pricing: {{$json.pricingAnalysis}}, Content: {{$json.contentAnalysis}}"
+          },
+          "position": {
+            "x": 700,
+            "y": 250
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Report",
+          "nodeType": "n8n-nodes-base.httpResponse",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": "={{$node[\"Final Analysis\"].json}}"
+          },
+          "position": {
+            "x": 900,
+            "y": 250
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4357,
+      "completion_tokens": 1440,
+      "total_tokens": 5797
+    },
+    "description_optimization": {
+      "prompt_tokens": 1026,
+      "completion_tokens": 596,
+      "total_tokens": 1622
+    },
+    "total_tokens": 7419,
+    "total_prompt_tokens": 5383,
+    "total_completion_tokens": 2036
+  },
+  "description_optimization": {
+    "template_id": "5614",
+    "optimized_description": "Workflow Description: Website Legitimacy Assessment\n\nTrigger: The workflow is initiated by a user submitting a URL through a designated form.\n\nData Sources and APIs Needed:\n1. OpenAI API (GPT-4o and GPT-4o mini)\n   - Obtain an API key from platform.openai.com/api-keys\n   - Connect the key to the OpenAI Chat Model for all AI agents (Analyzer, Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools).\n   - Fund the OpenAI account as GPT-4o costs approximately $0.01 per workflow execution.\n   \n2. SerpAPI\n   - Create an account at https://serpapi.com/users/sign_up and obtain a SerpAPI key.\n   - Connect the SerpAPI key to the AI agents that require search engine data (Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools).\n   - Note that SerpAPI allows for 100 free searches each month, and this workflow typically uses 5-15 searches per execution. Consider creating multiple SerpAPI accounts to manage search limits effectively.\n\nOperations and Processing Steps:\n1. User submits a URL via a form.\n2. The workflow activates four specialized AI agents, each powered by GPT-4o and connected to SerpAPI:\n   - Agent 1: Analyzes domain age, SSL certificates, and TLD trustworthiness.\n   - Agent 2: Reviews search engine results, forum mentions, and public scam reports.\n   - Agent 3: Examines product pricing patterns and brand authenticity.\n   - Agent 4: Assesses on-site content quality, including grammar, legitimacy of claims, and presence of business information.\n3. Each agent independently processes the URL and returns its findings.\n4. The findings from all four agents are aggregated and passed to a fifth AI agent, the Analyzer, powered by GPT-4o mini.\n5. The Analyzer evaluates the aggregated data, assigns a scam likelihood score on a scale of 1 to 10, and compiles a structured summary of insights.\n6. The summary includes organized findings and a disclaimer for context.\n\nFinal Output or Action:\nThe workflow presents the user with a clear, structured report detailing the scam likelihood score and insights derived from the analysis of the submitted URL. The report is designed to assist users in evaluating the potential risk of the website based on AI-generated insights.\n\nDisclaimer:\nThis tool is intended to assist users in evaluating the potential risk of websites using AI-generated insights. The scam likelihood score and analysis are based on publicly available information and should not be considered definitive or authoritative assessments. Users should perform their own due diligence and use independent judgment before engaging with any site. N8N, OpenAI, its affiliates, and the creators of this workflow are not responsible for any loss, damages, or consequences arising from the use of this tool or the actions taken based on its results.",
+    "original_description": "# What It Does\nThis intelligent workflow simplifies the complex task of determining whether a website is legitimate or potentially a scam. By simply submitting a URL through a form, the system initiates a multi-agent evaluation process. Four dedicated AI agents\u2014each powered by GPT-4o and connected to SerpAPI\u2014analyze different dimensions of the website: domain and technical details, search engine signals, product and pricing patterns, and on-site content analysis. Their findings are then passed to a fifth AI agent, the Analyzer, powered by GPT-4o mini, which consolidates the data, scores the site on a scale of 1\u201310 for scam likelihood, and presents the findings in a clear, structured format for the user.\n\n# Who It's For\nThis workflow is ideal for anyone who needs to quickly and reliably assess the trustworthiness of a website. Whether you're a consumer double-checking a store before making a purchase, a small business owner validating supplier sites, a cybersecurity analyst conducting threat assessments, or a developer building fraud detection into your platform \u2014 this tool offers fast, AI-powered insights without the need for manual research or technical expertise. It's designed for both individuals and teams who value accurate, scalable scam detection.\n\n# How It Works\nThe process begins with a simple form submission where the user enters the URL of the website they want to investigate. Once submitted, the workflow activates four specialized AI agents\u2014each powered by GPT-4o and connected to SerpAPI\u2014to independently analyze the site from different angles:\n\nAgent 1 examines domain age, SSL certificates, and TLD trustworthiness.\n\nAgent 2 reviews search engine results, forum mentions, and public scam reports.\n\nAgent 3 analyzes product pricing patterns and brand authenticity.\n\nAgent 4 assesses on-site content quality, grammar, legitimacy of claims, and presence of business info.\n\nEach agent returns its findings, which are then aggregated and passed to a fifth AI agent\u2014the Analyzer. This final agent, powered by GPT-4o mini, evaluates all the input, assigns a scam likelihood score from 1 to 10, and compiles a neatly formatted summary with organized insights and a disclaimer for context.\n\n# Set UP\nYou will need to obtain an Open AI API key from platform.openai.com/api-keys\nAfter you obtain this Open AI API key you will need to connect it to the Open AI Chat Model for all of the Tools agents (Analyzer, Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools Agents).\nYou will now need to fund your Open AI account. GPT 4o costs ~$0.01 to run the workflow.\nNext you will need to create a SerpAPI account at https://serpapi.com/users/sign_up\nAfter you create an account you will need to obtain a SerpAPI key.\nYou will then need to use this key to connect to the SerpAPI tool for each of the tools agents (Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools Agents)\nTip: SerpAPI will allow you to run 100 free searches each month. This workflow uses ~5-15 SerpAPI searches per run. If you would like to utilize the workflow more than that each month, create multiple SerpAPI accounts and have an API key for each account. When you utilize all 100 free searches for an account, switch to the API key for another account within the workflow.\n\n## Disclaimer\nThis tool is designed to assist in evaluating the potential risk of websites using AI-generated insights. The scam likelihood score and analysis provided are based on publicly available information and should not be considered a definitive or authoritative assessment. This tool does not guarantee the accuracy, safety, or legitimacy of any website. Users should perform their own due diligence and use independent judgment before engaging with any site.\n\nN8N, OpenAI, its affiliates, and the creators of this workflow are not responsible for any loss, damages, or consequences arising from the use of this tool or the actions taken based on its results.",
+    "description_length": 2871,
+    "usage": {
+      "prompt_tokens": 1026,
+      "completion_tokens": 596,
+      "total_tokens": 1622
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:26:42.084246"
+  },
+  "original_description": "# What It Does\nThis intelligent workflow simplifies the complex task of determining whether a website is legitimate or potentially a scam. By simply submitting a URL through a form, the system initiates a multi-agent evaluation process. Four dedicated AI agents\u2014each powered by GPT-4o and connected to SerpAPI\u2014analyze different dimensions of the website: domain and technical details, search engine signals, product and pricing patterns, and on-site content analysis. Their findings are then passed to a fifth AI agent, the Analyzer, powered by GPT-4o mini, which consolidates the data, scores the site on a scale of 1\u201310 for scam likelihood, and presents the findings in a clear, structured format for the user.\n\n# Who It's For\nThis workflow is ideal for anyone who needs to quickly and reliably assess the trustworthiness of a website. Whether you're a consumer double-checking a store before making a purchase, a small business owner validating supplier sites, a cybersecurity analyst conducting threat assessments, or a developer building fraud detection into your platform \u2014 this tool offers fast, AI-powered insights without the need for manual research or technical expertise. It's designed for both individuals and teams who value accurate, scalable scam detection.\n\n# How It Works\nThe process begins with a simple form submission where the user enters the URL of the website they want to investigate. Once submitted, the workflow activates four specialized AI agents\u2014each powered by GPT-4o and connected to SerpAPI\u2014to independently analyze the site from different angles:\n\nAgent 1 examines domain age, SSL certificates, and TLD trustworthiness.\n\nAgent 2 reviews search engine results, forum mentions, and public scam reports.\n\nAgent 3 analyzes product pricing patterns and brand authenticity.\n\nAgent 4 assesses on-site content quality, grammar, legitimacy of claims, and presence of business info.\n\nEach agent returns its findings, which are then aggregated and passed to a fifth AI agent\u2014the Analyzer. This final agent, powered by GPT-4o mini, evaluates all the input, assigns a scam likelihood score from 1 to 10, and compiles a neatly formatted summary with organized insights and a disclaimer for context.\n\n# Set UP\nYou will need to obtain an Open AI API key from platform.openai.com/api-keys\nAfter you obtain this Open AI API key you will need to connect it to the Open AI Chat Model for all of the Tools agents (Analyzer, Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools Agents).\nYou will now need to fund your Open AI account. GPT 4o costs ~$0.01 to run the workflow.\nNext you will need to create a SerpAPI account at https://serpapi.com/users/sign_up\nAfter you create an account you will need to obtain a SerpAPI key.\nYou will then need to use this key to connect to the SerpAPI tool for each of the tools agents (Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools Agents)\nTip: SerpAPI will allow you to run 100 free searches each month. This workflow uses ~5-15 SerpAPI searches per run. If you would like to utilize the workflow more than that each month, create multiple SerpAPI accounts and have an API key for each account. When you utilize all 100 free searches for an account, switch to the API key for another account within the workflow.\n\n## Disclaimer\nThis tool is designed to assist in evaluating the potential risk of websites using AI-generated insights. The scam likelihood score and analysis provided are based on publicly available information and should not be considered a definitive or authoritative assessment. This tool does not guarantee the accuracy, safety, or legitimacy of any website. Users should perform their own due diligence and use independent judgment before engaging with any site.\n\nN8N, OpenAI, its affiliates, and the creators of this workflow are not responsible for any loss, damages, or consequences arising from the use of this tool or the actions taken based on its results.",
+  "optimized_description": "Workflow Description: Website Legitimacy Assessment\n\nTrigger: The workflow is initiated by a user submitting a URL through a designated form.\n\nData Sources and APIs Needed:\n1. OpenAI API (GPT-4o and GPT-4o mini)\n   - Obtain an API key from platform.openai.com/api-keys\n   - Connect the key to the OpenAI Chat Model for all AI agents (Analyzer, Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools).\n   - Fund the OpenAI account as GPT-4o costs approximately $0.01 per workflow execution.\n   \n2. SerpAPI\n   - Create an account at https://serpapi.com/users/sign_up and obtain a SerpAPI key.\n   - Connect the SerpAPI key to the AI agents that require search engine data (Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools).\n   - Note that SerpAPI allows for 100 free searches each month, and this workflow typically uses 5-15 searches per execution. Consider creating multiple SerpAPI accounts to manage search limits effectively.\n\nOperations and Processing Steps:\n1. User submits a URL via a form.\n2. The workflow activates four specialized AI agents, each powered by GPT-4o and connected to SerpAPI:\n   - Agent 1: Analyzes domain age, SSL certificates, and TLD trustworthiness.\n   - Agent 2: Reviews search engine results, forum mentions, and public scam reports.\n   - Agent 3: Examines product pricing patterns and brand authenticity.\n   - Agent 4: Assesses on-site content quality, including grammar, legitimacy of claims, and presence of business information.\n3. Each agent independently processes the URL and returns its findings.\n4. The findings from all four agents are aggregated and passed to a fifth AI agent, the Analyzer, powered by GPT-4o mini.\n5. The Analyzer evaluates the aggregated data, assigns a scam likelihood score on a scale of 1 to 10, and compiles a structured summary of insights.\n6. The summary includes organized findings and a disclaimer for context.\n\nFinal Output or Action:\nThe workflow presents the user with a clear, structured report detailing the scam likelihood score and insights derived from the analysis of the submitted URL. The report is designed to assist users in evaluating the potential risk of the website based on AI-generated insights.\n\nDisclaimer:\nThis tool is intended to assist users in evaluating the potential risk of websites using AI-generated insights. The scam likelihood score and analysis are based on publicly available information and should not be considered definitive or authoritative assessments. Users should perform their own due diligence and use independent judgment before engaging with any site. N8N, OpenAI, its affiliates, and the creators of this workflow are not responsible for any loss, damages, or consequences arising from the use of this tool or the actions taken based on its results.",
+  "error": null,
+  "generated_at": "2026-01-25T23:26:58.150670",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 8,
+    "fn": 17,
+    "gt_node_count": 17,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 4,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4357,
+        "completion_tokens": 1440,
+        "total_tokens": 5797
+      },
+      "description_optimization": {
+        "prompt_tokens": 1026,
+        "completion_tokens": 596,
+        "total_tokens": 1622
+      },
+      "total_tokens": 7419,
+      "total_prompt_tokens": 5383,
+      "total_completion_tokens": 2036
+    },
+    "total_cost": 0.0338175,
+    "description_optimization_cost": 0.008525000000000001,
+    "workflow_generation_cost": 0.025292500000000002
+  }
+}

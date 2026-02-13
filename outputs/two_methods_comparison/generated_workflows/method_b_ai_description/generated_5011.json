@@ -1,0 +1,204 @@
+{
+  "template_id": 5011,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Interactive Q&A System with AI and Vector Storage",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "upload-file",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Default Data Loader",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* process file */ return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Embeddings OpenAI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/embeddings",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": [
+              {
+                "name": "input",
+                "value": "={{$json[\"data\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Insert Data to Store",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* insert embeddings into vector store */ return item; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "When Chat Message Received",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Query Data Tool",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* query vector store */ return item; });"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* select AI model */ return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Answer Questions with Vector Store",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/answers",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": [
+              {
+                "name": "question",
+                "value": "={{$json[\"question\"]}}"
+              },
+              {
+                "name": "context",
+                "value": "={{$json[\"context\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 711,
+    "completion_tokens": 1020,
+    "total_tokens": 1731
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:33:17.870044",
+  "generated_description": "This n8n workflow is designed to facilitate an interactive question-and-answer system using AI and vector storage technologies. The workflow is initiated when a user uploads a file through a form trigger. This file is processed by the \"Default Data Loader,\" which prepares the data for further operations.\n\nThe data is then sent to the \"Embeddings OpenAI\" node, where it is transformed into embeddings using OpenAI's API. These embeddings are stored in an in-memory vector store through the \"Insert Data to Store\" node, making the data ready for efficient querying.\n\nThe workflow also includes a chat interface, triggered by the \"When chat message received\" node, allowing users to input questions. The \"Query Data Tool\" accesses the vector store to retrieve relevant information based on the user's query.\n\nAn \"AI Agent\" coordinates the interaction between the chat input and the data retrieval process. Depending on the complexity and cost considerations, the workflow utilizes either an \"Expensive Model\" or a \"Cheap Model\" from OpenAI's language models to generate responses.\n\nFinally, the \"Answer questions with a vector store\" node uses the retrieved data to provide accurate answers to the user's questions, leveraging the capabilities of the selected AI model to ensure a responsive and informative interaction.",
+  "description_generation_usage": {
+    "prompt_tokens": 234,
+    "completion_tokens": 249,
+    "total_tokens": 483
+  },
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 8,
+    "fn": 10,
+    "gt_node_count": 10,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 2,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 711,
+      "completion_tokens": 1020,
+      "total_tokens": 1731
+    },
+    "total_cost": 0.0150525,
+    "description_generation_cost": 0.003075,
+    "workflow_generation_cost": 0.0119775
+  },
+  "original_description": "This template shows how to use the Question and Answer tool to save costs in RAG use cases.\n\n## Who is this for?\nThis template is for everyone who wants to start giving knowledge to their Agents through RAG.\n\n## Requirements\nHave a PDF with custom knowledge that you want to provide to your agent.\n\n## Setup\nNo setup required. Just hit `Execute Workflow`, upload your knowledge document and then start chatting.\n\n## How to customize this to your needs\n1. Add custom instructions to your Agent by changing the prompts in it.\n2. Add a different way to load in knowledge to your vector store, e.g. by looking at some Google Drive files or loading knowledge from a table.\n3. Describe your data properly in the Q&A tool\n4. Exchange the `Simple Vector Store` nodes with your own vector store tools ready for production.\n5. Add a more sophisticated way to rank files found in the vector store.\n\nFor more information read our [docs on RAG in n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/)."
+}

@@ -1,0 +1,177 @@
+{
+  "template_id": "2405",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook to receive audio input.",
+      "data_sources": "OpenAI API for transcription, Google Gemini or OpenAI Chat Model for conversation processing, ElevenLabs for text-to-speech conversion.",
+      "operations": "1. Receive audio input via webhook, 2. Transcribe audio to text using OpenAI, 3. Process conversation with Google Gemini or OpenAI Chat Model, 4. Convert response text to speech using ElevenLabs.",
+      "output_actions": "Return the generated audio response via the webhook.",
+      "nodes_plan": "webhook (trigger), httpRequest (OpenAI transcription), httpRequest (Google Gemini/OpenAI Chat Model), httpRequest (ElevenLabs text-to-speech), respondToWebhook (return audio).",
+      "connections_plan": "webhook -> httpRequest (OpenAI transcription) -> httpRequest (Chat Model) -> httpRequest (ElevenLabs) -> respondToWebhook."
+    },
+    "workflowPlan": {
+      "name": "Voice Chat Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "voice_message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Transcribe Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/audio/transcriptions",
+            "body": {
+              "audio": "={{ $json.body.audio }}",
+              "model": "whisper-1"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+              "Content-Type": "application/json"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Conversation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/chat/completions",
+            "body": {
+              "model": "gpt-3.5-turbo",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "={{ $json.text }}"
+                }
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+              "Content-Type": "application/json"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Text to Speech",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "body": {
+              "text": "={{ $json.choices[0].message.content }}",
+              "voice": "en_us_male"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_ELEVENLABS_API_KEY",
+              "Content-Type": "application/json"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Audio",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": "={{ $json.audio }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5218,
+    "completion_tokens": 1005,
+    "total_tokens": 6223
+  },
+  "description_optimization": null,
+  "original_description": "## Who is this for?\nThis workflow is designed for businesses or developers looking to integrate voice-based chat applications with dynamic responses and conversational memory.\n\n## What problem does this solve?\nIt automates AI-powered voice conversations, maintaining context between sessions and converting speech-to-text and text-to-speech.\n\n## What this workflow does:\nThe workflow receives audio input, transcribes it using OpenAI, and processes the conversation using Google Gemini Chat Model (you can use OpenAI Chat Model). Responses are converted back to speech using ElevenLabs.\n\n## Prerequisites:\nYou'll need API keys for:\n* OpenAI (you can obtain it from OpenAI website)\n* ElevenLabs (you can obtain it from their website)\n* Google Gemini (You can obtain it from `Google AI Studio`)\n\n## Setup:\n* Configure you API keys\n* Ensure that the value `(voice_message)` in the `\"Path\"` parameter  in the Webhook node is used as the name of the parameter that will contain the voice message you are sending via the HTTP Post request.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:51:56.560524",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 0.2727272727272727,
+    "node_type_f1": 0.37499999999999994,
+    "tp": 3,
+    "fp": 2,
+    "fn": 8,
+    "gt_node_count": 11,
+    "llm_node_count": 5,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.125,
+    "connection_f1": 0.18181818181818182,
+    "correct_connections": 1,
+    "gt_connection_count": 8,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.27777777777777773,
+    "usage": {
+      "prompt_tokens": 5218,
+      "completion_tokens": 1005,
+      "total_tokens": 6223
+    },
+    "total_cost": 0.023095000000000004
+  }
+}

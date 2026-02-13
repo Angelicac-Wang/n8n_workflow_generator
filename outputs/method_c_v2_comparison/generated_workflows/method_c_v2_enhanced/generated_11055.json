@@ -1,0 +1,273 @@
+{
+  "template_id": "11055",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Telegram message, specifically when the operator sends a '/start' command.",
+      "data_sources": "Telegram Bot API for receiving messages, OpenAI API for transcription and data extraction, Google Sheets API for updating inventory records.",
+      "operations": "1. Receive '/start' command from Telegram, 2. Identify next location to count, 3. Guide operator via Telegram, 4. Transcribe voice message, 5. Extract location ID and quantity, 6. Validate transcription, 7. Update Google Sheets, 8. Send next location or completion confirmation.",
+      "output_actions": "Update the inventory records in Google Sheets and send confirmation messages to the operator via Telegram.",
+      "nodes_plan": "telegramTrigger (trigger), identifyLocation (set), guideOperator (telegram), transcribeAudio (openAi), extractData (set), validateData (if), updateSheet (googleSheets), sendNextLocation (telegram), sendCompletion (telegram)",
+      "connections_plan": "telegramTrigger -> identifyLocation -> guideOperator -> transcribeAudio -> extractData -> validateData -> [updateSheet (true) | guideOperator (false)] -> sendNextLocation -> sendCompletion"
+    },
+    "workflowPlan": {
+      "name": "Paperless Inventory Cycle Count",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "command": "/start"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Identify Location",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "nextLocation",
+                  "value": "={{ 'Location_' + Math.floor(Math.random() * 10) }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Guide Operator",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.chat.id }}",
+            "text": "Please proceed to {{ $json.nextLocation }} and record your count."
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transcribe Audio",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "transcribe",
+            "audioFile": "={{ $json.message.voice.file_id }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Extract Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "locationId",
+                  "value": "={{ $json.transcription.match(/Location_\\d+/)[0] }}"
+                },
+                {
+                  "name": "quantity",
+                  "value": "={{ $json.transcription.match(/\\d+/)[0] }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Validate Data",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.locationId }}",
+                  "operation": "notEmpty"
+                },
+                {
+                  "value1": "={{ $json.quantity }}",
+                  "operation": "notEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              {
+                "values": [
+                  "={{ $json.locationId }}",
+                  "={{ $json.quantity }}",
+                  "={{ new Date().toISOString() }}"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Next Location",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.chat.id }}",
+            "text": "Next location: {{ $json.nextLocation }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Completion",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.chat.id }}",
+            "text": "Cycle count completed. Thank you!"
+          },
+          "position": {
+            "x": 1500,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "3",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5723,
+    "completion_tokens": 1555,
+    "total_tokens": 7278
+  },
+  "description_optimization": null,
+  "original_description": "*Tags: Logistics, Supply Chain, Warehouse Operations, Paperless Processes, Inventory Management*\n\n### Context\n\nHi! I\u2019m [Samir](https://samirsaci.com), Supply Chain Engineer, Data Scientist based in Paris, and founder of [LogiGreen](https://logi-green.com).\n\n&gt; Let's use AI with n8n to help SMEs digitalise their logistics operations!\n\nTraditional inventory cycle counts often require clipboards, scanners, and manual reconciliation.  \n\nWith this workflow, the operator walks through the warehouse, sends **voice messages**, and the bot automatically updates the inventory records.\n\n[![Workflow Overview](https://www.samirsaci.com/content/images/size/w1600/2025/11/image-36.png)](https://youtu.be/_EOJ3M7APsQ)\n\nUsing AI-based transcription and structured extraction, we optimise the entire process with a simple mobile device connected to Telegram.\n\n\ud83d\udcec For business inquiries, you can find me on [LinkedIn](https://www.linkedin.com/in/samir-saci)\n\n### Demo of the workflow\n\nIn this example, the bot guides the operator through the cycle count for three locations.\n\n[![Telegram Discussion](https://www.samirsaci.com/content/images/2025/11/image-33.png)](https://youtu.be/_EOJ3M7APsQ)\n\nThe workflow automatically records the results in Google Sheets.\n\n[![Google Sheets](https://www.samirsaci.com/content/images/2025/11/image-37.png)](https://youtu.be/_EOJ3M7APsQ)\n\n### Who is this template for?\n\nThis template is ideal for companies with limited IT resources:\n \n- **Inventory controllers** who need a hands-free, mobile-friendly counting process \n- Small **3PLs** and retailers looking to digitalise stock control\n\n### \ud83c\udfa5 Tutorial\n\nA complete tutorial (with explanations of every node) is available on YouTube:\n\n[![Tutorial + Demo](https://www.samirsaci.com/content/images/2025/11/temp-13.png)](https://youtu.be/_EOJ3M7APsQ)\n\n### What does this workflow do?\n\nThis automation uses Telegram and OpenAI\u2019s Whisper transcription: \n\n1. The operator sends **/start** to the bot. \n2. The bot identifies the **first location** that still needs to be counted.  \n3. The operator is guided to the location through a Telegram message.  \n4. The operator records a **voice message** with the `location ID` and the `number of units` counted.\n5. AI nodes transcribe the audio and extract `location_id` and `quantity`.  \n6. If the message cannot be transcribed, the bot asks the operator to repeat.  \n7. If the location is valid and still pending, the Google Sheet is updated.  \n8. The bot sends the **next location**, until the final one is completed.  \n9. The operator receives a confirmation that the cycle count is finished.\n\n### Next Steps\n\nBefore running the workflow, follow the sticky notes and configure:\n\n- Connect your **Telegram Bot API**  \n- Add your **OpenAI API Key** to the transcription and extraction nodes  \n- Connect your **Google Sheets credentials**  \n- Update the Google Sheet ID and the worksheet name in all Spreadsheet nodes  \n- Adjust the AI prompts depending on your warehouse location naming conventions  \n\n*Submitted: 20 November 2025*  \n*Template designed with n8n version 1.116.2*",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T03:01:21.741499",
+  "metrics": {
+    "node_type_precision": 0.8888888888888888,
+    "node_type_recall": 0.2857142857142857,
+    "node_type_f1": 0.43243243243243246,
+    "tp": 8,
+    "fp": 1,
+    "fn": 20,
+    "gt_node_count": 28,
+    "llm_node_count": 9,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.15789473684210525,
+    "connection_f1": 0.21428571428571427,
+    "correct_connections": 3,
+    "gt_connection_count": 19,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.25,
+    "usage": {
+      "prompt_tokens": 5723,
+      "completion_tokens": 1555,
+      "total_tokens": 7278
+    },
+    "total_cost": 0.029857500000000002
+  }
+}

@@ -1,0 +1,340 @@
+{
+  "template_id": "10352",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook to receive travel requests including destination, travel dates, and user preferences.",
+      "data_sources": "Skyscanner API, Booking.com API, Kiwi API, Viator API, OpenWeatherMap API, OpenRouter API.",
+      "operations": "1. Receive webhook, 2. Extract travel parameters, 3. Fetch flight, hotel, activity, and weather data, 4. Process data with AI for itinerary generation, 5. Send itinerary via Gmail and Slack, 6. Confirm delivery.",
+      "output_actions": "The final output is a travel itinerary sent via Gmail and a notification sent to a Slack channel.",
+      "nodes_plan": "webhook (trigger), set (extract parameters), httpRequest (API calls), openAi (AI processing), emailSend (Gmail), slack (Slack notification), set (confirmation)",
+      "connections_plan": "webhook -> set -> [httpRequest (flights), httpRequest (hotels), httpRequest (activities), httpRequest (weather)] -> openAi -> [emailSend, slack] -> set (confirmation)"
+    },
+    "workflowPlan": {
+      "name": "Automated Travel Planning",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Travel Request Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "travel-request"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "destination",
+                  "value": "={{ $json.body.destination }}"
+                },
+                {
+                  "name": "travelDates",
+                  "value": "={{ $json.body.travelDates }}"
+                },
+                {
+                  "name": "preferences",
+                  "value": "={{ $json.body.preferences }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Flights",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.skyscanner.net/apiservices/browsequotes/v1.0/{{ $json.destination }}/{{ $json.travelDates }}",
+            "headers": {
+              "apiKey": "YOUR_SKYSCANNER_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Hotels",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.booking.com/v1/hotels?destination={{ $json.destination }}&checkin_date={{ $json.travelDates }}",
+            "headers": {
+              "apiKey": "YOUR_BOOKING_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Activities",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.viator.com/v1/activities?location={{ $json.destination }}",
+            "headers": {
+              "apiKey": "YOUR_VIATOR_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Weather",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.openweathermap.org/data/2.5/weather?q={{ $json.destination }}",
+            "headers": {
+              "apiKey": "YOUR_OPENWEATHERMAP_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Itinerary with AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a travel itinerary based on the following data: Flights: {{ $json.flights }}, Hotels: {{ $json.hotels }}, Activities: {{ $json.activities }}, Weather: {{ $json.weather }}. Include user preferences: {{ $json.preferences }}."
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Itinerary via Gmail",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{ $json.body.email }}",
+            "subject": "Your Travel Itinerary",
+            "text": "={{ $json.itinerary }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#travel-plans",
+            "text": "New travel itinerary generated for {{ $json.body.email }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Confirm Delivery",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "status",
+                  "value": "Itinerary sent successfully"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4492,
+      "completion_tokens": 1792,
+      "total_tokens": 6284
+    },
+    "description_optimization": {
+      "prompt_tokens": 586,
+      "completion_tokens": 731,
+      "total_tokens": 1317
+    },
+    "total_tokens": 7601,
+    "total_prompt_tokens": 5078,
+    "total_completion_tokens": 2523
+  },
+  "description_optimization": {
+    "template_id": "10352",
+    "optimized_description": "**Workflow Description for Automated Travel Planning**\n\n**Introduction**  \nThis workflow automates travel planning by aggregating information on flights, hotels, activities, and weather through various APIs. It utilizes AI to generate professional itineraries, which are then delivered via Gmail and Slack.\n\n**Trigger**  \nThe workflow is initiated by a webhook that receives travel requests, including destination, travel dates, and user preferences.\n\n**Data Sources and APIs Needed**  \n1. Skyscanner API for flight information\n2. Booking.com API for hotel bookings\n3. Kiwi API for additional flight options\n4. Viator API for activities and tours\n5. OpenWeatherMap API for weather data\n6. OpenRouter API for routing and additional data processing\n\n**Workflow Steps**  \n1. **Trigger & Extract**: The workflow begins with a webhook that receives the travel request. It extracts necessary parameters such as destination, travel dates, and user preferences.\n   \n2. **Data Gathering**: The workflow performs parallel searches using the specified APIs:\n   - Flights are fetched from Skyscanner, Kiwi, and other flight sources.\n   - Hotels are retrieved from Booking.com.\n   - Activities are gathered from Viator.\n   - Weather data is collected from OpenWeatherMap.\n   The responses from these APIs are then merged into a single dataset for processing.\n\n3. **AI Processing**: The merged data is analyzed by an AI model that creates a comprehensive itinerary. This step includes ranking the recommendations based on user preferences and scoring the options based on criteria such as price, convenience, and user ratings.\n\n4. **Delivery**: The workflow generates an HTML email containing the itinerary details. This email is sent to the user via Gmail. Additionally, a notification or summary of the itinerary is sent to a designated Slack channel using a Slack webhook.\n\n5. **Response Confirmation**: After the delivery of the itinerary, the workflow confirms the completion of the process, providing feedback to the user.\n\n**Final Output or Action**  \nThe final output of this workflow is a professionally generated travel itinerary delivered through both Gmail and Slack, ensuring that the user has access to their travel plans across multiple platforms.\n\n**Setup Instructions**  \n1. **API Configuration**: Ensure that API keys for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, and OpenRouter are added to the n8n instance.\n2. **Communication Setup**: Connect Gmail using OAuth2 for email delivery and configure the Slack webhook for notifications.\n3. **Customization Options**: Adjust API endpoints, AI prompts for itinerary generation, HTML email templates, and scoring criteria to tailor the workflow to specific needs.\n\n**Prerequisites**  \n- API keys for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, and OpenRouter.\n- A valid Gmail account for email delivery.\n- Access to a Slack workspace for notifications.\n- An operational n8n instance to run the workflow.\n\n**Use Cases**  \nThis workflow can be utilized for various purposes, including:\n- Corporate travel planning for business trips.\n- Generating vacation itineraries for personal travel.\n- Coordinating group trips with multiple participants.\n\n**Customization Options**  \n- Additional sources can be integrated, such as Airbnb and TripAdvisor.\n- Users can filter options based on budget preferences.\n- The workflow can be extended to include PDF generation of itineraries.\n- Customization of the Slack message format is available for better integration into team communications.\n\n**Benefits**  \nThis automated travel planning workflow saves users 3-5 hours per trip by providing real-time pricing aggregation, AI-powered personalization, and automated delivery across multiple channels.",
+    "original_description": "## Introduction\nAutomates travel planning by aggregating flights, hotels, activities, and weather via APIs, then uses AI to generate professional itineraries delivered through Gmail and Slack.\n\n## How It Works\nWebhook receives requests, searches APIs (Skyscanner, Booking.com, Kiwi, Viator, weather), merges data, AI builds itineraries, scores options, generates HTML emails, delivers via Gmail/Slack.\n\n## Workflow Template\nWebhook \u2192 Extract \u2192 Parallel Searches (Flights/Hotels/Activities/Weather) \u2192 Merge \u2192 Build Itinerary \u2192 AI Processing \u2192 Score \u2192 Generate HTML \u2192 Gmail \u2192 Slack \u2192 Response\n\n## Workflow Steps\n1. Trigger & Extract: Receives destination, dates, preferences, extracts parameters.\n2. Data Gathering: Parallel APIs fetch flights, hotels, activities, weather, merges responses.\n3. AI Processing: Analyzes data, creates itinerary, ranks recommendations.\n4. Delivery: Generates HTML email, sends via Gmail/Slack, confirms completion.\n\n## Setup Instructions\n1. API Configuration: Add keys for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, OpenRouter.\n2. Communication: Connect Gmail OAuth2, Slack webhook.\n3. Customization: Adjust endpoints, AI prompts, HTML template, scoring criteria.\n\n## Prerequisites\n- API keys: Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, OpenRouter\n- Gmail account\n- Slack workspace\n- n8n instance\n\n## Use Cases\n- Corporate travel planning\n- Vacation itinerary generation\n- Group trip coordination\n\n## Customization\n- Add sources (Airbnb, TripAdvisor)\n- Filter by budget preferences\n- Add PDF generation\n- Customize Slack format\n\n## Benefits\n- Saves 3-5 hours per trip\n- Real-time pricing aggregation\n- AI-powered personalization\n- Automated multi-channel delivery",
+    "description_length": 3758,
+    "usage": {
+      "prompt_tokens": 586,
+      "completion_tokens": 731,
+      "total_tokens": 1317
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:27:29.617572"
+  },
+  "original_description": "## Introduction\nAutomates travel planning by aggregating flights, hotels, activities, and weather via APIs, then uses AI to generate professional itineraries delivered through Gmail and Slack.\n\n## How It Works\nWebhook receives requests, searches APIs (Skyscanner, Booking.com, Kiwi, Viator, weather), merges data, AI builds itineraries, scores options, generates HTML emails, delivers via Gmail/Slack.\n\n## Workflow Template\nWebhook \u2192 Extract \u2192 Parallel Searches (Flights/Hotels/Activities/Weather) \u2192 Merge \u2192 Build Itinerary \u2192 AI Processing \u2192 Score \u2192 Generate HTML \u2192 Gmail \u2192 Slack \u2192 Response\n\n## Workflow Steps\n1. Trigger & Extract: Receives destination, dates, preferences, extracts parameters.\n2. Data Gathering: Parallel APIs fetch flights, hotels, activities, weather, merges responses.\n3. AI Processing: Analyzes data, creates itinerary, ranks recommendations.\n4. Delivery: Generates HTML email, sends via Gmail/Slack, confirms completion.\n\n## Setup Instructions\n1. API Configuration: Add keys for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, OpenRouter.\n2. Communication: Connect Gmail OAuth2, Slack webhook.\n3. Customization: Adjust endpoints, AI prompts, HTML template, scoring criteria.\n\n## Prerequisites\n- API keys: Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, OpenRouter\n- Gmail account\n- Slack workspace\n- n8n instance\n\n## Use Cases\n- Corporate travel planning\n- Vacation itinerary generation\n- Group trip coordination\n\n## Customization\n- Add sources (Airbnb, TripAdvisor)\n- Filter by budget preferences\n- Add PDF generation\n- Customize Slack format\n\n## Benefits\n- Saves 3-5 hours per trip\n- Real-time pricing aggregation\n- AI-powered personalization\n- Automated multi-channel delivery",
+  "optimized_description": "**Workflow Description for Automated Travel Planning**\n\n**Introduction**  \nThis workflow automates travel planning by aggregating information on flights, hotels, activities, and weather through various APIs. It utilizes AI to generate professional itineraries, which are then delivered via Gmail and Slack.\n\n**Trigger**  \nThe workflow is initiated by a webhook that receives travel requests, including destination, travel dates, and user preferences.\n\n**Data Sources and APIs Needed**  \n1. Skyscanner API for flight information\n2. Booking.com API for hotel bookings\n3. Kiwi API for additional flight options\n4. Viator API for activities and tours\n5. OpenWeatherMap API for weather data\n6. OpenRouter API for routing and additional data processing\n\n**Workflow Steps**  \n1. **Trigger & Extract**: The workflow begins with a webhook that receives the travel request. It extracts necessary parameters such as destination, travel dates, and user preferences.\n   \n2. **Data Gathering**: The workflow performs parallel searches using the specified APIs:\n   - Flights are fetched from Skyscanner, Kiwi, and other flight sources.\n   - Hotels are retrieved from Booking.com.\n   - Activities are gathered from Viator.\n   - Weather data is collected from OpenWeatherMap.\n   The responses from these APIs are then merged into a single dataset for processing.\n\n3. **AI Processing**: The merged data is analyzed by an AI model that creates a comprehensive itinerary. This step includes ranking the recommendations based on user preferences and scoring the options based on criteria such as price, convenience, and user ratings.\n\n4. **Delivery**: The workflow generates an HTML email containing the itinerary details. This email is sent to the user via Gmail. Additionally, a notification or summary of the itinerary is sent to a designated Slack channel using a Slack webhook.\n\n5. **Response Confirmation**: After the delivery of the itinerary, the workflow confirms the completion of the process, providing feedback to the user.\n\n**Final Output or Action**  \nThe final output of this workflow is a professionally generated travel itinerary delivered through both Gmail and Slack, ensuring that the user has access to their travel plans across multiple platforms.\n\n**Setup Instructions**  \n1. **API Configuration**: Ensure that API keys for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, and OpenRouter are added to the n8n instance.\n2. **Communication Setup**: Connect Gmail using OAuth2 for email delivery and configure the Slack webhook for notifications.\n3. **Customization Options**: Adjust API endpoints, AI prompts for itinerary generation, HTML email templates, and scoring criteria to tailor the workflow to specific needs.\n\n**Prerequisites**  \n- API keys for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, and OpenRouter.\n- A valid Gmail account for email delivery.\n- Access to a Slack workspace for notifications.\n- An operational n8n instance to run the workflow.\n\n**Use Cases**  \nThis workflow can be utilized for various purposes, including:\n- Corporate travel planning for business trips.\n- Generating vacation itineraries for personal travel.\n- Coordinating group trips with multiple participants.\n\n**Customization Options**  \n- Additional sources can be integrated, such as Airbnb and TripAdvisor.\n- Users can filter options based on budget preferences.\n- The workflow can be extended to include PDF generation of itineraries.\n- Customization of the Slack message format is available for better integration into team communications.\n\n**Benefits**  \nThis automated travel planning workflow saves users 3-5 hours per trip by providing real-time pricing aggregation, AI-powered personalization, and automated delivery across multiple channels.",
+  "error": null,
+  "generated_at": "2026-01-25T23:27:46.441678",
+  "metrics": {
+    "node_type_precision": 0.7,
+    "node_type_recall": 0.4375,
+    "node_type_f1": 0.5384615384615384,
+    "tp": 7,
+    "fp": 3,
+    "fn": 9,
+    "gt_node_count": 16,
+    "llm_node_count": 10,
+    "connection_precision": 0.2857142857142857,
+    "connection_recall": 0.2,
+    "connection_f1": 0.23529411764705882,
+    "correct_connections": 2,
+    "gt_connection_count": 10,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.2857142857142857,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4492,
+        "completion_tokens": 1792,
+        "total_tokens": 6284
+      },
+      "description_optimization": {
+        "prompt_tokens": 586,
+        "completion_tokens": 731,
+        "total_tokens": 1317
+      },
+      "total_tokens": 7601,
+      "total_prompt_tokens": 5078,
+      "total_completion_tokens": 2523
+    },
+    "total_cost": 0.037925,
+    "description_optimization_cost": 0.008775000000000002,
+    "workflow_generation_cost": 0.029150000000000002
+  }
+}

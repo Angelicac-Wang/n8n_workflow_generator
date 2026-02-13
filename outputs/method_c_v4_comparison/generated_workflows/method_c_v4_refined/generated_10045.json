@@ -1,0 +1,319 @@
+{
+  "template_id": "10045",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation with AI analysis using external APIs. Use base nodes for AI processing.",
+      "trigger_analysis": "The workflow should be triggered by receiving a message from a Telegram bot.",
+      "data_sources": "Telegram API, Apify API, Google Sheets API, Google Drive API, Google Gemini API",
+      "operations": "1. Receive LinkedIn URL via Telegram, 2. Validate URL and check spam, 3. Initiate LinkedIn profile scraping with Apify, 4. Poll Apify for completion, 5. Match profile to job descriptions using AI, 6. Analyze profile with AI, 7. Log results to Google Sheets, 8. Send summary to Telegram group.",
+      "output_actions": "Send a formatted summary to a Telegram group and log the analysis in Google Sheets.",
+      "nodes_plan": "telegramTrigger (receive message), set (validate URL), if (spam check), httpRequest (Apify scrape), wait (polling), httpRequest (Apify status), httpRequest (Apify data), googleDrive (access JDs), openAi (AI analysis), googleSheets (log results), telegram (send summary)",
+      "connections_plan": "telegramTrigger -> set -> if (spam check) -> httpRequest (Apify scrape) -> wait -> httpRequest (Apify status) -> httpRequest (Apify data) -> googleDrive -> openAi -> googleSheets -> telegram"
+    },
+    "workflowPlan": {
+      "name": "LinkedIn Profile Screening Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Telegram Msg to Recruiter Bot",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{ $env.TELEGRAM_BOT_TOKEN }}",
+            "updateType": "message"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate LinkedIn URL",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "linkedinUrl",
+                  "value": "={{ $json.message.text }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Spam Check: Sent <4 LinkedIn Profiles?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.telegramUsernameCount }}",
+                  "operation": "smaller",
+                  "value2": 4
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Extract LinkedIn Profile Information",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TASK_ID/runs",
+            "method": "POST",
+            "body": {
+              "startUrls": [
+                {
+                  "url": "={{ $json.linkedinUrl }}"
+                }
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer {{ $env.APIFY_API_TOKEN }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait for LinkedIn Profile",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "interval": 15
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check LinkedIn Profile Extraction Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/YOUR_TASK_ID/runs/{{ $json.runId }}",
+            "method": "GET",
+            "headers": {
+              "Authorization": "Bearer {{ $env.APIFY_API_TOKEN }}"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Get Fully Extracted LinkedIn Profile Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/datasets/{{ $json.datasetId }}/items",
+            "method": "GET",
+            "headers": {
+              "Authorization": "Bearer {{ $env.APIFY_API_TOKEN }}"
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Access JD Files",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "folderId": "={{ $env.GOOGLE_DRIVE_FOLDER_ID }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "JD Matching Agent",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Match the LinkedIn profile data to the best job description from the list.",
+            "temperature": 0.7
+          },
+          "position": {
+            "x": 1700,
+            "y": 100
+          }
+        },
+        {
+          "id": "10",
+          "label": "Add Candidate Analysis in GSheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "spreadsheetId": "={{ $env.GOOGLE_SHEET_ID }}",
+            "range": "LinkedIn Profile AI Candidate Screening",
+            "values": [
+              [
+                "={{ $json.submissionId }}",
+                "={{ $json.date }}",
+                "={{ $json.linkedinUrl }}",
+                "={{ $json.firstName }}",
+                "={{ $json.lastName }}",
+                "={{ $json.email }}",
+                "={{ $json.telegramUsername }}",
+                "={{ $json.strengths }}",
+                "={{ $json.weaknesses }}",
+                "={{ $json.riskFactor }}",
+                "={{ $json.rewardFactor }}",
+                "={{ $json.jdMatch }}",
+                "={{ $json.overallFit }}",
+                "={{ $json.justification }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1900,
+            "y": 100
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Msg to Internal Talent Group",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $env.TELEGRAM_GROUP_CHAT_ID }}",
+            "text": "Candidate analysis completed. Check Google Sheets for details."
+          },
+          "position": {
+            "x": 2100,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 11378,
+    "completion_tokens": 2002,
+    "total_tokens": 13380
+  },
+  "description_optimization": null,
+  "original_description": "*LinkedIn URL \u2192 Scrape \u2192 Match \u2192 Screen \u2192 Decide, all automated*\n\n  This workflow automatically processes candidate LinkedIn profiles shared via Telegram, intelligently matches them to job descriptions, performs AI-powered screening analysis, and sends actionable summaries to your team in Telegram.\n\n  ### Good to know\n  - Handles LinkedIn profile scraping via Apify API (extracts full profile data including experience, education, skills)\n  - Built-in spam prevention: limits users to 3 LinkedIn profile submissions\n  - Two-stage JD matching: prioritizes role mentioned in candidate's Telegram message, falls back to LinkedIn profile analysis if needed\n  - Uses Google Gemini API for AI screening (generous free tier and rate limits, typically enough to avoid paying for API requests - check latest pricing at [Google AI Pricing](https://ai.google.dev/pricing) and [rate limits documentation](https://ai.google.dev/gemini-api/docs/rate-limits))\n  - Automatic polling mechanism checks Apify extraction status up to 10 times (15-second intervals)\n  - Complete audit trail logged in Google Sheets with unique submission IDs\n\n  ## Who's it for\n  Hiring teams and recruiters who want to streamline first-round screening for candidates who share LinkedIn profiles directly. Perfect for companies accepting applications via messaging platforms (Telegram, WhatsApp, etc.), especially useful fortech-savvy audiences and remote/global hiring.\n\n  ## How it works\n  1. Telegram bot receives message containing LinkedIn profile URL from candidate\n  2. Validates URL format and checks spam prevention (max 3 submissions per Telegram username)\n  3. Sends confirmation message to candidate and notifies internal talent team via Telegram group\n  4. Extracts clean LinkedIn URL and initiates Apify scraping job\n  5. Polls Apify API up to 10 times (15-second intervals) until profile extraction completes\n  6. AI agent matches candidate to best-fit job description by analyzing Telegram message context first (if candidate mentioned a role), or LinkedIn profile content as fallback (selects up to 3 potential JD matches)\n  7. If multiple JDs matched, second AI agent selects the single best fit based on detailed profile analysis\n  8. AI recruiter agent analyzes LinkedIn profile against selected JD and generates structured screening report (strengths,\n  weaknesses, risk/reward factors, overall fit score 0-10 with justification)\n  9. Logs complete analysis to Google Sheets tracker with unique submission ID\n  10. Sends formatted summary to Telegram group with candidate details, matched JD, and overall fit score\n\n  ## Requirements\n  - Telegram Bot Token ([Create bot via @BotFather](https://t.me/botfather))\n  - Apify account with API token ([Sign up for free tier](https://apify.com/))\n  - Google Drive account (OAuth2)\n  - Google Sheets account (OAuth2)\n  - Google Gemini API key ([Get free key here](https://makersuite.google.com/app/apikey))\n  - Google Drive folder for Job Descriptions (as PDFs or Google Docs)\n  - Telegram group for internal talent team notifications\n\n  ## How to set up\n  1. **Create Telegram bot and internal Telegram chat group with new bot**:\n     - Message [@BotFather](https://t.me/botfather) on Telegram\n     - Send `/newbot` and follow instructions to create your bot\n     - Save the API token provided\n     - Create Telegram group chat and invite your new bot + invite the @GetIDs bot\n     - Note down the group chat ID ([How to get group chat ID](https://docs.google.com/document/d/1fGM9sZM_QcH8WU33mUYZeT5vyhjRq0S4WlsU0opcxTQ/edit?usp=sharing))\n\n  2. **Setup Apify**:\n     - Sign up at [Apify](https://apify.com/)\n     - Get your API token from Settings\n     - Note: Free tier includes sufficient scraping credits for testing and production ($0.01 per successful LinkedIn profile enriched, a free monthly limit of $5.00) - [LinkedIn profile scraper \"actor\" details](https://apify.com/dev_fusion/linkedin-profile-scraper)\n\n  3. **Create Google Sheet**:\n     - Create new sheet named \"LinkedIn Profile AI Candidate Screening\"\n     - Add columns: Submission ID, Date, LinkedIn Profile URL, First Name, Last Name, Email (if known), Telegram Username, Strengths, Weaknesses, Risk Factor, Reward Factor, JD Match, Overall Fit, Justification\n     - Copy the spreadsheet ID from URL\n\n  4. **Setup Google Drive folder**:\n     - Create folder named \"Job Descriptions\"\n     - Upload your JD files (PDFs or Google Docs) with clear, descriptive filenames\n     - Copy the folder ID from URL\n\n  5. **Configure workflow nodes**:\n     - In \"Receive Telegram Msg to Recruiter Bot\" node: Add Telegram API credentials\n     - In \"Extract LinkedIn Profile Information\" node: Replace `YOUR_APIFY_API_TOKEN` with your Apify token\n     - In \"Check LinkedIn Profile Extraction Status\" node: Replace `YOUR_APIFY_API_TOKEN` with your Apify token\n     - In \"Get Fully Extracted LinkedIn Profile Data\" node: Replace `YOUR_APIFY_API_TOKEN` with your Apify token\n     - In \"Access JD Files\" node: Update folder ID to your \"Job Descriptions\" folder\n     - In \"Get All Rows Matching Telegram Username\" node: Select your Google Sheet\n     - In \"Add Candidate Analysis in GSheet\" node: Select your Google Sheet and verify column mappings\n     - In \"Send Msg to Internal Talent Group\" node: Update chat ID to your Telegram group chat ID\n     - In \"Send Review Completed Msg to Talent Group\" node: Update chat ID and Google Sheet URL\n\n  6. **Add your company description**:\n     - In \"JD Matching Agent\" system message: Replace company description with your details\n     - In \"Detailed JD Matching Agent\" system message: Replace company description with your details\n     - In \"Recruiter Scoring Agent\" system message: Update company description\n\n  7. **Test the workflow**:\n     - Send a LinkedIn profile URL to your bot from Telegram\n     - Monitor execution to ensure all nodes run successfully\n     - Check Google Sheets for logged results\n\n  8. **Activate workflow**\n\n  ## Customizing this workflow\n  - **Change spam limits**: Edit \"Spam Check: Sent &lt;4 LinkedIn Profiles?\" node to adjust maximum submissions (currently 3)\n  - **Adjust polling attempts**: Edit \"Checked 10x for LinkedIn Profile Data?\" node to change maximum polling attempts (currently 10) or modify wait time in \"Wait for LinkedIn Profile\" node (currently 15 seconds)\n  - **Change JD matching logic**: Edit \"JD Matching Agent\" node prompt to adjust how LinkedIn profiles are matched to roles (e.g., weight current role vs. overall experience)\n  - **Modify screening criteria**: Edit \"Recruiter Scoring Agent\" node system message to focus on specific qualities (culture fit, leadership potential, technical depth, industry experience, etc.)\n  - **Add more messaging platforms**: Add nodes to support WhatsApp, Discord, or other messaging platforms using similar URL-based triggers\n  - **Customize Telegram messages**: Edit notification nodes to change formatting, add emojis, or include additional candidate data\n  - **Auto-proceed logic**: Add IF node after screening to auto-proceed candidates with fit score above threshold (e.g., 8+/10) and trigger different notification paths\n  - **Add candidate responses**: Connect nodes to automatically message candidates back via Telegram (confirmation, rejection, interview invite)\n  - **Add interview scheduling**: For approved candidates, send Telegram message with Cal.com or Calendly link so they can book their interview\n  - **Enrich with additional data**: Add nodes to cross-reference candidate data with other sources (GitHub, Twitter/X, company websites)\n  - **Multi-language support**: Add translation nodes to support candidates submitting profiles in different languages\n  - **Add human approval step**: Create buttons in Telegram group messages for instant Approve/Reject decisions that update Google Sheets\n\n\n**Pro tip**: Add your Telegram bot to your company's careers page with instructions like: \"Want fast-track screening? Share your LinkedIn profile with our AI recruiter: [@YourBotName](https://t.me/YourBotName)\"\n\n## Troubleshooting\n  * **Telegram bot not responding**: Ensure bot token is correct in \"Receive Telegram Msg to Recruiter Bot\" node, and users have sent `/start` to your bot at least once\n  * **\"LinkedIn profile URL invalid\" error**: Check that candidates are sending full URLs in format `https://www.linkedin.com/in/username` (not shortened links or text without URL)\n  * **Apify extraction failing**: Verify Apify API token is correctly set in all three HTTP Request nodes (\"Extract LinkedIn        \n  Profile Information\", \"Check LinkedIn Profile Extraction Status\", \"Get Fully Extracted LinkedIn Profile Data\")\n  * **LinkedIn extraction timeout**: Increase polling attempts in \"Checked 10x for LinkedIn Profile Data?\" node (currently 10) or increase wait time in \"Wait for LinkedIn Profile\" node (currently 15 seconds)\n  * **Spam check blocking valid users**: Check \"Get All Rows Matching Telegram Username\" node is pointing to correct Google Sheet, and adjust limit in \"Spam Check: Sent &lt;4 LinkedIn Profiles?\" node if needed\n  * **JD matching returns no results**: Check \"Access JD Files\" node folder ID points to your Job Descriptions folder, and JD files are named clearly (e.g., \"Marketing Director JD.pdf\")\n  * **JD matching is not relevant for my company**: Update the \"Company Description\" in the System Messages in all three AI agent nodes (\"JD Matching Agent\", \"Detailed JD Matching Agent\", \"Recruiter Scoring Agent\")\n  * **\"Can't find matching JD\"**: Ensure candidate's Telegram message mentions role name OR their LinkedIn profile clearly indicates relevant experience for available JDs\n  * **Google Sheets errors**: Verify sheet name is \"LinkedIn Profile AI Candidate Screening\" and column headers exactly match workflow expectations (Submission ID, Date, LinkedIn Profile URL, First Name, Last Name, etc.)\n  * **Telegram group notifications not appearing**: Verify chat ID is correct in \"Send Msg to Internal Talent Group\" and \"Send Review Completed Msg to Talent Group\" nodes (use negative number for group chats, e.g., `-4954246611`)\n  * **Missing candidate data in Google Sheets**: LinkedIn profile may be incomplete - verify Apify successfully extracted data by checking \"Get Fully Extracted LinkedIn Profile Data\" node output\n  * **Loop counter not working**: Check \"Restore Loop Counter\" code node references correct node names (\"Checked 10x for LinkedIn Profile Data?\" and \"Initialize Loop Counter to Poll for Completion\")\n  * **401/403 API errors**: Re-authorize all OAuth2 credentials (Google Drive, Google Sheets) and verify Apify and Telegram API tokens are valid\n  * **AI analysis quality issues**: Edit system prompts in \"JD Matching Agent\", \"Detailed JD Matching Agent\", and \"Recruiter Scoring Agent\" nodes to refine screening criteria and provide more context about your hiring needs\n  * **Gemini API rate limit errors**: Check your usage at [Google AI Studio](https://aistudio.google.com/) and consider upgrading to paid tier if exceeding free tier limits (see [rate limits documentation](https://ai.google.dev/gemini-api/docs/rate-limits))\n## Sample Outputs\n### [Google Sheets - LinkedIn AI Candidate Screening - sample](https://docs.google.com/spreadsheets/d/19ZzSG-MyFgdvruWhTozuimYBG-QSvaPhHmqMJqdmJpM/edit?usp=sharing)\n\n\n### Telegram messages between AI recruiter bot and job applicant\n\n![](https://i.postimg.cc/7L1rTsv8/telegram5.jpg)\n\n![](https://i.postimg.cc/rpG2thBv/telegram4.jpg)\n\n![](https://i.postimg.cc/8Cdgry22/telegram3.jpg)\n\n### Telegram messages from AI recruiter bot in internal group chat\n\n![](https://i.postimg.cc/1z01NWkb/telegram2.jpg)\n\n![](https://i.postimg.cc/3wQHNMcz/telegram1.jpg)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:58:29.351802",
+  "metrics": {
+    "node_type_precision": 0.9090909090909091,
+    "node_type_recall": 0.22727272727272727,
+    "node_type_f1": 0.36363636363636365,
+    "tp": 10,
+    "fp": 1,
+    "fn": 34,
+    "gt_node_count": 44,
+    "llm_node_count": 11,
+    "connection_precision": 0.3,
+    "connection_recall": 0.09375,
+    "connection_f1": 0.14285714285714285,
+    "correct_connections": 3,
+    "gt_connection_count": 32,
+    "llm_connection_count": 10,
+    "avg_parameter_accuracy": 0.12357142857142858,
+    "usage": {
+      "prompt_tokens": 11378,
+      "completion_tokens": 2002,
+      "total_tokens": 13380
+    },
+    "total_cost": 0.04846500000000001
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,213 @@
+{
+  "template_id": 2792,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for processing and analyzing data from Google Sheets and an external source.",
+    "workflowPlan": {
+      "name": "Google Sheets Data Processing and Review Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Rows",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1:Z100"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Out",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Information Extractor",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { extractedData: $json[\"columnName\"] } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "If Condition",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"extractedData\"]}}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Set Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "parameter1": "value1"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://external-service.com/api/reviews",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Extract HTML",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{$json[\"body\"]}}",
+            "cssSelector": ".review-content"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Limit1",
+          "nodeType": "n8n-nodes-base.limit",
+          "typeVersion": 1,
+          "params": {
+            "maxItems": 10
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 676,
+    "completion_tokens": 1024,
+    "total_tokens": 1700
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:58:42.991088",
+  "generated_description": "This n8n workflow is initiated manually when a user clicks 'Test workflow'. It is designed to process and analyze data from Google Sheets and an external source. Initially, the workflow retrieves specific rows from a Google Sheets document using the 'Get rows' node. It then uses the 'Split Out' node to handle each row individually.\n\nFor each row, the workflow extracts necessary information using the 'Information Extractor' node. It then performs a conditional check with the 'If' node to determine the next steps based on the extracted data. The 'Set Parameters' node is used to configure necessary parameters for subsequent operations.\n\nThe workflow makes an HTTP request to an external service to gather reviews, which are then processed using the 'Extract' node to parse HTML content. Finally, the workflow limits the number of processed items with the 'Limit1' node to ensure only relevant data is handled.\n\nOverall, this workflow automates the process of extracting, analyzing, and integrating data from Google Sheets and an external review source, providing a streamlined method for data processing and decision-making.",
+  "description_generation_usage": {
+    "prompt_tokens": 214,
+    "completion_tokens": 214,
+    "total_tokens": 428
+  },
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.375,
+    "node_type_f1": 0.4800000000000001,
+    "tp": 6,
+    "fp": 3,
+    "fn": 10,
+    "gt_node_count": 16,
+    "llm_node_count": 9,
+    "connection_precision": 0.125,
+    "connection_recall": 0.08333333333333333,
+    "connection_f1": 0.1,
+    "correct_connections": 1,
+    "gt_connection_count": 12,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.16666666666666666,
+    "usage": {
+      "prompt_tokens": 676,
+      "completion_tokens": 1024,
+      "total_tokens": 1700
+    },
+    "total_cost": 0.014605000000000002,
+    "description_generation_cost": 0.002675,
+    "workflow_generation_cost": 0.011930000000000001
+  },
+  "original_description": "### **Workflow Overview**  \nThis workflow automates the process of **scraping Trustpilot reviews**, extracting key details, analyzing sentiment, and saving the results to **Google Sheets**. It uses **OpenAI** for sentiment analysis and **HTML parsing** for review extraction.\n\n---\n\n### **How It Works**  \n\n#### **1. Scrape Trustpilot Reviews**   \n- **HTTP Request**:  \n  - Fetches review pages from Trustpilot (`https://it.trustpilot.com/review/{{company_id}}`).  \n  - Paginates through pages (up to `max_page` limit).  \n- **HTML Parsing**:  \n  - Extracts review URLs using CSS selectors\n  - Splits the URLs into individual review links.  \n\n#### **2. Extract Review Details**   \n- **Information Extractor**:  \n  - Uses DeepSeek to extract structured data from the review:  \n    - **Author**: Name of the reviewer.  \n    - **Rating**: Numeric rating (1-5).  \n    - **Date**: Review date in `YYYY-MM-DD` format.  \n    - **Title**: Review title.  \n    - **Text**: Full review text.  \n    - **Total Reviews**: Number of reviews by the user.  \n    - **Country**: Reviewer\u2019s country (2-letter code).  \n\n#### **3. Sentiment Analysis**  \n- **Sentiment Analysis Node**:  \n  - Uses OpenAI to classify the review text as **Positive**, **Neutral**, or **Negative**.  \n  - Example output:  \n    ```json  \n    {  \n      \"category\": \"Positive\",  \n      \"confidence\": 0.95  \n    }  \n    ```  \n\n#### **4. Save to Google Sheets**  \n- **Google Sheets Node**:  \n  - Appends or updates the extracted data to a Google Sheet \n\n---\n\n### **Set Up Steps**  \n\n#### **1. Configure Trustpilot Scraping**  \n- **Edit Fields1 Node**:  \n  - Set `company_id` to the Trustpilot company name \n  - Set `max_page` to limit the number of pages scraped.  \n\n#### **2. Configure Google Sheets**  \n- **Google Sheets Node**:  \n  - Update the `documentId` with your Google Sheet ID \n  - Ensure the sheet has the required columns (`Id`, `Data`, `Nome`, etc.).  \n\n#### **3. Configure OpenAI**  \n- **OpenAI Chat Model Node**:  \n  - Add your OpenAI API key.  \n- **Sentiment Analysis Node**:  \n  - Ensure the `categories` match your desired sentiment labels (`Positive, Neutral, Negative`).  \n\n---\n\n### **Key Components**  \n- **Nodes**:  \n  - **HTTP Request/HTML**: Scrape and parse Trustpilot reviews.  \n  - **Information Extractor**: Extract structured review data using DeepSeek.  \n  - **Sentiment Analysis**: Classify review sentiment.  \n  - **Google Sheets**: Save and update review data.  \n- **Credentials**:  \n  - OpenAI API key. \n  - DeepSeek API key.  \n  - Google Sheets OAuth2."
+}

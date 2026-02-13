@@ -1,0 +1,205 @@
+{
+  "template_id": 3205,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to monitor and respond to data breaches.",
+    "workflowPlan": {
+      "name": "Data Breach Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 * * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert to File",
+          "nodeType": "n8n-nodes-base.convertToFile",
+          "typeVersion": 1,
+          "params": {
+            "data": "={{$json[\"data\"]}}",
+            "options": {
+              "fileName": "data.txt"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Out",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/checkBreaches",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Read Last Breach",
+          "nodeType": "n8n-nodes-base.readBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "/data/lastBreach.json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Get JSON from File",
+          "nodeType": "n8n-nodes-base.jsonParse",
+          "typeVersion": 1,
+          "params": {
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "If New Breach",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$node[\"HTTP Request\"].json[\"breach\"]}}",
+                  "value2": "={{$node[\"Get JSON from File\"].json[\"breach\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Set to None",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "status",
+                  "value": "No new breach detected"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 689,
+    "completion_tokens": 970,
+    "total_tokens": 1659
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:42:44.311382",
+  "generated_description": "This n8n workflow is designed to monitor and respond to data breaches. It is manually triggered by clicking \u2018Test workflow\u2019 or can be set to run automatically on a schedule using the Schedule Trigger node. The workflow performs the following operations:\n\n1. It initiates by converting certain data into a file format using the Convert to File node.\n2. The Split Out node is then used to process the data in segments.\n3. The workflow makes an HTTP request to a specified API to check for any breaches, retrieving the latest breach information.\n4. It reads the last known breach data from a file using the Read last breach node.\n5. The Get JSON from file node extracts JSON data from this file for comparison.\n6. An If node checks for the presence of new breach content by comparing the current data with the last known breach data.\n7. If new breach information is detected, the workflow proceeds with further actions; otherwise, it sets a default value using the Set to none node.\n\nThe final output of the workflow is a notification or an update indicating whether a new breach has been detected, allowing for timely responses to any security incidents.",
+  "description_generation_usage": {
+    "prompt_tokens": 227,
+    "completion_tokens": 229,
+    "total_tokens": 456
+  },
+  "metrics": {
+    "node_type_precision": 0.625,
+    "node_type_recall": 0.2777777777777778,
+    "node_type_f1": 0.3846153846153846,
+    "tp": 5,
+    "fp": 3,
+    "fn": 13,
+    "gt_node_count": 18,
+    "llm_node_count": 8,
+    "connection_precision": 0.14285714285714285,
+    "connection_recall": 0.07142857142857142,
+    "connection_f1": 0.09523809523809523,
+    "correct_connections": 1,
+    "gt_connection_count": 14,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.2,
+    "usage": {
+      "prompt_tokens": 689,
+      "completion_tokens": 970,
+      "total_tokens": 1659
+    },
+    "total_cost": 0.014280000000000001,
+    "description_generation_cost": 0.0028575000000000007,
+    "workflow_generation_cost": 0.0114225
+  },
+  "original_description": "[![changelog](https://xqus.relezy.com/haveibeenpwnedcom-breaches/badge.svg)](https://xqus.relezy.com/haveibeenpwnedcom-breaches)\n\n## Who is this for?\n- Security professionals\n- Developers\n- Individuals interested in data breach awareness\n\n## Use Case\n- Automated monitoring for new breaches\n- Proactive identity protection\n- Demonstration of simple cache mechanism\n\n## What this workflow does\n- Checks the Have I Been Pwned API every 15 minutes for the latest breaches.\n- Compares new breach data against previously notified breaches.\n- Demonstrates a simple cache mechanism to track previously seen breaches.\n\n## How the Cache Functionality Works\n- **Read from Cache**: Retrieves the last known breach from `cache.json` to avoid redundant alerts for the same breach.\n- **Compare Against Current Breach**: The workflow checks if the latest fetched breach differs from the cached one.\n- **Update the Cache**: If a new breach is detected, it updates `cache.json` with the latest breach data.\n\n## Setup instructions\n1. The endpoint used in this workflow does *not* require an API key.\n2. Add your desired alert mechanism in the red box attached to the `New breach` node.\n\n## How to customize this workflow to your needs\n- **Modify Notification Settings**: Tailor where alerts are sent (email, Slack, etc.). Add the desired node after the `New breach` node. This node contains all the data from the breach so it is eaisily available.\nYou can choose from a variety of n8n nodes to send alerts when a new breach is detected. Below are a few common options you might consider adding after the New breach node:\n\n1. **Email Node**\nWhat it does: Sends an email notification to one or more recipients.\nUse case: Great for simple alerts to your inbox or a team distribution list.\nCustomization: You can include breach details in the subject or body of the email, using data from the New breach node.\n2. **Slack Node**\nWhat it does: Sends a message to a Slack channel or user.\nUse case: Perfect for real-time alerts to your team in Slack.\nCustomization: You can post breach details directly in a channel or DM. You can also format the message (bold, code blocks, etc.).\n3. **Microsoft Teams Node**\nWhat it does: Sends a message to a Teams channel.\nUse case: For organizations that use Microsoft Teams for communication.\nCustomization: Similar to Slack, you can customize the message content and include all relevant breach information.\n4. **Discord Node**\nWhat it does: Sends an alert message to a Discord channel.\nUse case: Useful for teams or communities that coordinate via Discord.\nCustomization: Add formatted messages with breach details for easy viewing.\n5. **Telegram Node**\nWhat it does: Sends messages to a Telegram chat or group.\nUse case: Good for mobile notifications and fast alerts.\nCustomization: You can include breach summaries or detailed information, and even use bots to automate this.\n6. **Webhook Node** (as a sender)\nWhat it does: Sends breach data to another service via a webhook.\nUse case: If you have an external system or app that handles alerts, you can push the data directly to it.\nCustomization: Send JSON payloads with detailed breach information to trigger actions in other systems.\n7. **SMS Nodes** (like Twilio)\nWhat it does: Sends an SMS notification to one or more phone numbers.\nUse case: For urgent alerts that need to be seen immediately.\nCustomization: Keep messages concise, including key breach details like the time, type of breach, and affected system.\n- **Adjust Check Frequency**: Change the interval in the Schedule Trigger node (e.g., hourly or daily)."
+}

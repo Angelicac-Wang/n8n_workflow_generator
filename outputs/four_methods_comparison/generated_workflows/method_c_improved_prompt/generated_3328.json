@@ -1,0 +1,190 @@
+{
+  "template_id": "3328",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or on a schedule to regularly create video content.",
+      "data_sources": "Google Drive for video and music files, Google Sheets for quotes, YouTube API for uploading videos.",
+      "operations": "1. Fetch video and music files from Google Drive, 2. Select a quote from Google Sheets, 3. Combine quote with video using FFmpeg, 4. Upload video to YouTube, 5. Update Google Sheets with status and YouTube URL.",
+      "output_actions": "Finalized video uploaded to YouTube and Google Sheets updated with the video URL.",
+      "nodes_plan": "googleDrive (fetch files), googleSheets (read and update), executeCommand (FFmpeg), youtube (upload), if (check status)",
+      "connections_plan": "googleDrive (fetch video) -> googleDrive (fetch music) -> googleSheets (select quote) -> executeCommand (FFmpeg) -> youtube (upload) -> googleSheets (update status)"
+    },
+    "workflowPlan": {
+      "name": "Multilingual Video Creator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Video File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "'your-folder-id' in parents and mimeType='video/mp4'",
+            "returnAll": true
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Music File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "'your-folder-id' in parents and mimeType='audio/mpeg'",
+            "returnAll": true
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Select Quote",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:E",
+            "options": {
+              "valueRenderOption": "UNFORMATTED_VALUE"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "FFmpeg Combine",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "ffmpeg -i {{ $node[\"Fetch Video File\"].json[\"files\"][0][\"webContentLink\"] }} -i {{ $node[\"Fetch Music File\"].json[\"files\"][0][\"webContentLink\"] }} -vf \"drawtext=text='{{ $node[\"Select Quote\"].json[\"Quote\"] }} - {{ $node[\"Select Quote\"].json[\"Author\"] }}':fontfile=/path/to/Kanit.ttf:fontsize=24:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2\" -c:v libx264 -c:a aac -strict experimental output.mp4",
+            "workingDirectory": "/path/to/working/directory"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "uploadVideo",
+            "video": "output.mp4",
+            "title": "Inspirational Quote Video",
+            "description": "A motivational video featuring a quote by {{ $node[\"Select Quote\"].json[\"Author\"] }}.",
+            "privacyStatus": "public"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!E{{ $node[\"Select Quote\"].json[\"Index\"] }}",
+            "valueInputOption": "USER_ENTERED",
+            "data": [
+              {
+                "range": "Sheet1!E{{ $node[\"Select Quote\"].json[\"Index\"] }}",
+                "values": [
+                  [
+                    "DONE",
+                    "{{ $node[\"Upload to YouTube\"].json[\"url\"] }}"
+                  ]
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4407,
+    "completion_tokens": 1257,
+    "total_tokens": 5664
+  },
+  "description_optimization": null,
+  "original_description": "## Who is this for?\nThis workflow is perfect for digital content creators, marketers, and social media managers who regularly create engaging short-form videos featuring inspirational or motivational quotes. While the workflow is universally applicable, it specifically highlights Thai as an example to demonstrate effective language and font integration.\n\n## What problem is this workflow solving?\nCreating consistent and engaging multilingual video content manually, including attractive fonts and proper video formatting, is time-consuming and repetitive. Additionally, managing files, background music, and updating statuses manually can be tedious and prone to errors.\n\n## What this workflow does\n- Automatically fetches background video and music files stored on Google Drive.\n\n- Randomly selects a quote (demonstrated with Thai language) and author information from Google Sheets.\n\n- Dynamically combines the selected quote and author text using appealing fonts, such as the Thai font \"Kanit,\" directly onto the video using FFmpeg on your n8n local environment.\n\n- Creates visually engaging videos with a 9:16 aspect ratio, optimized for YouTube Shorts and other vertical video platforms.\n\n- Automatically uploads the finalized video to YouTube.\n\n- Updates the status and YouTube URL back into your Google Sheet, ensuring you have up-to-date records.\n\n## Setup\n### Requirements:\nThis workflow requires a **self-hosted n8n instance**, as the execution of FFmpeg commands is not supported on n8n Cloud. Ensure FFmpeg is installed on your self-hosted environment.\n\n### Google Sheets Setup:\nYour Google Sheet must include at least these columns:\n\n- Index: (Unique identifier for each quote)\n- Quote: (Text of the quote)\n- Author: (Author of the quote)\n- CreateStatus: (Track video creation status; values like 'DONE' or blank for pending)\n- YoutubeURL: (Automatically updated after upload)\n\nTo help you get started quickly, you can use [this template spreadsheet](https://docs.google.com/spreadsheets/d/184-zcrfWSzQpDa-t57Oo_8DLyAF-2B_6yvGrybrcd5I/edit?usp=sharing).\n\n### Next steps:\n\n1. Organize your video and music files in separate folders in Google Drive.\n2. Authenticate your Google Sheets, Google Drive, and YouTube accounts in n8n.\n3. Ensure fonts compatible with your target languages (such as Kanit for Thai) are available in your FFmpeg installation.\n\n## How to customize this workflow to your needs\n\n- **Fonts:** Adjust font styles and sizes within the workflow's code node. Ensure the fonts you choose fully support the language you wish to use.\n\n- **Quote Management:** Easily add or remove quotes and authors in your Google Sheets document.\n\n- **Media Files:** Change or update background videos and music by modifying the files in your Google Drive folders.\n\n- **Video Specifications:** Customize video dimensions, text positioning, opacity, and music volume directly in the provided FFmpeg commands.\n\n## Benefits of Using Localized Fonts and Quotes\n\nUtilizing fonts specific to your target language, as demonstrated with Thai, significantly increases audience engagement by making your content more relatable, shareable, and visually appealing. Ensure you select fonts that properly support the language you're targeting.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:33:35.819460",
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.3846153846153846,
+    "tp": 5,
+    "fp": 1,
+    "fn": 15,
+    "gt_node_count": 20,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.058823529411764705,
+    "connection_f1": 0.0909090909090909,
+    "correct_connections": 1,
+    "gt_connection_count": 17,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 4407,
+      "completion_tokens": 1257,
+      "total_tokens": 5664
+    },
+    "total_cost": 0.023587500000000004
+  }
+}

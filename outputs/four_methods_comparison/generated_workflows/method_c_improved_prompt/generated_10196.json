@@ -1,0 +1,169 @@
+{
+  "template_id": "10196",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a schedule, running daily at a specified time, defaulting to 9:00 AM.",
+      "data_sources": "The workflow needs to fetch data from RSS feeds and use the Google Gemini API for AI curation. SMTP is required for sending emails.",
+      "operations": "1. Trigger on schedule, 2. Fetch RSS feeds, 3. Process and split URLs, 4. Merge and convert to CSV, 5. Analyze with Google Gemini, 6. Send email with curated content.",
+      "output_actions": "The final output is a personalized HTML newsletter sent via email.",
+      "nodes_plan": "schedule (trigger), httpRequest (fetch RSS), splitInBatches (process URLs), merge (combine items), googleGemini (AI analysis), emailSend (send newsletter)",
+      "connections_plan": "schedule -> httpRequest -> splitInBatches -> merge -> googleGemini -> emailSend"
+    },
+    "workflowPlan": {
+      "name": "Automated Newsletter",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch RSS Feeds",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.feedUrl }}",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split URLs",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 5
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Merge RSS Items",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Curation",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyze",
+            "text": "={{ $json.items }}",
+            "keywords": "={{ $json.keywords }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Newsletter",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "your-email@example.com",
+            "toEmail": "recipient@example.com",
+            "subject": "Your Daily Newsletter",
+            "html": "={{ $json.curatedContent }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4294,
+    "completion_tokens": 920,
+    "total_tokens": 5214
+  },
+  "description_optimization": null,
+  "original_description": "### Who's it for\n\nThis workflow is for anyone who wants to stay informed without the overwhelm. Whether you're tracking industry news, following your favorite blogs, monitoring competitors, or just keeping up with topics you care about\u2014this automated newsletter keeps you in the loop effortlessly.\n\n### What it does\n\nThis automated workflow fetches content from your favorite RSS feeds, filters it based on your interests using Google Gemini AI, and sends you a beautifully formatted HTML newsletter at your preferred time. The AI selects the top 10-15 items from each category based on keywords you define, delivering only what matters to you.\n\n### How it works\n\n1. **Schedule Trigger**: Runs daily at your chosen time (default: 9:00 AM)\n2. **RSS Feeds**: Fetches content from your favorite news sources and websites\n3. **Processing**: Splits URLs, loops through feeds in batches to avoid rate limits\n4. **Merge & Convert**: Combines all RSS items into a single CSV file\n5. **AI Curation**: Google Gemini analyzes the content and selects relevant items based on your keywords\n6. **Email Delivery**: Sends a personalized HTML newsletter with summaries and images\n\n### Requirements\n\n- **Google Gemini API** credentials (for AI curation)\n- **SMTP credentials** (for sending emails)\n- Active n8n instance (self-hosted or cloud)\n\n### How to set up\n\n1. Add your **Google Gemini API credentials** in both Gemini nodes\n2. Configure your **SMTP settings** in the \"Send email\" node\n3. Update the **email addresses** (from and to) in the email node\n4. Add your **favorite RSS feed URLs** in the \"Set\" nodes\n5. Customize the **AI keywords** in \"Analyze document\" to match your interests\n6. Set your preferred **schedule time** in the trigger node\n\n### How to customize\n\n- **Add your RSS feeds**: Replace the example URLs in both \"Set\" nodes with RSS feeds from your favorite sources (blogs, news sites, podcasts, YouTube channels, etc.)\n- **Define your interests**: Modify the keywords in the \"Analyze document\" AI prompt to filter content that matters to you\n- **Adjust categories**: Change the two sections to match your needs (e.g., \"Industry News\" and \"Competitor Updates\" or \"Learning Resources\" and \"Tools\")\n- **Change email format**: Update the HTML template in the AI prompt to customize the newsletter design\n- **Modify delivery time**: Update the schedule trigger to run at your preferred time",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:03:04.112223",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.26666666666666666,
+    "node_type_f1": 0.3809523809523809,
+    "tp": 4,
+    "fp": 2,
+    "fn": 11,
+    "gt_node_count": 15,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.09090909090909091,
+    "connection_f1": 0.12500000000000003,
+    "correct_connections": 1,
+    "gt_connection_count": 11,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.25,
+    "usage": {
+      "prompt_tokens": 4294,
+      "completion_tokens": 920,
+      "total_tokens": 5214
+    },
+    "total_cost": 0.019935
+  }
+}

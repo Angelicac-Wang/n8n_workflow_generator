@@ -1,0 +1,127 @@
+{
+  "template_id": "3051",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to find job postings from LinkedIn, Indeed, and Glassdoor and save them to Google Sheets.",
+    "workflowPlan": {
+      "name": "Job Postings to Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Resume Upload",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "your_resume_file_id"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Resume",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/parse-resume",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "file": "={{$node[\"Resume Upload\"].binary.data}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Job Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/job-search",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "skills": "={{$node[\"Parse Resume\"].json[\"skills\"]}}",
+              "location": "your_location_preference"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A1",
+            "options": {},
+            "valueInputMode": "RAW",
+            "data": "={{$node[\"Job Search\"].json[\"results\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 1103,
+    "completion_tokens": 625,
+    "total_tokens": 1728
+  },
+  "error": null,
+  "generated_at": "2026-01-11T17:51:02.711499",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.375,
+    "node_type_f1": 0.5,
+    "tp": 3,
+    "fp": 1,
+    "fn": 5,
+    "gt_node_count": 8,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 7,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 1103,
+      "completion_tokens": 625,
+      "total_tokens": 1728
+    },
+    "total_cost": 0.009007500000000002
+  }
+}

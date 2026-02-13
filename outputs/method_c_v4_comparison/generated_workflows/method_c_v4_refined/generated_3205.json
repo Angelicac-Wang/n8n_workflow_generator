@@ -1,0 +1,180 @@
+{
+  "template_id": "3205",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation for monitoring data breaches and managing cache. Use base nodes.",
+      "trigger_analysis": "Schedule trigger to check for new breaches every 15 minutes.",
+      "data_sources": "Have I Been Pwned API for breach data.",
+      "operations": "1. Trigger every 15 minutes, 2. Fetch breach data, 3. Read from cache, 4. Compare new data with cache, 5. Update cache if new breach detected, 6. Send notification if new breach.",
+      "output_actions": "Send alert if a new breach is detected.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (fetch breach data), readFile (read cache), if (compare data), writeFile (update cache), notification (customizable alert mechanism).",
+      "connections_plan": "scheduleTrigger -> httpRequest -> readFile -> if -> [writeFile + notification (if new breach)]"
+    },
+    "workflowPlan": {
+      "name": "Automated Breach Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "interval": "15",
+            "unit": "minutes"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Breach Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://haveibeenpwned.com/api/v3/breaches"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Read Cache",
+          "nodeType": "n8n-nodes-base.readFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "cache.json",
+            "options": {
+              "encoding": "utf8"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Compare Breach Data",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json['data'][0]['Name'] }}",
+                  "operation": "notEqual",
+                  "value2": "={{ $json['cachedData']['Name'] }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Cache",
+          "nodeType": "n8n-nodes-base.writeFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "cache.json",
+            "data": "={{ JSON.stringify($json['data'][0]) }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Notification",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "alert@example.com",
+            "subject": "New Data Breach Detected",
+            "text": "New breach detected: {{ $json['data'][0]['Name'] }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9504,
+    "completion_tokens": 992,
+    "total_tokens": 10496
+  },
+  "description_optimization": null,
+  "original_description": "[![changelog](https://xqus.relezy.com/haveibeenpwnedcom-breaches/badge.svg)](https://xqus.relezy.com/haveibeenpwnedcom-breaches)\n\n## Who is this for?\n- Security professionals\n- Developers\n- Individuals interested in data breach awareness\n\n## Use Case\n- Automated monitoring for new breaches\n- Proactive identity protection\n- Demonstration of simple cache mechanism\n\n## What this workflow does\n- Checks the Have I Been Pwned API every 15 minutes for the latest breaches.\n- Compares new breach data against previously notified breaches.\n- Demonstrates a simple cache mechanism to track previously seen breaches.\n\n## How the Cache Functionality Works\n- **Read from Cache**: Retrieves the last known breach from `cache.json` to avoid redundant alerts for the same breach.\n- **Compare Against Current Breach**: The workflow checks if the latest fetched breach differs from the cached one.\n- **Update the Cache**: If a new breach is detected, it updates `cache.json` with the latest breach data.\n\n## Setup instructions\n1. The endpoint used in this workflow does *not* require an API key.\n2. Add your desired alert mechanism in the red box attached to the `New breach` node.\n\n## How to customize this workflow to your needs\n- **Modify Notification Settings**: Tailor where alerts are sent (email, Slack, etc.). Add the desired node after the `New breach` node. This node contains all the data from the breach so it is eaisily available.\nYou can choose from a variety of n8n nodes to send alerts when a new breach is detected. Below are a few common options you might consider adding after the New breach node:\n\n1. **Email Node**\nWhat it does: Sends an email notification to one or more recipients.\nUse case: Great for simple alerts to your inbox or a team distribution list.\nCustomization: You can include breach details in the subject or body of the email, using data from the New breach node.\n2. **Slack Node**\nWhat it does: Sends a message to a Slack channel or user.\nUse case: Perfect for real-time alerts to your team in Slack.\nCustomization: You can post breach details directly in a channel or DM. You can also format the message (bold, code blocks, etc.).\n3. **Microsoft Teams Node**\nWhat it does: Sends a message to a Teams channel.\nUse case: For organizations that use Microsoft Teams for communication.\nCustomization: Similar to Slack, you can customize the message content and include all relevant breach information.\n4. **Discord Node**\nWhat it does: Sends an alert message to a Discord channel.\nUse case: Useful for teams or communities that coordinate via Discord.\nCustomization: Add formatted messages with breach details for easy viewing.\n5. **Telegram Node**\nWhat it does: Sends messages to a Telegram chat or group.\nUse case: Good for mobile notifications and fast alerts.\nCustomization: You can include breach summaries or detailed information, and even use bots to automate this.\n6. **Webhook Node** (as a sender)\nWhat it does: Sends breach data to another service via a webhook.\nUse case: If you have an external system or app that handles alerts, you can push the data directly to it.\nCustomization: Send JSON payloads with detailed breach information to trigger actions in other systems.\n7. **SMS Nodes** (like Twilio)\nWhat it does: Sends an SMS notification to one or more phone numbers.\nUse case: For urgent alerts that need to be seen immediately.\nCustomization: Keep messages concise, including key breach details like the time, type of breach, and affected system.\n- **Adjust Check Frequency**: Change the interval in the Schedule Trigger node (e.g., hourly or daily).",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T15:10:35.689788",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.16666666666666666,
+    "node_type_f1": 0.25,
+    "tp": 3,
+    "fp": 3,
+    "fn": 15,
+    "gt_node_count": 18,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.07142857142857142,
+    "connection_f1": 0.10526315789473682,
+    "correct_connections": 1,
+    "gt_connection_count": 14,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "prompt_tokens": 9504,
+      "completion_tokens": 992,
+      "total_tokens": 10496
+    },
+    "total_cost": 0.03368
+  },
+  "is_ai_workflow": false
+}

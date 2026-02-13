@@ -1,0 +1,179 @@
+{
+  "template_id": "11468",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by detecting new files in a Google Drive folder.",
+      "data_sources": "Google Drive API for file detection, Qdrant API for vector storage, OpenAI API for embeddings and chat, LangChain for AI agent orchestration.",
+      "operations": "1. Detect new files in Google Drive, 2. Download and convert files to Markdown, 3. Chunk and embed data using OpenAI, 4. Store embeddings in Qdrant, 5. Set up AI agent for chat interface, 6. Retrieve data from vector store and provide responses.",
+      "output_actions": "Enable a chat interface to interact with the AI agent for document-based queries.",
+      "nodes_plan": "googleDriveTrigger, downloadFile, convertToMarkdown, openAiEmbedding, qdrantStore, langchainAgent, langchainChatTrigger",
+      "connections_plan": "googleDriveTrigger -> downloadFile -> convertToMarkdown -> openAiEmbedding -> qdrantStore; langchainChatTrigger -> langchainAgent"
+    },
+    "workflowPlan": {
+      "name": "Intelligent Document Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "your-folder-id",
+            "watchFor": "file"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{ $json.fileId }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Convert to Markdown",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const markdown = convertToMarkdown($json.data); return { data: markdown };"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Embedding",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "embed",
+            "text": "={{ $json.data }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Qdrant Store",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "collection": "document_vectors",
+            "vectors": "={{ $json.embeddings }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "LangChain Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "LangChain Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "vectorStore": "qdrant",
+            "collection": "document_vectors"
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5888,
+    "completion_tokens": 1013,
+    "total_tokens": 6901
+  },
+  "description_optimization": null,
+  "original_description": "This template helps you to create an intelligent document assistant that can answer questions from uploaded files.\n\nIt shows a complete single-vector RAG (Retrieval-Augmented Generation) system that automatically processes documents, lets you chat with it in natural language and provides accurate, source-cited responses.\n\nThe workflow consists of two parts: **the data loading pipeline** and **RAG AI Agent** that answers your questions based on the uploaded documents. \n\nTo test tis workflow, you can use the following example files in a shared [Google Drive folder](https://drive.google.com/drive/u/2/folders/1BevhU5qdgNDFbK4D9oAYGeK0Dt5sEaxQ).\n\n\ud83d\udca1 Find more information on creating RAG AI agents in n8n [on the official page](https://n8n.io/rag/).\n\n## \ud83d\udd17Example files \n\nThe template uses the following example files in the Google Docs format:\n\n1. German Data Protection law: Bundesdatenschutzgesetz (BDSG)\n2. Computer Security Incident Handling Guide (NIST.SP.800-61r2)\n3. Berkshire Hathaway letter to shareholders from 2024 \n\n## \ud83d\ude80How to get started\n\n1. Copy or import the template to your n8n instance.\n2. Create your **Google Drive credentials** via the Google Cloud Console and add them to the trigger node \"Detect New Files\". A detailed walk-through can be found in the n8n [docs](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/).\n3. Create a [Qdrant API](https://qdrant.tech/) key and add it to the \"Insert into Vector Store\" node credentials. The API key will be displayed after you have logged into Qdrant and created a Cluster.\n4. Create or activate your [OpenAI API](https://platform.openai.com/api-keys) key.\n\n## 1\ufe0f\u20e3 Import your data and store it in a vector database\n\n\u2705 Upload files to Google Drive. \n\n**IMPORTANT**: This template supports files in Google Docs format. New files will be downloaded in HTML format and converted to Markdown. This preserves the overall document structure and improves the quality of responses.\n\n- Open the shared Google Drive folder\n- Create a new folder on your Google Drive\n- Activate the workflow\n- Copy the files from the shared folder to your new folder\n\nThe webhook will catch the added files and you will see the execution in your \"Executions\" tab.\n\n***Note**: If the webhook doesn\u2019t see the files you copied, try adding them to your Google Drive folder from the opened shared files via the **Move to** feature.*\n\n\u2705 Chunk, embed, and store your data with a connected OpenAI embedding model and Qdrant vector store.\n\nA Qdrant collection \u2013 vector storage for your data \u2013 will be created automatically after the n8n webhook has caught your data from Google Drive. You can name your collection in the \"Insert into Vector Store\" node.\n\n## 2\ufe0f\u20e3 Add retrieval capabilities and chat with your data\n\n\u2705 Select the database with imported data in the \u201cSearch Documents\u201d sub-node of an AI Agent. \n\n\u2705 Start a chat with your agent via the chat interface: it will retrieve data from the vector store and provide a response. \n\n\u2753You can ask the following questions based on the example files to test this workflow:\n\n- What are the main steps in incident handling? \n- What does Warren Buffett say about mistakes at Berkshire?\n- What are the requirements for processing personal data?\n- Do any documents mention data breach notification?\n\n## \ud83c\udf1fAdapt the workflow to your own use case\n\n- **Knowledge management** - Query company docs, policies, and procedures \n- **Research assistance** - Search through academic papers and reports \n- **Customer support** - Build agents that reference product documentation \n- **Legal/compliance** - Query contracts, regulations, and legal documents \n- **Personal productivity** - Chat with your notes, articles, and saved content\n\nThe workflow automatically detects new files, processes them into searchable vector chunks, and maintains conversation context. Just drop files in your Google Drive folder and start asking questions.\n\n\ud83d\udcbb \ud83d\udcde[Get in touch with me](https://www.linkedin.com/in/yulia-dmitrievna-1112361b5/) if you want to customise this workflow or have any questions.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:46:23.752082",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.4210526315789474,
+    "tp": 4,
+    "fp": 3,
+    "fn": 8,
+    "gt_node_count": 12,
+    "llm_node_count": 7,
+    "connection_precision": 0.2,
+    "connection_recall": 0.2,
+    "connection_f1": 0.20000000000000004,
+    "correct_connections": 1,
+    "gt_connection_count": 5,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.25,
+    "usage": {
+      "prompt_tokens": 5888,
+      "completion_tokens": 1013,
+      "total_tokens": 6901
+    },
+    "total_cost": 0.02485
+  }
+}

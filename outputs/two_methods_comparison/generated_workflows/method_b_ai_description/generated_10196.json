@@ -1,0 +1,161 @@
+{
+  "template_id": 10196,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates the aggregation and processing of technology news and tools information.",
+    "workflowPlan": {
+      "name": "Tech News and Tools Aggregator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Tech News RSS",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example-tech-news.com/rss"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Tools Updates RSS",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example-tools-updates.com/rss"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Split Tech News Items",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Split Tools Updates Items",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Merge Both Lists",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 744,
+    "completion_tokens": 686,
+    "total_tokens": 1430
+  },
+  "error": null,
+  "generated_at": "2026-01-13T03:02:30.766083",
+  "generated_description": "This n8n workflow is designed to automate the aggregation and processing of technology news and tools information. It is triggered by a scheduled event, likely set to run at regular intervals such as daily or weekly.\n\nThe workflow begins by defining two sets of data sources: one for tech news sites and another for tools-related subreddits and websites. These sets are used to configure the subsequent RSS feed reading operations.\n\nThe workflow includes two RSS feed reader nodes: one dedicated to fetching the latest articles from the specified tech news sites and another for gathering updates from the tools-related sources. These nodes pull in the most recent content from the respective feeds.\n\nOnce the data is collected, the workflow utilizes split and loop nodes to process the items individually. The 'Split Out' and 'Loop Over Items' nodes ensure that each piece of content is handled separately, allowing for detailed processing or filtering if needed.\n\nAfter processing, the workflow merges the lists of tech news and tools updates into a single, comprehensive list using the 'Merge Both List' node. This consolidated list represents the final output of the workflow, which could then be used for further actions such as sending out a newsletter, updating a website, or storing the information in a database for later use.\n\nOverall, this workflow efficiently gathers and combines the latest updates from specified tech news and tools sources, providing a streamlined way to stay informed about the latest developments in the technology sector.",
+  "description_generation_usage": {
+    "prompt_tokens": 232,
+    "completion_tokens": 282,
+    "total_tokens": 514
+  },
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.47619047619047616,
+    "tp": 5,
+    "fp": 1,
+    "fn": 10,
+    "gt_node_count": 15,
+    "llm_node_count": 6,
+    "connection_precision": 0.6666666666666666,
+    "connection_recall": 0.18181818181818182,
+    "connection_f1": 0.28571428571428575,
+    "correct_connections": 2,
+    "gt_connection_count": 11,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 744,
+      "completion_tokens": 686,
+      "total_tokens": 1430
+    },
+    "total_cost": 0.01212,
+    "description_generation_cost": 0.0034000000000000002,
+    "workflow_generation_cost": 0.00872
+  },
+  "original_description": "### Who's it for\n\nThis workflow is for anyone who wants to stay informed without the overwhelm. Whether you're tracking industry news, following your favorite blogs, monitoring competitors, or just keeping up with topics you care about\u2014this automated newsletter keeps you in the loop effortlessly.\n\n### What it does\n\nThis automated workflow fetches content from your favorite RSS feeds, filters it based on your interests using Google Gemini AI, and sends you a beautifully formatted HTML newsletter at your preferred time. The AI selects the top 10-15 items from each category based on keywords you define, delivering only what matters to you.\n\n### How it works\n\n1. **Schedule Trigger**: Runs daily at your chosen time (default: 9:00 AM)\n2. **RSS Feeds**: Fetches content from your favorite news sources and websites\n3. **Processing**: Splits URLs, loops through feeds in batches to avoid rate limits\n4. **Merge & Convert**: Combines all RSS items into a single CSV file\n5. **AI Curation**: Google Gemini analyzes the content and selects relevant items based on your keywords\n6. **Email Delivery**: Sends a personalized HTML newsletter with summaries and images\n\n### Requirements\n\n- **Google Gemini API** credentials (for AI curation)\n- **SMTP credentials** (for sending emails)\n- Active n8n instance (self-hosted or cloud)\n\n### How to set up\n\n1. Add your **Google Gemini API credentials** in both Gemini nodes\n2. Configure your **SMTP settings** in the \"Send email\" node\n3. Update the **email addresses** (from and to) in the email node\n4. Add your **favorite RSS feed URLs** in the \"Set\" nodes\n5. Customize the **AI keywords** in \"Analyze document\" to match your interests\n6. Set your preferred **schedule time** in the trigger node\n\n### How to customize\n\n- **Add your RSS feeds**: Replace the example URLs in both \"Set\" nodes with RSS feeds from your favorite sources (blogs, news sites, podcasts, YouTube channels, etc.)\n- **Define your interests**: Modify the keywords in the \"Analyze document\" AI prompt to filter content that matters to you\n- **Adjust categories**: Change the two sections to match your needs (e.g., \"Industry News\" and \"Competitor Updates\" or \"Learning Resources\" and \"Tools\")\n- **Change email format**: Update the HTML template in the AI prompt to customize the newsletter design\n- **Modify delivery time**: Update the schedule trigger to run at your preferred time"
+}

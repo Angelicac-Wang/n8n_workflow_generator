@@ -1,0 +1,242 @@
+{
+  "template_id": "5948",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule, such as daily or weekly, as defined by the user.",
+      "data_sources": "The workflow will use Bright Data for web scraping, OpenAI for data extraction, and Google Sheets for data storage.",
+      "operations": "1. Trigger on schedule, 2. Scrape competitor websites using Bright Data, 3. Extract pricing information using OpenAI, 4. Compare current pricing with historical data from Google Sheets, 5. Update Google Sheets if significant changes are detected, 6. Send alerts if changes occur.",
+      "output_actions": "The final output is an updated Google Sheets document with the latest pricing information and alerts sent to the user if significant changes are detected.",
+      "nodes_plan": "schedule (trigger), brightData (scrape), openAi (extract), googleSheets (read/write), if (check changes), emailSend (alert)",
+      "connections_plan": "schedule -> brightData -> openAi -> googleSheets (read) -> if -> [googleSheets (write) | emailSend (alert)]"
+    },
+    "workflowPlan": {
+      "name": "Competitor Pricing Monitoring and Alerts",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Scrape Competitor Websites",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.brightdata.com/scrape",
+            "method": "POST",
+            "body": {
+              "target": "competitor_website_url"
+            },
+            "authentication": "predefinedCredentialType"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Pricing Information",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Extract pricing information from the following data: {{ $json.data }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Retrieve Historical Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A1:B100"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Compare Pricing Data",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.currentPrice }}",
+                  "operation": "notEqual",
+                  "value2": "={{ $json.historicalPrice }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A1",
+            "valueInputOption": "USER_ENTERED",
+            "values": [
+              [
+                "={{ $json.date }}",
+                "={{ $json.currentPrice }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Alert",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Pricing Alert",
+            "text": "Significant pricing change detected: {{ $json.currentPrice }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4398,
+      "completion_tokens": 1191,
+      "total_tokens": 5589
+    },
+    "description_optimization": {
+      "prompt_tokens": 755,
+      "completion_tokens": 637,
+      "total_tokens": 1392
+    },
+    "total_tokens": 6981,
+    "total_prompt_tokens": 5153,
+    "total_completion_tokens": 1828
+  },
+  "description_optimization": {
+    "template_id": "5948",
+    "optimized_description": "Workflow Title: Competitor Pricing Monitoring and Alerts\n\nTrigger:\nThis workflow is triggered at scheduled intervals, as defined by the user, to monitor competitor pricing changes and website updates.\n\nData Sources and APIs:\n1. Bright Data: Utilized for scraping competitor websites to gather pricing information without being blocked.\n2. OpenAI: Employed for intelligent extraction and parsing of pricing data from the scraped content.\n3. Google Sheets: Used for storing historical pricing data and comparing current prices against previously recorded data.\n\nOperations and Processing Steps:\n1. **Schedule Trigger**: The workflow initiates based on a user-defined schedule (e.g., daily, weekly).\n2. **Scrape Competitor Websites**: \n   - Use the Bright Data node to access competitor pricing pages (e.g., ClickUp).\n   - Ensure that the scraping process is configured to avoid detection and blocking.\n3. **Extract Pricing Information**: \n   - Pass the scraped data to the OpenAI node for analysis.\n   - Utilize AI capabilities to intelligently extract relevant pricing information from the raw HTML or text data.\n4. **Compare Current Pricing with Historical Data**: \n   - Retrieve previously stored pricing data from Google Sheets.\n   - Compare the newly extracted pricing information against the historical data to identify any changes.\n5. **Update Google Sheets**: \n   - If a change in pricing is detected, update the Google Sheets document with the new pricing information.\n   - Ensure that only significant changes trigger an update to prevent information overload.\n6. **Send Alerts**: \n   - If changes are detected, send notifications to the user (via email or other communication channels) to inform them of the updates.\n\nFinal Output or Action:\nThe workflow will output updated pricing information to the Google Sheets tracking spreadsheet and send alerts to the user whenever a significant pricing change occurs, ensuring that they remain informed of market movements without the need for manual checks.\n\nInstallation Instructions:\n1. Import the Workflow: Download the .json file and import it into your self-hosted n8n instance.\n2. Configure Bright Data: Add your Bright Data credentials to the MCP Client node within the workflow.\n3. Set Up OpenAI: Configure your OpenAI API credentials in the designated node.\n4. Configure Google Sheets: Connect your Google Sheets account and set up your pricing tracking spreadsheet.\n5. Customize: Input your competitor URLs and define the pricing monitoring schedule according to your needs.\n\nUse Cases:\n- Product Teams: Monitor competitor feature and pricing changes for strategic planning.\n- Sales Teams: Stay informed of competitor pricing to adjust sales strategies.\n- Marketing Teams: Track competitor messaging and positioning changes.\n- Business Intelligence: Build comprehensive competitor analysis databases.\n\nConnect with Me:\n- Website: https://www.nofluff.online\n- YouTube: https://www.youtube.com/@YaronBeen/videos\n- LinkedIn: https://www.linkedin.com/in/yaronbeen/\n- Get Bright Data: https://get.brightdata.com/1tndi4600b25 (Using this link supports my free workflows with a small commission)\n\nThis workflow is designed for self-hosted n8n instances and leverages community nodes compatible with that environment.",
+    "original_description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.*\n\nThis workflow automatically monitors competitor pricing changes and website updates to keep you informed of market movements. It saves you time by eliminating the need to manually check competitor websites and provides alerts only when actual changes occur, preventing information overload.\n\n## Overview\n\nThis workflow automatically scrapes competitor pricing pages (like ClickUp) and compares current pricing with previously stored data. It uses Bright Data to access competitor websites without being blocked and AI to intelligently extract pricing information, updating your tracking spreadsheet only when changes are detected.\n\n## Tools Used\n\n- **n8n**: The automation platform that orchestrates the workflow\n- **Bright Data**: For scraping competitor websites without being blocked\n- **OpenAI**: AI agent for intelligent pricing data extraction and parsing\n- **Google Sheets**: For storing and comparing historical pricing data\n\n## How to Install\n\n1. **Import the Workflow**: Download the .json file and import it into your n8n instance\n2. **Configure Bright Data**: Add your Bright Data credentials to the MCP Client node\n3. **Set Up OpenAI**: Configure your OpenAI API credentials\n4. **Configure Google Sheets**: Connect your Google Sheets account and set up your pricing tracking spreadsheet\n5. **Customize**: Set your competitor URLs and pricing monitoring schedule\n\n## Use Cases\n\n- **Product Teams**: Monitor competitor feature and pricing changes for strategic planning\n- **Sales Teams**: Stay informed of competitor pricing to adjust sales strategies\n- **Marketing Teams**: Track competitor messaging and positioning changes\n- **Business Intelligence**: Build comprehensive competitor analysis databases\n\n## Connect with Me\n\n- **Website**: https://www.nofluff.online\n- **YouTube**: https://www.youtube.com/@YaronBeen/videos\n- **LinkedIn**: https://www.linkedin.com/in/yaronbeen/\n- **Get Bright Data**: https://get.brightdata.com/1tndi4600b25 (Using this link supports my free workflows with a small commission)\n\n#n8n #automation #competitoranalysis #pricingmonitoring #brightdata #webscraping #competitortracking #marketintelligence #n8nworkflow #workflow #nocode #pricetracking #businessintelligence #competitiveanalysis #marketresearch #competitormonitoring #pricingdata #websitemonitoring #competitorpricing #marketanalysis #competitorwatch #pricingalerts #businessautomation #competitorinsights #markettrends #pricingchanges #competitorupdates #strategicanalysis #marketposition #competitiveintelligence",
+    "description_length": 3272,
+    "usage": {
+      "prompt_tokens": 755,
+      "completion_tokens": 637,
+      "total_tokens": 1392
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:24:02.441222"
+  },
+  "original_description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.*\n\nThis workflow automatically monitors competitor pricing changes and website updates to keep you informed of market movements. It saves you time by eliminating the need to manually check competitor websites and provides alerts only when actual changes occur, preventing information overload.\n\n## Overview\n\nThis workflow automatically scrapes competitor pricing pages (like ClickUp) and compares current pricing with previously stored data. It uses Bright Data to access competitor websites without being blocked and AI to intelligently extract pricing information, updating your tracking spreadsheet only when changes are detected.\n\n## Tools Used\n\n- **n8n**: The automation platform that orchestrates the workflow\n- **Bright Data**: For scraping competitor websites without being blocked\n- **OpenAI**: AI agent for intelligent pricing data extraction and parsing\n- **Google Sheets**: For storing and comparing historical pricing data\n\n## How to Install\n\n1. **Import the Workflow**: Download the .json file and import it into your n8n instance\n2. **Configure Bright Data**: Add your Bright Data credentials to the MCP Client node\n3. **Set Up OpenAI**: Configure your OpenAI API credentials\n4. **Configure Google Sheets**: Connect your Google Sheets account and set up your pricing tracking spreadsheet\n5. **Customize**: Set your competitor URLs and pricing monitoring schedule\n\n## Use Cases\n\n- **Product Teams**: Monitor competitor feature and pricing changes for strategic planning\n- **Sales Teams**: Stay informed of competitor pricing to adjust sales strategies\n- **Marketing Teams**: Track competitor messaging and positioning changes\n- **Business Intelligence**: Build comprehensive competitor analysis databases\n\n## Connect with Me\n\n- **Website**: https://www.nofluff.online\n- **YouTube**: https://www.youtube.com/@YaronBeen/videos\n- **LinkedIn**: https://www.linkedin.com/in/yaronbeen/\n- **Get Bright Data**: https://get.brightdata.com/1tndi4600b25 (Using this link supports my free workflows with a small commission)\n\n#n8n #automation #competitoranalysis #pricingmonitoring #brightdata #webscraping #competitortracking #marketintelligence #n8nworkflow #workflow #nocode #pricetracking #businessintelligence #competitiveanalysis #marketresearch #competitormonitoring #pricingdata #websitemonitoring #competitorpricing #marketanalysis #competitorwatch #pricingalerts #businessautomation #competitorinsights #markettrends #pricingchanges #competitorupdates #strategicanalysis #marketposition #competitiveintelligence",
+  "optimized_description": "Workflow Title: Competitor Pricing Monitoring and Alerts\n\nTrigger:\nThis workflow is triggered at scheduled intervals, as defined by the user, to monitor competitor pricing changes and website updates.\n\nData Sources and APIs:\n1. Bright Data: Utilized for scraping competitor websites to gather pricing information without being blocked.\n2. OpenAI: Employed for intelligent extraction and parsing of pricing data from the scraped content.\n3. Google Sheets: Used for storing historical pricing data and comparing current prices against previously recorded data.\n\nOperations and Processing Steps:\n1. **Schedule Trigger**: The workflow initiates based on a user-defined schedule (e.g., daily, weekly).\n2. **Scrape Competitor Websites**: \n   - Use the Bright Data node to access competitor pricing pages (e.g., ClickUp).\n   - Ensure that the scraping process is configured to avoid detection and blocking.\n3. **Extract Pricing Information**: \n   - Pass the scraped data to the OpenAI node for analysis.\n   - Utilize AI capabilities to intelligently extract relevant pricing information from the raw HTML or text data.\n4. **Compare Current Pricing with Historical Data**: \n   - Retrieve previously stored pricing data from Google Sheets.\n   - Compare the newly extracted pricing information against the historical data to identify any changes.\n5. **Update Google Sheets**: \n   - If a change in pricing is detected, update the Google Sheets document with the new pricing information.\n   - Ensure that only significant changes trigger an update to prevent information overload.\n6. **Send Alerts**: \n   - If changes are detected, send notifications to the user (via email or other communication channels) to inform them of the updates.\n\nFinal Output or Action:\nThe workflow will output updated pricing information to the Google Sheets tracking spreadsheet and send alerts to the user whenever a significant pricing change occurs, ensuring that they remain informed of market movements without the need for manual checks.\n\nInstallation Instructions:\n1. Import the Workflow: Download the .json file and import it into your self-hosted n8n instance.\n2. Configure Bright Data: Add your Bright Data credentials to the MCP Client node within the workflow.\n3. Set Up OpenAI: Configure your OpenAI API credentials in the designated node.\n4. Configure Google Sheets: Connect your Google Sheets account and set up your pricing tracking spreadsheet.\n5. Customize: Input your competitor URLs and define the pricing monitoring schedule according to your needs.\n\nUse Cases:\n- Product Teams: Monitor competitor feature and pricing changes for strategic planning.\n- Sales Teams: Stay informed of competitor pricing to adjust sales strategies.\n- Marketing Teams: Track competitor messaging and positioning changes.\n- Business Intelligence: Build comprehensive competitor analysis databases.\n\nConnect with Me:\n- Website: https://www.nofluff.online\n- YouTube: https://www.youtube.com/@YaronBeen/videos\n- LinkedIn: https://www.linkedin.com/in/yaronbeen/\n- Get Bright Data: https://get.brightdata.com/1tndi4600b25 (Using this link supports my free workflows with a small commission)\n\nThis workflow is designed for self-hosted n8n instances and leverages community nodes compatible with that environment.",
+  "error": null,
+  "generated_at": "2026-01-25T23:24:15.499498",
+  "metrics": {
+    "node_type_precision": 0.42857142857142855,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.3157894736842105,
+    "tp": 3,
+    "fp": 4,
+    "fn": 9,
+    "gt_node_count": 12,
+    "llm_node_count": 7,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.16666666666666666,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4398,
+        "completion_tokens": 1191,
+        "total_tokens": 5589
+      },
+      "description_optimization": {
+        "prompt_tokens": 755,
+        "completion_tokens": 637,
+        "total_tokens": 1392
+      },
+      "total_tokens": 6981,
+      "total_prompt_tokens": 5153,
+      "total_completion_tokens": 1828
+    },
+    "total_cost": 0.031162500000000003,
+    "description_optimization_cost": 0.008257500000000001,
+    "workflow_generation_cost": 0.022905000000000002
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "template_id": "3416",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule to periodically check the Google Sheet for new ideas to process.",
+      "data_sources": "Google Sheets for ideas, Anthropic Claude or Google Gemini for text generation, Flux AI for image creation, RunwayML for animation, ElevenLabs for audio, Creatomate for video merging, YouTube API for uploading.",
+      "operations": "1. Retrieve idea from Google Sheets, 2. Generate text prompt, 3. Create image with Flux AI, 4. Animate image with RunwayML, 5. Generate audio with ElevenLabs, 6. Merge video and audio with Creatomate, 7. Upload to YouTube, 8. Update Google Sheet status.",
+      "output_actions": "The final output is a published video on YouTube and updated statuses in Google Sheets.",
+      "nodes_plan": "googleSheets (read), set (process status), httpRequest (text generation), httpRequest (image creation), httpRequest (animation), httpRequest (audio generation), httpRequest (video merging), httpRequest (YouTube upload), googleSheets (update status)",
+      "connections_plan": "googleSheets -> set -> httpRequest (text) -> httpRequest (image) -> httpRequest (animation) -> httpRequest (audio) -> httpRequest (merge) -> httpRequest (upload) -> googleSheets (update)"
+    },
+    "workflowPlan": {
+      "name": "Automated Video Creation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:G",
+            "filter": {
+              "field": "videoStatus",
+              "value": "To Do"
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Processing Status",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "videoStatus",
+                  "value": "Processing"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Text Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.anthropic.com/v1/claude",
+            "body": {
+              "idea": "={{ $json.idea }}",
+              "style": "={{ $json.style }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fluxai.com/v1/image",
+            "body": {
+              "prompt": "={{ $json.textPrompt }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Animate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.runwayml.com/v1/animate",
+            "body": {
+              "image": "={{ $json.imageUrl }}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.elevenlabs.io/v1/audio",
+            "body": {
+              "text": "={{ $json.textPrompt }}"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Merge Video and Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.creatomate.com/v1/merge",
+            "body": {
+              "video": "={{ $json.animatedVideoUrl }}",
+              "audio": "={{ $json.audioUrl }}"
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/youtube/v3/videos",
+            "body": {
+              "video": "={{ $json.finalVideoUrl }}",
+              "title": "={{ $json.title }}",
+              "description": "={{ $json.caption }}"
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Google Sheets Status",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:G",
+            "data": {
+              "videoStatus": "Created",
+              "publishStatus": "Processed"
+            }
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4774,
+    "completion_tokens": 1602,
+    "total_tokens": 6376
+  },
+  "description_optimization": null,
+  "original_description": "# Automated Video Creation Workflow Using n8n  \n\nThis workflow automates the creation and publishing of animated videos based on ideas listed in a Google Sheet. It processes one idea at a time, generating text prompts, images, animations, sound effects, and merging them into a final video before uploading it to YouTube.  \n\n## Table of Contents  \n- [Pre-conditions and Requirements](#pre-conditions-and-requirements)  \n- [Google Sheets Setup](#google-sheets-setup)  \n- [Step-by-Step Workflow Explanation](#step-by-step-workflow-explanation)  \n- [Customization Guide](#customization-guide)  \n\n---\n\n## Pre-conditions and Requirements  \n\n### 1. **API Keys Required**  \nTo run this workflow, you'll need API access to the following services:  \n- **Anthropic Claude or Google Gemini** (for text prompt generation)  \n- **Flux AI** ([RapidAPI](https://rapidapi.com/poorav925/api/ai-text-to-image-generator-flux-free-api/playground/apiendpoint_b28cd8ef-63fe-4242-98e4-908a332770d3)) (for AI-generated images)  \n- **RunwayML** ([API Documentation](https://dev.runwayml.com/)) (for AI video animation)  \n- **ElevenLabs** (for AI-generated voiceovers and sound effects)  \n- **Creatomate** ([Website](https://creatomate.com)) (for video/audio merging and rendering)  \n- **YouTube API** (for video upload and posting)  \n\n### 2. **n8n Instance Setup**  \n- Use cloud (n8n.io) or Install and run n8n ([Official Guide](https://docs.n8n.io/))  \n- Set up credentials for each API in n8n\u2019s settings  \n\n---\n\n## Google Sheets Setup  \n\nBefore running the workflow, ensure your Google Sheet is structured as follows:  \n\n| **Column Name**  | **Description**  |  \n|------------------|----------------|  \n| `title`         | Video title (e.g., \"Elijah's Fiery Chariot\") |  \n| `bibleverse`    | Corresponding Bible verse reference |  \n| `idea`         | Brief description of the scene |  \n| `style`        | Animation style (e.g., cinematic, vibrant, etc.) |  \n| `caption`      | Suggested caption for social media |  \n| `videoStatus`  | Status of video creation (`To Do`, `Created`) |  \n| `publishStatus`| Publishing status (`Not Processed`, `Processed`) |  \n\n---\n\n## Step-by-Step Workflow Explanation  \n\n### 1. **Extract an Idea from Google Sheets**  \n- The workflow retrieves the first row where `videoStatus = \"To Do\"`.  \n- Marks it as `Processing` to avoid duplicate processing.  \n\n### 2. **Generate a Prompt for AI Image Creation and Sound Effects/Audio**  \n- Uses **Anthropic Claude** or **Google Gemini** to generate prompts.  \n\n### 3. **Generate an AI Image with Flux AI**  \n- Sends the prompt to **Flux AI** to create a high-quality image.  \n\n### 4. **Animate the Image Using RunwayML**  \n- The generated image is sent to **RunwayML**, which animates the image.  \n\n### 5. **Generate Sound Effects and Voiceover with ElevenLabs**  \n- ElevenLabs produces a realistic narration based on the video content.  \n- Background sound effects (e.g., storm sounds, fire crackling) are also generated.  \n\n### 6. **Merge Video and Audio Using Creatomate**  \n- **Creatomate** compiles the animated video with the audio.  \n\n### 7. **Upload and Publish to YouTube**  \n- The finalized video is automatically uploaded to **YouTube** using the YouTube API.  \n\n### 8. **Update Google Sheet Status**  \n- Marks `videoStatus` as `Created`.  \n- Marks `publishStatus` as `Processed`.  \n\n---\n\n## Customization Guide  \n\n### **Modifying the Animation Style**  \n- Update the `style` column in Google Sheets with custom animation preferences (e.g., cinematic, slow-motion).  \n- Modify the prompt generation step in n8n to incorporate different styles.  \n\n### **Changing the Video Length**  \n- Adjust the **RunwayML** settings to control animation speed and length.  \n- Modify the **Creatomate** rendering step to adjust clip duration.  \n\n### **Adding Subtitles**  \n- Modify the **Creatomate** step to include AI-generated subtitles from ElevenLabs' text output.  \n\n### **Publishing to Other Platforms**  \n- Add additional steps to post to TikTok, Instagram, or Facebook using their respective APIs.  \n\n---\n\nThis workflow ensures a fully automated video creation pipeline, reducing manual effort and optimizing content production. \ud83d\ude80",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:42:45.156719",
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.5,
+    "tp": 9,
+    "fp": 0,
+    "fn": 18,
+    "gt_node_count": 27,
+    "llm_node_count": 9,
+    "connection_precision": 0.75,
+    "connection_recall": 0.15,
+    "connection_f1": 0.24999999999999997,
+    "correct_connections": 3,
+    "gt_connection_count": 20,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.1111111111111111,
+    "usage": {
+      "prompt_tokens": 4774,
+      "completion_tokens": 1602,
+      "total_tokens": 6376
+    },
+    "total_cost": 0.027955000000000004
+  }
+}

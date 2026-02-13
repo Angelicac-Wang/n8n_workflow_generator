@@ -1,0 +1,243 @@
+{
+  "template_id": 3052,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Telegram to Todoist Task Management",
+      "nodes": [
+        {
+          "id": "3",
+          "label": "Receive Telegram Messages",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Voice or Text?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message\"][\"voice\"] !== undefined}}",
+                  "operation": "true"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Voice Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Transcribe Voice to Text",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "resource": "transcription",
+            "audioFile": "={{$node[\"Fetch Voice Message\"].json[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Prepare for LLM",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "text": "={{$json[\"message\"][\"text\"] || $node[\"Transcribe Voice to Text\"].json[\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "1",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "resource": "chat",
+            "prompt": "={{$node[\"Prepare for LLM\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Basic LLM Chain",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { tasks: $node[\"OpenAI Chat Model\"].json[\"choices\"][0][\"text\"] } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Extract Tasks",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "tasks": "={{$node[\"Basic LLM Chain\"].json[\"tasks\"]}}"
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Create Todoist Tasks",
+          "nodeType": "n8n-nodes-base.todoist",
+          "typeVersion": 1,
+          "params": {
+            "resource": "task",
+            "operation": "create",
+            "content": "={{$node[\"Extract Tasks\"].json[\"tasks\"]}}"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Confirmation",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Tasks have been successfully added to Todoist."
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "7",
+          "to": "1"
+        },
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 718,
+    "completion_tokens": 1283,
+    "total_tokens": 2001
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:59:25.435394",
+  "generated_description": "This n8n workflow is designed to streamline task management by integrating voice and text inputs from Telegram with Todoist. The workflow is triggered when a message is received on Telegram (Node 3: Receive Telegram Messages). It first determines whether the message is a voice or text input (Node 4: Voice or Text?).\n\nIf the message is a voice note, the workflow fetches the voice message (Node 5: Fetch Voice Message) and transcribes it into text using OpenAI's transcription capabilities (Node 6: Transcribe Voice to Text). Regardless of the initial format, the text is then prepared for processing (Node 7: Prepare for LLM).\n\nNext, the workflow utilizes the OpenAI Chat Model (Node 1: OpenAI Chat Model) and a Basic LLM Chain (Node 2: Basic LLM Chain) to analyze the text and extract actionable tasks (Node 8: Extract Tasks). These tasks are then automatically created in Todoist (Node 9: Create Todoist Tasks).\n\nFinally, the workflow sends a confirmation message back to the user on Telegram, informing them that their tasks have been successfully added to Todoist (Node 10: Send Confirmation). This automation enhances productivity by seamlessly converting voice and text inputs into organized tasks.",
+  "description_generation_usage": {
+    "prompt_tokens": 222,
+    "completion_tokens": 256,
+    "total_tokens": 478
+  },
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.5,
+    "node_type_f1": 0.5,
+    "tp": 5,
+    "fp": 5,
+    "fn": 5,
+    "gt_node_count": 10,
+    "llm_node_count": 10,
+    "connection_precision": 0.1,
+    "connection_recall": 0.125,
+    "connection_f1": 0.11111111111111112,
+    "correct_connections": 1,
+    "gt_connection_count": 8,
+    "llm_connection_count": 10,
+    "avg_parameter_accuracy": 0.2,
+    "usage": {
+      "prompt_tokens": 718,
+      "completion_tokens": 1283,
+      "total_tokens": 2001
+    },
+    "total_cost": 0.017740000000000002,
+    "description_generation_cost": 0.003115,
+    "workflow_generation_cost": 0.014625
+  },
+  "original_description": "## Effortless Task Management: Create Todoist Tasks Directly from Telegram with AI\n\nThis n8n workflow empowers you to seamlessly manage your tasks by creating Todoist entries directly from Telegram, using the power of AI. Simply send a voice or text message to your Telegram bot, and this workflow will transform it into actionable tasks in your Todoist account.\n\n### Who is this for?\n\n* **Busy professionals** who need a quick and easy way to capture tasks on the go.\n* **Students** looking to streamline their assignments and project management.\n* **Anyone** who wants to leverage AI for effortless task management.\n\n### What Problem Does it Solve?\n\nThis workflow eliminates the need to manually enter tasks into Todoist. It automates the process of capturing, organizing, and prioritizing tasks, saving you time and effort.\n\n### What are the Benefits?\n\n* **Seamless Integration:** Connect your Telegram and Todoist accounts for a frictionless workflow.\n* **AI-Powered Task Breakdown:** LLM AI intelligently analyzes your messages and breaks them down into manageable sub-tasks.\n* **Voice-to-Task:** Create tasks with voice messages for hands-free convenience.\n* **Increased Productivity:** Capture and organize tasks quickly, keeping you focused and productive.\n* **Accessibility:** Access your tasks from anywhere with Todoist's mobile app and Google extension.\n\n### How it Works\n\n1.  **Send a message:** Send a voice or text message describing your task to your Telegram bot.\n2.  **AI analysis:** The workflow uses an LLM (OpenAI Chat Model) to analyze your message and break it down into sub-tasks.\n3.  **Task creation:** The workflow creates tasks in your Todoist account based on the AI's analysis.\n4.  **Notification:** You receive a Telegram notification with a link to your newly created tasks in Todoist.\n\n### Nodes in the Workflow\n\n* **Telegram Trigger:** Listens for incoming messages on Telegram.\n* **Switch:** Routes messages based on their type (voice or text).\n* **Telegram:** Fetches voice messages from Telegram.\n* **OpenAI:** Transcribes voice messages to text using OpenAI's Whisper API.\n* **Edit Fields:** Prepares the text for the LLM.\n* **Basic LLM Chain:** Analyzes messages and generates sub-tasks using OpenAI's GPT model.\n* **Structured Output Parser:** Extracts sub-tasks from the LLM's response.\n* **Todoist:** Creates tasks in your Todoist account.\n* **Telegram:** Sends a notification with a link to your Todoist tasks.\n\n### Requirements\n\n* Active n8n instance.\n* Telegram account with a bot.\n* Todoist account.\n* OpenAI API key.\n\n### Setup Information\n\n1.  Import the workflow JSON into your n8n instance.\n2.  Configure the Telegram Trigger node with your bot token.\n3.  Set up the OpenAI credentials with your API key.\n4.  Connect your Todoist account in the Todoist node.\n5.  Customize the LLM prompt (optional) to fine-tune task creation.\n\n### Additional Tips\n\n* Explore Todoist's features to further organize and manage your tasks.\n* Experiment with different LLM prompts to optimize task breakdown.\n* Use n8n's features to automate other aspects of your workflow.\n\nThis workflow combines the convenience of Telegram with the power of AI and Todoist to provide a seamless task management experience. Start managing your tasks effortlessly today!"
+}

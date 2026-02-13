@@ -1,0 +1,201 @@
+{
+  "template_id": "2612",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook to receive user prompts or queries.",
+      "data_sources": "Supabase for database interaction and OpenAI for dynamic SQL query generation.",
+      "operations": "1. Receive user prompt via webhook, 2. Generate SQL query using OpenAI, 3. Execute SQL query on Supabase, 4. Handle JSON data if present, 5. Explore database schema, 6. Retrieve column details if needed.",
+      "output_actions": "Present the user with query results, formatted for easy interpretation.",
+      "nodes_plan": "webhook (trigger), openAi (generate SQL), code (execute SQL), jsonParse (handle JSON), postgres (database schema exploration), postgres (column details retrieval)",
+      "connections_plan": "webhook -> openAi -> code -> jsonParse -> postgres (schema) -> postgres (columns)"
+    },
+    "workflowPlan": {
+      "name": "Conversational Database Interaction with AI",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "user-query"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate SQL",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.query }}\n\nGenerate a SQL query for the above request."
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Execute SQL",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const { Client } = require('pg');\n\nasync function executeQuery(query) {\n  const client = new Client({\n    user: 'yourUser',\n    host: 'yourHost',\n    database: 'yourDatabase',\n    password: 'yourPassword',\n    port: 5432,\n  });\n  await client.connect();\n  const res = await client.query(query);\n  await client.end();\n  return res.rows;\n}\n\nreturn executeQuery($json.message.content);"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Parse JSON",
+          "nodeType": "n8n-nodes-base.jsonParse",
+          "typeVersion": 1,
+          "params": {
+            "sourceData": "={{ $json }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Explore Schema",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT table_name FROM information_schema.tables WHERE table_schema='public';"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Retrieve Columns",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'yourTableName';"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4256,
+      "completion_tokens": 1018,
+      "total_tokens": 5274
+    },
+    "description_optimization": {
+      "prompt_tokens": 761,
+      "completion_tokens": 495,
+      "total_tokens": 1256
+    },
+    "total_tokens": 6530,
+    "total_prompt_tokens": 5017,
+    "total_completion_tokens": 1513
+  },
+  "description_optimization": {
+    "template_id": "2612",
+    "optimized_description": "Workflow Description: Conversational Database Interaction with AI\n\nTrigger:\nThe workflow is initiated when a user sends a prompt or query to the AI agent, requesting data retrieval, analysis, or aggregation from the Supabase database.\n\nData Sources and APIs:\n1. Supabase: A PostgreSQL database hosting and management service where the data is stored.\n2. OpenAI: An AI service that processes user prompts and generates SQL queries dynamically based on the input.\n\nOperations and Processing Steps:\n1. User Prompt Reception: The workflow begins by receiving a user query through the AI agent interface.\n2. Dynamic SQL Query Generation:\n   - The AI agent analyzes the user prompt to understand the required data or analysis.\n   - Based on the analysis, the agent constructs a SQL query tailored to the user's request.\n3. Database Interaction:\n   - The workflow utilizes the Code Tool in n8n to execute the dynamically generated SQL query against the Supabase database.\n   - The results of the SQL query execution are retrieved and prepared for further processing.\n4. JSON Data Handling:\n   - If the retrieved data includes JSON fields, the workflow identifies the JSON schema from sample records.\n   - The agent parses the JSON data to extract relevant information, summaries, or specific data points as requested by the user.\n5. Database Schema Exploration:\n   - The Database Schema Tool is employed to retrieve a list of all tables within the Supabase database.\n   - A predefined SQL query fetches the table definitions, including column names, data types, and relationships, which aids in precise query generation.\n6. Column Details Retrieval:\n   - For any specific table requested by the user, the workflow retrieves a list of columns along with their types using the Table Definition tool.\n\nFinal Output or Action:\nThe workflow concludes by presenting the user with the results of their query, which may include raw data records, JSON data analysis, summaries, or aggregations based on the initial request. The output is formatted in a user-friendly manner, allowing for easy interpretation and further interaction if needed.\n\nSetup Requirements:\n1. Create accounts on n8n, Supabase, and OpenAI.\n2. Configure the database connection in n8n using the appropriate credentials (username, password, host, and database name) for the Supabase PostgreSQL database.\n\nThis workflow is designed for developers, data analysts, and business owners seeking to facilitate conversational interactions with their database, eliminating the need for manual SQL query writing and enhancing data accessibility and analysis.",
+    "original_description": "### Video Guide\n\nI prepared a detailed guide that showed the whole process of building a resume analyzer.\n\n[![OPENAI 14.png](https://res.cloudinary.com/de9jgixzm/image/upload/v1739773279/Youtube%20Thumbs/Chat%20With%20DB.png)](https://youtu.be/-GgKzhCNxjk)\n\n### Who is this for?\nThis workflow is ideal for developers, data analysts, and business owners who want to enable conversational interactions with their database. It\u2019s particularly useful for cases where users need to extract, analyze, or aggregate data without writing SQL queries manually.\n\n### What problem does this workflow solve?\nAccessing and analyzing database data often requires SQL expertise or dedicated reports, which can be time-consuming. This workflow empowers users to interact with a database conversationally through an AI-powered agent. It dynamically generates SQL queries based on user requests, streamlining data retrieval and analysis.\n\n### What this workflow does\nThis workflow integrates OpenAI with a Supabase database, enabling users to interact with their data via an AI agent. The agent can:\n- Retrieve records from the database.\n- Extract and analyze JSON data stored in tables.\n- Provide summaries, aggregations, or specific data points based on user queries.\n\n1. **Dynamic SQL Querying**: The agent uses user prompts to create and execute SQL queries on the database.\n2. **Understand JSON Structure**: The workflow identifies JSON schema from sample records, enabling the agent to parse and analyze JSON fields effectively.\n3. **Database Schema Exploration**: It provides the agent with tools to retrieve table structures, column details, and relationships for precise query generation.\n\n### Setup\n\n#### Preparation\n1. **Create Accounts**:\n   - [N8N](https://n8n.partnerlinks.io/2hr10zpkki6a): For workflow automation.\n   - [Supabase](https://supabase.com/): For database hosting and management.\n   - [OpenAI](https://openai.com/): For building the conversational AI agent.\n2. **Configure Database Connection**:\n   - Set up a PostgreSQL database in Supabase.\n   - Use appropriate credentials (`username`, `password`, `host`, and `database` name) in your workflow.\n\n#### N8N Workflow\n\nAI agent with tools:\n\n1. **Code Tool**:\n   - Execute SQL queries based on user input.\n2. **Database Schema Tool**:\n   - Retrieve a list of all tables in the database.\n   - Use a predefined SQL query to fetch table definitions, including column names, types, and references.\n3. **Table Definition**:\n   - Retrieve a list of columns with types for one table.",
+    "description_length": 2604,
+    "usage": {
+      "prompt_tokens": 761,
+      "completion_tokens": 495,
+      "total_tokens": 1256
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:02:10.633784"
+  },
+  "original_description": "### Video Guide\n\nI prepared a detailed guide that showed the whole process of building a resume analyzer.\n\n[![OPENAI 14.png](https://res.cloudinary.com/de9jgixzm/image/upload/v1739773279/Youtube%20Thumbs/Chat%20With%20DB.png)](https://youtu.be/-GgKzhCNxjk)\n\n### Who is this for?\nThis workflow is ideal for developers, data analysts, and business owners who want to enable conversational interactions with their database. It\u2019s particularly useful for cases where users need to extract, analyze, or aggregate data without writing SQL queries manually.\n\n### What problem does this workflow solve?\nAccessing and analyzing database data often requires SQL expertise or dedicated reports, which can be time-consuming. This workflow empowers users to interact with a database conversationally through an AI-powered agent. It dynamically generates SQL queries based on user requests, streamlining data retrieval and analysis.\n\n### What this workflow does\nThis workflow integrates OpenAI with a Supabase database, enabling users to interact with their data via an AI agent. The agent can:\n- Retrieve records from the database.\n- Extract and analyze JSON data stored in tables.\n- Provide summaries, aggregations, or specific data points based on user queries.\n\n1. **Dynamic SQL Querying**: The agent uses user prompts to create and execute SQL queries on the database.\n2. **Understand JSON Structure**: The workflow identifies JSON schema from sample records, enabling the agent to parse and analyze JSON fields effectively.\n3. **Database Schema Exploration**: It provides the agent with tools to retrieve table structures, column details, and relationships for precise query generation.\n\n### Setup\n\n#### Preparation\n1. **Create Accounts**:\n   - [N8N](https://n8n.partnerlinks.io/2hr10zpkki6a): For workflow automation.\n   - [Supabase](https://supabase.com/): For database hosting and management.\n   - [OpenAI](https://openai.com/): For building the conversational AI agent.\n2. **Configure Database Connection**:\n   - Set up a PostgreSQL database in Supabase.\n   - Use appropriate credentials (`username`, `password`, `host`, and `database` name) in your workflow.\n\n#### N8N Workflow\n\nAI agent with tools:\n\n1. **Code Tool**:\n   - Execute SQL queries based on user input.\n2. **Database Schema Tool**:\n   - Retrieve a list of all tables in the database.\n   - Use a predefined SQL query to fetch table definitions, including column names, types, and references.\n3. **Table Definition**:\n   - Retrieve a list of columns with types for one table.",
+  "optimized_description": "Workflow Description: Conversational Database Interaction with AI\n\nTrigger:\nThe workflow is initiated when a user sends a prompt or query to the AI agent, requesting data retrieval, analysis, or aggregation from the Supabase database.\n\nData Sources and APIs:\n1. Supabase: A PostgreSQL database hosting and management service where the data is stored.\n2. OpenAI: An AI service that processes user prompts and generates SQL queries dynamically based on the input.\n\nOperations and Processing Steps:\n1. User Prompt Reception: The workflow begins by receiving a user query through the AI agent interface.\n2. Dynamic SQL Query Generation:\n   - The AI agent analyzes the user prompt to understand the required data or analysis.\n   - Based on the analysis, the agent constructs a SQL query tailored to the user's request.\n3. Database Interaction:\n   - The workflow utilizes the Code Tool in n8n to execute the dynamically generated SQL query against the Supabase database.\n   - The results of the SQL query execution are retrieved and prepared for further processing.\n4. JSON Data Handling:\n   - If the retrieved data includes JSON fields, the workflow identifies the JSON schema from sample records.\n   - The agent parses the JSON data to extract relevant information, summaries, or specific data points as requested by the user.\n5. Database Schema Exploration:\n   - The Database Schema Tool is employed to retrieve a list of all tables within the Supabase database.\n   - A predefined SQL query fetches the table definitions, including column names, data types, and relationships, which aids in precise query generation.\n6. Column Details Retrieval:\n   - For any specific table requested by the user, the workflow retrieves a list of columns along with their types using the Table Definition tool.\n\nFinal Output or Action:\nThe workflow concludes by presenting the user with the results of their query, which may include raw data records, JSON data analysis, summaries, or aggregations based on the initial request. The output is formatted in a user-friendly manner, allowing for easy interpretation and further interaction if needed.\n\nSetup Requirements:\n1. Create accounts on n8n, Supabase, and OpenAI.\n2. Configure the database connection in n8n using the appropriate credentials (username, password, host, and database name) for the Supabase PostgreSQL database.\n\nThis workflow is designed for developers, data analysts, and business owners seeking to facilitate conversational interactions with their database, eliminating the need for manual SQL query writing and enhancing data accessibility and analysis.",
+  "error": null,
+  "generated_at": "2026-01-25T23:02:20.841514",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 6,
+    "fn": 6,
+    "gt_node_count": 6,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4256,
+        "completion_tokens": 1018,
+        "total_tokens": 5274
+      },
+      "description_optimization": {
+        "prompt_tokens": 761,
+        "completion_tokens": 495,
+        "total_tokens": 1256
+      },
+      "total_tokens": 6530,
+      "total_prompt_tokens": 5017,
+      "total_completion_tokens": 1513
+    },
+    "total_cost": 0.027672500000000003,
+    "description_optimization_cost": 0.006852500000000001,
+    "workflow_generation_cost": 0.02082
+  }
+}

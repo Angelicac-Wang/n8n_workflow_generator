@@ -1,0 +1,162 @@
+{
+  "template_id": "2405",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook that receives audio input via an HTTP POST request.",
+      "data_sources": "OpenAI API for transcription, ElevenLabs API for text-to-speech conversion, Google Gemini API for conversation processing.",
+      "operations": "1. Receive audio input via webhook, 2. Transcribe audio to text using OpenAI, 3. Process conversation with Google Gemini, 4. Convert text response to audio using ElevenLabs.",
+      "output_actions": "The final output is an audio response sent back to the user.",
+      "nodes_plan": "webhook (trigger), openAi (transcription), googleGemini (conversation processing), elevenLabs (text-to-speech)",
+      "connections_plan": "webhook -> openAi -> googleGemini -> elevenLabs (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Voice Chat Integration",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "voice_message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Audio Transcription",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "transcribeAudio",
+            "audio": "={{ $json.body.audio }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Conversation Processing",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.text }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Text-to-Speech Conversion",
+          "nodeType": "n8n-nodes-base.elevenLabs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "textToSpeech",
+            "text": "={{ $json.response }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4288,
+      "completion_tokens": 647,
+      "total_tokens": 4935
+    },
+    "description_optimization": {
+      "prompt_tokens": 419,
+      "completion_tokens": 527,
+      "total_tokens": 946
+    },
+    "total_tokens": 5881,
+    "total_prompt_tokens": 4707,
+    "total_completion_tokens": 1174
+  },
+  "description_optimization": {
+    "template_id": "2405",
+    "optimized_description": "This workflow is designed for businesses or developers who want to integrate voice-based chat applications that provide dynamic responses and maintain conversational memory. It automates AI-powered voice conversations, ensuring that context is preserved between sessions while converting speech to text and text to speech.\n\nTrigger:\nThe workflow is initiated by a webhook that receives audio input in the form of a voice message. This audio input is sent via an HTTP POST request to the specified webhook URL.\n\nData Sources and APIs Needed:\n1. OpenAI API - for transcribing audio input to text and processing the conversation.\n2. ElevenLabs API - for converting text responses back into speech.\n3. Google Gemini API - for processing the conversation using the Google Gemini Chat Model (alternatively, the OpenAI Chat Model can be used).\n\nOperations and Processing Steps:\n1. **Webhook Node**: Set up a webhook to receive audio input. Ensure that the value `(voice_message)` is specified in the \"Path\" parameter of the Webhook node. This parameter will hold the voice message sent via the HTTP POST request.\n2. **Audio Transcription**: Use the OpenAI API to transcribe the received audio input (voice message) into text. This step converts the spoken language into a written format for further processing.\n3. **Conversation Processing**: Send the transcribed text to the Google Gemini Chat Model (or OpenAI Chat Model) for processing. This step involves generating a dynamic response based on the context of the conversation.\n4. **Text-to-Speech Conversion**: Once the response is generated, utilize the ElevenLabs API to convert the text response back into speech. This step transforms the written response into an audible format that can be played back to the user.\n\nFinal Output or Action:\nThe final output of this workflow is an audio response that is generated from the text response provided by the conversation processing step. This audio response is then sent back to the user, completing the voice-based interaction.\n\nPrerequisites:\nBefore setting up the workflow, ensure that you have obtained API keys from the following sources:\n- OpenAI (available on the OpenAI website)\n- ElevenLabs (available on their website)\n- Google Gemini (available through Google AI Studio)\n\nSetup Instructions:\n1. Configure your API keys for OpenAI, ElevenLabs, and Google Gemini within the workflow environment.\n2. Verify that the Webhook node is correctly configured to receive the audio input and that the parameter name `(voice_message)` is used as specified.\n\nThis structured workflow enables seamless integration of voice-based chat applications, providing an efficient solution for businesses and developers looking to enhance user interaction through dynamic and context-aware conversations.",
+    "original_description": "## Who is this for?\nThis workflow is designed for businesses or developers looking to integrate voice-based chat applications with dynamic responses and conversational memory.\n\n## What problem does this solve?\nIt automates AI-powered voice conversations, maintaining context between sessions and converting speech-to-text and text-to-speech.\n\n## What this workflow does:\nThe workflow receives audio input, transcribes it using OpenAI, and processes the conversation using Google Gemini Chat Model (you can use OpenAI Chat Model). Responses are converted back to speech using ElevenLabs.\n\n## Prerequisites:\nYou'll need API keys for:\n* OpenAI (you can obtain it from OpenAI website)\n* ElevenLabs (you can obtain it from their website)\n* Google Gemini (You can obtain it from `Google AI Studio`)\n\n## Setup:\n* Configure you API keys\n* Ensure that the value `(voice_message)` in the `\"Path\"` parameter  in the Webhook node is used as the name of the parameter that will contain the voice message you are sending via the HTTP Post request.",
+    "description_length": 2786,
+    "usage": {
+      "prompt_tokens": 419,
+      "completion_tokens": 527,
+      "total_tokens": 946
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:28:32.692217"
+  },
+  "original_description": "## Who is this for?\nThis workflow is designed for businesses or developers looking to integrate voice-based chat applications with dynamic responses and conversational memory.\n\n## What problem does this solve?\nIt automates AI-powered voice conversations, maintaining context between sessions and converting speech-to-text and text-to-speech.\n\n## What this workflow does:\nThe workflow receives audio input, transcribes it using OpenAI, and processes the conversation using Google Gemini Chat Model (you can use OpenAI Chat Model). Responses are converted back to speech using ElevenLabs.\n\n## Prerequisites:\nYou'll need API keys for:\n* OpenAI (you can obtain it from OpenAI website)\n* ElevenLabs (you can obtain it from their website)\n* Google Gemini (You can obtain it from `Google AI Studio`)\n\n## Setup:\n* Configure you API keys\n* Ensure that the value `(voice_message)` in the `\"Path\"` parameter  in the Webhook node is used as the name of the parameter that will contain the voice message you are sending via the HTTP Post request.",
+  "optimized_description": "This workflow is designed for businesses or developers who want to integrate voice-based chat applications that provide dynamic responses and maintain conversational memory. It automates AI-powered voice conversations, ensuring that context is preserved between sessions while converting speech to text and text to speech.\n\nTrigger:\nThe workflow is initiated by a webhook that receives audio input in the form of a voice message. This audio input is sent via an HTTP POST request to the specified webhook URL.\n\nData Sources and APIs Needed:\n1. OpenAI API - for transcribing audio input to text and processing the conversation.\n2. ElevenLabs API - for converting text responses back into speech.\n3. Google Gemini API - for processing the conversation using the Google Gemini Chat Model (alternatively, the OpenAI Chat Model can be used).\n\nOperations and Processing Steps:\n1. **Webhook Node**: Set up a webhook to receive audio input. Ensure that the value `(voice_message)` is specified in the \"Path\" parameter of the Webhook node. This parameter will hold the voice message sent via the HTTP POST request.\n2. **Audio Transcription**: Use the OpenAI API to transcribe the received audio input (voice message) into text. This step converts the spoken language into a written format for further processing.\n3. **Conversation Processing**: Send the transcribed text to the Google Gemini Chat Model (or OpenAI Chat Model) for processing. This step involves generating a dynamic response based on the context of the conversation.\n4. **Text-to-Speech Conversion**: Once the response is generated, utilize the ElevenLabs API to convert the text response back into speech. This step transforms the written response into an audible format that can be played back to the user.\n\nFinal Output or Action:\nThe final output of this workflow is an audio response that is generated from the text response provided by the conversation processing step. This audio response is then sent back to the user, completing the voice-based interaction.\n\nPrerequisites:\nBefore setting up the workflow, ensure that you have obtained API keys from the following sources:\n- OpenAI (available on the OpenAI website)\n- ElevenLabs (available on their website)\n- Google Gemini (available through Google AI Studio)\n\nSetup Instructions:\n1. Configure your API keys for OpenAI, ElevenLabs, and Google Gemini within the workflow environment.\n2. Verify that the Webhook node is correctly configured to receive the audio input and that the parameter name `(voice_message)` is used as specified.\n\nThis structured workflow enables seamless integration of voice-based chat applications, providing an efficient solution for businesses and developers looking to enhance user interaction through dynamic and context-aware conversations.",
+  "error": null,
+  "generated_at": "2026-01-25T23:28:38.866564",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.18181818181818182,
+    "node_type_f1": 0.26666666666666666,
+    "tp": 2,
+    "fp": 2,
+    "fn": 9,
+    "gt_node_count": 11,
+    "llm_node_count": 4,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.125,
+    "connection_f1": 0.18181818181818182,
+    "correct_connections": 1,
+    "gt_connection_count": 8,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.5,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4288,
+        "completion_tokens": 647,
+        "total_tokens": 4935
+      },
+      "description_optimization": {
+        "prompt_tokens": 419,
+        "completion_tokens": 527,
+        "total_tokens": 946
+      },
+      "total_tokens": 5881,
+      "total_prompt_tokens": 4707,
+      "total_completion_tokens": 1174
+    },
+    "total_cost": 0.0235075,
+    "description_optimization_cost": 0.0063175,
+    "workflow_generation_cost": 0.01719
+  }
+}

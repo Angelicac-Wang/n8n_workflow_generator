@@ -1,0 +1,219 @@
+{
+  "template_id": 11043,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow for processing video and audio from Telegram messages.",
+    "workflowPlan": {
+      "name": "Telegram Media Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get File from Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getFile",
+            "fileId": "={{$json[\"message\"][\"document\"][\"file_id\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Video URL",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { videoUrl: $json[\"videoUrl\"] };"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send to FAL WAN",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://fal-wan-service.com/transform",
+            "method": "POST",
+            "bodyParameters": {
+              "videoUrl": "={{$json[\"videoUrl\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait for Video Transformation",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 300
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Processed Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://fal-wan-service.com/fetch",
+            "method": "GET",
+            "queryParameters": {
+              "jobId": "={{$json[\"jobId\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Audio to FAL Chatterbox",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://fal-chatterbox-service.com/transform",
+            "method": "POST",
+            "bodyParameters": {
+              "audioData": "={{$json[\"audioData\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Wait for Audio Transformation",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 300
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Fetch Processed Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://fal-chatterbox-service.com/fetch",
+            "method": "GET",
+            "queryParameters": {
+              "jobId": "={{$json[\"jobId\"]}}"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "3",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 659,
+    "completion_tokens": 1119,
+    "total_tokens": 1778
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:37:32.109578",
+  "generated_description": "This n8n workflow is initiated by a trigger from Telegram, specifically when a new message or file is received. The workflow begins by retrieving a file, such as an avatar, from Telegram using the Telegram API. It then extracts a video URL from the received data.\n\nFollowing this, the workflow performs a series of transformations and processing tasks. The video URL is sent to an external service (FAL WAN) for transformation, and the workflow waits for the job to complete. Once the video transformation is complete, the processed video is fetched from the service.\n\nSimultaneously, the workflow processes audio data. It sends the audio to another external service (FAL Chatterbox) for transformation, waits for the job to complete, and then retrieves the processed audio output.\n\nThroughout the workflow, various configuration and transformation steps are set up to ensure the data is handled correctly. The final output of the workflow is the transformed video and audio files, which are ready for further use or distribution.",
+  "description_generation_usage": {
+    "prompt_tokens": 253,
+    "completion_tokens": 197,
+    "total_tokens": 450
+  },
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.2727272727272727,
+    "node_type_f1": 0.42857142857142855,
+    "tp": 9,
+    "fp": 0,
+    "fn": 24,
+    "gt_node_count": 33,
+    "llm_node_count": 9,
+    "connection_precision": 0.6,
+    "connection_recall": 0.15789473684210525,
+    "connection_f1": 0.25,
+    "correct_connections": 3,
+    "gt_connection_count": 19,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.08730158730158728,
+    "usage": {
+      "prompt_tokens": 659,
+      "completion_tokens": 1119,
+      "total_tokens": 1778
+    },
+    "total_cost": 0.015439999999999999,
+    "description_generation_cost": 0.0026024999999999998,
+    "workflow_generation_cost": 0.0128375
+  },
+  "original_description": "# Convert Viral Videos into AI Avatar Swaps and Publish on TikTok with Blotato\n\n![Workflow Overview](https://www.dr-firas.com/wan.png)\n\n### Who is this for?\nThis workflow is designed for content creators, agencies, influencers, and automation builders who want to transform viral videos into personalized avatar-based edits \u2014 and automatically publish them on TikTok (and other platforms) without manual editing or video software.\n\n### What problem is this workflow solving?\nReplacing a character in a video, transforming the voice, merging audio/video, and publishing to social networks typically requires multiple tools, editing skills, and a lot of time.  \nThis workflow automates the entire pipeline end-to-end:\n\n- No manual video editing  \n- No audio processing  \n- No API debugging  \n- No uploading/publishing hassles  \n\nIt\u2019s a full AI-powered transformation system that produces ready-to-post content in minutes.\n\n### What this workflow does\nThis workflow receives an avatar image + a viral video URL and automatically:\n\n1. Extracts the audio using Replicate  \n2. Replaces the character in the video using **FAL WAN Replace**  \n3. Transforms the voice using **FAL Chatterbox Speech-to-Speech**  \n4. Merges the new video and audio using **FAL FFmpeg**  \n5. Saves results to Google Sheets for tracking  \n6. Publishes the final video to **TikTok** via Blotato (and optionally to Instagram, Facebook, LinkedIn, X, and YouTube)  \n7. Sends a confirmation message when publishing is complete\n\nEverything runs automatically, in parallel, for maximum speed.\n\n### Setup\n1. **Telegram Bot**  \n   - Add your Telegram Bot credentials in the **Telegram Trigger** node.  \n   - Send an avatar photo + video URL in one message (URL in the caption).\n\n2. **Workflow Configuration**  \n   - Add your **FAL API key**  \n   - Add your **Replicate API key**  \n   - Add your **targetVoiceAudioUrl** (this is the voice the output will use)\n\n3. **Google Sheets**  \n   - Connect your Google Sheets OAuth credentials  \n   - Select your sheet and ensure columns exist (e.g. original URL, output URL)\n\n4. **Blotato Publishing**  \n   - Install community node `@blotato/n8n-nodes-blotato`  \n   - Connect your [Blotato](https://blotato.com/?ref=firas) API credentials  \n   - Select the TikTok account (and optional other accounts)\n\n5. **Test the workflow**  \n   - Send a Telegram message with:\n     - A photo (avatar)\n     - Video URL in the caption  \n   - The workflow will process everything automatically.\n\n### How to customize this workflow to your needs\n- **Change platforms**: remove or add publishing outputs (TikTok, Instagram, LinkedIn, Facebook, YouTube, X).  \n- **Change voice style**: update the `targetVoiceAudioUrl` in the Workflow Configuration node.  \n- **Use your own avatar**: send any image in Telegram \u2014 the workflow automatically makes it public and ready for AI processing.  \n- **Adjust video logic**: swap FAL models, update merg\n\n---\n### \ud83d\udc4b Need help or want to customize this?\n\ud83d\udce9 Contact: [LinkedIn](https://www.linkedin.com/in/dr-firas/)  \n\ud83d\udcfa YouTube: [@DRFIRASS](https://www.youtube.com/@DRFIRASS)  \n\ud83d\ude80 Workshops: [Mes Ateliers n8n](https://hotm.art/formation-n8n)\n\n---\n\ud83d\udcc4 **Documentation**: [Notion Guide](https://automatisation.notion.site/Convert-viral-videos-into-AI-avatar-swaps-and-publish-on-TikTok-with-Blotato-2b13d6550fd9809d98d4c8b7bac85e20?source=copy_link)\n### Need help customizing?\nContact me for consulting and support : [Linkedin](https://www.linkedin.com/in/dr-firas/) / [Youtube](https://www.youtube.com/channel/UCriIQI8uaoEro5FEnOpeidQ) / [\ud83d\ude80 Mes Ateliers n8n  ](https://hotm.art/formation-n8n)"
+}

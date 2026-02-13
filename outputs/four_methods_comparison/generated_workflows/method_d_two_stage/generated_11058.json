@@ -1,0 +1,247 @@
+{
+  "template_id": "11058",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a new file in a specific Google Drive folder, so a Google Drive trigger is appropriate.",
+      "data_sources": "Google Drive API for file operations, Google Sheets API for updating records, OpenAI API for AI processing.",
+      "operations": "1. Monitor Google Drive folder for new PDFs, 2. Download PDF, 3. Use AI to extract invoice data, 4. Rename PDF, 5. Save PDF to correct folder, 6. Update Google Sheets with invoice data, 7. Move original PDF to output folder.",
+      "output_actions": "Store renamed PDF in the correct folder, update Google Sheets, move original PDF to output folder.",
+      "nodes_plan": "googleDriveTrigger (trigger), googleDriveDownload (download), openAi (AI processing), set (rename), googleDriveUpload (upload), googleSheets (update), googleDriveMove (move)",
+      "connections_plan": "googleDriveTrigger -> googleDriveDownload -> openAi -> set -> googleDriveUpload -> googleSheets -> googleDriveMove"
+    },
+    "workflowPlan": {
+      "name": "Automated AI Invoice Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "files",
+            "folderId": "inputFolderID",
+            "fileTypes": [
+              "application/pdf"
+            ]
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{ $json.id }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Invoice Data",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Extract the following information from the invoice: Invoice date, Vendor name, Currency type, Total amount due, Invoice number, Booking text, Booking account, Matching Google Drive folder ID."
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Rename File",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "fileName",
+                  "value": "={{ $json['Invoice number'] }} {{ $json['Vendor name'] }}.pdf"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "folderId": "={{ $json['Matching Google Drive folder ID'] }}",
+            "fileName": "={{ $json['fileName'] }}",
+            "binaryData": true,
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "yourGoogleSheetId",
+            "range": "Sheet1!A:G",
+            "data": [
+              [
+                "={{ $json['Invoice date'] }}",
+                "={{ $json['Vendor name'] }}",
+                "={{ $json['Currency type'] }}",
+                "={{ $json['Total amount due'] }}",
+                "={{ $json['Invoice number'] }}",
+                "={{ $json['Booking text'] }}",
+                "={{ $json['Booking account'] }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Move Original File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "move",
+            "fileId": "={{ $json.id }}",
+            "folderId": "outputFolderID"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4446,
+      "completion_tokens": 1256,
+      "total_tokens": 5702
+    },
+    "description_optimization": {
+      "prompt_tokens": 739,
+      "completion_tokens": 687,
+      "total_tokens": 1426
+    },
+    "total_tokens": 7128,
+    "total_prompt_tokens": 5185,
+    "total_completion_tokens": 1943
+  },
+  "description_optimization": {
+    "template_id": "11058",
+    "optimized_description": "This workflow is designed for fully automated AI invoice processing using n8n. It initiates when a new invoice PDF is detected in a specified Google Drive folder. The workflow includes several key operations that utilize AI to extract essential invoice information and manage files effectively.\n\nTrigger:\n- The workflow starts automatically when a new invoice PDF is uploaded to a designated Google Drive input folder.\n\nData Sources and APIs Needed:\n- Google Drive API (OAuth2 authentication)\n- Google Sheets API (OAuth2 authentication)\n- OpenAI API key for AI processing\n- A Google Sheet containing the chart of accounts\n- A prepared folder structure in Google Drive\n\nOperations and Processing Steps:\n1. Monitor the specified Google Drive input folder for new PDF files.\n2. Upon detecting a new invoice PDF, download the file to the workflow environment.\n3. Use an AI Agent (OpenAI combined with a Structured Output Parser) to extract the following key information from the invoice:\n   - Invoice date\n   - Vendor name\n   - Currency type\n   - Total amount due\n   - Invoice number\n   - Booking text\n   - Booking account\n   - Matching Google Drive folder ID for storage\n4. Rename the downloaded invoice PDF to a standardized format (e.g., 250912 Vendor.pdf) for consistency.\n5. Save the renamed invoice PDF into the appropriate accounting folder in Google Drive based on the extracted folder ID.\n6. Update a Google Sheets booking list with all extracted fields, ensuring that the records are accurate and up-to-date.\n7. Move the processed invoice PDF to a designated output folder to prevent duplication and maintain organization.\n\nFinal Output or Action:\n- The workflow concludes with the successful storage of the renamed invoice in the correct Google Drive folder, an updated Google Sheets booking list reflecting the new invoice details, and the original invoice being relocated to an output folder for processed files.\n\nKey Features:\n- Utilizes AI Invoice Reading capabilities through OpenAI and LangChain for accurate data extraction.\n- Employs a Structured Output Parser to ensure that all extracted fields are clean and validated.\n- Automates the routing of files within Google Drive for efficient document management.\n- Logs all invoice details in Google Sheets for comprehensive accounting records.\n- Implements file movement logic to keep input and output folders organized and free of duplicates.\n- Integrates seamlessly with a chart of accounts stored in Google Sheets.\n\nTypical Use Cases:\n- Streamlining automated accounting workflows.\n- Pre-processing invoices for import into ERP systems or services like sevDesk.\n- Providing AI-powered invoice extraction solutions for small businesses and freelancers.\n- Facilitating structured archiving of invoices to meet tax and audit requirements.\n- Establishing a fully automated Google Drive invoice inbox for efficient invoice management.\n\nHow to Use This Template:\n1. Connect your Google Drive and Google Sheets credentials in the relevant nodes of the workflow.\n2. Specify your input folder (where invoices are uploaded) and output folder (where processed invoices will be stored).\n3. Select the Google Sheet that contains your folder structure and booking accounts.\n4. Upload any invoice PDF into the specified input folder to trigger the workflow.\n5. The workflow will automatically process the invoice from start to finish without further intervention.\n\nRequirements:\n- Google Drive OAuth2 authentication\n- Google Sheets OAuth2 authentication\n- OpenAI API key\n- A Google Sheet with the chart of accounts\n- A prepared folder structure in Google Drive (recommended to use the \u201cGoogle Drive Structure Setup\u201d template).",
+    "original_description": "![Bildschirmfoto 20251208 um 19.25.48.heic](fileId:3572)\n\nThis template is a fully automated AI invoice processing workflow for n8n.\nIt watches a Google Drive folder for new invoice PDFs, extracts all key information using an AI Agent, assigns the correct booking account, saves the renamed invoice in the right Drive folder, and updates your Google Sheets booking list.\n\nA perfect starter template if you want to build your own AI-powered accounting automation.\n\n\n## What this workflow does\n- Monitors a Google Drive folder for new invoice PDFs.\n- Downloads and extracts invoice text from the uploaded PDF.\n- Uses an AI Agent (OpenAI + Structured Output Parser) to extract:\n\t- invoice date\n\t- vendor\n\t- currency\n\t- total amount\n\t- invoice number\n\t- booking text\n\t- booking account\n\t- matching Google Drive folder ID\n- Automatically renames the PDF to a clean, consistent format (e.g. 250912 Vendor.pdf).\n- Saves the invoice into the correct accounting folder in Google Drive.\n- Updates your booking list in Google Sheets with all extracted fields.\n- Moves the processed invoice to an output folder to avoid duplicates.\n\nEverything runs hands-free after setup.\n\n\n\n## Key features\n- \ud83e\udde0 AI Invoice Reading using OpenAI + LangChain\n- \ud83d\udcd1 Structured Output Parser guarantees clean, validated fields\n- \ud83d\udcc1 Automated Google Drive File Routing\n- \ud83d\udcca Google Sheets logging for accounting records\n- \ud83d\udd04 File movement logic to keep input/output folders organized\n- \u2699\ufe0f Chart of Accounts integration from your Google Sheet\n- \ud83d\udfe6 Works out of the box with Invoice Agent \u2013 Folder Structure Setup (recommended)\n\n\n\n## Typical use cases\n- Automated accounting workflows\n- Pre-processing invoices before importing into ERP or sevDesk\n- AI-powered invoice extraction for small businesses or freelancers\n- Structured archiving of invoices for tax and audit requirements\n- Fully automated Google Drive invoice inbox\n\n\n\n## How to use this template\n1. Connect your Google Drive & Sheets credentials in all relevant nodes.\n2. Select your:\n\u2022 Input folder (where invoices are uploaded)\n\u2022 Output folder (where processed invoices go)\n\u2022 Folder structure sheet + booking accounts sheet\n3. Upload any invoice PDF into the input folder.\n4. The workflow starts automatically and processes the invoice end-to-end.\n\n\u2e3b\n\n## Requirements\n\u2022 Google Drive OAuth2\n\u2022 Google Sheets OAuth2\n\u2022 OpenAI API key\n\u2022 A Google Sheet containing your chart of accounts\n\u2022 A prepared folder structure (use the \u201cGoogle Drive Structure Setup\u201d template)",
+    "description_length": 3677,
+    "usage": {
+      "prompt_tokens": 739,
+      "completion_tokens": 687,
+      "total_tokens": 1426
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:52:04.732227"
+  },
+  "original_description": "![Bildschirmfoto 20251208 um 19.25.48.heic](fileId:3572)\n\nThis template is a fully automated AI invoice processing workflow for n8n.\nIt watches a Google Drive folder for new invoice PDFs, extracts all key information using an AI Agent, assigns the correct booking account, saves the renamed invoice in the right Drive folder, and updates your Google Sheets booking list.\n\nA perfect starter template if you want to build your own AI-powered accounting automation.\n\n\n## What this workflow does\n- Monitors a Google Drive folder for new invoice PDFs.\n- Downloads and extracts invoice text from the uploaded PDF.\n- Uses an AI Agent (OpenAI + Structured Output Parser) to extract:\n\t- invoice date\n\t- vendor\n\t- currency\n\t- total amount\n\t- invoice number\n\t- booking text\n\t- booking account\n\t- matching Google Drive folder ID\n- Automatically renames the PDF to a clean, consistent format (e.g. 250912 Vendor.pdf).\n- Saves the invoice into the correct accounting folder in Google Drive.\n- Updates your booking list in Google Sheets with all extracted fields.\n- Moves the processed invoice to an output folder to avoid duplicates.\n\nEverything runs hands-free after setup.\n\n\n\n## Key features\n- \ud83e\udde0 AI Invoice Reading using OpenAI + LangChain\n- \ud83d\udcd1 Structured Output Parser guarantees clean, validated fields\n- \ud83d\udcc1 Automated Google Drive File Routing\n- \ud83d\udcca Google Sheets logging for accounting records\n- \ud83d\udd04 File movement logic to keep input/output folders organized\n- \u2699\ufe0f Chart of Accounts integration from your Google Sheet\n- \ud83d\udfe6 Works out of the box with Invoice Agent \u2013 Folder Structure Setup (recommended)\n\n\n\n## Typical use cases\n- Automated accounting workflows\n- Pre-processing invoices before importing into ERP or sevDesk\n- AI-powered invoice extraction for small businesses or freelancers\n- Structured archiving of invoices for tax and audit requirements\n- Fully automated Google Drive invoice inbox\n\n\n\n## How to use this template\n1. Connect your Google Drive & Sheets credentials in all relevant nodes.\n2. Select your:\n\u2022 Input folder (where invoices are uploaded)\n\u2022 Output folder (where processed invoices go)\n\u2022 Folder structure sheet + booking accounts sheet\n3. Upload any invoice PDF into the input folder.\n4. The workflow starts automatically and processes the invoice end-to-end.\n\n\u2e3b\n\n## Requirements\n\u2022 Google Drive OAuth2\n\u2022 Google Sheets OAuth2\n\u2022 OpenAI API key\n\u2022 A Google Sheet containing your chart of accounts\n\u2022 A prepared folder structure (use the \u201cGoogle Drive Structure Setup\u201d template)",
+  "optimized_description": "This workflow is designed for fully automated AI invoice processing using n8n. It initiates when a new invoice PDF is detected in a specified Google Drive folder. The workflow includes several key operations that utilize AI to extract essential invoice information and manage files effectively.\n\nTrigger:\n- The workflow starts automatically when a new invoice PDF is uploaded to a designated Google Drive input folder.\n\nData Sources and APIs Needed:\n- Google Drive API (OAuth2 authentication)\n- Google Sheets API (OAuth2 authentication)\n- OpenAI API key for AI processing\n- A Google Sheet containing the chart of accounts\n- A prepared folder structure in Google Drive\n\nOperations and Processing Steps:\n1. Monitor the specified Google Drive input folder for new PDF files.\n2. Upon detecting a new invoice PDF, download the file to the workflow environment.\n3. Use an AI Agent (OpenAI combined with a Structured Output Parser) to extract the following key information from the invoice:\n   - Invoice date\n   - Vendor name\n   - Currency type\n   - Total amount due\n   - Invoice number\n   - Booking text\n   - Booking account\n   - Matching Google Drive folder ID for storage\n4. Rename the downloaded invoice PDF to a standardized format (e.g., 250912 Vendor.pdf) for consistency.\n5. Save the renamed invoice PDF into the appropriate accounting folder in Google Drive based on the extracted folder ID.\n6. Update a Google Sheets booking list with all extracted fields, ensuring that the records are accurate and up-to-date.\n7. Move the processed invoice PDF to a designated output folder to prevent duplication and maintain organization.\n\nFinal Output or Action:\n- The workflow concludes with the successful storage of the renamed invoice in the correct Google Drive folder, an updated Google Sheets booking list reflecting the new invoice details, and the original invoice being relocated to an output folder for processed files.\n\nKey Features:\n- Utilizes AI Invoice Reading capabilities through OpenAI and LangChain for accurate data extraction.\n- Employs a Structured Output Parser to ensure that all extracted fields are clean and validated.\n- Automates the routing of files within Google Drive for efficient document management.\n- Logs all invoice details in Google Sheets for comprehensive accounting records.\n- Implements file movement logic to keep input and output folders organized and free of duplicates.\n- Integrates seamlessly with a chart of accounts stored in Google Sheets.\n\nTypical Use Cases:\n- Streamlining automated accounting workflows.\n- Pre-processing invoices for import into ERP systems or services like sevDesk.\n- Providing AI-powered invoice extraction solutions for small businesses and freelancers.\n- Facilitating structured archiving of invoices to meet tax and audit requirements.\n- Establishing a fully automated Google Drive invoice inbox for efficient invoice management.\n\nHow to Use This Template:\n1. Connect your Google Drive and Google Sheets credentials in the relevant nodes of the workflow.\n2. Specify your input folder (where invoices are uploaded) and output folder (where processed invoices will be stored).\n3. Select the Google Sheet that contains your folder structure and booking accounts.\n4. Upload any invoice PDF into the specified input folder to trigger the workflow.\n5. The workflow will automatically process the invoice from start to finish without further intervention.\n\nRequirements:\n- Google Drive OAuth2 authentication\n- Google Sheets OAuth2 authentication\n- OpenAI API key\n- A Google Sheet with the chart of accounts\n- A prepared folder structure in Google Drive (recommended to use the Google Drive Structure Setup template).",
+  "error": null,
+  "generated_at": "2026-01-25T22:52:17.079258",
+  "metrics": {
+    "node_type_precision": 0.8571428571428571,
+    "node_type_recall": 0.5,
+    "node_type_f1": 0.631578947368421,
+    "tp": 6,
+    "fp": 1,
+    "fn": 6,
+    "gt_node_count": 12,
+    "llm_node_count": 7,
+    "connection_precision": 0.5,
+    "connection_recall": 0.42857142857142855,
+    "connection_f1": 0.4615384615384615,
+    "correct_connections": 3,
+    "gt_connection_count": 7,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.06626984126984127,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4446,
+        "completion_tokens": 1256,
+        "total_tokens": 5702
+      },
+      "description_optimization": {
+        "prompt_tokens": 739,
+        "completion_tokens": 687,
+        "total_tokens": 1426
+      },
+      "total_tokens": 7128,
+      "total_prompt_tokens": 5185,
+      "total_completion_tokens": 1943
+    },
+    "total_cost": 0.032392500000000005,
+    "description_optimization_cost": 0.0087175,
+    "workflow_generation_cost": 0.023675
+  }
+}

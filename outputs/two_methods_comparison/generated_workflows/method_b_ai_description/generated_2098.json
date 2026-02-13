@@ -1,0 +1,141 @@
+{
+  "template_id": 2098,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Chat Message Processing Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "When Chat Message Received",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message-received"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Simple Memory",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": [
+              {
+                "key": "context",
+                "value": "={{$json[\"body\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "={{$json[\"context\"]}}",
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calculator1",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { data: $json[\"choices\"][0][\"text\"] };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Processed Message",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 657,
+    "completion_tokens": 591,
+    "total_tokens": 1248
+  },
+  "error": null,
+  "generated_at": "2026-01-13T07:33:53.428691",
+  "generated_description": "This n8n workflow is triggered when a chat message is received, as indicated by the \"When chat message received\" node. Upon activation, the workflow first utilizes the \"Simple Memory\" node to store or retrieve contextual information related to the chat interaction. This helps maintain continuity and context in the conversation.\n\nSubsequently, the workflow leverages the \"OpenAI\" node to process the chat message using OpenAI's language model capabilities. This step likely involves generating a response or extracting meaningful insights from the message content.\n\nFollowing the OpenAI processing, the \"Calculator1\" node is employed to perform any necessary calculations based on the data or insights derived from the previous steps. This could involve numerical computations or logical operations required to formulate an appropriate response or action.\n\nThe final output of the workflow is a processed and contextually aware response to the chat message, potentially involving both AI-generated insights and calculated data, ready to be sent back to the user or used in further operations.",
+  "description_generation_usage": {
+    "prompt_tokens": 162,
+    "completion_tokens": 195,
+    "total_tokens": 357
+  },
+  "metrics": {
+    "node_type_precision": 0.2,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.22222222222222224,
+    "tp": 1,
+    "fp": 4,
+    "fn": 3,
+    "gt_node_count": 4,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 657,
+      "completion_tokens": 591,
+      "total_tokens": 1248
+    },
+    "total_cost": 0.0099075,
+    "description_generation_cost": 0.0023550000000000003,
+    "workflow_generation_cost": 0.0075525
+  },
+  "original_description": "OpenAI Assistant is a powerful tool, but at the time of writing it doesn't automatically remember past messages from a conversation.\n\nThis workflow demonstrates how to get around this, by managing the chat history in n8n and passing it to the assistant when required.\n\nThis makes it possible to use OpenAI Assistant for chatbot use cases.\n\nNote that to use this template, you need to be on n8n version 1.28.0 or later."
+}

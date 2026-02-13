@@ -1,0 +1,172 @@
+{
+  "template_id": 5611,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to process and analyze audio or text data from Telegram.",
+    "workflowPlan": {
+      "name": "Telegram File Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"message\"][\"document\"][\"file_id\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Switch: File Type",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "={{$json[\"message\"][\"document\"][\"mime_type\"]}}",
+            "rules": [
+              {
+                "operation": "contains",
+                "value": "audio"
+              },
+              {
+                "operation": "contains",
+                "value": "text"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transcribe Audio",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "transcribe",
+            "audioFile": "={{$node[\"Download File\"].binary[\"data\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Set Text Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "text": "={{$json[\"text\"] || $node[\"Download File\"].json[\"message\"][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Process Text with OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{$node[\"Set Text Data\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 677,
+    "completion_tokens": 816,
+    "total_tokens": 1493
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:33:32.570116",
+  "generated_description": "This n8n workflow is designed to process and analyze audio or text data, primarily triggered by a file download from Telegram. Initially, it creates a URL and extracts necessary information. The workflow then filters to retain only verified email addresses. A limit is set on the data processed to ensure efficiency.\n\nThe workflow downloads a file from Telegram, which could be either an audio or a text file. If it's an audio file, it is transcribed using OpenAI's transcription service. The workflow then sets the text data for further processing.\n\nA switch node determines whether the input is voice or text. If it's text, it proceeds directly; if it's voice, it goes through the transcription process first. The text is then processed using the OpenAI Chat Model, which likely involves generating responses or extracting insights based on the input data.\n\nAdditionally, a simple memory buffer is utilized to maintain context or track previous interactions, enhancing the workflow's ability to handle ongoing conversations or data streams. The final output could involve generating a response, storing insights, or triggering further actions based on the processed data.",
+  "description_generation_usage": {
+    "prompt_tokens": 219,
+    "completion_tokens": 215,
+    "total_tokens": 434
+  },
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.19047619047619047,
+    "node_type_f1": 0.2962962962962963,
+    "tp": 4,
+    "fp": 2,
+    "fn": 17,
+    "gt_node_count": 21,
+    "llm_node_count": 6,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.05263157894736842,
+    "connection_f1": 0.08,
+    "correct_connections": 1,
+    "gt_connection_count": 19,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.125,
+    "usage": {
+      "prompt_tokens": 677,
+      "completion_tokens": 816,
+      "total_tokens": 1493
+    },
+    "total_cost": 0.01255,
+    "description_generation_cost": 0.0026975000000000002,
+    "workflow_generation_cost": 0.0098525
+  },
+  "original_description": "# AI-Powered Lead Generation with Apollo, GPT-4, and Telegram to Database\n\n## Overview\n\nThis intelligent lead generation workflow transforms voice commands or text input into verified prospect lists through automated Apollo.io scraping. The system processes natural language requests, extracts search parameters using AI, and delivers clean, verified contact data directly to your database.\n\n## Key Features\n\n### \ud83c\udfa4 Voice & Text Input Processing\n- **Voice Recognition**: Converts audio messages to text using OpenAI's transcription API\n- **Natural Language Processing**: AI agent interprets requests and extracts search criteria\n- **Flexible Input**: Supports both voice commands and text messages\n\n### \ud83d\udd0d Smart Lead Scraping\n- **Apollo.io Integration**: Automated scraping using official Apollo.io API\n- **Dynamic URL Generation**: Builds search URLs based on extracted parameters\n- **Intelligent Parsing**: Processes location, industry, and job title criteria\n\n### \u2705 Email Verification & Filtering\n- **Verified Emails Only**: Filters results to include only verified email addresses\n- **Duplicate Prevention**: Compares against existing database to avoid duplicates\n- **Data Quality Control**: Ensures high-quality prospect data\n\n### \ud83d\udcca Automated Data Management\n- **Database Integration**: Automatic storage in PostgreSQL/Supabase\n- **Structured Data**: Organizes contacts with complete profile information\n- **Real-time Updates**: Instant database updates with new prospects\n\n## How It Works\n\n1. **Input Processing**: Receive voice message or text command\n2. **AI Analysis**: Extract search parameters (location, industry, job titles)\n3. **URL Construction**: Build Apollo.io search URL with extracted criteria\n4. **Data Scraping**: Retrieve prospect data via Apollo.io API\n5. **Email Verification**: Filter for verified email addresses only\n6. **Duplicate Check**: Compare against existing database records\n7. **Data Storage**: Save new prospects to database\n8. **Confirmation**: Send success notification with count of new leads\n\n## Supported Search Parameters\n\n- **Location**: City, state, country combinations\n- **Industry**: Business sectors and verticals\n- **Job Titles**: Executive roles, departments, seniority levels\n- **Company Size**: Organization scale and employee count\n\n## Data Fields Extracted\n\n### Contact Information\n- First Name & Last Name\n- Email Address (verified only)\n- LinkedIn Profile URL\n- Phone Number (when available)\n\n### Professional Details\n- Current Job Title\n- Company Name\n- Industry\n- Seniority Level\n- Employment History\n\n### Location Data\n- City & State\n- Country\n- Full Location String\n\n### Company Information\n- Website URL\n- Business Industry\n- Organization Details\n\n## Technical Architecture\n\n### Core Components\n- **n8n Workflow Engine**: Orchestrates the entire process\n- **OpenAI Integration**: Powers voice transcription and AI analysis\n- **Apollo.io API**: Source for prospect data\n- **PostgreSQL/Supabase**: Database storage and management\n\n### API Integrations\n- OpenAI Whisper API for voice transcription\n- OpenAI GPT for natural language processing\n- Apollo.io API for lead data retrieval\n- Supabase API for database operations\n\n## Use Cases\n\n### Sales Teams\n- Quickly build prospect lists for outreach campaigns\n- Target specific industries or job roles\n- Maintain clean, verified contact databases\n\n### Marketing Professionals\n- Generate targeted lead lists for campaigns\n- Research prospects in specific markets\n- Build comprehensive contact databases\n\n### Business Development\n- Identify potential partners or clients\n- Research competitive landscapes\n- Generate contact lists for networking\n\n### Recruitment\n- Find candidates in specific locations\n- Target particular job roles or industries\n- Build talent pipeline databases\n\n## Benefits\n\n### \u26a1 Speed & Efficiency\n- Voice commands for instant lead generation\n- Automated processing eliminates manual work\n- Batch processing for large prospect lists\n\n### \ud83c\udfaf Precision Targeting\n- AI-powered parameter extraction\n- Flexible search criteria combinations\n- Industry and role-specific filtering\n\n### \ud83d\udcc8 Data Quality\n- Verified email addresses only\n- Duplicate prevention\n- Structured, consistent data format\n\n### \ud83d\udd04 Automation\n- End-to-end automated workflow\n- Real-time database updates\n- Instant confirmation notifications\n\n## Setup Requirements\n\n### Prerequisites\n- n8n workflow platform\n- OpenAI API access\n- Apollo.io API credentials\n- PostgreSQL or Supabase database\n- Messaging platform integration\n\n### Configuration Steps\n1. Import workflow into n8n\n2. Configure API credentials\n3. Set up database connections\n4. Customize search parameters\n5. Test with sample voice/text input\n\n## Customization Options\n\n### Search Parameters\n- Modify location formats\n- Add custom industry categories\n- Adjust job title variations\n- Set result limits\n\n### Data Processing\n- Customize field mappings\n- Add data validation rules\n- Implement additional filters\n- Configure output formats\n\n### Integration Options\n- Connect to CRM systems\n- Add email marketing tools\n- Integrate with sales platforms\n- Export to various formats\n\n## Success Metrics\n\n- **Processing Speed**: Voice-to-database in under 30 seconds\n- **Data Accuracy**: 95%+ verified email addresses\n- **Automation Level**: 100% hands-free operation\n- **Scalability**: Process 500+ leads per request\n\n---\n\n*Transform your lead generation process with intelligent automation that understands natural language and delivers verified prospects directly to your database.*"
+}

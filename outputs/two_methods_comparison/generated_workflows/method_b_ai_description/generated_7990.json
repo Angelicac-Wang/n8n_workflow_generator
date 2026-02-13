@@ -1,0 +1,177 @@
+{
+  "template_id": 7990,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Drive to Google Sheets with AI Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFolder": "YOUR_FOLDER_ID"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/get-file-metadata",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "fileId",
+                "value": "={{$json[\"fileId\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Mistral AI",
+          "nodeType": "n8n-nodes-base.mistralAI",
+          "typeVersion": 1,
+          "params": {
+            "fileContent": "={{$json[\"content\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.aiAgent",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{$json[\"extractedText\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI Chat",
+          "nodeType": "n8n-nodes-base.openAIChat",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "={{$json[\"analyzedText\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Structured Output Parser",
+          "nodeType": "n8n-nodes-base.structuredOutputParser",
+          "typeVersion": 1,
+          "params": {
+            "data": "={{$json[\"generatedOutput\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A1",
+            "data": "={{$json[\"structuredData\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 640,
+    "completion_tokens": 832,
+    "total_tokens": 1472
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:58:21.202602",
+  "generated_description": "This n8n workflow is initiated by a Google Drive Trigger, which activates the process whenever a new file is added to a specified Google Drive folder. Upon triggering, the workflow performs an HTTP Request to retrieve additional data or metadata related to the file. The extracted data is then processed by the Mistral AI node to extract text content from the file.\n\nSubsequently, an AI Agent node analyzes the extracted text, potentially to understand its context or to perform specific tasks based on the content. The workflow then utilizes the OpenAI Chat Model to generate insights or responses based on the analyzed text.\n\nThe generated output is then passed through a Structured Output Parser, which organizes the data into a structured format suitable for further processing or storage. Finally, the workflow appends this structured data as a new row in a Google Sheets document, effectively logging or storing the processed information for future reference or analysis.",
+  "description_generation_usage": {
+    "prompt_tokens": 194,
+    "completion_tokens": 178,
+    "total_tokens": 372
+  },
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.5714285714285714,
+    "node_type_f1": 0.5714285714285714,
+    "tp": 4,
+    "fp": 3,
+    "fn": 3,
+    "gt_node_count": 7,
+    "llm_node_count": 7,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.5,
+    "connection_f1": 0.4,
+    "correct_connections": 2,
+    "gt_connection_count": 4,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.011904761904761904,
+    "usage": {
+      "prompt_tokens": 640,
+      "completion_tokens": 832,
+      "total_tokens": 1472
+    },
+    "total_cost": 0.012185000000000001,
+    "description_generation_cost": 0.002265,
+    "workflow_generation_cost": 0.009920000000000002
+  },
+  "original_description": "### How it works:\n- Automatically detects when a new receipt is uploaded to Google Drive.\n- Extracts text from the receipt using OCR.\n- Uses an AI Agent to analyze the extracted data and structure it (e.g., vendor, date, total, tax).\n- Saves the organized receipt data into a Google Sheet for easy tracking.\n\n### Set up steps:\n- Setup takes around 15\u201320 minutes.\n- You'll need a Google Drive folder for receipts and a Google Sheet to store results.\n- Configure your Google Drive Trigger, OCR extraction, AI Agent, and Google Sheets connection.\n\nDetailed instructions and explanations are included in [this n8n Starter Session tutorial series](https://www.youtube.com/playlist?list=PLWYu7XaUG3XOJwOOGiX89SQ_w67vw3dq7)."
+}

@@ -1,0 +1,193 @@
+{
+  "template_id": "12296",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by receiving a command from a notification service like Discord, Telegram, WhatsApp, or Gmail.",
+      "data_sources": "Shopify API for store operations, OpenAI API for natural language processing, and APIs for notification services (Discord, Telegram, WhatsApp, Gmail).",
+      "operations": "1. Capture user command, 2. Parse command using OpenAI, 3. Retrieve context and data from Shopify, 4. Perform product management, order processing, or analytics, 5. Send confirmation or analytics back to the user.",
+      "output_actions": "Send a response back to the user through the notification service, confirming the action taken or providing analytics.",
+      "nodes_plan": "webhook (trigger), openAi (parse command), shopify (product/order operations), httpRequest (analytics), discord/telegram/whatsapp/gmail (send notification)",
+      "connections_plan": "webhook -> openAi -> [shopify operations | analytics] -> notification service"
+    },
+    "workflowPlan": {
+      "name": "Shopify AI Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "ai-assistant-command"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Command with OpenAI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.command }}",
+            "model": "gpt-4.1-mini"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Shopify Operations",
+          "nodeType": "n8n-nodes-base.shopify",
+          "typeVersion": 1,
+          "params": {
+            "operation": "dynamic",
+            "resource": "={{ $json.action }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analytics Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.shopify.com/v1/analytics",
+            "headers": {
+              "Authorization": "Bearer {{ $json.shopifyAccessToken }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Notification",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "={{ $json.channelId }}",
+            "text": "={{ $json.result }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4351,
+      "completion_tokens": 877,
+      "total_tokens": 5228
+    },
+    "description_optimization": {
+      "prompt_tokens": 755,
+      "completion_tokens": 590,
+      "total_tokens": 1345
+    },
+    "total_tokens": 6573,
+    "total_prompt_tokens": 5106,
+    "total_completion_tokens": 1467
+  },
+  "description_optimization": {
+    "template_id": "12296",
+    "optimized_description": "This n8n workflow is designed for Shopify store owners and e-commerce managers seeking to automate their store operations through an intelligent AI assistant. The workflow creates a conversational interface that manages products, processes orders, and provides store analytics using natural language commands.\n\nTrigger: The workflow is initiated when a user sends a command to the AI assistant via a supported notification service (Discord, Telegram, WhatsApp, or Gmail). The command can include requests for product management, order processing, or analytics.\n\nData Sources and APIs Needed:\n1. Shopify API: Requires a Shopify Access Token with appropriate permissions to access store data and perform operations.\n2. OpenAI API: Requires API credentials for the AI assistant, configured to use a suitable model (e.g., gpt-4.1-mini).\n3. Notification Services: Credentials for Discord Bot API, Telegram Bot API, Rapiwa API (for WhatsApp), and Gmail OAuth2 must be configured with the necessary API keys and target IDs.\n\nOperations and Processing Steps:\n1. User Command Reception: Capture the user's command from the selected notification service.\n2. Command Parsing: Analyze the command using the OpenAI API to determine the action required (product management, order processing, or analytics).\n3. Context Retrieval: Access conversation history and relevant Shopify data to provide context for the command.\n4. Product Management:\n   - Create: Add new products to the Shopify store.\n   - Update: Modify existing product details.\n   - Search: Retrieve product information based on user queries.\n   - Retrieve: Fetch specific product details as requested.\n   - Delete: Remove products from the store (requires user confirmation).\n5. Order Processing:\n   - Create: Generate new orders based on user requests.\n   - Update: Change order details or fulfillment status.\n   - Retrieve: Access order information as needed.\n   - Manage: Handle order-related tasks, including tracking and status updates.\n6. Analytics: Provide insights and reports on store performance based on user queries.\n7. Notification Sending: Send confirmation messages or updates to the user through the selected notification service, including a standard success message that can be customized.\n\nFinal Output or Action: The workflow concludes by sending a response back to the user through the chosen notification service, confirming the action taken (e.g., product created, order updated) or providing requested analytics.\n\nImportant Notes:\n- The MCP Server must be properly configured for production use to ensure seamless Shopify operations.\n- The workflow includes specific Shopify tools that can be enabled or disabled based on user requirements.\n- The AI assistant's system prompt is customizable with e-commerce guidelines.\n- Irreversible actions, such as deletions, will require explicit user confirmation to proceed.\n- The workflow incorporates appropriate delays to prevent API rate limiting.\n\nFor production deployment of the MCP Server, ensure all configurations are complete and tested. For support and assistance, users can reach out via WhatsApp, Discord, Facebook Group, or visit the website for additional resources.",
+    "original_description": "## Who it's for\nThis **n8n workflow** is designed for Shopify store owners and e-commerce managers who want to automate their store operations through an intelligent AI assistant. The workflow creates a conversational interface that can manage products, process orders, and provide store analytics through natural language commands.\n\n## Features\n- **Intelligent AI Assistant**: Powered by OpenAI with specialized system prompts for e-commerce operations\n- **Shopify Integration**: Complete MCP (Model Context Protocol) server implementation for seamless Shopify operations\n- **Product Management**: Create, update, search, retrieve, and delete products automatically\n- **Order Processing**: Create, update, retrieve, and manage orders including fulfillment status\n- **Context-Aware Automation**: Uses conversation history and Shopify data to minimize user input requirements\n\n## Requirements\n- **Shopify Access Token**: For accessing Shopify store data and operations\n- **OpenAI API Credentials**: For powering the AI assistant\n- **Notification Service Credentials**:\n  `Discord Bot API`, `Telegram Bot API`, `Rapiwa API (for WhatsApp)`, `Gmail OAuth2`\n#### Configure Credentials\n- **Shopify Access Token**: Configure with proper permissions for your store\n- **OpenAI API**: Set up with appropriate model access (gpt-4.1-mini or similar)\n- **Notification Services**: Configure each service with proper API keys and target IDs\n\n## Important Notes\n- **MCP Server Setup**: The workflow includes a Shopify MCP Server that must be properly configured for production use\n- **Tool Selection**: The MCP Client includes specific Shopify tools that can be enabled/disabled based on requirements\n- **System Prompt**: The AI assistant is configured with specialized e-commerce guidelines that can be customized\n- **Confirmation Requirements**: Irreversible actions like deletions will require confirmation\n- **Rate Limiting**: The workflow includes appropriate delays to prevent API rate limiting\n- **Notification Content**: All notifications include a standard success message that can be customized\n\n## Production Deployment for MCP Server\n`To deploy this workflow in production`\n\n## Support & Help\n- **WhatsApp**: [Chat on WhatsApp](https://wa.me/8801322827799)\n- **Discord**: [SpaGreen Community](https://discord.gg/SsCChWEP)\n- **Facebook Group**: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)\n- **Website**: [https://spagreen.net](https://spagreen.net)\n- **Developer Portfolio**: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)",
+    "description_length": 3195,
+    "usage": {
+      "prompt_tokens": 755,
+      "completion_tokens": 590,
+      "total_tokens": 1345
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:52:19.207449"
+  },
+  "original_description": "## Who it's for\nThis **n8n workflow** is designed for Shopify store owners and e-commerce managers who want to automate their store operations through an intelligent AI assistant. The workflow creates a conversational interface that can manage products, process orders, and provide store analytics through natural language commands.\n\n## Features\n- **Intelligent AI Assistant**: Powered by OpenAI with specialized system prompts for e-commerce operations\n- **Shopify Integration**: Complete MCP (Model Context Protocol) server implementation for seamless Shopify operations\n- **Product Management**: Create, update, search, retrieve, and delete products automatically\n- **Order Processing**: Create, update, retrieve, and manage orders including fulfillment status\n- **Context-Aware Automation**: Uses conversation history and Shopify data to minimize user input requirements\n\n## Requirements\n- **Shopify Access Token**: For accessing Shopify store data and operations\n- **OpenAI API Credentials**: For powering the AI assistant\n- **Notification Service Credentials**:\n  `Discord Bot API`, `Telegram Bot API`, `Rapiwa API (for WhatsApp)`, `Gmail OAuth2`\n#### Configure Credentials\n- **Shopify Access Token**: Configure with proper permissions for your store\n- **OpenAI API**: Set up with appropriate model access (gpt-4.1-mini or similar)\n- **Notification Services**: Configure each service with proper API keys and target IDs\n\n## Important Notes\n- **MCP Server Setup**: The workflow includes a Shopify MCP Server that must be properly configured for production use\n- **Tool Selection**: The MCP Client includes specific Shopify tools that can be enabled/disabled based on requirements\n- **System Prompt**: The AI assistant is configured with specialized e-commerce guidelines that can be customized\n- **Confirmation Requirements**: Irreversible actions like deletions will require confirmation\n- **Rate Limiting**: The workflow includes appropriate delays to prevent API rate limiting\n- **Notification Content**: All notifications include a standard success message that can be customized\n\n## Production Deployment for MCP Server\n`To deploy this workflow in production`\n\n## Support & Help\n- **WhatsApp**: [Chat on WhatsApp](https://wa.me/8801322827799)\n- **Discord**: [SpaGreen Community](https://discord.gg/SsCChWEP)\n- **Facebook Group**: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)\n- **Website**: [https://spagreen.net](https://spagreen.net)\n- **Developer Portfolio**: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)",
+  "optimized_description": "This n8n workflow is designed for Shopify store owners and e-commerce managers seeking to automate their store operations through an intelligent AI assistant. The workflow creates a conversational interface that manages products, processes orders, and provides store analytics using natural language commands.\n\nTrigger: The workflow is initiated when a user sends a command to the AI assistant via a supported notification service (Discord, Telegram, WhatsApp, or Gmail). The command can include requests for product management, order processing, or analytics.\n\nData Sources and APIs Needed:\n1. Shopify API: Requires a Shopify Access Token with appropriate permissions to access store data and perform operations.\n2. OpenAI API: Requires API credentials for the AI assistant, configured to use a suitable model (e.g., gpt-4.1-mini).\n3. Notification Services: Credentials for Discord Bot API, Telegram Bot API, Rapiwa API (for WhatsApp), and Gmail OAuth2 must be configured with the necessary API keys and target IDs.\n\nOperations and Processing Steps:\n1. User Command Reception: Capture the user's command from the selected notification service.\n2. Command Parsing: Analyze the command using the OpenAI API to determine the action required (product management, order processing, or analytics).\n3. Context Retrieval: Access conversation history and relevant Shopify data to provide context for the command.\n4. Product Management:\n   - Create: Add new products to the Shopify store.\n   - Update: Modify existing product details.\n   - Search: Retrieve product information based on user queries.\n   - Retrieve: Fetch specific product details as requested.\n   - Delete: Remove products from the store (requires user confirmation).\n5. Order Processing:\n   - Create: Generate new orders based on user requests.\n   - Update: Change order details or fulfillment status.\n   - Retrieve: Access order information as needed.\n   - Manage: Handle order-related tasks, including tracking and status updates.\n6. Analytics: Provide insights and reports on store performance based on user queries.\n7. Notification Sending: Send confirmation messages or updates to the user through the selected notification service, including a standard success message that can be customized.\n\nFinal Output or Action: The workflow concludes by sending a response back to the user through the chosen notification service, confirming the action taken (e.g., product created, order updated) or providing requested analytics.\n\nImportant Notes:\n- The MCP Server must be properly configured for production use to ensure seamless Shopify operations.\n- The workflow includes specific Shopify tools that can be enabled or disabled based on user requirements.\n- The AI assistant's system prompt is customizable with e-commerce guidelines.\n- Irreversible actions, such as deletions, will require explicit user confirmation to proceed.\n- The workflow incorporates appropriate delays to prevent API rate limiting.\n\nFor production deployment of the MCP Server, ensure all configurations are complete and tested. For support and assistance, users can reach out via WhatsApp, Discord, Facebook Group, or visit the website for additional resources.",
+  "error": null,
+  "generated_at": "2026-01-25T23:52:28.976275",
+  "metrics": {
+    "node_type_precision": 0.4,
+    "node_type_recall": 0.07692307692307693,
+    "node_type_f1": 0.12903225806451613,
+    "tp": 2,
+    "fp": 3,
+    "fn": 24,
+    "gt_node_count": 26,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 8,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4351,
+        "completion_tokens": 877,
+        "total_tokens": 5228
+      },
+      "description_optimization": {
+        "prompt_tokens": 755,
+        "completion_tokens": 590,
+        "total_tokens": 1345
+      },
+      "total_tokens": 6573,
+      "total_prompt_tokens": 5106,
+      "total_completion_tokens": 1467
+    },
+    "total_cost": 0.027435,
+    "description_optimization_cost": 0.007787500000000001,
+    "workflow_generation_cost": 0.019647500000000002
+  }
+}

@@ -1,0 +1,314 @@
+{
+  "template_id": "11368",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow is triggered by receiving a message from a Telegram bot.",
+      "data_sources": "Telegram Bot API, OpenRouter API, Ainoflow API.",
+      "operations": "1. Receive message from Telegram, 2. Determine message type (text, photo, PDF, voice), 3. Extract or transcribe text, 4. Process text to extract expense data, 5. Categorize and store expense data, 6. Respond to user queries about expenses.",
+      "output_actions": "Send confirmation of added expenses or detailed expense reports back to the user via Telegram.",
+      "nodes_plan": "telegramTrigger (trigger), ifNode (determine message type), ocrNode (extract text from photo/PDF), transcribeNode (transcribe voice), aiProcessNode (process text for expense data), categorizeNode (categorize expenses), storeNode (store expenses), queryNode (handle user queries), telegramReplyNode (send responses).",
+      "connections_plan": "telegramTrigger -> ifNode -> [ocrNode/transcribeNode/aiProcessNode] -> categorizeNode -> storeNode -> queryNode -> telegramReplyNode"
+    },
+    "workflowPlan": {
+      "name": "Personal Expense Tracker Bot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{ $env.TELEGRAM_BOT_TOKEN }}",
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Determine Message Type",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.message.photo ? true : false }}",
+                  "operation": "isTrue"
+                },
+                {
+                  "value1": "={{ $json.message.document ? true : false }}",
+                  "operation": "isTrue"
+                },
+                {
+                  "value1": "={{ $json.message.voice ? true : false }}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Text from Photo/PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.ainoflow.com/extract-text",
+            "body": {
+              "file": "={{ $json.message.photo || $json.message.document }}"
+            },
+            "authentication": "={{ $env.AINOFLOW_API_KEY }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transcribe Voice Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.ainoflow.com/transcribe",
+            "body": {
+              "file": "={{ $json.message.voice }}"
+            },
+            "authentication": "={{ $env.AINOFLOW_API_KEY }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Process Text for Expense Data",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.text }}",
+            "model": "gpt4o"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Categorize Expenses",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "category",
+                  "value": "={{ $json.category }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Store Expenses",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.ainoflow.com/store-expense",
+            "body": {
+              "amount": "={{ $json.amount }}",
+              "date": "={{ $json.date }}",
+              "vendor": "={{ $json.vendor }}",
+              "category": "={{ $json.category }}"
+            },
+            "authentication": "={{ $env.AINOFLOW_API_KEY }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Handle User Queries",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.query }}",
+            "model": "sonnet45"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Telegram Reply",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.message.chat.id }}",
+            "text": "={{ $json.response }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 2,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4498,
+      "completion_tokens": 1632,
+      "total_tokens": 6130
+    },
+    "description_optimization": {
+      "prompt_tokens": 1435,
+      "completion_tokens": 737,
+      "total_tokens": 2172
+    },
+    "total_tokens": 8302,
+    "total_prompt_tokens": 5933,
+    "total_completion_tokens": 2369
+  },
+  "description_optimization": {
+    "template_id": "11368",
+    "optimized_description": "Personal Expense Tracker Bot Workflow Description\n\nTrigger: The workflow is initiated when a user sends a message to the Telegram bot. This can include text messages, voice messages, photos of receipts, or PDF invoices.\n\nData Sources and APIs:\n1. Telegram Bot API: Create a Telegram bot using @BotFather to obtain an API token. Configure the following nodes:\n   - Input\n   - WelcomeMessage\n   - GetAudioFile\n   - GetAttachedFile\n   - GetAttachedPhoto\n   - ReplyText\n   - NotAuthorizedMessage\n   - DeleteProcessing\n\n2. OpenRouter API: Obtain an API key from OpenRouter for AI processing. Configure the following credentials:\n   - Gpt4o (main processing)\n   - Sonnet45 (expense assistant)\n\n3. Ainoflow API: Acquire an API key from Ainoflow for storage and OCR. Configure Bearer credentials for:\n   - GetConfig\n   - SaveConfig\n   - ExtractFileText\n   - ExtractImageText\n   - TranscribeRecording\n   - JsonStorageMcp (MCP tool)\n\nOperations and Processing Steps:\n1. Receive messages from Telegram:\n   - If the message is a photo or PDF, extract text using OCR.\n   - If the message is a voice message, transcribe the audio to text.\n   - If the message is a text input, process the text directly.\n\n2. For each type of input:\n   - Extract relevant data including amount, date, and vendor from receipts or invoices.\n   - Categorize the expense based on predefined categories such as Groceries, Transportation, Housing, etc.\n   - Store the extracted and categorized expense data in a structured JSON format organized by month (YYYY-MM).\n\n3. Allow users to query their expenses:\n   - Process queries such as \"Show my expenses for November,\" \"How much did I spend on groceries?\" and \"Compare last 3 months.\"\n   - Retrieve and format the requested expense data to send back to the user.\n\nFinal Output or Action:\nThe bot will respond to the user with:\n- Confirmation of added expenses in a structured format (e.g., \"Added: 45.50 EUR - Groceries (Lidl)\").\n- Detailed expense reports based on user queries, including monthly totals, category breakdowns, and comparisons over specified timeframes.\n\nWorkflow Architecture:\n- Message Trigger: Receives all Telegram messages.\n- Bot Privacy: Locks the bot to the first user, rejecting unauthorized access.\n- Chat Message / Audio: Routes text and voice messages to AI for processing.\n- Document / Photo: Extracts text from files via OCR and forwards it to AI.\n- Root Agent: Routes messages to the Expense Assistant and validates responses.\n- Expense Assistant: Core logic for storing expenses and calculating statistics.\n- Result / Reply: Sends formatted responses back to Telegram.\n- Cleanup / Reset: Manual trigger to delete all data, used with caution.\n\nImportant Notes:\n- The first user to run the /start command locks the bot for their use only.\n- The default currency is EUR, but the AI can auto-detect other currencies.\n- The cleanup function deletes all data and should be used with caution.\n- No confirmation prompts are required for adding expenses; only delete operations ask for confirmation.\n\nCustomization Options:\n- Change the default currency in agent prompts.\n- Add or modify expense categories in the Expense Assistant.\n- Extend the Root Agent with additional assistants as needed.\n- Adjust AI models by swapping GPT-4o or Sonnet as required.\n\nThis workflow provides a comprehensive solution for tracking personal expenses via a Telegram bot, utilizing AI for data extraction and processing, while ensuring user privacy and data security.",
+    "original_description": "# Personal Expense Tracker Bot \ud83d\udcb0\n\nAI-powered Telegram bot for effortless expense tracking. Send receipts, voice messages, or text - the bot automatically extracts and categorizes your expenses.\n\n## \u2728 Key Features\n\n- **\ud83d\udcf8 Receipt & Invoice OCR** - Send photos of receipts or PDF invoices, AI extracts expense data automatically\n- **\ud83c\udfa4 Voice Messages** - Speak your expenses naturally, audio is transcribed and processed\n- **\ud83d\udcac Natural Language** - Just type \"spent 50 on groceries\" or any text format\n- **\ud83c\udf0d Multilingual** - Processes documents in any language (EN, DE, PT, etc.)\n- **\ud83d\udcca Smart Statistics** - Get monthly totals, category breakdowns, multi-month comparisons\n- **\ud83d\udd12 Private & Secure** - Single-user authorization, only you can access your data\n- **\u26a1 Zero Confirmation** - Expenses are added instantly, no annoying \"confirm?\" prompts\n\n## \ud83c\udfaf How It Works\n\n1. **Send expense data** via Telegram:\n   - Photo of receipt\n   - PDF invoice\n   - Voice message\n   - Text message\n\n2. **AI processes automatically**:\n   - Extracts amount, date, vendor\n   - Categorizes expense\n   - Stores in organized format\n\n3. **Query your expenses**:\n   - \"Show my expenses for November\"\n   - \"How much did I spend on groceries?\"\n   - \"Compare last 3 months\"\n\n## \ud83d\udccb Expense Categories\n\nGroceries, Transportation, Housing, Utilities, Healthcare, Entertainment, Dining Out, Clothing, Education, Subscriptions, Personal Care, Gifts, Travel, Sports, Other\n\n## \ud83d\udd27 Setup Requirements\n\n### 1. Telegram Bot\nCreate a Telegram bot via [@BotFather](https://t.me/botfather) and get your API token.\n\nConfigure credentials for nodes:\n- Input, WelcomeMessage, \n- GetAudioFile, GetAttachedFile, GetAttachedPhoto\n- ReplyText, NotAuthorizedMessage, DeleteProcessing\n\n### 2. OpenRouter API\nGet API key from [OpenRouter](https://openrouter.ai/) for AI processing.\n\nConfigure credentials for:\n- Gpt4o (main processing)\n- Sonnet45 (expense assistant)\n\n### 3. Ainoflow API\nGet API key from [Ainoflow](https://www.ainoflow.io/signup) for storage and OCR.\n\nConfigure Bearer credentials for:\n- GetConfig, SaveConfig\n- ExtractFileText, ExtractImageText\n- TranscribeRecording\n- JsonStorageMcp (MCP tool)\n\n## \ud83c\udfd7\ufe0f Workflow Architecture\n\n| Section | Description |\n|---------|-------------|\n| **Message Trigger** | Receives all Telegram messages |\n| **Bot Privacy** | Locks bot to first user, rejects unauthorized access |\n| **Chat Message / Audio** | Routes text and voice messages to AI |\n| **Document / Photo** | Extracts text from files via OCR and forwards to AI |\n| **Root Agent** | Routes messages to Expense Assistant, validates responses |\n| **Expense Assistant** | Core logic: stores expenses, calculates statistics |\n| **Result / Reply** | Sends formatted response back to Telegram |\n| **Cleanup / Reset** | Manual trigger to delete all data (\u26a0\ufe0f use with caution) |\n\n## \ud83d\udcac Usage Examples\n\n### Adding Expenses\n```\n\ud83d\udcf8 [Send receipt photo]\n\u2192 Added: 45.50 EUR - Groceries (Lidl)\n\n\ud83c\udfa4 \"Bought coffee for five euros\"  \n\u2192 Added: 5.00 EUR - Dining Out (coffee)\n\n\ud83d\udcac \"50 uber\"\n\u2192 Added: 50.00 EUR - Transportation (uber)\n```\n\n### Querying Expenses\n```\n\"Show my expenses\"\n\u2192 November 2025: 1,250.50 EUR (23 expenses)\n   Top: Groceries 450\u20ac, Transportation 280\u20ac, Dining 220\u20ac\n\n\"How much on entertainment this month?\"\n\u2192 Entertainment: 85.00 EUR (3 expenses)\n\n\"Compare October and November\"  \n\u2192 Oct: 980\u20ac | Nov: 1,250\u20ac (+27%)\n```\n\n## \ud83d\udce6 Data Storage\n\nExpenses are stored in JSON format organized by month (YYYY-MM):\n```json\n{\n  \"id\": \"uuid\",\n  \"amount\": 45.50,\n  \"currency\": \"EUR\",\n  \"category\": \"Groceries\",\n  \"description\": \"Store name\",\n  \"date\": \"2025-11-10T14:30:00Z\",\n  \"created_at\": \"2025-11-10T14:35:22Z\"\n}\n```\n\n## \u26a0\ufe0f Important Notes\n\n- **First user locks the bot** - Run `/start` to claim ownership\n- **Default currency is EUR** - AI auto-detects other currencies\n- **Cleanup deletes ALL data** - Use manual trigger with caution\n- **No confirmation for adding** - Only delete operations ask for confirmation\n\n## \ud83d\udee0\ufe0f Customization\n\n- Change default currency in agent prompts\n- Add/modify expense categories in ExpenseAssistant\n- Extend Root Agent with additional assistants\n- Adjust AI models (swap GPT-4o/Sonnet as needed)\n\n## \ud83d\udcda Related Resources\n\n- [Create Telegram Bot](https://blog.n8n.io/create-telegram-bot/)\n- [OpenRouter Credentials](https://docs.n8n.io/integrations/builtin/credentials/openrouter/)\n- [Ainoflow Platform](https://www.ainoflow.io/)\n\n## \ud83d\udcbc Need Customization?\n\nWant to adapt this template for your specific needs? Custom integrations, additional features, or enterprise deployment?\n\n**Contact us at [Ainova Systems](https://ainovasystems.com/)** - We build AI automation solutions for businesses.\n\n---\n\n**Tags:** `telegram`, `expense-tracker`, `ai-agent`, `ocr`, `voice-to-text`, `openrouter`, `mcp-tools`, `personal-finance`",
+    "description_length": 3483,
+    "usage": {
+      "prompt_tokens": 1435,
+      "completion_tokens": 737,
+      "total_tokens": 2172
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:50:29.469389"
+  },
+  "original_description": "# Personal Expense Tracker Bot \ud83d\udcb0\n\nAI-powered Telegram bot for effortless expense tracking. Send receipts, voice messages, or text - the bot automatically extracts and categorizes your expenses.\n\n## \u2728 Key Features\n\n- **\ud83d\udcf8 Receipt & Invoice OCR** - Send photos of receipts or PDF invoices, AI extracts expense data automatically\n- **\ud83c\udfa4 Voice Messages** - Speak your expenses naturally, audio is transcribed and processed\n- **\ud83d\udcac Natural Language** - Just type \"spent 50 on groceries\" or any text format\n- **\ud83c\udf0d Multilingual** - Processes documents in any language (EN, DE, PT, etc.)\n- **\ud83d\udcca Smart Statistics** - Get monthly totals, category breakdowns, multi-month comparisons\n- **\ud83d\udd12 Private & Secure** - Single-user authorization, only you can access your data\n- **\u26a1 Zero Confirmation** - Expenses are added instantly, no annoying \"confirm?\" prompts\n\n## \ud83c\udfaf How It Works\n\n1. **Send expense data** via Telegram:\n   - Photo of receipt\n   - PDF invoice\n   - Voice message\n   - Text message\n\n2. **AI processes automatically**:\n   - Extracts amount, date, vendor\n   - Categorizes expense\n   - Stores in organized format\n\n3. **Query your expenses**:\n   - \"Show my expenses for November\"\n   - \"How much did I spend on groceries?\"\n   - \"Compare last 3 months\"\n\n## \ud83d\udccb Expense Categories\n\nGroceries, Transportation, Housing, Utilities, Healthcare, Entertainment, Dining Out, Clothing, Education, Subscriptions, Personal Care, Gifts, Travel, Sports, Other\n\n## \ud83d\udd27 Setup Requirements\n\n### 1. Telegram Bot\nCreate a Telegram bot via [@BotFather](https://t.me/botfather) and get your API token.\n\nConfigure credentials for nodes:\n- Input, WelcomeMessage, \n- GetAudioFile, GetAttachedFile, GetAttachedPhoto\n- ReplyText, NotAuthorizedMessage, DeleteProcessing\n\n### 2. OpenRouter API\nGet API key from [OpenRouter](https://openrouter.ai/) for AI processing.\n\nConfigure credentials for:\n- Gpt4o (main processing)\n- Sonnet45 (expense assistant)\n\n### 3. Ainoflow API\nGet API key from [Ainoflow](https://www.ainoflow.io/signup) for storage and OCR.\n\nConfigure Bearer credentials for:\n- GetConfig, SaveConfig\n- ExtractFileText, ExtractImageText\n- TranscribeRecording\n- JsonStorageMcp (MCP tool)\n\n## \ud83c\udfd7\ufe0f Workflow Architecture\n\n| Section | Description |\n|---------|-------------|\n| **Message Trigger** | Receives all Telegram messages |\n| **Bot Privacy** | Locks bot to first user, rejects unauthorized access |\n| **Chat Message / Audio** | Routes text and voice messages to AI |\n| **Document / Photo** | Extracts text from files via OCR and forwards to AI |\n| **Root Agent** | Routes messages to Expense Assistant, validates responses |\n| **Expense Assistant** | Core logic: stores expenses, calculates statistics |\n| **Result / Reply** | Sends formatted response back to Telegram |\n| **Cleanup / Reset** | Manual trigger to delete all data (\u26a0\ufe0f use with caution) |\n\n## \ud83d\udcac Usage Examples\n\n### Adding Expenses\n```\n\ud83d\udcf8 [Send receipt photo]\n\u2192 Added: 45.50 EUR - Groceries (Lidl)\n\n\ud83c\udfa4 \"Bought coffee for five euros\"  \n\u2192 Added: 5.00 EUR - Dining Out (coffee)\n\n\ud83d\udcac \"50 uber\"\n\u2192 Added: 50.00 EUR - Transportation (uber)\n```\n\n### Querying Expenses\n```\n\"Show my expenses\"\n\u2192 November 2025: 1,250.50 EUR (23 expenses)\n   Top: Groceries 450\u20ac, Transportation 280\u20ac, Dining 220\u20ac\n\n\"How much on entertainment this month?\"\n\u2192 Entertainment: 85.00 EUR (3 expenses)\n\n\"Compare October and November\"  \n\u2192 Oct: 980\u20ac | Nov: 1,250\u20ac (+27%)\n```\n\n## \ud83d\udce6 Data Storage\n\nExpenses are stored in JSON format organized by month (YYYY-MM):\n```json\n{\n  \"id\": \"uuid\",\n  \"amount\": 45.50,\n  \"currency\": \"EUR\",\n  \"category\": \"Groceries\",\n  \"description\": \"Store name\",\n  \"date\": \"2025-11-10T14:30:00Z\",\n  \"created_at\": \"2025-11-10T14:35:22Z\"\n}\n```\n\n## \u26a0\ufe0f Important Notes\n\n- **First user locks the bot** - Run `/start` to claim ownership\n- **Default currency is EUR** - AI auto-detects other currencies\n- **Cleanup deletes ALL data** - Use manual trigger with caution\n- **No confirmation for adding** - Only delete operations ask for confirmation\n\n## \ud83d\udee0\ufe0f Customization\n\n- Change default currency in agent prompts\n- Add/modify expense categories in ExpenseAssistant\n- Extend Root Agent with additional assistants\n- Adjust AI models (swap GPT-4o/Sonnet as needed)\n\n## \ud83d\udcda Related Resources\n\n- [Create Telegram Bot](https://blog.n8n.io/create-telegram-bot/)\n- [OpenRouter Credentials](https://docs.n8n.io/integrations/builtin/credentials/openrouter/)\n- [Ainoflow Platform](https://www.ainoflow.io/)\n\n## \ud83d\udcbc Need Customization?\n\nWant to adapt this template for your specific needs? Custom integrations, additional features, or enterprise deployment?\n\n**Contact us at [Ainova Systems](https://ainovasystems.com/)** - We build AI automation solutions for businesses.\n\n---\n\n**Tags:** `telegram`, `expense-tracker`, `ai-agent`, `ocr`, `voice-to-text`, `openrouter`, `mcp-tools`, `personal-finance`",
+  "optimized_description": "Personal Expense Tracker Bot Workflow Description\n\nTrigger: The workflow is initiated when a user sends a message to the Telegram bot. This can include text messages, voice messages, photos of receipts, or PDF invoices.\n\nData Sources and APIs:\n1. Telegram Bot API: Create a Telegram bot using @BotFather to obtain an API token. Configure the following nodes:\n   - Input\n   - WelcomeMessage\n   - GetAudioFile\n   - GetAttachedFile\n   - GetAttachedPhoto\n   - ReplyText\n   - NotAuthorizedMessage\n   - DeleteProcessing\n\n2. OpenRouter API: Obtain an API key from OpenRouter for AI processing. Configure the following credentials:\n   - Gpt4o (main processing)\n   - Sonnet45 (expense assistant)\n\n3. Ainoflow API: Acquire an API key from Ainoflow for storage and OCR. Configure Bearer credentials for:\n   - GetConfig\n   - SaveConfig\n   - ExtractFileText\n   - ExtractImageText\n   - TranscribeRecording\n   - JsonStorageMcp (MCP tool)\n\nOperations and Processing Steps:\n1. Receive messages from Telegram:\n   - If the message is a photo or PDF, extract text using OCR.\n   - If the message is a voice message, transcribe the audio to text.\n   - If the message is a text input, process the text directly.\n\n2. For each type of input:\n   - Extract relevant data including amount, date, and vendor from receipts or invoices.\n   - Categorize the expense based on predefined categories such as Groceries, Transportation, Housing, etc.\n   - Store the extracted and categorized expense data in a structured JSON format organized by month (YYYY-MM).\n\n3. Allow users to query their expenses:\n   - Process queries such as \"Show my expenses for November,\" \"How much did I spend on groceries?\" and \"Compare last 3 months.\"\n   - Retrieve and format the requested expense data to send back to the user.\n\nFinal Output or Action:\nThe bot will respond to the user with:\n- Confirmation of added expenses in a structured format (e.g., \"Added: 45.50 EUR - Groceries (Lidl)\").\n- Detailed expense reports based on user queries, including monthly totals, category breakdowns, and comparisons over specified timeframes.\n\nWorkflow Architecture:\n- Message Trigger: Receives all Telegram messages.\n- Bot Privacy: Locks the bot to the first user, rejecting unauthorized access.\n- Chat Message / Audio: Routes text and voice messages to AI for processing.\n- Document / Photo: Extracts text from files via OCR and forwards it to AI.\n- Root Agent: Routes messages to the Expense Assistant and validates responses.\n- Expense Assistant: Core logic for storing expenses and calculating statistics.\n- Result / Reply: Sends formatted responses back to Telegram.\n- Cleanup / Reset: Manual trigger to delete all data, used with caution.\n\nImportant Notes:\n- The first user to run the /start command locks the bot for their use only.\n- The default currency is EUR, but the AI can auto-detect other currencies.\n- The cleanup function deletes all data and should be used with caution.\n- No confirmation prompts are required for adding expenses; only delete operations ask for confirmation.\n\nCustomization Options:\n- Change the default currency in agent prompts.\n- Add or modify expense categories in the Expense Assistant.\n- Extend the Root Agent with additional assistants as needed.\n- Adjust AI models by swapping GPT-4o or Sonnet as required.\n\nThis workflow provides a comprehensive solution for tracking personal expenses via a Telegram bot, utilizing AI for data extraction and processing, while ensuring user privacy and data security.",
+  "error": null,
+  "generated_at": "2026-01-25T22:50:46.657752",
+  "metrics": {
+    "node_type_precision": 0.7777777777777778,
+    "node_type_recall": 0.175,
+    "node_type_f1": 0.2857142857142857,
+    "tp": 7,
+    "fp": 2,
+    "fn": 33,
+    "gt_node_count": 40,
+    "llm_node_count": 9,
+    "connection_precision": 0.2857142857142857,
+    "connection_recall": 0.13333333333333333,
+    "connection_f1": 0.18181818181818182,
+    "correct_connections": 2,
+    "gt_connection_count": 15,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.23809523809523808,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4498,
+        "completion_tokens": 1632,
+        "total_tokens": 6130
+      },
+      "description_optimization": {
+        "prompt_tokens": 1435,
+        "completion_tokens": 737,
+        "total_tokens": 2172
+      },
+      "total_tokens": 8302,
+      "total_prompt_tokens": 5933,
+      "total_completion_tokens": 2369
+    },
+    "total_cost": 0.0385225,
+    "description_optimization_cost": 0.010957500000000002,
+    "workflow_generation_cost": 0.027565000000000003
+  }
+}

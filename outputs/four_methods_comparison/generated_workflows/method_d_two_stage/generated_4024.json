@@ -1,0 +1,256 @@
+{
+  "template_id": "4024",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a schedule every 3 hours or via a Telegram command.",
+      "data_sources": "WordPress API, OpenAI API, OpenRouter API, Telegram Bot API, Discord Webhook.",
+      "operations": "1. Trigger the workflow, 2. Select category and generate title, slug, and meta description using OpenRouter, 3. Generate article content using OpenAI, 4. Create a featured image using OpenAI, 5. Post the article to WordPress, 6. Send notifications to Discord and Telegram.",
+      "output_actions": "Automatically publish a new SEO-optimized blog post on WordPress and send notifications to Discord and Telegram.",
+      "nodes_plan": "scheduleTrigger, telegramTrigger, openRouter, openAI, wordpress, discordWebhook, telegramSendMessage",
+      "connections_plan": "scheduleTrigger -> openRouter -> openAI -> wordpress -> [discordWebhook, telegramSendMessage], telegramTrigger -> openRouter"
+    },
+    "workflowPlan": {
+      "name": "BlogBlitz",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "interval": "3h"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "command": "/generate"
+          },
+          "position": {
+            "x": 100,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenRouter",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.openrouter.com/generate",
+            "body": {
+              "categories": [
+                "Technology",
+                "AI",
+                "Tech Facts",
+                "History",
+                "Tips"
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Content Generation",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateText",
+            "prompt": "Generate a 1500-2500 word SEO-friendly blog post with headings and a call-to-action."
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OpenAI Image Generation",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateImage",
+            "prompt": "Create a realistic featured image for the blog post."
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "WordPress Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "body": {
+              "title": "={{ $json.title }}",
+              "content": "={{ $json.content }}",
+              "categories": "={{ $json.categoryId }}",
+              "featured_media": "={{ $json.imageId }}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Discord Notification",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "https://discord.com/api/webhooks/yourwebhook",
+            "content": "New blog post published: {{ $json.title }} - {{ $json.url }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "yourChatId",
+            "text": "New blog post published: {{ $json.title }} - {{ $json.url }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4503,
+      "completion_tokens": 1259,
+      "total_tokens": 5762
+    },
+    "description_optimization": {
+      "prompt_tokens": 1148,
+      "completion_tokens": 746,
+      "total_tokens": 1894
+    },
+    "total_tokens": 7656,
+    "total_prompt_tokens": 5651,
+    "total_completion_tokens": 2005
+  },
+  "description_optimization": {
+    "template_id": "4024",
+    "optimized_description": "The **BlogBlitz** workflow automates the generation and publishing of SEO-optimized blog posts to WordPress, streamlining content creation for bloggers, content marketers, and WordPress site owners. This workflow is designed to save time and enhance site visibility by producing high-quality articles without manual intervention.\n\n**Trigger**: The workflow can be initiated either by a scheduled trigger that runs every 3 hours or on-demand through a Telegram command (\u201cgenerate\u201d).\n\n**Data Sources and APIs Needed**:\n1. **WordPress**: Access to the API at `wp-json/wp/v2` for posting articles.\n2. **OpenAI**: For generating article content and realistic featured images.\n3. **OpenRouter**: To select categories and generate titles, slugs, and meta descriptions.\n4. **Telegram**: Bot API for receiving commands and sending notifications.\n5. **Discord**: Webhook for publishing alerts.\n\n**Operations and Processing Steps**:\n1. **Trigger**: The workflow begins via a Schedule Trigger every 3 hours or through a Telegram command.\n2. **Content Generation**:\n   - Utilize OpenRouter to select a category from predefined options (Technology, AI, Tech Facts, History, Tips).\n   - Generate a catchy title, slug, focus keyphrase, and meta description using OpenRouter.\n3. **Article Writing**: Use OpenAI to create a 1,500\u20132,500-word blog post that includes an SEO-friendly structure, headings, and a call-to-action.\n4. **Visuals Creation**: Generate a realistic featured image using OpenAI and prepare it for upload.\n5. **SEO Features**: Ensure the generated content includes an optimized slug, focus keyphrase, and meta description.\n6. **Publishing**: Post the article to WordPress, categorizing it appropriately and including the featured image.\n7. **Notifications**: Send alerts about the published post with links to both Discord and Telegram.\n\n**Final Output or Action**: The workflow culminates in the automatic publishing of a new SEO-optimized blog post on a WordPress site, accompanied by notifications sent to Discord and Telegram.\n\n**Setup Instructions**:\n1. Ensure you have a cloud or self-hosted n8n instance.\n2. Configure credentials for WordPress, OpenAI, OpenRouter, Telegram, and Discord.\n3. Set up WordPress categories (IDs: Technology [3], AI [4], Tech Facts [7], Tech History [8], Tech Tips [9]) and ensure an admin user ID is available (default: 1).\n4. Use the Edit Fields node to centralize category IDs and other variables.\n5. Test the workflow by sending the \u201cgenerate\u201d command via Telegram and verify the published post on WordPress.\n\n**Customization Options**:\n- Change categories by updating the WordPress Post Draft node with your site\u2019s category IDs.\n- Adjust the schedule by modifying the Schedule Trigger node for different intervals.\n- Tweak the writing tone by editing the prompt in the Basic LLM Chain node.\n- Expand notification channels by adding nodes for Slack or email.\n- Modify the OpenAI image node settings for different image sizes or styles.\n\n**Pre-Requirements**:\n- A cloud or self-hosted n8n instance.\n- Necessary API credentials for WordPress, OpenAI, OpenRouter, Telegram, and Discord.\n- Installation of the `@n8n/n8n-nodes-langchain` package.\n- Proper configuration of WordPress categories and admin user ID.\n- A stable internet connection for API calls.\n\nThis structured workflow ensures that your WordPress site remains active and engaging with minimal manual effort, allowing you to focus on other aspects of your content strategy.",
+    "original_description": "# Generate and Publish SEO-Optimized Blog Posts to WordPress\n\n\nThis n8n workflow, **BlogBlitz**, automates the creation and publishing of SEO-optimized blog posts for WordPress, saving you hours of content creation time. Triggered via Telegram or a scheduled interval, it generates 1,500\u20132,500-word articles on Technology, AI, Tech Facts, History, or Tips, complete with catchy titles, slugs, meta descriptions, and realistic featured images. Perfect for bloggers and marketers, BlogBlitz ensures your site stays fresh with high-quality content.\n\n## Who is this for?\nBloggers, content marketers, and WordPress site owners who want to automate high-quality, SEO-ready blog content creation without manual writing or formatting.\n\n## What problem is this workflow solving?\nManually creating engaging, SEO-optimized blog posts is time-consuming and requires expertise. BlogBlitz solves this by automating the entire process\u2014from generating ideas and writing articles to publishing and notifying you\u2014keeping your site active and discoverable.\n\n## What this workflow does\n- **Triggers**: Runs every 3 hours via a Schedule Trigger or on-demand with a Telegram command (\u201cgenerate\u201d).  \n- **Generates Content**: Uses OpenRouter to pick a category (e.g., Technology, AI) and create a title, slug, focus keyphrase, and meta description.  \n- **Writes Articles**: OpenAI crafts 1,500\u20132,500-word posts with SEO-friendly structure, headings, and a call-to-action.  \n- **Adds Visuals**: Generates realistic featured images with OpenAI and uploads them to WordPress.  \n- **SEO Features**: Generate optimized slug, focus keyphrase, meta description\n- **Publishes**: Posts articles to WordPress with proper categories and featured images.  \n- **Notifies**: Sends publish alerts with links to Discord and Telegram.  \n\n## Setup\n1. **[n8n instance](https://n8n.partnerlinks.io/khaisastudio) (Cloud or self-hosted)**: Ensure you have a cloud or self-hosted n8n instance.  \n2. **Credentials**:  \n   - WordPress: API access for `wp-json/wp/v2` endpoint.  \n   - OpenAI: For article and image generation.  \n   - OpenRouter: For title and category generation.  \n   - Telegram: Bot API for triggers and notifications.  \n   - Discord: Webhook for publish alerts.  \n3. **WordPress Configuration**:  \n   - Set up categories (Technology [ID:3], AI [ID:4], Tech Fact [ID:7], Tech History [ID:8], Tech Tips [ID:9]).  \n   - Ensure an admin user ID is available (default: 1).   \n4. **Node Setup**:  \n   - Use the Edit Fields node to centralize variables like category IDs.  \n5. **Test**: Send \u201cgenerate\u201d via Telegram to test the workflow. Check WordPress for the published post.  \n\n\n## How to customize this workflow to your needs\n- **Change Categories**: Update the WordPress Post Draft node to match your site\u2019s category IDs.  \n- **Adjust Schedule**: Modify the Schedule Trigger node for different intervals (e.g., daily).  \n- **Tweak Tone**: Edit the prompt in the Basic LLM Chain node for a different writing style (e.g., formal or casual).  \n- **Add Platforms**: Extend notifications to Slack or email by adding nodes.  \n- **Image Style**: Adjust the OpenAI image node for different sizes or styles (e.g., \u201cnatural\u201d instead of \u201cvivid\u201d).  \n\n## Pre-Requirements\n- **n8n Instance**: Cloud or self-hosted.  \n- **Credentials**:  \n  - WordPress API (wp-json/wp/v2 endpoint).  \n  - OpenAI API for text and images.  \n  - OpenRouter API for AI content.  \n  - Telegram bot API.  \n  - Discord Webhook API.  \n- **Dependencies**: `@n8n/n8n-nodes-langchain` package.  \n- **WordPress Setup**: Categories and admin user ID configured.  \n- **Network**: Stable internet for API calls.  \n\n---\n*Made by: [Khaisa Studio](https://khaisa.studio)*  \n*Tag: youtube, summarizer, telegram, openai*  \n*Category: AI Automation, Video Tools*\nNeed a custom? **[Contact Me](https://khmuhtadin.com)**",
+    "description_length": 3473,
+    "usage": {
+      "prompt_tokens": 1148,
+      "completion_tokens": 746,
+      "total_tokens": 1894
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:15:14.995312"
+  },
+  "original_description": "# Generate and Publish SEO-Optimized Blog Posts to WordPress\n\n\nThis n8n workflow, **BlogBlitz**, automates the creation and publishing of SEO-optimized blog posts for WordPress, saving you hours of content creation time. Triggered via Telegram or a scheduled interval, it generates 1,500\u20132,500-word articles on Technology, AI, Tech Facts, History, or Tips, complete with catchy titles, slugs, meta descriptions, and realistic featured images. Perfect for bloggers and marketers, BlogBlitz ensures your site stays fresh with high-quality content.\n\n## Who is this for?\nBloggers, content marketers, and WordPress site owners who want to automate high-quality, SEO-ready blog content creation without manual writing or formatting.\n\n## What problem is this workflow solving?\nManually creating engaging, SEO-optimized blog posts is time-consuming and requires expertise. BlogBlitz solves this by automating the entire process\u2014from generating ideas and writing articles to publishing and notifying you\u2014keeping your site active and discoverable.\n\n## What this workflow does\n- **Triggers**: Runs every 3 hours via a Schedule Trigger or on-demand with a Telegram command (\u201cgenerate\u201d).  \n- **Generates Content**: Uses OpenRouter to pick a category (e.g., Technology, AI) and create a title, slug, focus keyphrase, and meta description.  \n- **Writes Articles**: OpenAI crafts 1,500\u20132,500-word posts with SEO-friendly structure, headings, and a call-to-action.  \n- **Adds Visuals**: Generates realistic featured images with OpenAI and uploads them to WordPress.  \n- **SEO Features**: Generate optimized slug, focus keyphrase, meta description\n- **Publishes**: Posts articles to WordPress with proper categories and featured images.  \n- **Notifies**: Sends publish alerts with links to Discord and Telegram.  \n\n## Setup\n1. **[n8n instance](https://n8n.partnerlinks.io/khaisastudio) (Cloud or self-hosted)**: Ensure you have a cloud or self-hosted n8n instance.  \n2. **Credentials**:  \n   - WordPress: API access for `wp-json/wp/v2` endpoint.  \n   - OpenAI: For article and image generation.  \n   - OpenRouter: For title and category generation.  \n   - Telegram: Bot API for triggers and notifications.  \n   - Discord: Webhook for publish alerts.  \n3. **WordPress Configuration**:  \n   - Set up categories (Technology [ID:3], AI [ID:4], Tech Fact [ID:7], Tech History [ID:8], Tech Tips [ID:9]).  \n   - Ensure an admin user ID is available (default: 1).   \n4. **Node Setup**:  \n   - Use the Edit Fields node to centralize variables like category IDs.  \n5. **Test**: Send \u201cgenerate\u201d via Telegram to test the workflow. Check WordPress for the published post.  \n\n\n## How to customize this workflow to your needs\n- **Change Categories**: Update the WordPress Post Draft node to match your site\u2019s category IDs.  \n- **Adjust Schedule**: Modify the Schedule Trigger node for different intervals (e.g., daily).  \n- **Tweak Tone**: Edit the prompt in the Basic LLM Chain node for a different writing style (e.g., formal or casual).  \n- **Add Platforms**: Extend notifications to Slack or email by adding nodes.  \n- **Image Style**: Adjust the OpenAI image node for different sizes or styles (e.g., \u201cnatural\u201d instead of \u201cvivid\u201d).  \n\n## Pre-Requirements\n- **n8n Instance**: Cloud or self-hosted.  \n- **Credentials**:  \n  - WordPress API (wp-json/wp/v2 endpoint).  \n  - OpenAI API for text and images.  \n  - OpenRouter API for AI content.  \n  - Telegram bot API.  \n  - Discord Webhook API.  \n- **Dependencies**: `@n8n/n8n-nodes-langchain` package.  \n- **WordPress Setup**: Categories and admin user ID configured.  \n- **Network**: Stable internet for API calls.  \n\n---\n*Made by: [Khaisa Studio](https://khaisa.studio)*  \n*Tag: youtube, summarizer, telegram, openai*  \n*Category: AI Automation, Video Tools*\nNeed a custom? **[Contact Me](https://khmuhtadin.com)**",
+  "optimized_description": "The **BlogBlitz** workflow automates the generation and publishing of SEO-optimized blog posts to WordPress, streamlining content creation for bloggers, content marketers, and WordPress site owners. This workflow is designed to save time and enhance site visibility by producing high-quality articles without manual intervention.\n\n**Trigger**: The workflow can be initiated either by a scheduled trigger that runs every 3 hours or on-demand through a Telegram command (generate).\n\n**Data Sources and APIs Needed**:\n1. **WordPress**: Access to the API at `wp-json/wp/v2` for posting articles.\n2. **OpenAI**: For generating article content and realistic featured images.\n3. **OpenRouter**: To select categories and generate titles, slugs, and meta descriptions.\n4. **Telegram**: Bot API for receiving commands and sending notifications.\n5. **Discord**: Webhook for publishing alerts.\n\n**Operations and Processing Steps**:\n1. **Trigger**: The workflow begins via a Schedule Trigger every 3 hours or through a Telegram command.\n2. **Content Generation**:\n   - Utilize OpenRouter to select a category from predefined options (Technology, AI, Tech Facts, History, Tips).\n   - Generate a catchy title, slug, focus keyphrase, and meta description using OpenRouter.\n3. **Article Writing**: Use OpenAI to create a 1,5002,500-word blog post that includes an SEO-friendly structure, headings, and a call-to-action.\n4. **Visuals Creation**: Generate a realistic featured image using OpenAI and prepare it for upload.\n5. **SEO Features**: Ensure the generated content includes an optimized slug, focus keyphrase, and meta description.\n6. **Publishing**: Post the article to WordPress, categorizing it appropriately and including the featured image.\n7. **Notifications**: Send alerts about the published post with links to both Discord and Telegram.\n\n**Final Output or Action**: The workflow culminates in the automatic publishing of a new SEO-optimized blog post on a WordPress site, accompanied by notifications sent to Discord and Telegram.\n\n**Setup Instructions**:\n1. Ensure you have a cloud or self-hosted n8n instance.\n2. Configure credentials for WordPress, OpenAI, OpenRouter, Telegram, and Discord.\n3. Set up WordPress categories (IDs: Technology [3], AI [4], Tech Facts [7], Tech History [8], Tech Tips [9]) and ensure an admin user ID is available (default: 1).\n4. Use the Edit Fields node to centralize category IDs and other variables.\n5. Test the workflow by sending the generate command via Telegram and verify the published post on WordPress.\n\n**Customization Options**:\n- Change categories by updating the WordPress Post Draft node with your sites category IDs.\n- Adjust the schedule by modifying the Schedule Trigger node for different intervals.\n- Tweak the writing tone by editing the prompt in the Basic LLM Chain node.\n- Expand notification channels by adding nodes for Slack or email.\n- Modify the OpenAI image node settings for different image sizes or styles.\n\n**Pre-Requirements**:\n- A cloud or self-hosted n8n instance.\n- Necessary API credentials for WordPress, OpenAI, OpenRouter, Telegram, and Discord.\n- Installation of the `@n8n/n8n-nodes-langchain` package.\n- Proper configuration of WordPress categories and admin user ID.\n- A stable internet connection for API calls.\n\nThis structured workflow ensures that your WordPress site remains active and engaging with minimal manual effort, allowing you to focus on other aspects of your content strategy.",
+  "error": null,
+  "generated_at": "2026-01-25T23:15:41.749528",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.42857142857142855,
+    "node_type_f1": 0.5454545454545454,
+    "tp": 6,
+    "fp": 2,
+    "fn": 8,
+    "gt_node_count": 14,
+    "llm_node_count": 8,
+    "connection_precision": 0.42857142857142855,
+    "connection_recall": 0.3,
+    "connection_f1": 0.3529411764705882,
+    "correct_connections": 3,
+    "gt_connection_count": 10,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4503,
+        "completion_tokens": 1259,
+        "total_tokens": 5762
+      },
+      "description_optimization": {
+        "prompt_tokens": 1148,
+        "completion_tokens": 746,
+        "total_tokens": 1894
+      },
+      "total_tokens": 7656,
+      "total_prompt_tokens": 5651,
+      "total_completion_tokens": 2005
+    },
+    "total_cost": 0.0341775,
+    "description_optimization_cost": 0.01033,
+    "workflow_generation_cost": 0.0238475
+  }
+}

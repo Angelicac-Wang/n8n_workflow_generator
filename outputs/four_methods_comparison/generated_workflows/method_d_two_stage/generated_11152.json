@@ -1,0 +1,262 @@
+{
+  "template_id": "11152",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a weekly schedule, specifically every Monday morning.",
+      "data_sources": "Apify API for scraping Google Search and Facebook posts, OpenRouter API for AI analysis, Slack API for notifications.",
+      "operations": "1. Trigger on schedule, 2. Scrape data from Google News and Facebook, 3. Merge datasets, 4. Limit to top 5 items, 5. Analyze with AI, 6. Format results, 7. Send to Slack.",
+      "output_actions": "Send a summarized report of trending content ideas to a specified Slack channel.",
+      "nodes_plan": "scheduleTrigger, apifyGoogleSearch, apifyFacebookScraper, mergeData, limitItems, aiAnalysis, formatSlackMessage, sendSlackNotification",
+      "connections_plan": "scheduleTrigger -> apifyGoogleSearch -> mergeData, scheduleTrigger -> apifyFacebookScraper -> mergeData -> limitItems -> aiAnalysis -> formatSlackMessage -> sendSlackNotification"
+    },
+    "workflowPlan": {
+      "name": "Weekly Trending Content Ideas",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * 1"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google News Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/actor-tasks/google-search-scraper/run-sync-get-dataset-items",
+            "body": {
+              "searchQuery": "Top News",
+              "language": "en"
+            },
+            "headers": {
+              "Authorization": "Bearer {{APIFY_API_TOKEN}}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Facebook Posts Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/actor-tasks/facebook-posts-scraper/run-sync-get-dataset-items",
+            "body": {
+              "startUrls": [
+                {
+                  "url": "https://www.facebook.com/somepage"
+                }
+              ]
+            },
+            "headers": {
+              "Authorization": "Bearer {{APIFY_API_TOKEN}}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Limit Items",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.slice(0, 5);"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Analyze and classify the following articles into themes and extract three catchy keywords: {{ $json }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Format Slack Message",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { text: `Here are the top trending content ideas:\n${items.map(item => `Theme: ${item.json.theme}, Keywords: ${item.json.keywords.join(', ')}, Summary: ${item.json.summary}, URL: ${item.json.url}`).join('\\n')}` } }];"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Slack Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#content-ideas",
+            "text": "={{ $json.text }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4501,
+      "completion_tokens": 1348,
+      "total_tokens": 5849
+    },
+    "description_optimization": {
+      "prompt_tokens": 1026,
+      "completion_tokens": 750,
+      "total_tokens": 1776
+    },
+    "total_tokens": 7625,
+    "total_prompt_tokens": 5527,
+    "total_completion_tokens": 2098
+  },
+  "description_optimization": {
+    "template_id": "11152",
+    "optimized_description": "This workflow automates the process of discovering new content ideas by scraping trending news and social media posts, analyzing them with AI, and delivering a summarized report to Slack. It is designed for content marketers, social media managers, and market researchers who need to stay updated on trending topics without spending hours on manual research.\n\nTrigger: The workflow is triggered on a weekly schedule, with the default setting to run every Monday morning.\n\nData Sources and APIs Required:\n1. Apify Account: An API token is required to access the Google Search Results Scraper and Facebook Posts Scraper actors.\n2. OpenRouter API Key: This key is necessary for AI analysis and can be replaced with OpenAI or Anthropic if preferred.\n3. Slack Account: Required to receive notifications.\n\nOperations and Processing Steps:\n1. **Schedule Trigger**: The workflow initiates based on the defined schedule (default: Monday morning).\n2. **Data Collection**:\n   - Use Apify to scrape the latest news from Google Search based on a specified query.\n   - Scrape recent posts from designated Facebook pages using Apify.\n3. **Data Merging**: The results from Google News and Facebook posts are merged to create a comprehensive dataset.\n4. **Item Limiting**: A function limits the dataset to the top 5 most relevant items to avoid information overload.\n5. **AI Analysis**:\n   - An AI Agent, powered by OpenRouter/LLM, analyzes each article.\n   - The AI classifies articles into themes (e.g., Marketing, Technology, Strategy) and extracts three catchy keywords from each.\n6. **Notification Formatting**: The analyzed insights, including the theme, keywords, summary, and original URL, are formatted for clarity.\n7. **Slack Notification**: The formatted insights are sent directly to a specified Slack channel.\n\nFinal Output: The workflow delivers a summarized report of trending content ideas to Slack, providing users with actionable insights for their content strategies.\n\nSetup Instructions:\n1. **Configure Credentials**: Open the Workflow Configuration node and input your Apify API Token and OpenRouter API Key. Connect your Slack account in the Slack node.\n2. **Adjust Apify Settings**:\n   - In the Apify Google news node, modify the search query from \"Top News\" in Japanese to your desired topic.\n   - In the Apify Facebook node, update the startUrls to include the Facebook pages you wish to monitor.\n3. **Customize AI Prompt** (Optional): Open the AI Agent node to adjust the language or specific themes for classification.\n\nCustomization Options:\n1. **Change the LLM**: You can replace the OpenRouter model with the OpenAI or Anthropic Chat Model node if you prefer those providers.\n2. **Increase Data Volume**: Modify the \"Limit 5 items\" Code node to process more articles, keeping in mind your API usage limits.\n3. **Change Destination**: Instead of sending notifications to Slack, you can replace the Slack node with Notion, Google Sheets, or Email to save the ideas in a different format.\n\nCrucial Checklist Before Submission:\n- Ensure all nodes are renamed to English, such as changing \"Cron \u30c8\u30ea\u30ac\u30fc\" to \"Schedule Trigger\" and \"Function: Slack\u30e1\u30c3\u30bb\u30fc\u30b8\u4f5c\u6210\" to \"Format Slack Message.\"\n- Translate all code comments and prompts into English.\n- Add a Yellow Sticky Note to the canvas with the workflow description for clarity.\n- Remove any hardcoded IDs, ensuring MASKED_USER_ID and MASKED_WEBHOOK_ID are cleared or set to user-specific expressions. \n\nThis structured workflow ensures that content marketers, social media managers, and market researchers can efficiently gather and analyze trending topics, ultimately enhancing their content strategies.",
+    "original_description": "# Description \nThis workflow automates the process of finding new content ideas by scraping trending news and social media posts, analyzing them with AI, and delivering a summarized report to Slack.\nIt is perfect for content marketers, social media managers, and strategists who spend hours researching trending topics manually.\n# Who is this for\nContent Marketers: To discover trending topics for blogs or newsletters.\nSocial Media Managers: To keep up with competitor activity or industry news.\nMarket Researchers: To monitor specific keywords or brands.\n# How it works\nSchedule: The workflow runs automatically on a weekly schedule (default is Monday morning).\nData Collection: It uses Apify to scrape the latest news from Google Search and recent posts from specific Facebook pages.\nData Processing: The results are merged, and the top 5 most relevant items are selected to prevent information overload.\nAI Analysis: An AI Agent (powered by OpenRouter/LLM) analyzes each article to classify it into a theme (e.g., Marketing, Technology, Strategy) and extracts 3 catchy keywords.\nNotification: The analyzed insights, including the theme, keywords, summary, and original URL, are formatted and sent directly to Slack.\n# Requirements\nApify Account: You need an API token and access to the Google Search Results Scraper and Facebook Posts Scraper actors.\nOpenRouter API Key: Used to power the AI analysis (can be swapped for OpenAI/Anthropic if preferred).\nSlack Account: To receive the notifications.\n# How to set up\nConfigure Credentials:\nOpen the Workflow Configuration node and paste your Apify API Token and OpenRouter API Key.\nConnect your Slack account in the Slack node.\nAdjust Apify Settings:\nIn the Apify Google news node, change the search query (currently set to \"Top News\" in Japanese) to your desired topic.\nIn the Apify Facebook node, update the startUrls to the Facebook pages you want to monitor.\nCustomize AI Prompt:\n(Optional) Open the AI Agent node to adjust the language or the specific themes you want the AI to classify.\n# How to customize\nChange the LLM: Replace the OpenRouter model with the OpenAI or Anthropic Chat Model node if you prefer those providers.\nIncrease Data Volume: Adjust the \"Limit 5 items\" Code node to process more articles at once (mind your API usage limits).\nChange Destination: Replace the Slack node with Notion, Google Sheets, or Email to save the ideas elsewhere.\n3. \u26a0\ufe0f Crucial Checklist Before Submission\nThe n8n team will reject templates that contain non-English text in the nodes. Please apply these changes to your workflow in the n8n editor before exporting the JSON for submission:\nRename Nodes to English:\nCron \u30c8\u30ea\u30ac\u30fc \u2192 Schedule Trigger\nFunction: Slack\u30e1\u30c3\u30bb\u30fc\u30b8\u4f5c\u6210 \u2192 Format Slack Message\nSlack: \u4f01\u753b\u30cd\u30bf\u6295\u7a3f \u2192 Slack Post\nFunction: LLM\u30ec\u30b9\u30dd\u30f3\u30b9\u6574\u5f62 \u2192 Parse LLM Response\nMerge Data (\u7d71\u5408) \u2192 Merge Data\nFunction: \u30c7\u30fc\u30bf\u62bd\u51fa\u30fb5\u4ef6\u5236\u9650 \u2192 Limit to 5 Items\nFunction: Google\u30c7\u30fc\u30bf\u62bd\u51fa \u2192 Extract Google Data\nFunction: Facebook\u30c7\u30fc\u30bf\u62bd\u51fa \u2192 Extract FB Data\nTranslate Code Comments & Prompts:\nInside the Code nodes, ensure comments are in English (e.g., // Slack\u3078\u306e\u6295\u7a3f\u30e1\u30c3\u30bb\u30fc\u30b8\u3092\u4f5c\u6210\u3057\u307e\u3059 \u2192 // Create message for Slack).\nInside the AI Agent node, translate the System Prompt into English (e.g., \"You are a professional content planner...\" instead of \"\u3042\u306a\u305f\u306f\u30d7\u30ed\u306e...\"). Even if you want the output in Japanese, the template default should usually be English, or clearly labeled as a Japanese template.\nAdd the Mandatory Sticky Note:\nAdd a Yellow Sticky Note to the canvas.\nPaste the \"Description\" text (from step 2 above) into this sticky note.\nPlace it clearly next to the start of the workflow.\nRemove Hardcoded IDs:\nEnsure MASKED_USER_ID and MASKED_WEBHOOK_ID are cleared out or set to expressions that reference the user's setup.",
+    "description_length": 3653,
+    "usage": {
+      "prompt_tokens": 1026,
+      "completion_tokens": 750,
+      "total_tokens": 1776
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:43:59.084481"
+  },
+  "original_description": "# Description \nThis workflow automates the process of finding new content ideas by scraping trending news and social media posts, analyzing them with AI, and delivering a summarized report to Slack.\nIt is perfect for content marketers, social media managers, and strategists who spend hours researching trending topics manually.\n# Who is this for\nContent Marketers: To discover trending topics for blogs or newsletters.\nSocial Media Managers: To keep up with competitor activity or industry news.\nMarket Researchers: To monitor specific keywords or brands.\n# How it works\nSchedule: The workflow runs automatically on a weekly schedule (default is Monday morning).\nData Collection: It uses Apify to scrape the latest news from Google Search and recent posts from specific Facebook pages.\nData Processing: The results are merged, and the top 5 most relevant items are selected to prevent information overload.\nAI Analysis: An AI Agent (powered by OpenRouter/LLM) analyzes each article to classify it into a theme (e.g., Marketing, Technology, Strategy) and extracts 3 catchy keywords.\nNotification: The analyzed insights, including the theme, keywords, summary, and original URL, are formatted and sent directly to Slack.\n# Requirements\nApify Account: You need an API token and access to the Google Search Results Scraper and Facebook Posts Scraper actors.\nOpenRouter API Key: Used to power the AI analysis (can be swapped for OpenAI/Anthropic if preferred).\nSlack Account: To receive the notifications.\n# How to set up\nConfigure Credentials:\nOpen the Workflow Configuration node and paste your Apify API Token and OpenRouter API Key.\nConnect your Slack account in the Slack node.\nAdjust Apify Settings:\nIn the Apify Google news node, change the search query (currently set to \"Top News\" in Japanese) to your desired topic.\nIn the Apify Facebook node, update the startUrls to the Facebook pages you want to monitor.\nCustomize AI Prompt:\n(Optional) Open the AI Agent node to adjust the language or the specific themes you want the AI to classify.\n# How to customize\nChange the LLM: Replace the OpenRouter model with the OpenAI or Anthropic Chat Model node if you prefer those providers.\nIncrease Data Volume: Adjust the \"Limit 5 items\" Code node to process more articles at once (mind your API usage limits).\nChange Destination: Replace the Slack node with Notion, Google Sheets, or Email to save the ideas elsewhere.\n3. \u26a0\ufe0f Crucial Checklist Before Submission\nThe n8n team will reject templates that contain non-English text in the nodes. Please apply these changes to your workflow in the n8n editor before exporting the JSON for submission:\nRename Nodes to English:\nCron \u30c8\u30ea\u30ac\u30fc \u2192 Schedule Trigger\nFunction: Slack\u30e1\u30c3\u30bb\u30fc\u30b8\u4f5c\u6210 \u2192 Format Slack Message\nSlack: \u4f01\u753b\u30cd\u30bf\u6295\u7a3f \u2192 Slack Post\nFunction: LLM\u30ec\u30b9\u30dd\u30f3\u30b9\u6574\u5f62 \u2192 Parse LLM Response\nMerge Data (\u7d71\u5408) \u2192 Merge Data\nFunction: \u30c7\u30fc\u30bf\u62bd\u51fa\u30fb5\u4ef6\u5236\u9650 \u2192 Limit to 5 Items\nFunction: Google\u30c7\u30fc\u30bf\u62bd\u51fa \u2192 Extract Google Data\nFunction: Facebook\u30c7\u30fc\u30bf\u62bd\u51fa \u2192 Extract FB Data\nTranslate Code Comments & Prompts:\nInside the Code nodes, ensure comments are in English (e.g., // Slack\u3078\u306e\u6295\u7a3f\u30e1\u30c3\u30bb\u30fc\u30b8\u3092\u4f5c\u6210\u3057\u307e\u3059 \u2192 // Create message for Slack).\nInside the AI Agent node, translate the System Prompt into English (e.g., \"You are a professional content planner...\" instead of \"\u3042\u306a\u305f\u306f\u30d7\u30ed\u306e...\"). Even if you want the output in Japanese, the template default should usually be English, or clearly labeled as a Japanese template.\nAdd the Mandatory Sticky Note:\nAdd a Yellow Sticky Note to the canvas.\nPaste the \"Description\" text (from step 2 above) into this sticky note.\nPlace it clearly next to the start of the workflow.\nRemove Hardcoded IDs:\nEnsure MASKED_USER_ID and MASKED_WEBHOOK_ID are cleared out or set to expressions that reference the user's setup.",
+  "optimized_description": "This workflow automates the process of discovering new content ideas by scraping trending news and social media posts, analyzing them with AI, and delivering a summarized report to Slack. It is designed for content marketers, social media managers, and market researchers who need to stay updated on trending topics without spending hours on manual research.\n\nTrigger: The workflow is triggered on a weekly schedule, with the default setting to run every Monday morning.\n\nData Sources and APIs Required:\n1. Apify Account: An API token is required to access the Google Search Results Scraper and Facebook Posts Scraper actors.\n2. OpenRouter API Key: This key is necessary for AI analysis and can be replaced with OpenAI or Anthropic if preferred.\n3. Slack Account: Required to receive notifications.\n\nOperations and Processing Steps:\n1. **Schedule Trigger**: The workflow initiates based on the defined schedule (default: Monday morning).\n2. **Data Collection**:\n   - Use Apify to scrape the latest news from Google Search based on a specified query.\n   - Scrape recent posts from designated Facebook pages using Apify.\n3. **Data Merging**: The results from Google News and Facebook posts are merged to create a comprehensive dataset.\n4. **Item Limiting**: A function limits the dataset to the top 5 most relevant items to avoid information overload.\n5. **AI Analysis**:\n   - An AI Agent, powered by OpenRouter/LLM, analyzes each article.\n   - The AI classifies articles into themes (e.g., Marketing, Technology, Strategy) and extracts three catchy keywords from each.\n6. **Notification Formatting**: The analyzed insights, including the theme, keywords, summary, and original URL, are formatted for clarity.\n7. **Slack Notification**: The formatted insights are sent directly to a specified Slack channel.\n\nFinal Output: The workflow delivers a summarized report of trending content ideas to Slack, providing users with actionable insights for their content strategies.\n\nSetup Instructions:\n1. **Configure Credentials**: Open the Workflow Configuration node and input your Apify API Token and OpenRouter API Key. Connect your Slack account in the Slack node.\n2. **Adjust Apify Settings**:\n   - In the Apify Google news node, modify the search query from \"Top News\" in Japanese to your desired topic.\n   - In the Apify Facebook node, update the startUrls to include the Facebook pages you wish to monitor.\n3. **Customize AI Prompt** (Optional): Open the AI Agent node to adjust the language or specific themes for classification.\n\nCustomization Options:\n1. **Change the LLM**: You can replace the OpenRouter model with the OpenAI or Anthropic Chat Model node if you prefer those providers.\n2. **Increase Data Volume**: Modify the \"Limit 5 items\" Code node to process more articles, keeping in mind your API usage limits.\n3. **Change Destination**: Instead of sending notifications to Slack, you can replace the Slack node with Notion, Google Sheets, or Email to save the ideas in a different format.\n\nCrucial Checklist Before Submission:\n- Ensure all nodes are renamed to English, such as changing \"Cron \" to \"Schedule Trigger\" and \"Function: Slack\" to \"Format Slack Message.\"\n- Translate all code comments and prompts into English.\n- Add a Yellow Sticky Note to the canvas with the workflow description for clarity.\n- Remove any hardcoded IDs, ensuring MASKED_USER_ID and MASKED_WEBHOOK_ID are cleared or set to user-specific expressions. \n\nThis structured workflow ensures that content marketers, social media managers, and market researchers can efficiently gather and analyze trending topics, ultimately enhancing their content strategies.",
+  "error": null,
+  "generated_at": "2026-01-25T22:44:24.262960",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.3076923076923077,
+    "node_type_f1": 0.380952380952381,
+    "tp": 4,
+    "fp": 4,
+    "fn": 9,
+    "gt_node_count": 13,
+    "llm_node_count": 8,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.2222222222222222,
+    "connection_f1": 0.26666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 9,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.027777777777777776,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4501,
+        "completion_tokens": 1348,
+        "total_tokens": 5849
+      },
+      "description_optimization": {
+        "prompt_tokens": 1026,
+        "completion_tokens": 750,
+        "total_tokens": 1776
+      },
+      "total_tokens": 7625,
+      "total_prompt_tokens": 5527,
+      "total_completion_tokens": 2098
+    },
+    "total_cost": 0.0347975,
+    "description_optimization_cost": 0.010065000000000001,
+    "workflow_generation_cost": 0.0247325
+  }
+}

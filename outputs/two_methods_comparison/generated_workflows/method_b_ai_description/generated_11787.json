@@ -1,0 +1,177 @@
+{
+  "template_id": 11787,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Interactive Voice Adventure Game",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{$env.TELEGRAM_BOT_TOKEN}}"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"message\"][\"voice\"][\"file_id\"]}}",
+            "responseFormat": "file",
+            "options": {}
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Speech-to-Text",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.speech-to-text-service.com/convert",
+            "method": "POST",
+            "body": {
+              "file": "={{$binary.data}}"
+            },
+            "options": {
+              "bodyContentType": "multipart-form-data"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Groq Chat Model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.groq.com/chat",
+            "method": "POST",
+            "body": {
+              "input": "={{$json[\"text\"]}}",
+              "context": "={{$flow.variables.context}}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Text-to-Speech",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.text-to-speech-service.com/convert",
+            "method": "POST",
+            "body": {
+              "text": "={{$json[\"response\"]}}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Audio Response",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "file": "={{$binary.data}}",
+            "fileType": "audio"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 718,
+    "completion_tokens": 854,
+    "total_tokens": 1572
+  },
+  "error": null,
+  "generated_at": "2026-01-13T07:34:15.752645",
+  "generated_description": "This n8n workflow is designed to facilitate an interactive voice-based adventure game using Telegram as the communication platform. \n\n1. **Trigger**: The workflow is initiated when a user sends a voice message to a specific Telegram bot.\n\n2. **Data Sources/APIs**: \n   - Telegram API is used to receive and send messages.\n   - Groq API is utilized for language model processing.\n   - External HTTP requests are made for speech-to-text and text-to-speech conversion services.\n\n3. **Operations**:\n   - Upon receiving a voice message via the Telegram trigger, the workflow downloads the audio file.\n   - The audio file is then converted to text using a speech-to-text service.\n   - The converted text is processed by the Groq Chat Model, which acts as the game's Dungeon Master, to generate an appropriate response based on the user's input and the ongoing adventure context stored in the memory buffer.\n   - The response text is then converted back to audio using a text-to-speech service.\n   - Finally, the audio response is sent back to the user through Telegram.\n\n4. **Final Output/Action**: The user receives an audio message on Telegram, continuing the interactive adventure narrative based on their input, thus creating an engaging and dynamic gaming experience.",
+  "description_generation_usage": {
+    "prompt_tokens": 213,
+    "completion_tokens": 256,
+    "total_tokens": 469
+  },
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.4444444444444444,
+    "node_type_f1": 0.5333333333333333,
+    "tp": 4,
+    "fp": 2,
+    "fn": 5,
+    "gt_node_count": 9,
+    "llm_node_count": 6,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.2222222222222222,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.125,
+    "usage": {
+      "prompt_tokens": 718,
+      "completion_tokens": 854,
+      "total_tokens": 1572
+    },
+    "total_cost": 0.0134275,
+    "description_generation_cost": 0.0030925,
+    "workflow_generation_cost": 0.010335
+  },
+  "original_description": "## Dungeons and Goblins \u2014 AI Telegram Voice Adventure with Persistent Memory\n\nThis n8n template demonstrates how to use an AI agent with persistent memory to run a structured, rules-driven fantasy role-playing game entirely through Telegram voice messages. The workflow acts as a Dungeon Master, narrating scenes, resolving mechanics, performing dice rolls when authorized, and explicitly saving game state between turns.\n\n## How it works\n\n- A player actions are provided to Telegram bot via voice messages.\n\n- The AI agent loads the current game state from n8n memory.\n\n- A strict system prompt enforces rules, turn flow, and narration.\n\n- When an action requires a dice roll, the agent waits for player authorization.\n\n- Once authorized, the AI rolls, resolves the outcome, and applies changes.\n\n- All state updates are emitted as structured data and saved to memory.\n\n- The request and response are processed in Groq's STT and TTS.\n\n## Use cases\n\n- Solo text-based fantasy campaigns\n\n- Persistent AI-driven adventures\n\n- Testing stateful AI agents in n8n\n\n- Educational examples of memory-aware workflows\n\n## Requirements\n\n- Groq API token (free tier supported)\n\n- Telegram bot API token"
+}

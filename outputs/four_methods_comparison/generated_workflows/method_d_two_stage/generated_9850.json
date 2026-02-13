@@ -1,0 +1,271 @@
+{
+  "template_id": "9850",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a message received via the Telegram Bot API.",
+      "data_sources": "Telegram Bot API, Telephony Provider API, Google Calendar API.",
+      "operations": "1. Capture intent from Telegram message, 2. Check calendar for availability, 3. Use AI to make calls for bookings, 4. Parse results, 5. Send summary via Telegram, 6. Optionally update calendar, 7. Optionally log results.",
+      "output_actions": "Send a summary of confirmed bookings to the user via Telegram and optionally update the calendar.",
+      "nodes_plan": "telegramTrigger (trigger), extractIntent (set), checkCalendar (googleCalendar), makeCalls (httpRequest), parseResults (set), sendTelegramSummary (telegram), updateCalendar (googleCalendar), logResults (googleSheets)",
+      "connections_plan": "telegramTrigger -> extractIntent -> checkCalendar -> makeCalls -> parseResults -> sendTelegramSummary -> [updateCalendar, logResults]"
+    },
+    "workflowPlan": {
+      "name": "Property and Dining Scheduler",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{ $credentials.telegramBotToken }}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Intent",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "message",
+                  "value": "={{ $json.body.message.text }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendarId": "primary",
+            "timeMin": "={{ $json.timeMin }}",
+            "timeMax": "={{ $json.timeMax }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Make Calls",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.telephonyprovider.com/call",
+            "body": {
+              "propertyDetails": "={{ $json.propertyDetails }}",
+              "restaurantDetails": "={{ $json.restaurantDetails }}"
+            },
+            "authentication": "={{ $credentials.telephonyApiKey }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Parse Results",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "confirmedViewings",
+                  "value": "={{ $json.confirmedViewings }}"
+                },
+                {
+                  "name": "confirmedReservations",
+                  "value": "={{ $json.confirmedReservations }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Summary",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.body.message.chat.id }}",
+            "text": "Confirmed Viewings: {{ $json.confirmedViewings }}\nConfirmed Reservations: {{ $json.confirmedReservations }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendarId": "primary",
+            "start": "={{ $json.confirmedViewings.start }}",
+            "end": "={{ $json.confirmedViewings.end }}",
+            "summary": "Property Viewing"
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log Results",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{ $credentials.googleSheetId }}",
+            "range": "Bookings!A1",
+            "data": "={{ $json }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4599,
+      "completion_tokens": 1350,
+      "total_tokens": 5949
+    },
+    "description_optimization": {
+      "prompt_tokens": 1106,
+      "completion_tokens": 844,
+      "total_tokens": 1950
+    },
+    "total_tokens": 7899,
+    "total_prompt_tokens": 5705,
+    "total_completion_tokens": 2194
+  },
+  "description_optimization": {
+    "template_id": "9850",
+    "optimized_description": "This workflow automates the process of scheduling property viewings and reserving restaurant tables through Telegram, utilizing AI-powered voice calls. The workflow is designed to streamline booking processes for home buyers, real estate agents, relocation specialists, busy professionals, and concierge teams by eliminating the need for manual calls and coordination.\n\nTrigger: The workflow is initiated when a user sends a message via Telegram indicating their intent to schedule property viewings and restaurant reservations. For example, a user might send a message like, \u201cViewings tomorrow 17:00\u201320:00, Eixample, 2-bed; table for 4 at 21:30 near there.\u201d\n\nData Sources and APIs Needed:\n1. Telephony Provider API for making outbound voice calls.\n2. Calendar API (e.g., Google Calendar) for checking availability and managing bookings.\n3. Telegram Bot API for receiving user messages and sending notifications.\n\nOperations and Processing Steps:\n1. Intent Capture: The workflow begins by capturing the user\u2019s message from Telegram, which specifies the desired property viewings and restaurant reservations.\n2. Calendar Check: The workflow accesses the linked calendar to check for free/busy blocks, suggesting viable time windows or alternatives based on the user\u2019s availability.\n3. AI Calling: The workflow uses the telephony provider API to place outbound calls to property listing agents and restaurants. It negotiates available slots and confirms bookings.\n4. Result Parsing: The workflow extracts relevant information from the responses received, including confirmed times, addresses, contact names, reservation names, and any special instructions.\n5. Telegram Delivery: A concise summary of the outcomes is sent back to the user via Telegram, including options for quick replies such as confirm, cancel, map, or navigation.\n6. Optional Calendar Hold: If desired, the workflow can add confirmed bookings to the user\u2019s calendar and block the corresponding time.\n7. Logging (Optional): The workflow can log the outcomes of the bookings to a database or spreadsheet for tracking and analytics purposes.\n\nFinal Output or Action: The user receives a summary of confirmed property viewings and restaurant reservations via Telegram, along with any necessary next steps. The workflow may also update the user\u2019s calendar with the confirmed bookings and log the details for future reference.\n\nSetup Requirements:\n1. Telephony Provider: Connect an AI calling service using an API key and configure voice/language settings.\n2. Calendar Access: Link a calendar account (e.g., Google Calendar) and grant read (and optionally write) access.\n3. Telegram Bot: Create a Telegram bot using BotFather and input the bot token into the workflow credentials.\n4. Environment/Credentials: Store the telephony API token, calendar credentials, and Telegram bot token securely in n8n.\n5. Preferences: Set default preferences for viewings (areas, price range, time windows) and dining (party size, cuisine, budget).\n6. Test Run: Conduct a trial booking to verify the functionality of calling, calendar synchronization, and Telegram delivery.\n\nRequirements:\n- Accounts: n8n, telephony provider, calendar account, Telegram bot.\n- API Keys: Telephony API token, calendar credentials, Telegram bot token.\n- Permissions: Calendar read (and write if auto-blocking); outbound calling enabled.\n- Budget: Consider telephony per-minute fees and any minor API costs.\n\nFeatures:\n- Dual-Domain Booking: Facilitates both property viewings and restaurant reservations in one workflow.\n- Calendar Intelligence: Automatically checks for scheduling conflicts and proposes optimal time slots.\n- Telegram-Native User Experience: Provides simple prompts, instant confirmations, and quick action buttons.\n- Preference Profiles: Allows users to set preferences for time windows, neighborhoods, budget, language, and additional notes.\n- Fallbacks & Alternatives: Suggests alternative times or venues if initial choices are unavailable.\n- Multilingual Voice: Configurable voice and language settings to match regional requirements.\n- Structured Logs: Optional logging of booking outcomes for reporting and audit purposes.\n- Extensible: Capability to integrate with CRM systems, maps, SMS, or payment links as needed.\n\nThis workflow enables users to automate their scheduling needs for property viewings and dining experiences, allowing them to focus on their engagements without the hassle of manual coordination.",
+    "original_description": "![image.png](fileId:3007)\n\nThis automation template is an AI-powered booking agent that schedules property viewings and reserves restaurant tables for you, all coordinated through Telegram. It checks your calendar to avoid conflicts, places the calls on your behalf, negotiates times, confirms details, and delivers a crisp summary back to Telegram\u2014hands-free.\n\n***Note: This workflow uses a voice-calling provider for outbound calls, your calendar for availability, and Telegram for notifications. Usage costs depend on your telephony provider, call duration, and any API usage.***\n\n## Who Is This For?\n- **Home Buyers & Renters:** Queue up and confirm viewings without calling around.\n- **Real Estate Agents & Property Managers:** Automate client viewing scheduling and confirmations.\n- **Relocation Specialists & Assistants:** Coordinate multi-property tours with calendar-aware logic.\n- **Busy Professionals:** Let AI handle restaurant bookings and post-viewing meals.\n- **Concierge & Ops Teams:** Standardize bookings with structured logs and Telegram updates.\n\n## What Problem Does This Workflow Solve?\nScheduling property viewings and restaurant tables often means endless calls, conflicts, and coordination. This workflow removes the friction by:\n- **AI Phone Calls on Your Behalf:** Natural voice calls to agents/venues to secure slots.\n- **Calendar-Aware Booking:** Checks your real-time availability and avoids overlaps.\n- **Preference Handling:** Location, budget, party size, time windows, language, and notes.\n- **Instant Telegram Summaries:** Clear outcomes (confirmed, waitlist, action needed) and quick next steps.\n- **Scalable Coordination:** Handles multiple properties and dining options with fallback logic.\n\n## How It Works\n1. **Intent Capture (Telegram):** You send a simple message (e.g., \u201cViewings tomorrow 17:00\u201320:00, Eixample, 2-bed; table for 4 at 21:30 near there\u201d).\n2. **Calendar Check:** Reads free/busy blocks and suggests viable windows or alternatives.\n3. **AI Calling:** Places outbound calls to listing agents/restaurants, negotiates slots, and confirms.\n4. **Result Parsing:** Extracts confirmed time, address, contact name, reservation name, and special instructions.\n5. **Telegram Delivery:** Sends a concise recap plus optional quick-reply buttons (confirm/cancel/map/nav).\n6. **Optional Calendar Hold:** Adds confirmed bookings to your calendar and blocks time.\n7. **Logging (Optional):** Writes outcomes to a sheet/database for tracking and analytics.\n\n## Setup\n1. **Telephony Provider:** Connect your AI calling service (API key). Configure voice/language.\n2. **Calendar Access:** Link Google Calendar (or similar). Grant read (and optionally write) access.\n3. **Telegram Bot:** Create a bot with BotFather and add the bot token to credentials.\n4. **Environment/Credentials:** Store calling API token, calendar credentials, Telegram token in n8n.\n5. **Preferences:** Set defaults for viewings (areas, price range, time windows) and dining (party size, cuisine, budget).\n6. **Test Run:** Trial a single booking to verify calling, calendar sync, and Telegram delivery.\n\n## Requirements\n- **Accounts:** n8n, telephony provider, calendar account, Telegram bot.\n- **API Keys:** Telephony API token, Calendar credentials, Telegram bot token.\n- **Permissions:** Calendar read (and write if auto-blocking); outbound calls enabled.\n- **Budget:** Telephony per-minute fees and minor API costs where applicable.\n\n## Features\n- **Dual-Domain Booking:** Property viewings + restaurant tables in one flow.\n- **Calendar Intelligence:** Checks conflicts and proposes best-fit time slots.\n- **Telegram-Native UX:** Simple prompts, instant confirmations, and quick actions.\n- **Preference Profiles:** Time windows, neighborhoods, max budget, language, and notes.\n- **Fallbacks & Alternatives:** Suggests nearby times/venues if first choice is unavailable.\n- **Multilingual Voice:** Configure voice and language to match region/venue.\n- **Structured Logs:** Optional recording of outcomes for reporting and audits.\n- **Extensible:** Add CRM, maps, SMS, or payment links as needed.\n\nAutomate your day from tours to tables: message your intent on Telegram, and let the AI book, confirm, and keep your calendar clean\u2014so you just show up on time.",
+    "description_length": 4465,
+    "usage": {
+      "prompt_tokens": 1106,
+      "completion_tokens": 844,
+      "total_tokens": 1950
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:07:54.541579"
+  },
+  "original_description": "![image.png](fileId:3007)\n\nThis automation template is an AI-powered booking agent that schedules property viewings and reserves restaurant tables for you, all coordinated through Telegram. It checks your calendar to avoid conflicts, places the calls on your behalf, negotiates times, confirms details, and delivers a crisp summary back to Telegram\u2014hands-free.\n\n***Note: This workflow uses a voice-calling provider for outbound calls, your calendar for availability, and Telegram for notifications. Usage costs depend on your telephony provider, call duration, and any API usage.***\n\n## Who Is This For?\n- **Home Buyers & Renters:** Queue up and confirm viewings without calling around.\n- **Real Estate Agents & Property Managers:** Automate client viewing scheduling and confirmations.\n- **Relocation Specialists & Assistants:** Coordinate multi-property tours with calendar-aware logic.\n- **Busy Professionals:** Let AI handle restaurant bookings and post-viewing meals.\n- **Concierge & Ops Teams:** Standardize bookings with structured logs and Telegram updates.\n\n## What Problem Does This Workflow Solve?\nScheduling property viewings and restaurant tables often means endless calls, conflicts, and coordination. This workflow removes the friction by:\n- **AI Phone Calls on Your Behalf:** Natural voice calls to agents/venues to secure slots.\n- **Calendar-Aware Booking:** Checks your real-time availability and avoids overlaps.\n- **Preference Handling:** Location, budget, party size, time windows, language, and notes.\n- **Instant Telegram Summaries:** Clear outcomes (confirmed, waitlist, action needed) and quick next steps.\n- **Scalable Coordination:** Handles multiple properties and dining options with fallback logic.\n\n## How It Works\n1. **Intent Capture (Telegram):** You send a simple message (e.g., \u201cViewings tomorrow 17:00\u201320:00, Eixample, 2-bed; table for 4 at 21:30 near there\u201d).\n2. **Calendar Check:** Reads free/busy blocks and suggests viable windows or alternatives.\n3. **AI Calling:** Places outbound calls to listing agents/restaurants, negotiates slots, and confirms.\n4. **Result Parsing:** Extracts confirmed time, address, contact name, reservation name, and special instructions.\n5. **Telegram Delivery:** Sends a concise recap plus optional quick-reply buttons (confirm/cancel/map/nav).\n6. **Optional Calendar Hold:** Adds confirmed bookings to your calendar and blocks time.\n7. **Logging (Optional):** Writes outcomes to a sheet/database for tracking and analytics.\n\n## Setup\n1. **Telephony Provider:** Connect your AI calling service (API key). Configure voice/language.\n2. **Calendar Access:** Link Google Calendar (or similar). Grant read (and optionally write) access.\n3. **Telegram Bot:** Create a bot with BotFather and add the bot token to credentials.\n4. **Environment/Credentials:** Store calling API token, calendar credentials, Telegram token in n8n.\n5. **Preferences:** Set defaults for viewings (areas, price range, time windows) and dining (party size, cuisine, budget).\n6. **Test Run:** Trial a single booking to verify calling, calendar sync, and Telegram delivery.\n\n## Requirements\n- **Accounts:** n8n, telephony provider, calendar account, Telegram bot.\n- **API Keys:** Telephony API token, Calendar credentials, Telegram bot token.\n- **Permissions:** Calendar read (and write if auto-blocking); outbound calls enabled.\n- **Budget:** Telephony per-minute fees and minor API costs where applicable.\n\n## Features\n- **Dual-Domain Booking:** Property viewings + restaurant tables in one flow.\n- **Calendar Intelligence:** Checks conflicts and proposes best-fit time slots.\n- **Telegram-Native UX:** Simple prompts, instant confirmations, and quick actions.\n- **Preference Profiles:** Time windows, neighborhoods, max budget, language, and notes.\n- **Fallbacks & Alternatives:** Suggests nearby times/venues if first choice is unavailable.\n- **Multilingual Voice:** Configure voice and language to match region/venue.\n- **Structured Logs:** Optional recording of outcomes for reporting and audits.\n- **Extensible:** Add CRM, maps, SMS, or payment links as needed.\n\nAutomate your day from tours to tables: message your intent on Telegram, and let the AI book, confirm, and keep your calendar clean\u2014so you just show up on time.",
+  "optimized_description": "This workflow automates the process of scheduling property viewings and reserving restaurant tables through Telegram, utilizing AI-powered voice calls. The workflow is designed to streamline booking processes for home buyers, real estate agents, relocation specialists, busy professionals, and concierge teams by eliminating the need for manual calls and coordination.\n\nTrigger: The workflow is initiated when a user sends a message via Telegram indicating their intent to schedule property viewings and restaurant reservations. For example, a user might send a message like, Viewings tomorrow 17:0020:00, Eixample, 2-bed; table for 4 at 21:30 near there.\n\nData Sources and APIs Needed:\n1. Telephony Provider API for making outbound voice calls.\n2. Calendar API (e.g., Google Calendar) for checking availability and managing bookings.\n3. Telegram Bot API for receiving user messages and sending notifications.\n\nOperations and Processing Steps:\n1. Intent Capture: The workflow begins by capturing the users message from Telegram, which specifies the desired property viewings and restaurant reservations.\n2. Calendar Check: The workflow accesses the linked calendar to check for free/busy blocks, suggesting viable time windows or alternatives based on the users availability.\n3. AI Calling: The workflow uses the telephony provider API to place outbound calls to property listing agents and restaurants. It negotiates available slots and confirms bookings.\n4. Result Parsing: The workflow extracts relevant information from the responses received, including confirmed times, addresses, contact names, reservation names, and any special instructions.\n5. Telegram Delivery: A concise summary of the outcomes is sent back to the user via Telegram, including options for quick replies such as confirm, cancel, map, or navigation.\n6. Optional Calendar Hold: If desired, the workflow can add confirmed bookings to the users calendar and block the corresponding time.\n7. Logging (Optional): The workflow can log the outcomes of the bookings to a database or spreadsheet for tracking and analytics purposes.\n\nFinal Output or Action: The user receives a summary of confirmed property viewings and restaurant reservations via Telegram, along with any necessary next steps. The workflow may also update the users calendar with the confirmed bookings and log the details for future reference.\n\nSetup Requirements:\n1. Telephony Provider: Connect an AI calling service using an API key and configure voice/language settings.\n2. Calendar Access: Link a calendar account (e.g., Google Calendar) and grant read (and optionally write) access.\n3. Telegram Bot: Create a Telegram bot using BotFather and input the bot token into the workflow credentials.\n4. Environment/Credentials: Store the telephony API token, calendar credentials, and Telegram bot token securely in n8n.\n5. Preferences: Set default preferences for viewings (areas, price range, time windows) and dining (party size, cuisine, budget).\n6. Test Run: Conduct a trial booking to verify the functionality of calling, calendar synchronization, and Telegram delivery.\n\nRequirements:\n- Accounts: n8n, telephony provider, calendar account, Telegram bot.\n- API Keys: Telephony API token, calendar credentials, Telegram bot token.\n- Permissions: Calendar read (and write if auto-blocking); outbound calling enabled.\n- Budget: Consider telephony per-minute fees and any minor API costs.\n\nFeatures:\n- Dual-Domain Booking: Facilitates both property viewings and restaurant reservations in one workflow.\n- Calendar Intelligence: Automatically checks for scheduling conflicts and proposes optimal time slots.\n- Telegram-Native User Experience: Provides simple prompts, instant confirmations, and quick action buttons.\n- Preference Profiles: Allows users to set preferences for time windows, neighborhoods, budget, language, and additional notes.\n- Fallbacks & Alternatives: Suggests alternative times or venues if initial choices are unavailable.\n- Multilingual Voice: Configurable voice and language settings to match regional requirements.\n- Structured Logs: Optional logging of booking outcomes for reporting and audit purposes.\n- Extensible: Capability to integrate with CRM systems, maps, SMS, or payment links as needed.\n\nThis workflow enables users to automate their scheduling needs for property viewings and dining experiences, allowing them to focus on their engagements without the hassle of manual coordination.",
+  "error": null,
+  "generated_at": "2026-01-25T23:08:10.463378",
+  "metrics": {
+    "node_type_precision": 0.375,
+    "node_type_recall": 0.14285714285714285,
+    "node_type_f1": 0.20689655172413796,
+    "tp": 3,
+    "fp": 5,
+    "fn": 18,
+    "gt_node_count": 21,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 7,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.041666666666666664,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4599,
+        "completion_tokens": 1350,
+        "total_tokens": 5949
+      },
+      "description_optimization": {
+        "prompt_tokens": 1106,
+        "completion_tokens": 844,
+        "total_tokens": 1950
+      },
+      "total_tokens": 7899,
+      "total_prompt_tokens": 5705,
+      "total_completion_tokens": 2194
+    },
+    "total_cost": 0.036202500000000006,
+    "description_optimization_cost": 0.011205000000000001,
+    "workflow_generation_cost": 0.024997500000000002
+  }
+}

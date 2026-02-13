@@ -1,0 +1,253 @@
+{
+  "template_id": 5819,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for the interactive chat experience.",
+    "workflowPlan": {
+      "name": "Interactive Chat Experience",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Example Chat Window",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Gemini AI",
+          "nodeType": "n8n-nodes-base.gemini",
+          "typeVersion": 1,
+          "params": {
+            "query": "={{$json[\"body\"][\"query\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "={{$json[\"body\"][\"query\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Get a Joke",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://official-joke-api.appspot.com/random_joke",
+            "method": "GET"
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Days From Now",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const days = parseInt($json[\"body\"][\"days\"]);\nconst futureDate = new Date();\nfutureDate.setDate(futureDate.getDate() + days);\nreturn [{ json: { futureDate: futureDate.toISOString() } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wikipedia",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://en.wikipedia.org/api/rest_v1/page/summary/{{$json[\"body\"][\"topic\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Password",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const length = 12;\nconst charset = \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\";\nlet password = \"\";\nfor (let i = 0, n = charset.length; i < length; ++i) {\n  password += charset.charAt(Math.floor(Math.random() * n));\n}\nreturn [{ json: { password } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 700
+          }
+        },
+        {
+          "id": "8",
+          "label": "Calculate Loan Payment",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const principal = parseFloat($json[\"body\"][\"principal\"]);\nconst annualInterestRate = parseFloat($json[\"body\"][\"annualInterestRate\"]) / 100 / 12;\nconst numberOfPayments = parseInt($json[\"body\"][\"numberOfPayments\"]);\nconst monthlyPayment = (principal * annualInterestRate) / (1 - Math.pow(1 + annualInterestRate, -numberOfPayments));\nreturn [{ json: { monthlyPayment: monthlyPayment.toFixed(2) } }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 900
+          }
+        },
+        {
+          "id": "9",
+          "label": "Simple Memory",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "keepOnlySet": false,
+            "values": [
+              {
+                "key": "context",
+                "value": "={{$json[\"body\"][\"context\"] || \"\"}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Respond to Chat",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"response\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "1",
+          "to": "5"
+        },
+        {
+          "from": "1",
+          "to": "6"
+        },
+        {
+          "from": "1",
+          "to": "7"
+        },
+        {
+          "from": "1",
+          "to": "8"
+        },
+        {
+          "from": "2",
+          "to": "9"
+        },
+        {
+          "from": "3",
+          "to": "9"
+        },
+        {
+          "from": "4",
+          "to": "9"
+        },
+        {
+          "from": "5",
+          "to": "9"
+        },
+        {
+          "from": "6",
+          "to": "9"
+        },
+        {
+          "from": "7",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 719,
+    "completion_tokens": 1483,
+    "total_tokens": 2202
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:42:06.421502",
+  "generated_description": "This n8n workflow is designed to facilitate an interactive chat experience, leveraging multiple AI and data tools to provide dynamic responses and perform various tasks. The workflow is triggered by interactions within the \"Example Chat Window,\" where users can input queries or requests.\n\nUpon receiving a query, the workflow utilizes AI capabilities from both the Gemini and OpenAI nodes to process and generate responses, ensuring a robust conversational experience. It also integrates several specialized tools to perform specific operations based on user requests:\n\n1. The \"get_a_joke\" node fetches jokes via an HTTP request, providing entertainment or light-hearted responses.\n2. The \"days_from_now\" node calculates future dates, allowing users to inquire about specific timeframes.\n3. The \"wikipedia\" node accesses Wikipedia to retrieve information, offering users detailed knowledge on various topics.\n4. The \"create_password\" node generates secure passwords, assisting users in enhancing their cybersecurity.\n5. The \"calculate_loan_payment\" node performs financial calculations, helping users understand loan payment details.\n\nThroughout the interaction, the \"Simple Memory\" node stores conversation context, enabling the workflow to maintain continuity and relevance in its responses. The final output is a tailored response or action delivered back to the user through the chat interface, providing a seamless and informative user experience.",
+  "description_generation_usage": {
+    "prompt_tokens": 227,
+    "completion_tokens": 257,
+    "total_tokens": 484
+  },
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 10,
+    "fn": 11,
+    "gt_node_count": 11,
+    "llm_node_count": 10,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 719,
+      "completion_tokens": 1483,
+      "total_tokens": 2202
+    },
+    "total_cost": 0.019765,
+    "description_generation_cost": 0.0031375000000000005,
+    "workflow_generation_cost": 0.0166275
+  },
+  "original_description": "## How it works\n\nThis template is a complete, hands-on tutorial that lets you build and interact with your very first AI Agent.\n\nThink of an AI Agent as a standard AI chatbot with **superpowers**. The agent doesn't just talk; it can **use tools** to perform actions and find information in real-time. This workflow is designed to show you exactly how that works.\n\n1.  **The Chat Interface (Chat Trigger):** This is your window to the agent. It's a fully styled, public-facing chat window where you can have a conversation.\n2.  **The Brain (AI Agent Node):** This is the core of the operation. It takes your message, understands your intent, and intelligently decides which \"superpower\" (or tool) it needs to use to answer your request. The agent's personality and instructions are defined in its extensive system prompt.\n3.  **The Tools (Tool Nodes):** These are the agent's superpowers. We've included a variety of useful and fun tools to showcase its capabilities:\n    *   Get a random joke.\n    *   Search Wikipedia for a summary of any topic.\n    *   Calculate a future date.\n    *   Generate a secure password.\n    *   Calculate a monthly loan payment.\n    *   Fetch the latest articles from the n8n blog.\n4.  **The Memory (Memory Node):** This gives the agent a short-term memory, allowing it to remember the last few messages in your conversation for better context.\n\n\nWhen you send a message, the agent's brain analyzes it, picks the right tool for the job, executes it, and then formulates a helpful response based on the tool's output.\n\n## Set up steps\n\n**Setup time: ~3 minutes**\n\nThis template is nearly ready to go out of the box. You just need to provide the AI's \"brain.\"\n\n1.  **Configure Credentials:** This workflow requires an API key for an AI model. Make sure you have credentials set up in your n8n instance for either **Google AI (Gemini)** or **OpenAI**.\n2.  **Choose Your AI Brain (LLM):**\n    *   By default, the workflow uses the **Google Gemini** node. If you have Google AI credentials, you're all set!\n    *   If you prefer to use **OpenAI**, simply **disable the Gemini node** and **enable the OpenAI node**. You only need one active LLM node. Make sure it is connected to the Agent parent node.\n3.  **Explore the Tools:** Take a moment to look at the different tool nodes connected to the `Your First AI Agent` node. This is where the agent gets its abilities! You can add, remove, or modify these to create your own custom agent.\n4.  **Activate and Test!**\n    *   Activate the workflow.\n    *   Open the **public URL** for the `Example Chat Window` node (you can copy it from the node's panel).\n    *   Start chatting! Try asking it things like:\n        *   \"Tell me a joke.\"\n        *   \"What is n8n?\"\n        *   \"Generate a 16-character password for me.\"\n        *   \"What are the latest posts on the n8n blog?\"\n        *   \"What is the monthly payment for a $300,000 loan at 5% interest over 30 years?\""
+}

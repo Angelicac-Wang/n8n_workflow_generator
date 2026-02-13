@@ -1,0 +1,342 @@
+{
+  "template_id": "5819",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a chat interface, which acts as a webhook to receive messages from users.",
+      "data_sources": "AI model API (Google Gemini or OpenAI), Wikipedia API, n8n blog RSS feed, and internal logic for calculations and password generation.",
+      "operations": "1. Receive message from chat, 2. Analyze message with AI to determine intent, 3. Execute appropriate tool based on intent, 4. Retain conversation context, 5. Send response back to chat.",
+      "output_actions": "The final output is a response sent back to the user through the chat interface.",
+      "nodes_plan": "webhook (chat trigger), AI agent node (Google Gemini or OpenAI), tool nodes (HTTP Request for Wikipedia, Set for calculations and password generation, RSS Feed for blog), memory node (Set), response node (Webhook response).",
+      "connections_plan": "webhook -> AI agent -> tool nodes -> memory node -> response node (linear with branching for tool selection)."
+    },
+    "workflowPlan": {
+      "name": "AI Agent Chatbot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-interface"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.message }}",
+            "systemPrompt": "You are a helpful AI agent with tools like joke telling, Wikipedia search, date calculation, password generation, loan calculation, and fetching n8n blog articles."
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Get Random Joke",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "response",
+                  "value": "Why don't scientists trust atoms? Because they make up everything!"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Search Wikipedia",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/api/rest_v1/page/summary/{{ $json.body.topic }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Calculate Future Date",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "response",
+                  "value": "={{ new Date(new Date().setDate(new Date().getDate() + $json.body.days)).toDateString() }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Password",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "response",
+                  "value": "={{ Math.random().toString(36).slice(-16) }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Calculate Loan Payment",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "response",
+                  "value": "={{ ($json.body.loanAmount * $json.body.interestRate / 12) / (1 - Math.pow(1 + $json.body.interestRate / 12, -$json.body.years * 12)) }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Fetch n8n Blog",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://n8n.io/blog/rss.xml"
+          },
+          "position": {
+            "x": 500,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Memory Node",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "context",
+                  "value": "={{ $json.body.message }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Response Node",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "response"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4450,
+      "completion_tokens": 1696,
+      "total_tokens": 6146
+    },
+    "description_optimization": {
+      "prompt_tokens": 906,
+      "completion_tokens": 689,
+      "total_tokens": 1595
+    },
+    "total_tokens": 7741,
+    "total_prompt_tokens": 5356,
+    "total_completion_tokens": 2385
+  },
+  "description_optimization": {
+    "template_id": "5819",
+    "optimized_description": "This workflow is designed to create and interact with an AI Agent, which functions as an advanced chatbot capable of utilizing various tools to perform actions and retrieve information in real-time. The workflow consists of several components that work together to provide a seamless user experience.\n\n1. **Trigger: Chat Interface (Chat Trigger)**  \n   The workflow begins with a public-facing chat interface that allows users to send messages to the AI Agent. This chat window is styled and serves as the primary interaction point for users.\n\n2. **Core Processing: AI Agent Node (The Brain)**  \n   Upon receiving a message from the chat interface, the AI Agent Node analyzes the input to understand the user's intent. It utilizes a system prompt that defines the agent's personality and instructions, enabling it to determine which tool (or \"superpower\") to employ for generating a response.\n\n3. **Tool Operations: Tool Nodes (The Tools)**  \n   The AI Agent is equipped with various tool nodes that provide its capabilities. These tools include:\n   - Get a random joke.\n   - Search Wikipedia for a summary of any topic.\n   - Calculate a future date.\n   - Generate a secure password.\n   - Calculate a monthly loan payment.\n   - Fetch the latest articles from the n8n blog.\n\n   The AI Agent selects the appropriate tool based on the user's request and executes the corresponding operation.\n\n4. **Contextual Memory: Memory Node (The Memory)**  \n   To enhance the conversation's context, the Memory Node allows the AI Agent to retain the last few messages exchanged with the user. This short-term memory capability helps the agent provide more relevant and coherent responses.\n\n5. **Final Output: Response Generation**  \n   After executing the selected tool, the AI Agent formulates a helpful response based on the output generated by the tool. This response is then sent back to the user through the chat interface.\n\n**Setup Steps:**\n- **Setup Time:** Approximately 3 minutes.\n- **Configure Credentials:** An API key for an AI model is required. Users must set up credentials in their n8n instance for either Google AI (Gemini) or OpenAI.\n- **Choose Your AI Brain (LLM):** \n   - The default configuration uses the Google Gemini node. If Google AI credentials are available, no further action is needed.\n   - To use OpenAI, disable the Gemini node and enable the OpenAI node. Only one LLM node should be active and connected to the Agent parent node.\n- **Explore the Tools:** Users can review the various tool nodes connected to the \"Your First AI Agent\" node. Customization options are available to add, remove, or modify tools to tailor the agent's abilities.\n- **Activate and Test:** \n   - Activate the workflow.\n   - Open the public URL for the \"Example Chat Window\" node, which can be copied from the node's panel.\n   - Begin interacting with the AI Agent by asking questions such as:\n     - \"Tell me a joke.\"\n     - \"What is n8n?\"\n     - \"Generate a 16-character password for me.\"\n     - \"What are the latest posts on the n8n blog?\"\n     - \"What is the monthly payment for a $300,000 loan at 5% interest over 30 years?\"\n\nThis structured workflow enables users to effectively build and engage with their first AI Agent, showcasing its capabilities through various interactive tools and responses.",
+    "original_description": "## How it works\n\nThis template is a complete, hands-on tutorial that lets you build and interact with your very first AI Agent.\n\nThink of an AI Agent as a standard AI chatbot with **superpowers**. The agent doesn't just talk; it can **use tools** to perform actions and find information in real-time. This workflow is designed to show you exactly how that works.\n\n1.  **The Chat Interface (Chat Trigger):** This is your window to the agent. It's a fully styled, public-facing chat window where you can have a conversation.\n2.  **The Brain (AI Agent Node):** This is the core of the operation. It takes your message, understands your intent, and intelligently decides which \"superpower\" (or tool) it needs to use to answer your request. The agent's personality and instructions are defined in its extensive system prompt.\n3.  **The Tools (Tool Nodes):** These are the agent's superpowers. We've included a variety of useful and fun tools to showcase its capabilities:\n    *   Get a random joke.\n    *   Search Wikipedia for a summary of any topic.\n    *   Calculate a future date.\n    *   Generate a secure password.\n    *   Calculate a monthly loan payment.\n    *   Fetch the latest articles from the n8n blog.\n4.  **The Memory (Memory Node):** This gives the agent a short-term memory, allowing it to remember the last few messages in your conversation for better context.\n\n\nWhen you send a message, the agent's brain analyzes it, picks the right tool for the job, executes it, and then formulates a helpful response based on the tool's output.\n\n## Set up steps\n\n**Setup time: ~3 minutes**\n\nThis template is nearly ready to go out of the box. You just need to provide the AI's \"brain.\"\n\n1.  **Configure Credentials:** This workflow requires an API key for an AI model. Make sure you have credentials set up in your n8n instance for either **Google AI (Gemini)** or **OpenAI**.\n2.  **Choose Your AI Brain (LLM):**\n    *   By default, the workflow uses the **Google Gemini** node. If you have Google AI credentials, you're all set!\n    *   If you prefer to use **OpenAI**, simply **disable the Gemini node** and **enable the OpenAI node**. You only need one active LLM node. Make sure it is connected to the Agent parent node.\n3.  **Explore the Tools:** Take a moment to look at the different tool nodes connected to the `Your First AI Agent` node. This is where the agent gets its abilities! You can add, remove, or modify these to create your own custom agent.\n4.  **Activate and Test!**\n    *   Activate the workflow.\n    *   Open the **public URL** for the `Example Chat Window` node (you can copy it from the node's panel).\n    *   Start chatting! Try asking it things like:\n        *   \"Tell me a joke.\"\n        *   \"What is n8n?\"\n        *   \"Generate a 16-character password for me.\"\n        *   \"What are the latest posts on the n8n blog?\"\n        *   \"What is the monthly payment for a $300,000 loan at 5% interest over 30 years?\"",
+    "description_length": 3298,
+    "usage": {
+      "prompt_tokens": 906,
+      "completion_tokens": 689,
+      "total_tokens": 1595
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:32:51.877985"
+  },
+  "original_description": "## How it works\n\nThis template is a complete, hands-on tutorial that lets you build and interact with your very first AI Agent.\n\nThink of an AI Agent as a standard AI chatbot with **superpowers**. The agent doesn't just talk; it can **use tools** to perform actions and find information in real-time. This workflow is designed to show you exactly how that works.\n\n1.  **The Chat Interface (Chat Trigger):** This is your window to the agent. It's a fully styled, public-facing chat window where you can have a conversation.\n2.  **The Brain (AI Agent Node):** This is the core of the operation. It takes your message, understands your intent, and intelligently decides which \"superpower\" (or tool) it needs to use to answer your request. The agent's personality and instructions are defined in its extensive system prompt.\n3.  **The Tools (Tool Nodes):** These are the agent's superpowers. We've included a variety of useful and fun tools to showcase its capabilities:\n    *   Get a random joke.\n    *   Search Wikipedia for a summary of any topic.\n    *   Calculate a future date.\n    *   Generate a secure password.\n    *   Calculate a monthly loan payment.\n    *   Fetch the latest articles from the n8n blog.\n4.  **The Memory (Memory Node):** This gives the agent a short-term memory, allowing it to remember the last few messages in your conversation for better context.\n\n\nWhen you send a message, the agent's brain analyzes it, picks the right tool for the job, executes it, and then formulates a helpful response based on the tool's output.\n\n## Set up steps\n\n**Setup time: ~3 minutes**\n\nThis template is nearly ready to go out of the box. You just need to provide the AI's \"brain.\"\n\n1.  **Configure Credentials:** This workflow requires an API key for an AI model. Make sure you have credentials set up in your n8n instance for either **Google AI (Gemini)** or **OpenAI**.\n2.  **Choose Your AI Brain (LLM):**\n    *   By default, the workflow uses the **Google Gemini** node. If you have Google AI credentials, you're all set!\n    *   If you prefer to use **OpenAI**, simply **disable the Gemini node** and **enable the OpenAI node**. You only need one active LLM node. Make sure it is connected to the Agent parent node.\n3.  **Explore the Tools:** Take a moment to look at the different tool nodes connected to the `Your First AI Agent` node. This is where the agent gets its abilities! You can add, remove, or modify these to create your own custom agent.\n4.  **Activate and Test!**\n    *   Activate the workflow.\n    *   Open the **public URL** for the `Example Chat Window` node (you can copy it from the node's panel).\n    *   Start chatting! Try asking it things like:\n        *   \"Tell me a joke.\"\n        *   \"What is n8n?\"\n        *   \"Generate a 16-character password for me.\"\n        *   \"What are the latest posts on the n8n blog?\"\n        *   \"What is the monthly payment for a $300,000 loan at 5% interest over 30 years?\"",
+  "optimized_description": "This workflow is designed to create and interact with an AI Agent, which functions as an advanced chatbot capable of utilizing various tools to perform actions and retrieve information in real-time. The workflow consists of several components that work together to provide a seamless user experience.\n\n1. **Trigger: Chat Interface (Chat Trigger)**  \n   The workflow begins with a public-facing chat interface that allows users to send messages to the AI Agent. This chat window is styled and serves as the primary interaction point for users.\n\n2. **Core Processing: AI Agent Node (The Brain)**  \n   Upon receiving a message from the chat interface, the AI Agent Node analyzes the input to understand the user's intent. It utilizes a system prompt that defines the agent's personality and instructions, enabling it to determine which tool (or \"superpower\") to employ for generating a response.\n\n3. **Tool Operations: Tool Nodes (The Tools)**  \n   The AI Agent is equipped with various tool nodes that provide its capabilities. These tools include:\n   - Get a random joke.\n   - Search Wikipedia for a summary of any topic.\n   - Calculate a future date.\n   - Generate a secure password.\n   - Calculate a monthly loan payment.\n   - Fetch the latest articles from the n8n blog.\n\n   The AI Agent selects the appropriate tool based on the user's request and executes the corresponding operation.\n\n4. **Contextual Memory: Memory Node (The Memory)**  \n   To enhance the conversation's context, the Memory Node allows the AI Agent to retain the last few messages exchanged with the user. This short-term memory capability helps the agent provide more relevant and coherent responses.\n\n5. **Final Output: Response Generation**  \n   After executing the selected tool, the AI Agent formulates a helpful response based on the output generated by the tool. This response is then sent back to the user through the chat interface.\n\n**Setup Steps:**\n- **Setup Time:** Approximately 3 minutes.\n- **Configure Credentials:** An API key for an AI model is required. Users must set up credentials in their n8n instance for either Google AI (Gemini) or OpenAI.\n- **Choose Your AI Brain (LLM):** \n   - The default configuration uses the Google Gemini node. If Google AI credentials are available, no further action is needed.\n   - To use OpenAI, disable the Gemini node and enable the OpenAI node. Only one LLM node should be active and connected to the Agent parent node.\n- **Explore the Tools:** Users can review the various tool nodes connected to the \"Your First AI Agent\" node. Customization options are available to add, remove, or modify tools to tailor the agent's abilities.\n- **Activate and Test:** \n   - Activate the workflow.\n   - Open the public URL for the \"Example Chat Window\" node, which can be copied from the node's panel.\n   - Begin interacting with the AI Agent by asking questions such as:\n     - \"Tell me a joke.\"\n     - \"What is n8n?\"\n     - \"Generate a 16-character password for me.\"\n     - \"What are the latest posts on the n8n blog?\"\n     - \"What is the monthly payment for a $300,000 loan at 5% interest over 30 years?\"\n\nThis structured workflow enables users to effectively build and engage with their first AI Agent, showcasing its capabilities through various interactive tools and responses.",
+  "error": null,
+  "generated_at": "2026-01-25T23:33:19.485816",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 10,
+    "fn": 11,
+    "gt_node_count": 11,
+    "llm_node_count": 10,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4450,
+        "completion_tokens": 1696,
+        "total_tokens": 6146
+      },
+      "description_optimization": {
+        "prompt_tokens": 906,
+        "completion_tokens": 689,
+        "total_tokens": 1595
+      },
+      "total_tokens": 7741,
+      "total_prompt_tokens": 5356,
+      "total_completion_tokens": 2385
+    },
+    "total_cost": 0.03724000000000001,
+    "description_optimization_cost": 0.009155,
+    "workflow_generation_cost": 0.028085000000000006
+  }
+}

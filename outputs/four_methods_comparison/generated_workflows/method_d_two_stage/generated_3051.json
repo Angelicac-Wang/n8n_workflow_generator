@@ -1,0 +1,184 @@
+{
+  "template_id": "3051",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by the upload of a PDF resume to Google Drive.",
+      "data_sources": "Google Drive for the PDF resume, Google Sheets for organizing job listings, a job search service API for retrieving job postings, and an AI parsing service for extracting resume information.",
+      "operations": "1. Trigger on PDF upload to Google Drive, 2. Use AI service to parse resume, 3. Search for jobs using parsed data, 4. Save job listings to Google Sheets.",
+      "output_actions": "The final output is a Google Sheet with job listings matching the user's profile.",
+      "nodes_plan": "googleDriveTrigger (trigger), aiParsing (custom API), jobSearchAPI (httpRequest), googleSheets (googleSheets)",
+      "connections_plan": "googleDriveTrigger -> aiParsing -> jobSearchAPI -> googleSheets (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Job Posting Finder and Organizer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "file",
+            "driveId": "",
+            "fileId": "",
+            "filters": {
+              "mimeType": "application/pdf"
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Parsing",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.ai-parsing-service.com/parse",
+            "body": {
+              "fileUrl": "={{ $json['fileUrl'] }}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Job Search API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.jobsearch.com/search",
+            "queryParameters": [
+              {
+                "name": "keywords",
+                "value": "={{ $json['skills'] }}"
+              },
+              {
+                "name": "location",
+                "value": "={{ $json['location'] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "",
+            "range": "A1",
+            "data": "={{ $json['jobs'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4243,
+      "completion_tokens": 788,
+      "total_tokens": 5031
+    },
+    "description_optimization": {
+      "prompt_tokens": 852,
+      "completion_tokens": 482,
+      "total_tokens": 1334
+    },
+    "total_tokens": 6365,
+    "total_prompt_tokens": 5095,
+    "total_completion_tokens": 1270
+  },
+  "description_optimization": {
+    "template_id": "3051",
+    "optimized_description": "Workflow Description: Job Posting Finder and Organizer\n\nOverview:\nThis workflow automates the process of discovering job postings tailored to your profile by leveraging AI for intelligent resume parsing and targeted job matching. It sources job listings from LinkedIn, Indeed, Glassdoor, and other public job sites, and organizes the results in a Google Sheet for easy access and review.\n\nTrigger:\nThe workflow is triggered by the upload of a PDF resume to Google Drive.\n\nData Sources and APIs Needed:\n1. Google Drive (for storing the PDF resume)\n2. Google Sheets (for organizing job listings)\n3. Job search service API (requires a free API key)\n4. AI parsing service (for extracting information from the resume)\n\nOperations and Processing Steps:\n\nStep 1: Connect Your Resume Parsing AI\n1. Upload your PDF resume to Google Drive.\n2. Configure the AI parser node in n8n to extract relevant information from the resume.\n3. Map the extracted fields such as skills, job title, experience, and education for job searching.\n\nStep 2: Automate the Job Search\n1. Utilize the extracted data to perform job searches on LinkedIn, Indeed, Glassdoor, and other supported job sites.\n2. Retrieve job postings based on relevant keywords and location preferences derived from the parsed resume data.\n\nStep 3: Save Job Listings to Google Sheets\n1. Create a new Google Sheet to store the job listings.\n2. Set up the automation to write job details into the Google Sheet, including title, company, location, and application link.\n3. Format the Google Sheet for better readability and tracking of job applications.\n\nStep 4: Review and Apply to Jobs\n1. Open the Google Sheet to view the matched job listings.\n2. Click on the links provided in the sheet to apply directly on the respective job sites.\n3. Update the status of each job application in the Google Sheet as you progress through the application process.\n\nFinal Output or Action:\nThe final output of this workflow is a structured Google Sheet containing job listings that match the user's profile, allowing for easy tracking and application management. Users can efficiently review job opportunities and apply directly from the organized list, enhancing their job search experience.\n\nThis automation saves time by eliminating manual job searching and data entry, improves organization by keeping all job opportunities in a structured format, and optimizes the job hunt process, increasing the chances of landing the ideal role.",
+    "original_description": "# Find Job Postings from LinkedIn, Indeed, and Glassdoor and Save Them to Google Sheets Using AI\n\n## Overview\nEffortlessly discover and apply to jobs tailored to your profile\u2014AI handles the search, you handle the interviews.\n\nSay goodbye to endless job board scrolling. This automation leverages AI to analyze your resume, identify your skills, experience, and more, to match you with the most relevant job opportunities. It sources job postings from LinkedIn, Indeed, Glassdoor, ZipRecruiter, Monster, and other public job sites on the web. With seamless integration and automatic organization of results, you can focus on applying rather than searching.\n\n## Key Features\n\n### **Intelligent Resume Parsing**\n- Extracts key information from your PDF resume using AI.\n- Identifies skills, experience, education, and job preferences.\n\n### **Targeted Job Matching**\n- Uses the parsed resume data to search for jobs that align with your profile.\n- Ensures relevance by analyzing job descriptions for matching criteria.\n\n### **Automated Data Organization**\n- Compiles job listings into a structured Google Spreadsheet.\n- Eliminates the need for manual data entry, saving valuable time.\n\n### **Easy Access and Review**\n- Stores results in a familiar Google Sheets format for easy tracking.\n- Allows for filtering and sorting to prioritize applications.\n\n## **Setup Instructions**\n\n### **Prerequisites**\n- A free API key for the job search service.\n- Google Drive and Google Sheets accounts.\n- An updated resume in PDF format.\n\n### **Step 1: Connect Your Resume Parsing AI**\n1. Upload your PDF resume to Google Drive.\n2. Configure the AI parser node in n8n to extract relevant information.\n3. Map the extracted fields (e.g., skills, job title, experience) for job searching.\n\n### **Step 2: Automate the Job Search**\n1. Use the extracted data to perform a job search on LinkedIn, Indeed, Glassdoor, and other supported job sites.\n2. Retrieve job postings based on relevant keywords and location preferences.\n\n### **Step 3: Save Job Listings to Google Sheets**\n1. Create a new Google Sheet to store job listings.\n2. Set up the automation to write job details (e.g., title, company, location, link) into the sheet.\n3. Format the sheet for better readability and tracking.\n\n### **Step 4: Review and Apply to Jobs**\n1. Open your Google Sheet to view job matches.\n2. Click on the links to apply directly on the respective job sites.\n3. Update the status of each job application as you progress.\n\n## **Why Use This Automation?**\n- **Saves Time**: Automates job searching and listing compilation.\n- **Enhances Efficiency**: Eliminates manual scrolling and data entry.\n- **Improves Organization**: Keeps all job opportunities in a structured format.\n- **Optimizes Your Job Hunt**: Increases chances of landing the perfect role.\n\nDesigned specifically for job seekers aiming to optimize their search process, this automation integrates with Google Drive and Sheets, streamlining your job hunt and enhancing your chances of finding the right opportunity. Get started today and accelerate your career growth!",
+    "description_length": 2463,
+    "usage": {
+      "prompt_tokens": 852,
+      "completion_tokens": 482,
+      "total_tokens": 1334
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:10:08.647846"
+  },
+  "original_description": "# Find Job Postings from LinkedIn, Indeed, and Glassdoor and Save Them to Google Sheets Using AI\n\n## Overview\nEffortlessly discover and apply to jobs tailored to your profile\u2014AI handles the search, you handle the interviews.\n\nSay goodbye to endless job board scrolling. This automation leverages AI to analyze your resume, identify your skills, experience, and more, to match you with the most relevant job opportunities. It sources job postings from LinkedIn, Indeed, Glassdoor, ZipRecruiter, Monster, and other public job sites on the web. With seamless integration and automatic organization of results, you can focus on applying rather than searching.\n\n## Key Features\n\n### **Intelligent Resume Parsing**\n- Extracts key information from your PDF resume using AI.\n- Identifies skills, experience, education, and job preferences.\n\n### **Targeted Job Matching**\n- Uses the parsed resume data to search for jobs that align with your profile.\n- Ensures relevance by analyzing job descriptions for matching criteria.\n\n### **Automated Data Organization**\n- Compiles job listings into a structured Google Spreadsheet.\n- Eliminates the need for manual data entry, saving valuable time.\n\n### **Easy Access and Review**\n- Stores results in a familiar Google Sheets format for easy tracking.\n- Allows for filtering and sorting to prioritize applications.\n\n## **Setup Instructions**\n\n### **Prerequisites**\n- A free API key for the job search service.\n- Google Drive and Google Sheets accounts.\n- An updated resume in PDF format.\n\n### **Step 1: Connect Your Resume Parsing AI**\n1. Upload your PDF resume to Google Drive.\n2. Configure the AI parser node in n8n to extract relevant information.\n3. Map the extracted fields (e.g., skills, job title, experience) for job searching.\n\n### **Step 2: Automate the Job Search**\n1. Use the extracted data to perform a job search on LinkedIn, Indeed, Glassdoor, and other supported job sites.\n2. Retrieve job postings based on relevant keywords and location preferences.\n\n### **Step 3: Save Job Listings to Google Sheets**\n1. Create a new Google Sheet to store job listings.\n2. Set up the automation to write job details (e.g., title, company, location, link) into the sheet.\n3. Format the sheet for better readability and tracking.\n\n### **Step 4: Review and Apply to Jobs**\n1. Open your Google Sheet to view job matches.\n2. Click on the links to apply directly on the respective job sites.\n3. Update the status of each job application as you progress.\n\n## **Why Use This Automation?**\n- **Saves Time**: Automates job searching and listing compilation.\n- **Enhances Efficiency**: Eliminates manual scrolling and data entry.\n- **Improves Organization**: Keeps all job opportunities in a structured format.\n- **Optimizes Your Job Hunt**: Increases chances of landing the perfect role.\n\nDesigned specifically for job seekers aiming to optimize their search process, this automation integrates with Google Drive and Sheets, streamlining your job hunt and enhancing your chances of finding the right opportunity. Get started today and accelerate your career growth!",
+  "optimized_description": "Workflow Description: Job Posting Finder and Organizer\n\nOverview:\nThis workflow automates the process of discovering job postings tailored to your profile by leveraging AI for intelligent resume parsing and targeted job matching. It sources job listings from LinkedIn, Indeed, Glassdoor, and other public job sites, and organizes the results in a Google Sheet for easy access and review.\n\nTrigger:\nThe workflow is triggered by the upload of a PDF resume to Google Drive.\n\nData Sources and APIs Needed:\n1. Google Drive (for storing the PDF resume)\n2. Google Sheets (for organizing job listings)\n3. Job search service API (requires a free API key)\n4. AI parsing service (for extracting information from the resume)\n\nOperations and Processing Steps:\n\nStep 1: Connect Your Resume Parsing AI\n1. Upload your PDF resume to Google Drive.\n2. Configure the AI parser node in n8n to extract relevant information from the resume.\n3. Map the extracted fields such as skills, job title, experience, and education for job searching.\n\nStep 2: Automate the Job Search\n1. Utilize the extracted data to perform job searches on LinkedIn, Indeed, Glassdoor, and other supported job sites.\n2. Retrieve job postings based on relevant keywords and location preferences derived from the parsed resume data.\n\nStep 3: Save Job Listings to Google Sheets\n1. Create a new Google Sheet to store the job listings.\n2. Set up the automation to write job details into the Google Sheet, including title, company, location, and application link.\n3. Format the Google Sheet for better readability and tracking of job applications.\n\nStep 4: Review and Apply to Jobs\n1. Open the Google Sheet to view the matched job listings.\n2. Click on the links provided in the sheet to apply directly on the respective job sites.\n3. Update the status of each job application in the Google Sheet as you progress through the application process.\n\nFinal Output or Action:\nThe final output of this workflow is a structured Google Sheet containing job listings that match the user's profile, allowing for easy tracking and application management. Users can efficiently review job opportunities and apply directly from the organized list, enhancing their job search experience.\n\nThis automation saves time by eliminating manual job searching and data entry, improves organization by keeping all job opportunities in a structured format, and optimizes the job hunt process, increasing the chances of landing the ideal role.",
+  "error": null,
+  "generated_at": "2026-01-25T23:10:20.654880",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.3333333333333333,
+    "tp": 2,
+    "fp": 2,
+    "fn": 6,
+    "gt_node_count": 8,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 7,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4243,
+        "completion_tokens": 788,
+        "total_tokens": 5031
+      },
+      "description_optimization": {
+        "prompt_tokens": 852,
+        "completion_tokens": 482,
+        "total_tokens": 1334
+      },
+      "total_tokens": 6365,
+      "total_prompt_tokens": 5095,
+      "total_completion_tokens": 1270
+    },
+    "total_cost": 0.025437500000000002,
+    "description_optimization_cost": 0.006950000000000001,
+    "workflow_generation_cost": 0.0184875
+  }
+}

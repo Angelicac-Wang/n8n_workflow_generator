@@ -1,0 +1,218 @@
+{
+  "template_id": 7455,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Telegram Voice Message Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "voice"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Voice Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "resource": "file"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Text Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "resource": "message",
+            "text": "Voice message received and processed."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Media Group",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message\"][\"media_group_id\"] !== undefined}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Caption",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"message\"][\"caption\"] !== undefined}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Insert Media Group",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "INSERT INTO media_groups (media_group_id, user_id) VALUES ($1, $2)",
+            "queryParams": [
+              "={{$json[\"message\"][\"media_group_id\"]}}",
+              "={{$json[\"message\"][\"from\"][\"id\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Insert Media Queue with Caption",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "INSERT INTO media_queue (media_id, caption, user_id) VALUES ($1, $2, $3)",
+            "queryParams": [
+              "={{$json[\"message\"][\"message_id\"]}}",
+              "={{$json[\"message\"][\"caption\"]}}",
+              "={{$json[\"message\"][\"from\"][\"id\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1m"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 660,
+    "completion_tokens": 1089,
+    "total_tokens": 1749
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:42:57.761810",
+  "generated_description": "This n8n workflow is designed to automate the processing and handling of messages received via Telegram. The workflow is triggered by the receipt of a voice message on Telegram. Upon receiving the voice message, the workflow downloads it and sends a text message back to the user on Telegram, likely as a confirmation or acknowledgment.\n\nThe workflow then routes the input message through a series of conditional checks using switch and if nodes to determine the type of content received. It checks whether the message is part of a media group and whether it includes captions. Based on these conditions, the workflow inserts relevant data into a PostgreSQL database, specifically into tables designated for media groups and media queues with captions.\n\nAdditionally, the workflow includes a wait node, which likely introduces a delay or pause in the process, possibly to ensure that all data is processed correctly before proceeding.\n\nOverall, the final output of this workflow is the organized storage of media messages and their associated metadata in a PostgreSQL database, facilitating efficient data management and retrieval.",
+  "description_generation_usage": {
+    "prompt_tokens": 228,
+    "completion_tokens": 198,
+    "total_tokens": 426
+  },
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.09090909090909091,
+    "node_type_f1": 0.16666666666666669,
+    "tp": 8,
+    "fp": 0,
+    "fn": 80,
+    "gt_node_count": 88,
+    "llm_node_count": 8,
+    "connection_precision": 0.4,
+    "connection_recall": 0.05714285714285714,
+    "connection_f1": 0.09999999999999999,
+    "correct_connections": 2,
+    "gt_connection_count": 35,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0625,
+    "usage": {
+      "prompt_tokens": 660,
+      "completion_tokens": 1089,
+      "total_tokens": 1749
+    },
+    "total_cost": 0.015090000000000001,
+    "description_generation_cost": 0.00255,
+    "workflow_generation_cost": 0.01254
+  },
+  "original_description": "# \ud83e\udd16\ud83d\udce8 Telegram AI Assistant with Multi-File Media Group Handling, Smart File Processing & PostgreSQL Integration\n\n&gt; **AI-powered Telegram bot for text, voice, video, documents & media \u2014 with database-driven grouping and Telegram-safe formatting.**\n\n---\n\n## \ud83d\udccb Description\n\nThis n8n template creates a **next-generation Telegram AI assistant** \ud83e\udde0\ud83d\udcac capable of handling **text messages, media files, and documents** with advanced processing, PostgreSQL integration, and AI-powered responses.\n\nIt is designed to **solve Telegram\u2019s media group challenge** \ud83d\udce6 \u2014 when multiple files are sent together, they are stored, processed, and combined into one coherent AI-generated reply.\n\n### \u2728 Key Features\n- \ud83d\udcc2 **Multi-file media group management** with PostgreSQL:\n  - `media_group`\n  - `media_queue`\n  - `chat_histories`\n- \ud83d\udcd1 **Document parsing** for CSV, HTML, ICS, JSON, ODS, PDF (with AI fallback), RTF, TXT, XML, and spreadsheets.\n- \ud83c\udfa4 **Voice & video transcription** for AI analysis.\n- \ud83d\uddbc\ufe0f **Image, audio, and video description** for richer AI context.\n- \ud83d\udee1\ufe0f **Telegram-safe MarkdownV2 formatting** with auto-splitting for messages over 4096 chars.\n- \u26a0\ufe0f **Error fallback** for unsupported file types.\n\n---\n\n## \ud83d\udca1 Acknowledgment\n\nA huge thank you to **Ezema Gingsley Chibuzo** \ud83d\ude4c for the inspiration of the first version of this workflow:  \n[Create a Multi-Modal Telegram Support Bot with GPT-4 and Supabase RAG](https://n8n.io/workflows/5589-create-a-multi-modal-telegram-support-bot-with-gpt-4-and-supabase-rag/)  \nYour pioneering work laid the foundation for this improved, **database-powered multi-modal assistant** \ud83d\ude80\n\n---\n\n## \ud83c\udff7 Tags\n`telegram` `ai-assistant` `postgresql` `multi-file` `media-group`  \n`file-processing` `voice-transcription` `document-parser` `pdf-extraction`  \n`markdown-formatting` `n8n-template`\n\n---\n\n## \ud83d\udcbc Use Case\nUse this template if you need an AI-powered Telegram bot that can:\n- \ud83d\udce6 Handle **multiple files sent in a single message** (albums, multiple PDFs, etc.).\n- \ud83e\uddfe Extract & analyze **content from many file formats**.\n- \ud83c\udf99\ufe0f Transcribe **voice and video messages**.\n- \ud83d\uddc2\ufe0f Maintain **chat memory** for contextual AI answers.\n- \ud83d\udee1\ufe0f Avoid **Telegram formatting errors** and length limit issues.\n\nThis workflow automates the full chain: **Receive \u2192 Process \u2192 AI Analysis \u2192 Telegram-safe Reply**.\n\n---\n\n## \ud83d\udcac Example User Interactions\n\n- **\ud83d\udcc4 Multiple PDFs with a caption** \u2192 AI extracts and summarizes all PDFs in one combined reply.  \n- **\ud83c\udfa4 Voice message** \u2192 AI transcribes and replies with a contextual answer.  \n- **\ud83d\udcca CSV or spreadsheet file** \u2192 AI parses and summarizes the data.  \n- **\ud83d\uddbc\ufe0f Multiple images** \u2192 AI describes each image and replies in a single message.\n\n---\n\n## \ud83d\udd11 Required Credentials\n- **Telegram Bot API** (Bot Token)  \n- **PostgreSQL** (Connection credentials)  \n- **AI Provider API** (OpenAI, Google Gemini, or compatible LLM)\n\n---\n\n## \u2699\ufe0f Setup Instructions\n1. \ud83d\uddc4\ufe0f **Create the PostgreSQL tables** (Gray section SQL):\n   - `media_group`\n   - `media_queue`\n   - `chat_histories`\n2. \ud83d\udd0c Configure the **Telegram Trigger** with your bot token.\n3. \ud83e\udd16 Connect your **AI provider** credentials.\n4. \ud83d\uddc2\ufe0f Set up **PostgreSQL** credentials in the database nodes.\n5. \u25b6\ufe0f Deploy the workflow in n8n.\n6. \ud83c\udfaf Start sending messages and files to your bot.\n\n---\n\n## \ud83d\udccc Extra Notes\n- \u2705 **Green section** ensures only one trigger per media group.  \n- \ud83d\udccc **Yellow section** guarantees captions and files are stored in the correct sequence.  \n- \u2728 **Purple section** formats AI output to be Telegram-safe and split if needed.  \n- \ud83e\udde0 AI prompt is **not fixed**, allowing full customization.\n\n---\n\n## \ud83d\udca1 Need Assistance?\n\nIf you\u2019d like help customizing or extending this workflow, feel free to reach out:  \n\n\ud83d\udce7 Email: [johnsilva11031@gmail.com](mailto:johnsilva11031@gmail.com)  \n\ud83d\udd17 LinkedIn: [John Alejandro Silva Rodr\u00edguez](https://www.linkedin.com/in/john-alejandro-silva-rodriguez-48093526b/)"
+}

@@ -1,0 +1,302 @@
+{
+  "template_id": "4723",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered automatically every weekday at 8:00 AM and also have a manual trigger for on-demand analysis.",
+      "data_sources": "Gmail API, Google Calendar API, Slack API, Fireflies API, Google Sheets API, n8n for orchestration, Claude Sonnet 4 & Opus 4 for AI analysis.",
+      "operations": "1. Scan unread emails and categorize them by urgency. 2. Review calendar meetings and fetch transcripts. 3. Monitor Slack messages for unreplied conversations. 4. Synthesize data from all sources and generate a daily action plan. 5. Update Google Sheets with tasks and send a Slack DM with the daily briefing.",
+      "output_actions": "Generate a comprehensive daily briefing with prioritized tasks and actionable items, delivered via Slack DM. Update the Google Sheets to-do tracker.",
+      "nodes_plan": "schedule (trigger), manualTrigger (trigger), gmail (email operations), googleCalendar (calendar operations), slack (message operations), fireflies (transcript analysis), googleSheets (task tracking), openAi (AI analysis), set (data processing), slack (send briefing)",
+      "connections_plan": "schedule/manualTrigger -> gmail -> googleCalendar -> fireflies -> slack -> openAi -> set -> googleSheets -> slack (send briefing)"
+    },
+    "workflowPlan": {
+      "name": "Email Personal Assistant - Comprehensive Communication Manager",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * 1-5"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gmail API",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "filters": {
+              "labelIds": [
+                "To Respond",
+                "FYI"
+              ],
+              "q": "is:unread"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Calendar API",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendarId": "primary",
+            "timeMin": "={{ new Date(new Date().setDate(new Date().getDate()-3)).toISOString() }}",
+            "timeMax": "={{ new Date().toISOString() }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fireflies API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.fireflies.ai/v1/transcripts",
+            "queryParameters": [
+              {
+                "name": "meetingId",
+                "value": "={{ $json.meetingId }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Slack API",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "channelType": "im",
+            "returnAll": true
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Analyze the following communications for priority and context: {{ $json.emails }}, {{ $json.meetings }}, {{ $json.slackMessages }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Set Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "actionPlan",
+                  "value": "={{ $json.analysisResult }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Google Sheets API",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Tasks!A1",
+            "data": "={{ $json.actionPlan }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Slack Briefing",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "your-channel-id",
+            "text": "Daily briefing: {{ $json.actionPlan }}"
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4431,
+      "completion_tokens": 1578,
+      "total_tokens": 6009
+    },
+    "description_optimization": {
+      "prompt_tokens": 840,
+      "completion_tokens": 670,
+      "total_tokens": 1510
+    },
+    "total_tokens": 7519,
+    "total_prompt_tokens": 5271,
+    "total_completion_tokens": 2248
+  },
+  "description_optimization": {
+    "template_id": "4723",
+    "optimized_description": "This workflow, titled \"Email Personal Assistant - Comprehensive Communication Manager,\" is designed to proactively monitor communications across email, calendar, and Slack, analyze priorities, and generate a comprehensive daily briefing with actionable tasks to enhance executive productivity.\n\n**Trigger:**\nThe workflow is initiated automatically every weekday at 8:00 AM. A manual trigger is also available for on-demand analysis, allowing for a comprehensive daily communication audit.\n\n**Data Sources and APIs Needed:**\n1. Gmail API for email monitoring and history checking.\n2. Google Calendar for meeting tracking and scheduling.\n3. Slack API for message monitoring and user management.\n4. Fireflies API for meeting transcript analysis.\n5. Google Sheets for task tracking and persistence.\n6. n8n for workflow orchestration and scheduling.\n7. Claude Sonnet 4 & Opus 4 for multi-agent AI analysis.\n\n**Operations and Processing Steps:**\n\n1. **Email Assistant Agent:**\n   - Scans unread emails in the \"To Respond\" and \"FYI\" labels.\n   - Checks email history to determine relationship context.\n   - Identifies company-related opportunities and partnerships.\n   - Categorizes emails by urgency (High, Medium, Low).\n   - Cross-references with sent emails for follow-up context.\n\n2. **Follow-Up Assistant Agent:**\n   - Reviews the last three days of calendar meetings.\n   - Fetches transcripts from Fireflies for recorded sessions.\n   - Identifies meetings without post-meeting communication.\n   - Flags meetings requiring action items or follow-ups.\n   - Checks sent emails and Slack for completed follow-ups.\n\n3. **Slack Assistant Agent:**\n   - Monitors direct messages and @mentions.\n   - Identifies unreplied Slack conversations.\n   - Cross-references with email and calendar context.\n   - Prioritizes responses based on sender importance.\n   - Checks for threaded conversations requiring attention.\n\n4. **Master Orchestrator Agent:**\n   - Synthesizes communication data from all three assistant agents.\n   - Cross-references with existing Google Sheets to-do list.\n   - Prioritizes tasks by urgency and business impact.\n   - Identifies correlations between different communication channels.\n   - Creates a comprehensive daily action plan.\n\n5. **Task Management Integration:**\n   - Appends new tasks to the Google Sheets to-do tracker.\n   - Sends a personalized daily briefing via Slack DM.\n   - Maintains conversation memory for context continuity.\n   - Tracks outstanding versus completed items.\n\n**Final Output or Action:**\nThe workflow generates a comprehensive daily briefing that includes prioritized tasks and actionable items, delivered via Slack DM. It also updates the Google Sheets to-do tracker with new tasks and maintains a record of completed items for ongoing productivity management.\n\n**Key Features:**\n- Multi-channel communication monitoring (Email, Calendar, Slack).\n- AI-powered priority assessment and context analysis.\n- Cross-platform relationship tracking and history.\n- Automated daily briefing generation and delivery.\n- Persistent task tracking with Google Sheets integration.\n- Meeting follow-up verification and flagging.\n- Conversation memory for continuity across sessions.\n\n**Ideal Use Cases:**\nThis workflow is ideal for C-level executives managing multiple communication channels, sales leaders tracking prospect interactions and follow-ups, business development professionals managing partnerships, busy professionals needing communication prioritization, teams requiring systematic follow-up management, and anyone seeking automated daily productivity briefings.",
+    "original_description": "# Email Personal Assistant - Comprehensive Communication Manager\n\nThis automation flow is designed to proactively monitor email, calendar, and Slack communications, analyze priorities across all channels, and generate a comprehensive daily briefing with actionable tasks for executive productivity management.\n\n\u2699\ufe0f **How It Works (Step-by-Step):**\n\n1. **\u23f0 Automated Daily Trigger**\nRuns automatically on weekdays:\n```\nScheduled execution every weekday at 8:00 AM\nManual trigger available for on-demand analysis\nComprehensive daily communication audit\n```\n\n2. **\ud83d\udce7 Email Assistant Agent**\nAnalyzes inbox priorities and context:\n```\nScans unread emails across \"To Respond\" and \"FYI\" labels\nChecks email history to determine relationship context\nIdentifies *company-related opportunities and partnerships\nCategorizes emails by urgency (High, Medium, Low)\nCross-references with sent emails for follow-up context\n```\n\n3. **\ud83d\udcc5 Follow-Up Assistant Agent**\nMonitors meeting follow-up requirements:\n```\nReviews last 3 days of calendar meetings\nFetches Fireflies transcripts for recorded sessions\nIdentifies meetings without post-meeting communication\nFlags meetings requiring action items or follow-ups\nChecks sent emails and Slack for completed follow-ups\n```\n\n4. **\ud83d\udcac Slack Assistant Agent**\nTracks Slack communication priorities:\n```\nMonitors direct messages and @mentions\nIdentifies unreplied Slack conversations\nCross-references with email and calendar context\nPrioritizes responses based on sender importance\nChecks for threaded conversations requiring attention\n```\n\n5. **\ud83c\udfaf Master Orchestrator Agent**\nSynthesizes all communication data:\n```\nCombines reports from all three assistant agents\nCross-references with existing Google Sheets to-do list\nPrioritizes tasks by urgency and business impact\nIdentifies correlations between different communication channels\nCreates comprehensive daily action plan\n```\n\n6. **\ud83d\udcca Task Management Integration**\nAutomated tracking and delivery:\n```\nAppends new tasks to Google Sheets to-do tracker\nSends personalized daily briefing via Slack DM\nMaintains conversation memory for context continuity\nTracks outstanding vs. completed items\n```\n\n\ud83d\udee0\ufe0f **Tools Used:**\n```\nn8n: Workflow orchestration and scheduling\nClaude Sonnet 4 & Opus 4: Multi-agent AI analysis\nGmail API: Email monitoring and history checking\nGoogle Calendar: Meeting tracking and scheduling\nSlack API: Message monitoring and user management\nFireflies API: Meeting transcript analysis\nGoogle Sheets: Task tracking and persistence\n```\n\n\ud83d\udce6 **Key Features:**\n```\nMulti-channel communication monitoring (Email, Calendar, Slack)\nAI-powered priority assessment and context analysis\nCross-platform relationship tracking and history\nAutomated daily briefing generation and delivery\nPersistent task tracking with Google Sheets integration\nMeeting follow-up verification and flagging\nConversation memory for continuity across sessions\n```\n\n\ud83d\ude80 **Ideal Use Cases:**\n```\nC-level executives managing multiple communication channels\nSales leaders tracking prospect interactions and follow-ups\nBusiness development professionals managing partnerships\nBusy professionals needing communication prioritization\nTeams requiring systematic follow-up management\nAnyone wanting automated daily productivity briefings\n```",
+    "description_length": 3601,
+    "usage": {
+      "prompt_tokens": 840,
+      "completion_tokens": 670,
+      "total_tokens": 1510
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:51:19.605067"
+  },
+  "original_description": "# Email Personal Assistant - Comprehensive Communication Manager\n\nThis automation flow is designed to proactively monitor email, calendar, and Slack communications, analyze priorities across all channels, and generate a comprehensive daily briefing with actionable tasks for executive productivity management.\n\n\u2699\ufe0f **How It Works (Step-by-Step):**\n\n1. **\u23f0 Automated Daily Trigger**\nRuns automatically on weekdays:\n```\nScheduled execution every weekday at 8:00 AM\nManual trigger available for on-demand analysis\nComprehensive daily communication audit\n```\n\n2. **\ud83d\udce7 Email Assistant Agent**\nAnalyzes inbox priorities and context:\n```\nScans unread emails across \"To Respond\" and \"FYI\" labels\nChecks email history to determine relationship context\nIdentifies *company-related opportunities and partnerships\nCategorizes emails by urgency (High, Medium, Low)\nCross-references with sent emails for follow-up context\n```\n\n3. **\ud83d\udcc5 Follow-Up Assistant Agent**\nMonitors meeting follow-up requirements:\n```\nReviews last 3 days of calendar meetings\nFetches Fireflies transcripts for recorded sessions\nIdentifies meetings without post-meeting communication\nFlags meetings requiring action items or follow-ups\nChecks sent emails and Slack for completed follow-ups\n```\n\n4. **\ud83d\udcac Slack Assistant Agent**\nTracks Slack communication priorities:\n```\nMonitors direct messages and @mentions\nIdentifies unreplied Slack conversations\nCross-references with email and calendar context\nPrioritizes responses based on sender importance\nChecks for threaded conversations requiring attention\n```\n\n5. **\ud83c\udfaf Master Orchestrator Agent**\nSynthesizes all communication data:\n```\nCombines reports from all three assistant agents\nCross-references with existing Google Sheets to-do list\nPrioritizes tasks by urgency and business impact\nIdentifies correlations between different communication channels\nCreates comprehensive daily action plan\n```\n\n6. **\ud83d\udcca Task Management Integration**\nAutomated tracking and delivery:\n```\nAppends new tasks to Google Sheets to-do tracker\nSends personalized daily briefing via Slack DM\nMaintains conversation memory for context continuity\nTracks outstanding vs. completed items\n```\n\n\ud83d\udee0\ufe0f **Tools Used:**\n```\nn8n: Workflow orchestration and scheduling\nClaude Sonnet 4 & Opus 4: Multi-agent AI analysis\nGmail API: Email monitoring and history checking\nGoogle Calendar: Meeting tracking and scheduling\nSlack API: Message monitoring and user management\nFireflies API: Meeting transcript analysis\nGoogle Sheets: Task tracking and persistence\n```\n\n\ud83d\udce6 **Key Features:**\n```\nMulti-channel communication monitoring (Email, Calendar, Slack)\nAI-powered priority assessment and context analysis\nCross-platform relationship tracking and history\nAutomated daily briefing generation and delivery\nPersistent task tracking with Google Sheets integration\nMeeting follow-up verification and flagging\nConversation memory for continuity across sessions\n```\n\n\ud83d\ude80 **Ideal Use Cases:**\n```\nC-level executives managing multiple communication channels\nSales leaders tracking prospect interactions and follow-ups\nBusiness development professionals managing partnerships\nBusy professionals needing communication prioritization\nTeams requiring systematic follow-up management\nAnyone wanting automated daily productivity briefings\n```",
+  "optimized_description": "This workflow, titled \"Email Personal Assistant - Comprehensive Communication Manager,\" is designed to proactively monitor communications across email, calendar, and Slack, analyze priorities, and generate a comprehensive daily briefing with actionable tasks to enhance executive productivity.\n\n**Trigger:**\nThe workflow is initiated automatically every weekday at 8:00 AM. A manual trigger is also available for on-demand analysis, allowing for a comprehensive daily communication audit.\n\n**Data Sources and APIs Needed:**\n1. Gmail API for email monitoring and history checking.\n2. Google Calendar for meeting tracking and scheduling.\n3. Slack API for message monitoring and user management.\n4. Fireflies API for meeting transcript analysis.\n5. Google Sheets for task tracking and persistence.\n6. n8n for workflow orchestration and scheduling.\n7. Claude Sonnet 4 & Opus 4 for multi-agent AI analysis.\n\n**Operations and Processing Steps:**\n\n1. **Email Assistant Agent:**\n   - Scans unread emails in the \"To Respond\" and \"FYI\" labels.\n   - Checks email history to determine relationship context.\n   - Identifies company-related opportunities and partnerships.\n   - Categorizes emails by urgency (High, Medium, Low).\n   - Cross-references with sent emails for follow-up context.\n\n2. **Follow-Up Assistant Agent:**\n   - Reviews the last three days of calendar meetings.\n   - Fetches transcripts from Fireflies for recorded sessions.\n   - Identifies meetings without post-meeting communication.\n   - Flags meetings requiring action items or follow-ups.\n   - Checks sent emails and Slack for completed follow-ups.\n\n3. **Slack Assistant Agent:**\n   - Monitors direct messages and @mentions.\n   - Identifies unreplied Slack conversations.\n   - Cross-references with email and calendar context.\n   - Prioritizes responses based on sender importance.\n   - Checks for threaded conversations requiring attention.\n\n4. **Master Orchestrator Agent:**\n   - Synthesizes communication data from all three assistant agents.\n   - Cross-references with existing Google Sheets to-do list.\n   - Prioritizes tasks by urgency and business impact.\n   - Identifies correlations between different communication channels.\n   - Creates a comprehensive daily action plan.\n\n5. **Task Management Integration:**\n   - Appends new tasks to the Google Sheets to-do tracker.\n   - Sends a personalized daily briefing via Slack DM.\n   - Maintains conversation memory for context continuity.\n   - Tracks outstanding versus completed items.\n\n**Final Output or Action:**\nThe workflow generates a comprehensive daily briefing that includes prioritized tasks and actionable items, delivered via Slack DM. It also updates the Google Sheets to-do tracker with new tasks and maintains a record of completed items for ongoing productivity management.\n\n**Key Features:**\n- Multi-channel communication monitoring (Email, Calendar, Slack).\n- AI-powered priority assessment and context analysis.\n- Cross-platform relationship tracking and history.\n- Automated daily briefing generation and delivery.\n- Persistent task tracking with Google Sheets integration.\n- Meeting follow-up verification and flagging.\n- Conversation memory for continuity across sessions.\n\n**Ideal Use Cases:**\nThis workflow is ideal for C-level executives managing multiple communication channels, sales leaders tracking prospect interactions and follow-ups, business development professionals managing partnerships, busy professionals needing communication prioritization, teams requiring systematic follow-up management, and anyone seeking automated daily productivity briefings.",
+  "error": null,
+  "generated_at": "2026-01-25T22:51:33.792954",
+  "metrics": {
+    "node_type_precision": 0.4,
+    "node_type_recall": 0.15384615384615385,
+    "node_type_f1": 0.2222222222222222,
+    "tp": 4,
+    "fp": 6,
+    "fn": 22,
+    "gt_node_count": 26,
+    "llm_node_count": 10,
+    "connection_precision": 0.1111111111111111,
+    "connection_recall": 0.2,
+    "connection_f1": 0.14285714285714285,
+    "correct_connections": 1,
+    "gt_connection_count": 5,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.265625,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4431,
+        "completion_tokens": 1578,
+        "total_tokens": 6009
+      },
+      "description_optimization": {
+        "prompt_tokens": 840,
+        "completion_tokens": 670,
+        "total_tokens": 1510
+      },
+      "total_tokens": 7519,
+      "total_prompt_tokens": 5271,
+      "total_completion_tokens": 2248
+    },
+    "total_cost": 0.0356575,
+    "description_optimization_cost": 0.0088,
+    "workflow_generation_cost": 0.026857500000000003
+  }
+}

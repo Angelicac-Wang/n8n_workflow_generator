@@ -1,0 +1,183 @@
+{
+  "template_id": "2384",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a chat message received from the user, which can be implemented using a webhook trigger.",
+      "data_sources": "The data sources needed are the chat interface for receiving user input and the Ollama server for processing the input with the LLM.",
+      "operations": "1. Receive chat message, 2. Send input to Ollama, 3. Receive AI-generated response, 4. Deliver response to chat interface.",
+      "output_actions": "The final output is delivering the AI-generated response back to the user through the chat interface.",
+      "nodes_plan": "webhook (trigger), httpRequest (send to Ollama), httpRequest (receive response), httpRequest (send response to chat interface)",
+      "connections_plan": "webhook -> httpRequest (send to Ollama) -> httpRequest (receive response) -> httpRequest (send response to chat interface)"
+    },
+    "workflowPlan": {
+      "name": "Chat with Local LLM",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Chat Message",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Send Input to Ollama",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "http://localhost:8000/process",
+            "body": {
+              "prompt": "={{ $json.body.message }}"
+            },
+            "options": {
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Receive AI-Generated Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "http://localhost:8000/response",
+            "options": {
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Deliver Response to Chat Interface",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "http://chat-interface.local/send",
+            "body": {
+              "response": "={{ $json.response }}"
+            },
+            "options": {
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4178,
+      "completion_tokens": 780,
+      "total_tokens": 4958
+    },
+    "description_optimization": {
+      "prompt_tokens": 465,
+      "completion_tokens": 417,
+      "total_tokens": 882
+    },
+    "total_tokens": 5840,
+    "total_prompt_tokens": 4643,
+    "total_completion_tokens": 1197
+  },
+  "description_optimization": {
+    "template_id": "2384",
+    "optimized_description": "This n8n workflow facilitates interaction with self-hosted Large Language Models (LLMs) via a chat interface, leveraging Ollama for local LLM management. The workflow is designed to provide a user-friendly experience for engaging with AI while ensuring data privacy and minimizing costs associated with cloud API services.\n\nTrigger:\nThe workflow is initiated when a chat message is received from the user. This serves as the entry point for capturing user input.\n\nData Sources and APIs:\n1. Ollama: A local server that hosts the LLMs and processes user prompts.\n2. Chat Interface: The platform where users send messages and receive responses.\n\nOperations and Processing Steps:\n1. **Receive Chat Message**: The workflow begins by capturing the user's input from the chat interface. This input serves as the prompt for the LLM.\n2. **Send Input to Ollama**: The captured user input is sent to the Ollama server. This step involves making an API call to the Ollama endpoint that processes the input and generates a response.\n3. **Receive AI-Generated Response**: The Ollama server processes the input and returns an AI-generated response. This response is the output of the LLM based on the user's prompt.\n4. **Deliver Response to Chat Interface**: The final step involves sending the LLM's response back to the chat interface, allowing the user to view the AI-generated output.\n\nFinal Output or Action:\nThe workflow concludes with the delivery of the AI-generated response to the user through the chat interface. This interaction allows users to engage in a conversational manner with the LLM, making it suitable for various applications such as private AI interactions, cost-effective LLM usage, experimentation, learning, and prototyping.\n\nSetup Steps:\n1. Ensure that Ollama is installed and running on your machine before executing this workflow.\n2. If the Ollama server address differs from the default, edit the configuration to reflect the correct address.\n\nThis structured workflow provides a comprehensive approach to interacting with local LLMs, ensuring clarity and completeness while maintaining the original intent of the user query.",
+    "original_description": "## Chat with local LLMs using n8n and Ollama\nThis n8n workflow allows you to seamlessly interact with your self-hosted Large Language Models (LLMs) through a user-friendly chat interface. By connecting to Ollama, a powerful tool for managing local LLMs, you can send prompts and receive AI-generated responses directly within n8n.\n\n### Use cases\n* Private AI Interactions\nIdeal for scenarios where data privacy and confidentiality are important.\n* Cost-Effective LLM Usage\nAvoid ongoing cloud API costs by running models on your own hardware.\n* Experimentation & Learning\nA great way to explore and experiment with different LLMs in a local, controlled environment.\n* Prototyping & Development\nBuild and test AI-powered applications without relying on external services.\n\n### How it works\n1. When chat message received: Captures the user's input from the chat interface.\n2. Chat LLM Chain: Sends the input to the Ollama server and receives the AI-generated response.\n3. Delivers the LLM's response back to the chat interface.\n\n### Set up steps\n* Make sure Ollama is installed and running on your machine before executing this workflow.\n* Edit the Ollama address if different from the default.",
+    "description_length": 2141,
+    "usage": {
+      "prompt_tokens": 465,
+      "completion_tokens": 417,
+      "total_tokens": 882
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:48:49.595573"
+  },
+  "original_description": "## Chat with local LLMs using n8n and Ollama\nThis n8n workflow allows you to seamlessly interact with your self-hosted Large Language Models (LLMs) through a user-friendly chat interface. By connecting to Ollama, a powerful tool for managing local LLMs, you can send prompts and receive AI-generated responses directly within n8n.\n\n### Use cases\n* Private AI Interactions\nIdeal for scenarios where data privacy and confidentiality are important.\n* Cost-Effective LLM Usage\nAvoid ongoing cloud API costs by running models on your own hardware.\n* Experimentation & Learning\nA great way to explore and experiment with different LLMs in a local, controlled environment.\n* Prototyping & Development\nBuild and test AI-powered applications without relying on external services.\n\n### How it works\n1. When chat message received: Captures the user's input from the chat interface.\n2. Chat LLM Chain: Sends the input to the Ollama server and receives the AI-generated response.\n3. Delivers the LLM's response back to the chat interface.\n\n### Set up steps\n* Make sure Ollama is installed and running on your machine before executing this workflow.\n* Edit the Ollama address if different from the default.",
+  "optimized_description": "This n8n workflow facilitates interaction with self-hosted Large Language Models (LLMs) via a chat interface, leveraging Ollama for local LLM management. The workflow is designed to provide a user-friendly experience for engaging with AI while ensuring data privacy and minimizing costs associated with cloud API services.\n\nTrigger:\nThe workflow is initiated when a chat message is received from the user. This serves as the entry point for capturing user input.\n\nData Sources and APIs:\n1. Ollama: A local server that hosts the LLMs and processes user prompts.\n2. Chat Interface: The platform where users send messages and receive responses.\n\nOperations and Processing Steps:\n1. **Receive Chat Message**: The workflow begins by capturing the user's input from the chat interface. This input serves as the prompt for the LLM.\n2. **Send Input to Ollama**: The captured user input is sent to the Ollama server. This step involves making an API call to the Ollama endpoint that processes the input and generates a response.\n3. **Receive AI-Generated Response**: The Ollama server processes the input and returns an AI-generated response. This response is the output of the LLM based on the user's prompt.\n4. **Deliver Response to Chat Interface**: The final step involves sending the LLM's response back to the chat interface, allowing the user to view the AI-generated output.\n\nFinal Output or Action:\nThe workflow concludes with the delivery of the AI-generated response to the user through the chat interface. This interaction allows users to engage in a conversational manner with the LLM, making it suitable for various applications such as private AI interactions, cost-effective LLM usage, experimentation, learning, and prototyping.\n\nSetup Steps:\n1. Ensure that Ollama is installed and running on your machine before executing this workflow.\n2. If the Ollama server address differs from the default, edit the configuration to reflect the correct address.\n\nThis structured workflow provides a comprehensive approach to interacting with local LLMs, ensuring clarity and completeness while maintaining the original intent of the user query.",
+  "error": null,
+  "generated_at": "2026-01-25T23:48:57.688265",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 4,
+    "fn": 3,
+    "gt_node_count": 3,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 2,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4178,
+        "completion_tokens": 780,
+        "total_tokens": 4958
+      },
+      "description_optimization": {
+        "prompt_tokens": 465,
+        "completion_tokens": 417,
+        "total_tokens": 882
+      },
+      "total_tokens": 5840,
+      "total_prompt_tokens": 4643,
+      "total_completion_tokens": 1197
+    },
+    "total_cost": 0.0235775,
+    "description_optimization_cost": 0.0053325000000000004,
+    "workflow_generation_cost": 0.018245
+  }
+}

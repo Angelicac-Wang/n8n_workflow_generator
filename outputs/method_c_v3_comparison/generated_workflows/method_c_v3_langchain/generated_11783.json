@@ -1,0 +1,180 @@
+{
+  "template_id": "11783",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation workflow with AI analysis for data extraction. Use base nodes.",
+      "trigger_analysis": "Schedule trigger to automate daily scraping",
+      "data_sources": "Competitor websites, OpenAI or Claude API, Google Sheets, Gmail, WhatsApp Business API",
+      "operations": "1. Trigger daily scraping, 2. Scrape competitor data, 3. Analyze data with AI, 4. Store results in Google Sheets, 5. Notify stakeholders via email and WhatsApp",
+      "output_actions": "Store analyzed data in Google Sheets and send notifications",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (scraping), openAi (AI analysis), googleSheets (store data), emailSend (send email), httpRequest (WhatsApp API)",
+      "connections_plan": "scheduleTrigger -> httpRequest (scraping) -> openAi -> googleSheets -> [emailSend, httpRequest (WhatsApp)]"
+    },
+    "workflowPlan": {
+      "name": "Automated Competitor Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Scraping",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.url }}",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.data }}",
+            "model": "gpt-3.5-turbo"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": "={{ $json.analysis }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "stakeholders@example.com",
+            "subject": "Daily Competitor Analysis",
+            "text": "The latest competitor analysis is available in the Google Sheets."
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "WhatsApp Notification",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.whatsapp.com/send",
+            "body": {
+              "phone": "your-phone-number",
+              "message": "The latest competitor analysis is available in the Google Sheets."
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8320,
+    "completion_tokens": 1016,
+    "total_tokens": 9336
+  },
+  "description_optimization": null,
+  "original_description": "## How It Works\nAutomated daily scraping of competitor websites, pricing pages, job postings, and press releases feeds into an AI analyzer powered by OpenAI or Claude to extract trends, insights, and key metrics. The analyzed results are stored in Google Sheets for historical tracking and longitudinal comparison, and are automatically shared with stakeholders via email or WhatsApp. This workflow eliminates manual competitive research, enabling product teams and executives to monitor market movements efficiently and make timely, data-driven decisions.\n\n## Setup Steps\n1. Configure the daily schedule trigger.\n2. Define competitor URLs using workflow variables.\n3. Add and configure the OpenAI or Claude API key.\n4. Authenticate Google Sheets using the appropriate credentials.\n5. Connect Gmail and WhatsApp Business API tokens.\n6. Test each scraper individually before enabling full automation.\n\n## Prerequisites\nOpenAI/Claude API account, Google Sheets access, Gmail account, WhatsApp Business API, web scraping enabled\n\n## Use Cases\nMarket share monitoring, pricing strategy updates, competitor talent movement tracking, industry trend reports\n\n## Customization\nModify scrape targets, adjust AI prompt for different metrics, change alert frequency \n\n## Benefits\nReal-time competitive visibility, reduced manual research 15+ hours/week, faster decision-making",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:11:13.895900",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.2,
+    "node_type_f1": 0.30769230769230765,
+    "tp": 4,
+    "fp": 2,
+    "fn": 16,
+    "gt_node_count": 20,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 12,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 8320,
+      "completion_tokens": 1016,
+      "total_tokens": 9336
+    },
+    "total_cost": 0.03096
+  },
+  "is_ai_workflow": false
+}

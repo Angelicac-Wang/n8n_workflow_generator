@@ -1,0 +1,210 @@
+{
+  "template_id": "11468",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'chat with it in natural language', 'RAG AI Agent', 'answer questions based on the uploaded documents'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Google Drive for document uploads, Qdrant for vector storage, OpenAI for embeddings and LLM responses.",
+      "operations": "1. Detect new files in Google Drive, 2. Convert files to Markdown, 3. Chunk and embed data, 4. Store in Qdrant vector store, 5. Enable chat interface for querying data.",
+      "output_actions": "Provide intelligent, source-cited responses to user queries based on document content.",
+      "nodes_plan": "googleDriveTrigger (detect new files), documentLoader (load and convert documents), embeddingsOpenAi (generate embeddings), vectorStoreQdrant (store vectors), chatTrigger (chat input), agent (orchestrator), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context).",
+      "connections_plan": "googleDriveTrigger \u2192 documentLoader \u2192 embeddingsOpenAi \u2192 vectorStoreQdrant; chatTrigger \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow, vectorStoreQdrant as sub-nodes."
+    },
+    "workflowPlan": {
+      "name": "Intelligent Document Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "1BevhU5qdgNDFbK4D9oAYGeK0Dt5sEaxQ",
+            "watchFor": "new"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Document Loader",
+          "nodeType": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+          "typeVersion": 1,
+          "params": {
+            "format": "markdown"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI Embeddings",
+          "nodeType": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-embedding-ada-002"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Qdrant Vector Store",
+          "nodeType": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+          "typeVersion": 1,
+          "params": {
+            "collectionName": "document_vectors"
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are an intelligent assistant that answers questions based on uploaded documents. Provide accurate, source-cited responses.",
+            "options": {}
+          },
+          "position": {
+            "x": 320,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 180
+          }
+        },
+        {
+          "id": "8",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 540,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9604,
+    "completion_tokens": 1302,
+    "total_tokens": 10906
+  },
+  "description_optimization": null,
+  "original_description": "This template helps you to create an intelligent document assistant that can answer questions from uploaded files.\n\nIt shows a complete single-vector RAG (Retrieval-Augmented Generation) system that automatically processes documents, lets you chat with it in natural language and provides accurate, source-cited responses.\n\nThe workflow consists of two parts: **the data loading pipeline** and **RAG AI Agent** that answers your questions based on the uploaded documents. \n\nTo test tis workflow, you can use the following example files in a shared [Google Drive folder](https://drive.google.com/drive/u/2/folders/1BevhU5qdgNDFbK4D9oAYGeK0Dt5sEaxQ).\n\n\ud83d\udca1 Find more information on creating RAG AI agents in n8n [on the official page](https://n8n.io/rag/).\n\n## \ud83d\udd17Example files \n\nThe template uses the following example files in the Google Docs format:\n\n1. German Data Protection law: Bundesdatenschutzgesetz (BDSG)\n2. Computer Security Incident Handling Guide (NIST.SP.800-61r2)\n3. Berkshire Hathaway letter to shareholders from 2024 \n\n## \ud83d\ude80How to get started\n\n1. Copy or import the template to your n8n instance.\n2. Create your **Google Drive credentials** via the Google Cloud Console and add them to the trigger node \"Detect New Files\". A detailed walk-through can be found in the n8n [docs](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/).\n3. Create a [Qdrant API](https://qdrant.tech/) key and add it to the \"Insert into Vector Store\" node credentials. The API key will be displayed after you have logged into Qdrant and created a Cluster.\n4. Create or activate your [OpenAI API](https://platform.openai.com/api-keys) key.\n\n## 1\ufe0f\u20e3 Import your data and store it in a vector database\n\n\u2705 Upload files to Google Drive. \n\n**IMPORTANT**: This template supports files in Google Docs format. New files will be downloaded in HTML format and converted to Markdown. This preserves the overall document structure and improves the quality of responses.\n\n- Open the shared Google Drive folder\n- Create a new folder on your Google Drive\n- Activate the workflow\n- Copy the files from the shared folder to your new folder\n\nThe webhook will catch the added files and you will see the execution in your \"Executions\" tab.\n\n***Note**: If the webhook doesn\u2019t see the files you copied, try adding them to your Google Drive folder from the opened shared files via the **Move to** feature.*\n\n\u2705 Chunk, embed, and store your data with a connected OpenAI embedding model and Qdrant vector store.\n\nA Qdrant collection \u2013 vector storage for your data \u2013 will be created automatically after the n8n webhook has caught your data from Google Drive. You can name your collection in the \"Insert into Vector Store\" node.\n\n## 2\ufe0f\u20e3 Add retrieval capabilities and chat with your data\n\n\u2705 Select the database with imported data in the \u201cSearch Documents\u201d sub-node of an AI Agent. \n\n\u2705 Start a chat with your agent via the chat interface: it will retrieve data from the vector store and provide a response. \n\n\u2753You can ask the following questions based on the example files to test this workflow:\n\n- What are the main steps in incident handling? \n- What does Warren Buffett say about mistakes at Berkshire?\n- What are the requirements for processing personal data?\n- Do any documents mention data breach notification?\n\n## \ud83c\udf1fAdapt the workflow to your own use case\n\n- **Knowledge management** - Query company docs, policies, and procedures \n- **Research assistance** - Search through academic papers and reports \n- **Customer support** - Build agents that reference product documentation \n- **Legal/compliance** - Query contracts, regulations, and legal documents \n- **Personal productivity** - Chat with your notes, articles, and saved content\n\nThe workflow automatically detects new files, processes them into searchable vector chunks, and maintains conversation context. Just drop files in your Google Drive folder and start asking questions.\n\n\ud83d\udcbb \ud83d\udcde[Get in touch with me](https://www.linkedin.com/in/yulia-dmitrievna-1112361b5/) if you want to customise this workflow or have any questions.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T15:01:03.143214",
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.6666666666666666,
+    "node_type_f1": 0.8,
+    "tp": 8,
+    "fp": 0,
+    "fn": 4,
+    "gt_node_count": 12,
+    "llm_node_count": 8,
+    "connection_precision": 0.14285714285714285,
+    "connection_recall": 0.2,
+    "connection_f1": 0.16666666666666666,
+    "correct_connections": 1,
+    "gt_connection_count": 5,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.065625,
+    "usage": {
+      "prompt_tokens": 9604,
+      "completion_tokens": 1302,
+      "total_tokens": 10906
+    },
+    "total_cost": 0.03703000000000001
+  },
+  "is_ai_workflow": true
+}

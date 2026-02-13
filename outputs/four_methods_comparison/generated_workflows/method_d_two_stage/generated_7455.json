@@ -1,0 +1,260 @@
+{
+  "template_id": "7455",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Telegram Trigger node to listen for incoming messages to the configured Telegram bot.",
+      "data_sources": "Telegram Bot API, PostgreSQL Database, AI Provider API (e.g., OpenAI or Google Gemini).",
+      "operations": "1. Receive incoming messages, 2. Store media group information, 3. Parse documents, 4. Transcribe voice and video, 5. Generate AI responses, 6. Format AI output, 7. Error handling, 8. Send reply.",
+      "output_actions": "Send a Telegram message containing the AI-generated response back to the user.",
+      "nodes_plan": "telegramTrigger (trigger), postgres (database operations), documentParser (custom function), audioTranscription (custom function), openAi (AI processing), formatResponse (set), telegramSendMessage (send response), errorHandling (if/switch).",
+      "connections_plan": "telegramTrigger -> [postgres (store media) | documentParser | audioTranscription] -> openAi -> formatResponse -> telegramSendMessage; errorHandling handles unsupported files."
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Telegram Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "botToken": "={{ $env.TELEGRAM_BOT_TOKEN }}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Store Media Group",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "media_group",
+            "columns": "user_id, media_id, media_type, timestamp"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse Documents",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function parseDocument(doc) { /* Custom parsing logic */ }"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Transcribe Audio/Video",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function transcribeMedia(media) { /* Custom transcription logic */ }"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate AI Response",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.content }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Format AI Output",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "formattedResponse",
+                  "value": "={{ $json.aiResponse | telegramMarkdownV2 }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.chatId }}",
+            "text": "={{ $json.formattedResponse }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Error Handling",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.fileType }}",
+                  "operation": "notIn",
+                  "value2": "text, audio, video, document"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4438,
+      "completion_tokens": 1267,
+      "total_tokens": 5705
+    },
+    "description_optimization": {
+      "prompt_tokens": 1199,
+      "completion_tokens": 677,
+      "total_tokens": 1876
+    },
+    "total_tokens": 7581,
+    "total_prompt_tokens": 5637,
+    "total_completion_tokens": 1944
+  },
+  "description_optimization": {
+    "template_id": "7455",
+    "optimized_description": "This n8n workflow template outlines the creation of an AI-powered Telegram assistant that efficiently handles multiple file types, including text messages, voice, video, and documents, while integrating with PostgreSQL for data management. The workflow is designed to address the challenge of processing media groups in Telegram, allowing for coherent AI-generated responses based on the content of multiple files sent together.\n\nTrigger: The workflow is initiated by a Telegram Trigger node that listens for incoming messages to the configured Telegram bot. This includes text messages, media files, and documents sent by users.\n\nData Sources and APIs Needed:\n1. Telegram Bot API: Requires the bot token for authentication.\n2. PostgreSQL Database: Requires connection credentials to access and manage data related to media groups, media queues, and chat histories.\n3. AI Provider API: Requires credentials for an AI service such as OpenAI or Google Gemini for processing and generating responses based on the content received.\n\nOperations and Processing Steps:\n1. **Receive Incoming Messages**: The Telegram Trigger captures incoming messages, including text and media files.\n2. **Store Media Group Information**: If multiple files are detected, the workflow stores information about the media group in the PostgreSQL database, specifically in the `media_group` and `media_queue` tables.\n3. **Parse Documents**: For any received documents, the workflow utilizes a document parsing function to extract content from various formats such as CSV, HTML, ICS, JSON, ODS, PDF, RTF, TXT, and XML.\n4. **Transcribe Voice and Video**: Voice messages and video files are processed for transcription, converting audio content into text for AI analysis.\n5. **Generate AI Responses**: The workflow sends the parsed content, transcriptions, and any relevant context to the AI provider API, which generates a contextual response based on the input received.\n6. **Format AI Output**: The AI-generated response is formatted using Telegram-safe MarkdownV2 to ensure compatibility with Telegram's message length limits and formatting rules. Messages exceeding 4096 characters are automatically split.\n7. **Error Handling**: If unsupported file types are received, the workflow includes an error fallback mechanism to handle these cases gracefully.\n8. **Send Reply**: Finally, the formatted AI response is sent back to the user in the Telegram chat, ensuring that all relevant information is conveyed in a clear and coherent manner.\n\nFinal Output or Action: The workflow concludes by sending a Telegram message containing the AI-generated response, which may include summaries, transcriptions, or descriptions based on the input files. The assistant maintains chat memory for contextual responses in future interactions.\n\nThis workflow automates the complete process of receiving, processing, and responding to user inputs in a Telegram chat, enabling a seamless interaction experience with an AI-powered assistant. \n\nSetup Instructions:\n1. Create the necessary PostgreSQL tables: `media_group`, `media_queue`, and `chat_histories`.\n2. Configure the Telegram Trigger node with the bot token.\n3. Connect the AI provider API using the required credentials.\n4. Set up PostgreSQL database credentials in the database nodes.\n5. Deploy the workflow in n8n.\n6. Start interacting with the bot by sending messages and files.\n\nThis template is ideal for anyone looking to implement a sophisticated AI-powered Telegram bot capable of handling diverse media types and providing intelligent responses while maintaining a robust data management system.",
+    "original_description": "# \ud83e\udd16\ud83d\udce8 Telegram AI Assistant with Multi-File Media Group Handling, Smart File Processing & PostgreSQL Integration\n\n&gt; **AI-powered Telegram bot for text, voice, video, documents & media \u2014 with database-driven grouping and Telegram-safe formatting.**\n\n---\n\n## \ud83d\udccb Description\n\nThis n8n template creates a **next-generation Telegram AI assistant** \ud83e\udde0\ud83d\udcac capable of handling **text messages, media files, and documents** with advanced processing, PostgreSQL integration, and AI-powered responses.\n\nIt is designed to **solve Telegram\u2019s media group challenge** \ud83d\udce6 \u2014 when multiple files are sent together, they are stored, processed, and combined into one coherent AI-generated reply.\n\n### \u2728 Key Features\n- \ud83d\udcc2 **Multi-file media group management** with PostgreSQL:\n  - `media_group`\n  - `media_queue`\n  - `chat_histories`\n- \ud83d\udcd1 **Document parsing** for CSV, HTML, ICS, JSON, ODS, PDF (with AI fallback), RTF, TXT, XML, and spreadsheets.\n- \ud83c\udfa4 **Voice & video transcription** for AI analysis.\n- \ud83d\uddbc\ufe0f **Image, audio, and video description** for richer AI context.\n- \ud83d\udee1\ufe0f **Telegram-safe MarkdownV2 formatting** with auto-splitting for messages over 4096 chars.\n- \u26a0\ufe0f **Error fallback** for unsupported file types.\n\n---\n\n## \ud83d\udca1 Acknowledgment\n\nA huge thank you to **Ezema Gingsley Chibuzo** \ud83d\ude4c for the inspiration of the first version of this workflow:  \n[Create a Multi-Modal Telegram Support Bot with GPT-4 and Supabase RAG](https://n8n.io/workflows/5589-create-a-multi-modal-telegram-support-bot-with-gpt-4-and-supabase-rag/)  \nYour pioneering work laid the foundation for this improved, **database-powered multi-modal assistant** \ud83d\ude80\n\n---\n\n## \ud83c\udff7 Tags\n`telegram` `ai-assistant` `postgresql` `multi-file` `media-group`  \n`file-processing` `voice-transcription` `document-parser` `pdf-extraction`  \n`markdown-formatting` `n8n-template`\n\n---\n\n## \ud83d\udcbc Use Case\nUse this template if you need an AI-powered Telegram bot that can:\n- \ud83d\udce6 Handle **multiple files sent in a single message** (albums, multiple PDFs, etc.).\n- \ud83e\uddfe Extract & analyze **content from many file formats**.\n- \ud83c\udf99\ufe0f Transcribe **voice and video messages**.\n- \ud83d\uddc2\ufe0f Maintain **chat memory** for contextual AI answers.\n- \ud83d\udee1\ufe0f Avoid **Telegram formatting errors** and length limit issues.\n\nThis workflow automates the full chain: **Receive \u2192 Process \u2192 AI Analysis \u2192 Telegram-safe Reply**.\n\n---\n\n## \ud83d\udcac Example User Interactions\n\n- **\ud83d\udcc4 Multiple PDFs with a caption** \u2192 AI extracts and summarizes all PDFs in one combined reply.  \n- **\ud83c\udfa4 Voice message** \u2192 AI transcribes and replies with a contextual answer.  \n- **\ud83d\udcca CSV or spreadsheet file** \u2192 AI parses and summarizes the data.  \n- **\ud83d\uddbc\ufe0f Multiple images** \u2192 AI describes each image and replies in a single message.\n\n---\n\n## \ud83d\udd11 Required Credentials\n- **Telegram Bot API** (Bot Token)  \n- **PostgreSQL** (Connection credentials)  \n- **AI Provider API** (OpenAI, Google Gemini, or compatible LLM)\n\n---\n\n## \u2699\ufe0f Setup Instructions\n1. \ud83d\uddc4\ufe0f **Create the PostgreSQL tables** (Gray section SQL):\n   - `media_group`\n   - `media_queue`\n   - `chat_histories`\n2. \ud83d\udd0c Configure the **Telegram Trigger** with your bot token.\n3. \ud83e\udd16 Connect your **AI provider** credentials.\n4. \ud83d\uddc2\ufe0f Set up **PostgreSQL** credentials in the database nodes.\n5. \u25b6\ufe0f Deploy the workflow in n8n.\n6. \ud83c\udfaf Start sending messages and files to your bot.\n\n---\n\n## \ud83d\udccc Extra Notes\n- \u2705 **Green section** ensures only one trigger per media group.  \n- \ud83d\udccc **Yellow section** guarantees captions and files are stored in the correct sequence.  \n- \u2728 **Purple section** formats AI output to be Telegram-safe and split if needed.  \n- \ud83e\udde0 AI prompt is **not fixed**, allowing full customization.\n\n---\n\n## \ud83d\udca1 Need Assistance?\n\nIf you\u2019d like help customizing or extending this workflow, feel free to reach out:  \n\n\ud83d\udce7 Email: [johnsilva11031@gmail.com](mailto:johnsilva11031@gmail.com)  \n\ud83d\udd17 LinkedIn: [John Alejandro Silva Rodr\u00edguez](https://www.linkedin.com/in/john-alejandro-silva-rodriguez-48093526b/)",
+    "description_length": 3617,
+    "usage": {
+      "prompt_tokens": 1199,
+      "completion_tokens": 677,
+      "total_tokens": 1876
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:34:59.437032"
+  },
+  "original_description": "# \ud83e\udd16\ud83d\udce8 Telegram AI Assistant with Multi-File Media Group Handling, Smart File Processing & PostgreSQL Integration\n\n&gt; **AI-powered Telegram bot for text, voice, video, documents & media \u2014 with database-driven grouping and Telegram-safe formatting.**\n\n---\n\n## \ud83d\udccb Description\n\nThis n8n template creates a **next-generation Telegram AI assistant** \ud83e\udde0\ud83d\udcac capable of handling **text messages, media files, and documents** with advanced processing, PostgreSQL integration, and AI-powered responses.\n\nIt is designed to **solve Telegram\u2019s media group challenge** \ud83d\udce6 \u2014 when multiple files are sent together, they are stored, processed, and combined into one coherent AI-generated reply.\n\n### \u2728 Key Features\n- \ud83d\udcc2 **Multi-file media group management** with PostgreSQL:\n  - `media_group`\n  - `media_queue`\n  - `chat_histories`\n- \ud83d\udcd1 **Document parsing** for CSV, HTML, ICS, JSON, ODS, PDF (with AI fallback), RTF, TXT, XML, and spreadsheets.\n- \ud83c\udfa4 **Voice & video transcription** for AI analysis.\n- \ud83d\uddbc\ufe0f **Image, audio, and video description** for richer AI context.\n- \ud83d\udee1\ufe0f **Telegram-safe MarkdownV2 formatting** with auto-splitting for messages over 4096 chars.\n- \u26a0\ufe0f **Error fallback** for unsupported file types.\n\n---\n\n## \ud83d\udca1 Acknowledgment\n\nA huge thank you to **Ezema Gingsley Chibuzo** \ud83d\ude4c for the inspiration of the first version of this workflow:  \n[Create a Multi-Modal Telegram Support Bot with GPT-4 and Supabase RAG](https://n8n.io/workflows/5589-create-a-multi-modal-telegram-support-bot-with-gpt-4-and-supabase-rag/)  \nYour pioneering work laid the foundation for this improved, **database-powered multi-modal assistant** \ud83d\ude80\n\n---\n\n## \ud83c\udff7 Tags\n`telegram` `ai-assistant` `postgresql` `multi-file` `media-group`  \n`file-processing` `voice-transcription` `document-parser` `pdf-extraction`  \n`markdown-formatting` `n8n-template`\n\n---\n\n## \ud83d\udcbc Use Case\nUse this template if you need an AI-powered Telegram bot that can:\n- \ud83d\udce6 Handle **multiple files sent in a single message** (albums, multiple PDFs, etc.).\n- \ud83e\uddfe Extract & analyze **content from many file formats**.\n- \ud83c\udf99\ufe0f Transcribe **voice and video messages**.\n- \ud83d\uddc2\ufe0f Maintain **chat memory** for contextual AI answers.\n- \ud83d\udee1\ufe0f Avoid **Telegram formatting errors** and length limit issues.\n\nThis workflow automates the full chain: **Receive \u2192 Process \u2192 AI Analysis \u2192 Telegram-safe Reply**.\n\n---\n\n## \ud83d\udcac Example User Interactions\n\n- **\ud83d\udcc4 Multiple PDFs with a caption** \u2192 AI extracts and summarizes all PDFs in one combined reply.  \n- **\ud83c\udfa4 Voice message** \u2192 AI transcribes and replies with a contextual answer.  \n- **\ud83d\udcca CSV or spreadsheet file** \u2192 AI parses and summarizes the data.  \n- **\ud83d\uddbc\ufe0f Multiple images** \u2192 AI describes each image and replies in a single message.\n\n---\n\n## \ud83d\udd11 Required Credentials\n- **Telegram Bot API** (Bot Token)  \n- **PostgreSQL** (Connection credentials)  \n- **AI Provider API** (OpenAI, Google Gemini, or compatible LLM)\n\n---\n\n## \u2699\ufe0f Setup Instructions\n1. \ud83d\uddc4\ufe0f **Create the PostgreSQL tables** (Gray section SQL):\n   - `media_group`\n   - `media_queue`\n   - `chat_histories`\n2. \ud83d\udd0c Configure the **Telegram Trigger** with your bot token.\n3. \ud83e\udd16 Connect your **AI provider** credentials.\n4. \ud83d\uddc2\ufe0f Set up **PostgreSQL** credentials in the database nodes.\n5. \u25b6\ufe0f Deploy the workflow in n8n.\n6. \ud83c\udfaf Start sending messages and files to your bot.\n\n---\n\n## \ud83d\udccc Extra Notes\n- \u2705 **Green section** ensures only one trigger per media group.  \n- \ud83d\udccc **Yellow section** guarantees captions and files are stored in the correct sequence.  \n- \u2728 **Purple section** formats AI output to be Telegram-safe and split if needed.  \n- \ud83e\udde0 AI prompt is **not fixed**, allowing full customization.\n\n---\n\n## \ud83d\udca1 Need Assistance?\n\nIf you\u2019d like help customizing or extending this workflow, feel free to reach out:  \n\n\ud83d\udce7 Email: [johnsilva11031@gmail.com](mailto:johnsilva11031@gmail.com)  \n\ud83d\udd17 LinkedIn: [John Alejandro Silva Rodr\u00edguez](https://www.linkedin.com/in/john-alejandro-silva-rodriguez-48093526b/)",
+  "optimized_description": "This n8n workflow template outlines the creation of an AI-powered Telegram assistant that efficiently handles multiple file types, including text messages, voice, video, and documents, while integrating with PostgreSQL for data management. The workflow is designed to address the challenge of processing media groups in Telegram, allowing for coherent AI-generated responses based on the content of multiple files sent together.\n\nTrigger: The workflow is initiated by a Telegram Trigger node that listens for incoming messages to the configured Telegram bot. This includes text messages, media files, and documents sent by users.\n\nData Sources and APIs Needed:\n1. Telegram Bot API: Requires the bot token for authentication.\n2. PostgreSQL Database: Requires connection credentials to access and manage data related to media groups, media queues, and chat histories.\n3. AI Provider API: Requires credentials for an AI service such as OpenAI or Google Gemini for processing and generating responses based on the content received.\n\nOperations and Processing Steps:\n1. **Receive Incoming Messages**: The Telegram Trigger captures incoming messages, including text and media files.\n2. **Store Media Group Information**: If multiple files are detected, the workflow stores information about the media group in the PostgreSQL database, specifically in the `media_group` and `media_queue` tables.\n3. **Parse Documents**: For any received documents, the workflow utilizes a document parsing function to extract content from various formats such as CSV, HTML, ICS, JSON, ODS, PDF, RTF, TXT, and XML.\n4. **Transcribe Voice and Video**: Voice messages and video files are processed for transcription, converting audio content into text for AI analysis.\n5. **Generate AI Responses**: The workflow sends the parsed content, transcriptions, and any relevant context to the AI provider API, which generates a contextual response based on the input received.\n6. **Format AI Output**: The AI-generated response is formatted using Telegram-safe MarkdownV2 to ensure compatibility with Telegram's message length limits and formatting rules. Messages exceeding 4096 characters are automatically split.\n7. **Error Handling**: If unsupported file types are received, the workflow includes an error fallback mechanism to handle these cases gracefully.\n8. **Send Reply**: Finally, the formatted AI response is sent back to the user in the Telegram chat, ensuring that all relevant information is conveyed in a clear and coherent manner.\n\nFinal Output or Action: The workflow concludes by sending a Telegram message containing the AI-generated response, which may include summaries, transcriptions, or descriptions based on the input files. The assistant maintains chat memory for contextual responses in future interactions.\n\nThis workflow automates the complete process of receiving, processing, and responding to user inputs in a Telegram chat, enabling a seamless interaction experience with an AI-powered assistant. \n\nSetup Instructions:\n1. Create the necessary PostgreSQL tables: `media_group`, `media_queue`, and `chat_histories`.\n2. Configure the Telegram Trigger node with the bot token.\n3. Connect the AI provider API using the required credentials.\n4. Set up PostgreSQL database credentials in the database nodes.\n5. Deploy the workflow in n8n.\n6. Start interacting with the bot by sending messages and files.\n\nThis template is ideal for anyone looking to implement a sophisticated AI-powered Telegram bot capable of handling diverse media types and providing intelligent responses while maintaining a robust data management system.",
+  "error": null,
+  "generated_at": "2026-01-25T23:35:11.855029",
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.07954545454545454,
+    "node_type_f1": 0.14583333333333331,
+    "tp": 7,
+    "fp": 1,
+    "fn": 81,
+    "gt_node_count": 88,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 35,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.15476190476190474,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4438,
+        "completion_tokens": 1267,
+        "total_tokens": 5705
+      },
+      "description_optimization": {
+        "prompt_tokens": 1199,
+        "completion_tokens": 677,
+        "total_tokens": 1876
+      },
+      "total_tokens": 7581,
+      "total_prompt_tokens": 5637,
+      "total_completion_tokens": 1944
+    },
+    "total_cost": 0.03353250000000001,
+    "description_optimization_cost": 0.009767500000000002,
+    "workflow_generation_cost": 0.023765
+  }
+}

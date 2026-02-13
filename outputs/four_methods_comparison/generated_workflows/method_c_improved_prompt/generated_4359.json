@@ -1,0 +1,214 @@
+{
+  "template_id": "4359",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a form submission, which can be captured using a webhook.",
+      "data_sources": "The workflow requires data from a web form, OpenAI API for content generation, Google Drive for template management, Google Slides for proposal creation, and Gmail for sending emails.",
+      "operations": "1. Capture form data via webhook, 2. Generate proposal content using OpenAI, 3. Create a copy of the proposal template in Google Drive, 4. Populate the template with AI-generated content in Google Slides, 5. Send the completed proposal to the client via Gmail.",
+      "output_actions": "The final output is a personalized proposal sent to the client via email.",
+      "nodes_plan": "webhook (trigger), openAi (content generation), googleDrive (copy template), googleSlides (populate template), gmail (send email)",
+      "connections_plan": "webhook -> openAi -> googleDrive -> googleSlides -> gmail"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Proposal Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "proposal-form"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Proposal Content",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.clientRequirements }}\n\nGenerate a professional proposal including title, problem summary, solution breakdown, project scope, timeline, and cost."
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Copy Proposal Template",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "copyFile",
+            "fileId": "templateFileId",
+            "options": {
+              "name": "={{ 'Proposal for ' + $json.body.clientName }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Populate Proposal Template",
+          "nodeType": "n8n-nodes-base.googleSlides",
+          "typeVersion": 1,
+          "params": {
+            "operation": "updatePresentation",
+            "presentationId": "={{ $json['Copy Proposal Template'].fileId }}",
+            "updates": [
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{title}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "={{ $json['Generate Proposal Content'].title }}"
+                }
+              },
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{problemSummary}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "={{ $json['Generate Proposal Content'].problemSummary }}"
+                }
+              },
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{solutionBreakdown}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "={{ $json['Generate Proposal Content'].solutionBreakdown }}"
+                }
+              },
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{projectScope}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "={{ $json['Generate Proposal Content'].projectScope }}"
+                }
+              },
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{timeline}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "={{ $json['Generate Proposal Content'].timeline }}"
+                }
+              },
+              {
+                "replaceAllText": {
+                  "containsText": {
+                    "text": "{{cost}}",
+                    "matchCase": true
+                  },
+                  "replaceText": "={{ $json['Generate Proposal Content'].cost }}"
+                }
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Proposal Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendEmail",
+            "to": "={{ $json.body.clientEmail }}",
+            "subject": "Your Proposal from Our Company",
+            "text": "Dear {{ $json.body.clientName }},\n\nPlease find attached your customized proposal.\n\nBest regards,\nYour Company",
+            "attachments": [
+              {
+                "url": "={{ $json['Populate Proposal Template'].presentationUrl }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4354,
+    "completion_tokens": 1248,
+    "total_tokens": 5602
+  },
+  "description_optimization": null,
+  "original_description": "# AI-Powered Proposal Generator - Sales Automation Workflow\n\n## Overview\n![Screenshot 20250524 143046.png](fileId:1373)\nThis n8n workflow automates the entire proposal generation process using AI, transforming client requirements into professional, customized proposals delivered via email in seconds.\n\n## Use Case\nPerfect for agencies, consultants, and sales teams who need to generate high-quality proposals quickly. Instead of spending hours writing proposals manually, this workflow captures client information through a web form and uses GPT-4 to generate contextually relevant, professional proposals.\n\n## How It Works\n1. **Form Trigger** - Captures client information through a customizable web form\n2. **OpenAI Integration** - Processes form data and generates structured proposal content\n3. **Google Drive** - Creates a copy of your proposal template\n4. **Google Slides** - Populates the template with AI-generated content\n5. **Gmail** - Automatically sends the completed proposal to the client\n\n## Key Features\n- **AI Content Generation**: Uses GPT-4 to create personalized proposal content\n- **Professional Templates**: Integrates with Google Slides for polished presentations\n- **Automated Delivery**: Sends proposals directly to clients via email\n- **Form Integration**: Captures all necessary client data through web forms\n- **Customizable Output**: Generates structured proposals with multiple sections\n\n## Template Sections Generated\n- Proposal title and description\n- Problem summary analysis\n- Three-part solution breakdown\n- Project scope details\n- Milestone timeline with dates\n- Cost integration\n\n## Requirements\n- **n8n instance** (cloud or self-hosted)\n- **OpenAI API key** for content generation\n- **Google Workspace account** for Slides and Gmail\n- **Basic n8n knowledge** for setup and customization\n\n## Setup Complexity\n**Intermediate** - Requires API credentials setup and basic workflow customization\n\n## Benefits\n- **Time Savings**: Reduces proposal creation from hours to minutes\n- **Consistency**: Ensures all proposals follow the same professional structure\n- **Personalization**: AI analyzes client needs for relevant content\n- **Automation**: Eliminates manual copy-paste and formatting work\n- **Scalability**: Handle multiple proposal requests simultaneously\n\n## Customization Options\n- Modify AI prompts for different industries or services\n- Customize Google Slides template design\n- Adjust form fields for specific information needs\n- Personalize email templates and signatures\n- Configure milestone templates for different project types\n\n## Error Handling\nIncludes basic error handling for API failures and form validation to ensure reliable operation.\n\n## Security Notes\nAll credentials have been removed from this template. Users must configure their own:\n- OpenAI API credentials\n- Google OAuth2 connections for Slides, Drive, and Gmail\n- Form webhook configuration\n\nThis workflow demonstrates practical AI integration in business processes and showcases n8n's capabilities for complex automation scenarios.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:05:00.411882",
+  "metrics": {
+    "node_type_precision": 0.8,
+    "node_type_recall": 0.8,
+    "node_type_f1": 0.8000000000000002,
+    "tp": 4,
+    "fp": 1,
+    "fn": 1,
+    "gt_node_count": 5,
+    "llm_node_count": 5,
+    "connection_precision": 0.75,
+    "connection_recall": 0.75,
+    "connection_f1": 0.75,
+    "correct_connections": 3,
+    "gt_connection_count": 4,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.041666666666666664,
+    "usage": {
+      "prompt_tokens": 4354,
+      "completion_tokens": 1248,
+      "total_tokens": 5602
+    },
+    "total_cost": 0.023365000000000004
+  }
+}

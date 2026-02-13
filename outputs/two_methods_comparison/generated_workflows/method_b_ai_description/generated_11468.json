@@ -1,0 +1,243 @@
+{
+  "template_id": 11468,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow for managing and interacting with new files in Google Drive.",
+    "workflowPlan": {
+      "name": "Google Drive File Management and Interaction",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Detect New Files",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "YOUR_FOLDER_ID",
+            "watchFor": [
+              "fileCreated"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download as Markdown",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{$json[\"id\"]}}",
+            "downloadType": "markdown"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Add Metadata",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "metadata": "={{$json[\"name\"]}} - {{new Date().toISOString()}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Load File Content & Metadata",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ content: $json[\"data\"], metadata: $json[\"metadata\"] }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Split into Chunks",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1000
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Embeddings",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/embeddings",
+            "method": "POST",
+            "body": {
+              "input": "={{$json[\"content\"]}}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Insert into Vector Store",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "YOUR_VECTOR_STORE_API_ENDPOINT",
+            "method": "POST",
+            "body": {
+              "embeddings": "={{$json[\"embeddings\"]}}",
+              "metadata": "={{$json[\"metadata\"]}}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Chat with a RAG Agent",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-rag-agent"
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Answer Questions",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const question = $json[\"question\"]; return [{ answer: `Answer to: ${question}` }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Generate Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/completions",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"answer\"]}}",
+              "model": "text-davinci-003"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "4"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 749,
+    "completion_tokens": 1293,
+    "total_tokens": 2042
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:35:32.006792",
+  "generated_description": "This n8n workflow is designed to automate the process of managing and interacting with new files in Google Drive. It begins by being triggered whenever new files are detected in a specified Google Drive folder (Node 1: Detect New Files). Once a new file is identified, it is downloaded and converted into Markdown format (Node 2: Download as Markdown).\n\nSubsequently, metadata is added to the file (Node 3: Add Metadata), and the file content along with its metadata is loaded for further processing (Node 5: Load File Content & Metadata). The content is then split into manageable chunks (Node 6: Split into Chunks) to facilitate further operations.\n\nThese chunks are used to generate embeddings using OpenAI's API (Node 7: Generate Embeddings), which are then inserted into a vector store for efficient retrieval and analysis (Node 4: Insert into Vector Store).\n\nThe workflow also includes a chat interface that allows users to interact with a Retrieval-Augmented Generation (RAG) agent (Node 8: Chat with a RAG Agent). This agent is capable of answering questions based on the stored data (Node 9: Answer Questions) and generating responses using OpenAI's language model (Node 10: Generate Response).\n\nOverall, this workflow automates the process of detecting new files, processing their content, storing them for efficient retrieval, and enabling interactive querying and response generation through advanced AI models.",
+  "description_generation_usage": {
+    "prompt_tokens": 240,
+    "completion_tokens": 287,
+    "total_tokens": 527
+  },
+  "metrics": {
+    "node_type_precision": 0.2,
+    "node_type_recall": 0.16666666666666666,
+    "node_type_f1": 0.1818181818181818,
+    "tp": 2,
+    "fp": 8,
+    "fn": 10,
+    "gt_node_count": 12,
+    "llm_node_count": 10,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 5,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 749,
+      "completion_tokens": 1293,
+      "total_tokens": 2042
+    },
+    "total_cost": 0.0182725,
+    "description_generation_cost": 0.00347,
+    "workflow_generation_cost": 0.014802500000000001
+  },
+  "original_description": "This template helps you to create an intelligent document assistant that can answer questions from uploaded files.\n\nIt shows a complete single-vector RAG (Retrieval-Augmented Generation) system that automatically processes documents, lets you chat with it in natural language and provides accurate, source-cited responses.\n\nThe workflow consists of two parts: **the data loading pipeline** and **RAG AI Agent** that answers your questions based on the uploaded documents. \n\nTo test tis workflow, you can use the following example files in a shared [Google Drive folder](https://drive.google.com/drive/u/2/folders/1BevhU5qdgNDFbK4D9oAYGeK0Dt5sEaxQ).\n\n\ud83d\udca1 Find more information on creating RAG AI agents in n8n [on the official page](https://n8n.io/rag/).\n\n## \ud83d\udd17Example files \n\nThe template uses the following example files in the Google Docs format:\n\n1. German Data Protection law: Bundesdatenschutzgesetz (BDSG)\n2. Computer Security Incident Handling Guide (NIST.SP.800-61r2)\n3. Berkshire Hathaway letter to shareholders from 2024 \n\n## \ud83d\ude80How to get started\n\n1. Copy or import the template to your n8n instance.\n2. Create your **Google Drive credentials** via the Google Cloud Console and add them to the trigger node \"Detect New Files\". A detailed walk-through can be found in the n8n [docs](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/).\n3. Create a [Qdrant API](https://qdrant.tech/) key and add it to the \"Insert into Vector Store\" node credentials. The API key will be displayed after you have logged into Qdrant and created a Cluster.\n4. Create or activate your [OpenAI API](https://platform.openai.com/api-keys) key.\n\n## 1\ufe0f\u20e3 Import your data and store it in a vector database\n\n\u2705 Upload files to Google Drive. \n\n**IMPORTANT**: This template supports files in Google Docs format. New files will be downloaded in HTML format and converted to Markdown. This preserves the overall document structure and improves the quality of responses.\n\n- Open the shared Google Drive folder\n- Create a new folder on your Google Drive\n- Activate the workflow\n- Copy the files from the shared folder to your new folder\n\nThe webhook will catch the added files and you will see the execution in your \"Executions\" tab.\n\n***Note**: If the webhook doesn\u2019t see the files you copied, try adding them to your Google Drive folder from the opened shared files via the **Move to** feature.*\n\n\u2705 Chunk, embed, and store your data with a connected OpenAI embedding model and Qdrant vector store.\n\nA Qdrant collection \u2013 vector storage for your data \u2013 will be created automatically after the n8n webhook has caught your data from Google Drive. You can name your collection in the \"Insert into Vector Store\" node.\n\n## 2\ufe0f\u20e3 Add retrieval capabilities and chat with your data\n\n\u2705 Select the database with imported data in the \u201cSearch Documents\u201d sub-node of an AI Agent. \n\n\u2705 Start a chat with your agent via the chat interface: it will retrieve data from the vector store and provide a response. \n\n\u2753You can ask the following questions based on the example files to test this workflow:\n\n- What are the main steps in incident handling? \n- What does Warren Buffett say about mistakes at Berkshire?\n- What are the requirements for processing personal data?\n- Do any documents mention data breach notification?\n\n## \ud83c\udf1fAdapt the workflow to your own use case\n\n- **Knowledge management** - Query company docs, policies, and procedures \n- **Research assistance** - Search through academic papers and reports \n- **Customer support** - Build agents that reference product documentation \n- **Legal/compliance** - Query contracts, regulations, and legal documents \n- **Personal productivity** - Chat with your notes, articles, and saved content\n\nThe workflow automatically detects new files, processes them into searchable vector chunks, and maintains conversation context. Just drop files in your Google Drive folder and start asking questions.\n\n\ud83d\udcbb \ud83d\udcde[Get in touch with me](https://www.linkedin.com/in/yulia-dmitrievna-1112361b5/) if you want to customise this workflow or have any questions."
+}

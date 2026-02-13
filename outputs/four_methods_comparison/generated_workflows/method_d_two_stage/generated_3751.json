@@ -1,0 +1,210 @@
+{
+  "template_id": "3751",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a message received from a Telegram bot, which acts as the user interface for inputting keywords.",
+      "data_sources": "Telegram Bot API for receiving messages and sending responses, RSS feeds from nine major crypto news sources, OpenAI API for GPT-4o to generate summaries and analyses.",
+      "operations": "1. Trigger on Telegram message, 2. Extract keyword, 3. Fetch and filter news articles from RSS feeds, 4. Summarize and analyze with GPT-4o, 5. Send digest back to Telegram.",
+      "output_actions": "Send a structured news digest back to the user via Telegram, including summaries, sentiment analysis, and article links.",
+      "nodes_plan": "telegramTrigger (trigger), extractKeyword (set), rssFeed (httpRequest), filterArticles (function), summarizeWithAI (openAi), sendTelegram (telegram)",
+      "connections_plan": "telegramTrigger -> extractKeyword -> rssFeed -> filterArticles -> summarizeWithAI -> sendTelegram"
+    },
+    "workflowPlan": {
+      "name": "Crypto News and Market Sentiment Aggregator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{ $credentials.telegramApi.botToken }}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Keyword",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "keyword",
+                  "value": "={{ $json.message.text }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch RSS Feeds",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://rss-feed-url.com",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Articles",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.filter(item => item.json.title.includes($node[\"Extract Keyword\"].json[\"keyword\"]));"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Summarize with AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a summary and sentiment analysis for these articles: {{ $json }}",
+            "model": "gpt-4o"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.message.chat.id }}",
+            "text": "={{ $node[\"Summarize with AI\"].json[\"summary\"] }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4407,
+      "completion_tokens": 1008,
+      "total_tokens": 5415
+    },
+    "description_optimization": {
+      "prompt_tokens": 943,
+      "completion_tokens": 646,
+      "total_tokens": 1589
+    },
+    "total_tokens": 7004,
+    "total_prompt_tokens": 5350,
+    "total_completion_tokens": 1654
+  },
+  "description_optimization": {
+    "template_id": "3751",
+    "optimized_description": "Workflow Description: Crypto News and Market Sentiment Aggregator for Telegram\n\nTrigger: The workflow is initiated when a user sends a keyword (e.g., \"Bitcoin\", \"Solana\", \"DeFi\") to the Telegram AI Agent.\n\nData Sources and APIs Needed:\n1. Telegram Bot API for receiving user messages and sending responses.\n2. RSS feeds from the following nine major crypto news sources:\n   - Cointelegraph\n   - Bitcoin Magazine\n   - CoinDesk\n   - Bitcoinist\n   - NewsBTC\n   - CryptoPotato\n   - 99Bitcoins\n   - CryptoBriefing\n   - Crypto.news\n3. OpenAI API for accessing GPT-4o to generate summaries and analyses.\n\nOperations and Processing Steps:\n1. Telegram Bot Trigger: The workflow begins when a user types a keyword into the Telegram AI Agent.\n2. Keyword Extraction: The AI agent processes the user's input to identify the main topic for targeted news aggregation.\n3. News Aggregation: The workflow retrieves articles from the nine specified crypto news RSS feeds.\n4. Filtering: The workflow filters and merges articles that are relevant to the identified keyword, ensuring only pertinent information is included.\n5. AI Summarization: Using GPT-4o, the workflow generates a three-part summary that includes:\n   - A concise news summary of the articles.\n   - An analysis of market sentiment related to the keyword.\n   - A list of links to the original articles for further reading.\n6. Telegram Response: The workflow sends a structured and easy-to-read digest back to the user via Telegram, containing the summarized information.\n\nFinal Output or Action: The user receives a comprehensive news digest that includes the latest updates, market sentiment analysis, and links to articles relevant to their specified keyword, all delivered directly within the Telegram chat.\n\nAdditional Features:\n- Users can summarize breaking news for any crypto project or keyword.\n- The workflow allows monitoring of real-time market sentiment on various topics such as Bitcoin, DeFi, NFTs, and more.\n- It helps users stay informed about FUD (Fear, Uncertainty, Doubt), bullish trends, and major news events.\n- The digest can be used for quick briefings for individuals or teams.\n- This workflow serves as a foundation for developing more advanced crypto alert bots.\n\nSetup Instructions:\n1. Create a Telegram Bot using @BotFather and obtain the Bot Token.\n2. Configure Telegram Credentials in n8n by adding the bot token under Telegram API Credentials.\n3. Configure OpenAI API by adding your OpenAI credentials for GPT-4o access.\n4. Update the Telegram Send Node by replacing the placeholder `chatId` with your actual Telegram user or group chat ID.\n5. Deploy and test the workflow by interacting with your bot using keywords like \"Ethereum\" or \"DeFi\".\n\nWorkflow Highlights:\n- Combines articles from nine major crypto news sources.\n- Utilizes smart keyword matching with AI query parsing.\n- Provides summarized insights in a human-readable format.\n- Includes reference links for deeper reading.\n- Ensures instant delivery of information via Telegram.\n\nThis workflow automates the process of monitoring crypto news and market sentiment, providing users with timely and intelligent updates directly in their Telegram chat.",
+    "original_description": "**Stay on top of the latest crypto news and market sentiment instantly, all inside Telegram!**  \nThis workflow aggregates articles from the top crypto news sources, filters for your topic of interest, and summarizes key news and market sentiment using **GPT-4o AI**. Ideal for **crypto traders, investors, analysts**, and **market watchers** needing fast, intelligent news briefings.\n\n&gt; \ud83d\udcac Just type a coin name (e.g., \"Bitcoin\", \"Solana\", \"DeFi\") into your Telegram AI Agent\u2014and get a smart news digest.\n\n---\n\n## How It Works\n\n1. **Telegram Bot Trigger**  \n   - User sends a keyword (e.g., \"Ethereum\") of questions to the Telegram AI Agent.\n\n2. **Keyword Extraction (AI-Powered)**  \n   - An AI agent identifies the main topic for better targeting.\n\n3. **News Aggregation**  \n   - Pulls articles from 9 major crypto news RSS feeds:  \n   \n     - Cointelegraph  \n     - Bitcoin Magazine  \n     - CoinDesk  \n     - Bitcoinist  \n     - NewsBTC  \n     - CryptoPotato  \n     - 99Bitcoins  \n     - CryptoBriefing  \n     - Crypto.news  \n\n4. **Filtering**  \n   - Finds and merges articles relevant to the user's keyword.\n\n5. **AI Summarization**  \n   - **GPT-4o** generates a 3-part summary:\n     1. News Summary  \n     2. Market Sentiment Analysis  \n     3. List of Article Links\n\n6. **Telegram Response**  \n   - Sends a structured, easy-to-read digest back to the user.\n\n---\n\n## \ud83d\udd0d What You Can Do with This Workflow\n\n\ud83d\udd39 Summarize breaking news for any crypto project or keyword  \n\ud83d\udd39 Monitor real-time market sentiment on Bitcoin, DeFi, NFTs, and more  \n\ud83d\udd39 Stay ahead of FUD, bullish trends, and major news events  \n\ud83d\udd39 Quickly brief yourself or your team via Telegram  \n\ud83d\udd39 Use it as a foundation for more advanced crypto alert bots\n\n---\n\n## \u2705 Example User Inputs\n\n\u2705 _\"Bitcoin\"_ \u2192 Latest Bitcoin news and sentiment summary  \n\u2705 _\"Solana\"_ \u2192 Updates on Solana projects, price movements, and community trends  \n\u2705 _\"NFT\"_ \u2192 Aggregated news about NFT markets and launches  \n\u2705 _\"Layer 2\"_ \u2192 Insights on Optimism, Arbitrum, and other L2s  \n\n---\n\n## \ud83d\udee0\ufe0f Setup Instructions\n\n1. **Create a Telegram Bot**  \n   - Use [@BotFather](https://t.me/BotFather) and obtain the Bot Token.\n\n2. **Configure Telegram Credentials in n8n**  \n   - Add your bot token under **Telegram API Credentials**.\n\n3. **Configure OpenAI API**  \n   - Add your OpenAI credentials for GPT-4o access.\n\n4. **Update Telegram Send Node**  \n   - In the **Telegram Send** node, replace the placeholder `chatId` with your real Telegram user or group chat ID.\n\n5. **Deploy and Test**  \n   - Start chatting with your bot: e.g., _\"Ethereum\"_ or _\"DeFi\"_.\n\n---\n\n## \ud83d\udccc Workflow Highlights\n\n- **9 major crypto news sources combined**\n- **Smart keyword matching** with AI query parsing\n- **Summarized insights** in human-readable format\n- **Reference links** included for deeper reading\n- **Instant delivery** via Telegram\n\n---\n\n\ud83d\ude80 **Get ahead of the crypto market\u2014automate your news and sentiment monitoring with AI inside Telegram!**",
+    "description_length": 3189,
+    "usage": {
+      "prompt_tokens": 943,
+      "completion_tokens": 646,
+      "total_tokens": 1589
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:52:49.874242"
+  },
+  "original_description": "**Stay on top of the latest crypto news and market sentiment instantly, all inside Telegram!**  \nThis workflow aggregates articles from the top crypto news sources, filters for your topic of interest, and summarizes key news and market sentiment using **GPT-4o AI**. Ideal for **crypto traders, investors, analysts**, and **market watchers** needing fast, intelligent news briefings.\n\n&gt; \ud83d\udcac Just type a coin name (e.g., \"Bitcoin\", \"Solana\", \"DeFi\") into your Telegram AI Agent\u2014and get a smart news digest.\n\n---\n\n## How It Works\n\n1. **Telegram Bot Trigger**  \n   - User sends a keyword (e.g., \"Ethereum\") of questions to the Telegram AI Agent.\n\n2. **Keyword Extraction (AI-Powered)**  \n   - An AI agent identifies the main topic for better targeting.\n\n3. **News Aggregation**  \n   - Pulls articles from 9 major crypto news RSS feeds:  \n   \n     - Cointelegraph  \n     - Bitcoin Magazine  \n     - CoinDesk  \n     - Bitcoinist  \n     - NewsBTC  \n     - CryptoPotato  \n     - 99Bitcoins  \n     - CryptoBriefing  \n     - Crypto.news  \n\n4. **Filtering**  \n   - Finds and merges articles relevant to the user's keyword.\n\n5. **AI Summarization**  \n   - **GPT-4o** generates a 3-part summary:\n     1. News Summary  \n     2. Market Sentiment Analysis  \n     3. List of Article Links\n\n6. **Telegram Response**  \n   - Sends a structured, easy-to-read digest back to the user.\n\n---\n\n## \ud83d\udd0d What You Can Do with This Workflow\n\n\ud83d\udd39 Summarize breaking news for any crypto project or keyword  \n\ud83d\udd39 Monitor real-time market sentiment on Bitcoin, DeFi, NFTs, and more  \n\ud83d\udd39 Stay ahead of FUD, bullish trends, and major news events  \n\ud83d\udd39 Quickly brief yourself or your team via Telegram  \n\ud83d\udd39 Use it as a foundation for more advanced crypto alert bots\n\n---\n\n## \u2705 Example User Inputs\n\n\u2705 _\"Bitcoin\"_ \u2192 Latest Bitcoin news and sentiment summary  \n\u2705 _\"Solana\"_ \u2192 Updates on Solana projects, price movements, and community trends  \n\u2705 _\"NFT\"_ \u2192 Aggregated news about NFT markets and launches  \n\u2705 _\"Layer 2\"_ \u2192 Insights on Optimism, Arbitrum, and other L2s  \n\n---\n\n## \ud83d\udee0\ufe0f Setup Instructions\n\n1. **Create a Telegram Bot**  \n   - Use [@BotFather](https://t.me/BotFather) and obtain the Bot Token.\n\n2. **Configure Telegram Credentials in n8n**  \n   - Add your bot token under **Telegram API Credentials**.\n\n3. **Configure OpenAI API**  \n   - Add your OpenAI credentials for GPT-4o access.\n\n4. **Update Telegram Send Node**  \n   - In the **Telegram Send** node, replace the placeholder `chatId` with your real Telegram user or group chat ID.\n\n5. **Deploy and Test**  \n   - Start chatting with your bot: e.g., _\"Ethereum\"_ or _\"DeFi\"_.\n\n---\n\n## \ud83d\udccc Workflow Highlights\n\n- **9 major crypto news sources combined**\n- **Smart keyword matching** with AI query parsing\n- **Summarized insights** in human-readable format\n- **Reference links** included for deeper reading\n- **Instant delivery** via Telegram\n\n---\n\n\ud83d\ude80 **Get ahead of the crypto market\u2014automate your news and sentiment monitoring with AI inside Telegram!**",
+  "optimized_description": "Workflow Description: Crypto News and Market Sentiment Aggregator for Telegram\n\nTrigger: The workflow is initiated when a user sends a keyword (e.g., \"Bitcoin\", \"Solana\", \"DeFi\") to the Telegram AI Agent.\n\nData Sources and APIs Needed:\n1. Telegram Bot API for receiving user messages and sending responses.\n2. RSS feeds from the following nine major crypto news sources:\n   - Cointelegraph\n   - Bitcoin Magazine\n   - CoinDesk\n   - Bitcoinist\n   - NewsBTC\n   - CryptoPotato\n   - 99Bitcoins\n   - CryptoBriefing\n   - Crypto.news\n3. OpenAI API for accessing GPT-4o to generate summaries and analyses.\n\nOperations and Processing Steps:\n1. Telegram Bot Trigger: The workflow begins when a user types a keyword into the Telegram AI Agent.\n2. Keyword Extraction: The AI agent processes the user's input to identify the main topic for targeted news aggregation.\n3. News Aggregation: The workflow retrieves articles from the nine specified crypto news RSS feeds.\n4. Filtering: The workflow filters and merges articles that are relevant to the identified keyword, ensuring only pertinent information is included.\n5. AI Summarization: Using GPT-4o, the workflow generates a three-part summary that includes:\n   - A concise news summary of the articles.\n   - An analysis of market sentiment related to the keyword.\n   - A list of links to the original articles for further reading.\n6. Telegram Response: The workflow sends a structured and easy-to-read digest back to the user via Telegram, containing the summarized information.\n\nFinal Output or Action: The user receives a comprehensive news digest that includes the latest updates, market sentiment analysis, and links to articles relevant to their specified keyword, all delivered directly within the Telegram chat.\n\nAdditional Features:\n- Users can summarize breaking news for any crypto project or keyword.\n- The workflow allows monitoring of real-time market sentiment on various topics such as Bitcoin, DeFi, NFTs, and more.\n- It helps users stay informed about FUD (Fear, Uncertainty, Doubt), bullish trends, and major news events.\n- The digest can be used for quick briefings for individuals or teams.\n- This workflow serves as a foundation for developing more advanced crypto alert bots.\n\nSetup Instructions:\n1. Create a Telegram Bot using @BotFather and obtain the Bot Token.\n2. Configure Telegram Credentials in n8n by adding the bot token under Telegram API Credentials.\n3. Configure OpenAI API by adding your OpenAI credentials for GPT-4o access.\n4. Update the Telegram Send Node by replacing the placeholder `chatId` with your actual Telegram user or group chat ID.\n5. Deploy and test the workflow by interacting with your bot using keywords like \"Ethereum\" or \"DeFi\".\n\nWorkflow Highlights:\n- Combines articles from nine major crypto news sources.\n- Utilizes smart keyword matching with AI query parsing.\n- Provides summarized insights in a human-readable format.\n- Includes reference links for deeper reading.\n- Ensures instant delivery of information via Telegram.\n\nThis workflow automates the process of monitoring crypto news and market sentiment, providing users with timely and intelligent updates directly in their Telegram chat.",
+  "error": null,
+  "generated_at": "2026-01-25T22:53:02.942892",
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.3846153846153846,
+    "tp": 5,
+    "fp": 1,
+    "fn": 15,
+    "gt_node_count": 20,
+    "llm_node_count": 6,
+    "connection_precision": 0.4,
+    "connection_recall": 0.2,
+    "connection_f1": 0.26666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.25,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4407,
+        "completion_tokens": 1008,
+        "total_tokens": 5415
+      },
+      "description_optimization": {
+        "prompt_tokens": 943,
+        "completion_tokens": 646,
+        "total_tokens": 1589
+      },
+      "total_tokens": 7004,
+      "total_prompt_tokens": 5350,
+      "total_completion_tokens": 1654
+    },
+    "total_cost": 0.029915000000000004,
+    "description_optimization_cost": 0.0088175,
+    "workflow_generation_cost": 0.0210975
+  }
+}

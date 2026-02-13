@@ -1,0 +1,281 @@
+{
+  "template_id": "11645",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Google Drive trigger when a new video is uploaded to a specific folder.",
+      "data_sources": "Google Drive, Airtable, Apify (AssemblyAI), OpenAI API, OpenRouter API, Kie.ai, YouTube Data API.",
+      "operations": "1. Detect video upload on Google Drive. 2. Create Airtable record. 3. Transcribe video using Apify. 4. Generate titles using OpenAI. 5. Generate thumbnail using Kie.ai. 6. Poll YouTube for captions. 7. Identify clips using OpenRouter. 8. Generate description using OpenAI. 9. Save outputs to Airtable.",
+      "output_actions": "The final outputs include titles, thumbnails, clip timestamps with captions, and descriptions saved to Airtable for further manual processing.",
+      "nodes_plan": "googleDriveTrigger (trigger), airtable (create record), apify (transcription), openAi (title generation), kieAi (thumbnail generation), youtubeApi (caption polling), openRouter (clip identification), openAi (description generation), airtable (save outputs).",
+      "connections_plan": "googleDriveTrigger -> airtable -> apify -> openAi (title) -> kieAi -> youtubeApi -> openRouter -> openAi (description) -> airtable (save outputs)."
+    },
+    "workflowPlan": {
+      "name": "YouTube Content Repurposing Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "FOLDER_ID",
+            "pollingInterval": "5 minutes"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Airtable Record",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "BASE_ID",
+            "tableId": "TABLE_ID",
+            "fields": {
+              "Video Name": "={{ $json['name'] }}",
+              "Video URL": "={{ $json['webViewLink'] }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Apify Transcription",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "assemblyai-transcription",
+            "input": {
+              "videoUrl": "={{ $json['webViewLink'] }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Titles",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate three YouTube titles for the following transcript: {{ $json['transcript'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Thumbnail",
+          "nodeType": "n8n-nodes-base.kieAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "Nano Banana Pro",
+            "prompt": "Generate a thumbnail for the video titled: {{ $json['title'] }}",
+            "referenceImages": [
+              "image1.jpg",
+              "image2.jpg"
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "YouTube Caption Polling",
+          "nodeType": "n8n-nodes-base.youtubeApi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "checkCaptions",
+            "videoId": "={{ $json['videoId'] }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Identify Clips",
+          "nodeType": "n8n-nodes-base.openRouter",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyze",
+            "model": "Grok 4.1 Fast",
+            "input": "={{ $json['transcript'] }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Description",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a YouTube description with chapter timestamps for the following transcript: {{ $json['transcript'] }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Save Outputs to Airtable",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "BASE_ID",
+            "tableId": "TABLE_ID",
+            "fields": {
+              "Titles": "={{ $json['titles'] }}",
+              "Thumbnail": "={{ $json['thumbnail'] }}",
+              "Clips": "={{ $json['clips'] }}",
+              "Description": "={{ $json['description'] }}"
+            }
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4552,
+      "completion_tokens": 1536,
+      "total_tokens": 6088
+    },
+    "description_optimization": {
+      "prompt_tokens": 975,
+      "completion_tokens": 791,
+      "total_tokens": 1766
+    },
+    "total_tokens": 7854,
+    "total_prompt_tokens": 5527,
+    "total_completion_tokens": 2327
+  },
+  "description_optimization": {
+    "template_id": "11645",
+    "optimized_description": "This n8n workflow automates the process of repurposing YouTube content using AI technologies. The workflow is designed for content creators who publish 1-2 long-form videos weekly and need to extract 5-10 short-form clips, as well as for YouTube agencies managing multiple channels and automation consultants building content systems for clients.\n\n**Trigger:**\nThe workflow is triggered when a video is uploaded to a designated Google Drive folder.\n\n**Data Sources and APIs Needed:**\n1. Google Drive - for video uploads.\n2. Airtable - for managing records and outputs.\n3. Apify - for video transcription via AssemblyAI.\n4. OpenAI API (GPT-4o-mini) - for generating titles and descriptions.\n5. OpenRouter API (Grok 4.1 Fast) - for clip identification.\n6. Kie.ai - for AI thumbnail generation using the Nano Banana Pro model.\n7. YouTube Data API - for polling and checking the status of auto-generated captions.\n\n**Operations and Processing Steps:**\n1. **Video Upload:** A video is uploaded to a specific Google Drive folder, triggering the workflow.\n2. **Create Airtable Record:** An Airtable record is created for the uploaded video.\n3. **Transcription:** The video URL is sent to AssemblyAI (via Apify) for transcription, including H:MM:SS.mmm timestamps.\n4. **Title Generation:** The transcript is analyzed using GPT-4o-mini to generate three title variations optimized for A/B testing.\n5. **Thumbnail Generation:** When the \"Generate thumbnail\" button is clicked in Airtable, a prompt is optimized and sent to Kie.ai's Nano Banana Pro model, along with two reference images for branding consistency.\n6. **Caption Polling:** After the video is uploaded to YouTube, the workflow polls the YouTube API every five minutes to check if auto-generated captions are ready.\n7. **Clip Generation:** Once captions are available, clicking \"Generate clips\" triggers Grok 4.1 Fast to analyze the transcript and identify three to eight elite clips (45+ seconds each) with appropriate start/end boundaries and action-oriented captions.\n8. **Description Generation:** GPT-4o-mini generates a YouTube description with chapter timestamps based on the transcript.\n9. **Save Outputs:** All generated outputs, including titles, thumbnail, clip timestamps with captions, and descriptions, are saved to Airtable.\n\n**Final Output or Action:**\nThe final outputs are organized in Airtable, ready for the user to manually clip videos using the provided timestamps, and to copy titles, thumbnails, clips, and descriptions for publishing across various platforms.\n\n**Additional Notes:**\n- Processing time is approximately 10-15 minutes per video, depending on length.\n- Cost per video is roughly $1.00 (transcription $0.65, AI generation $0.35).\n- YouTube captions take 10-60 minutes to generate after upload, with automatic polling included in the workflow.\n- Manual steps required include video clipping, social media posting, and YouTube A/B test setup.\n\n**Requirements:**\n- Airtable account (Pro plan recommended for automations).\n- Google Drive for video upload monitoring.\n- Apify account for video transcription via AssemblyAI actor.\n- OpenAI API key for title and description generation (GPT-4o-mini).\n- OpenRouter API key for clip identification (Grok 4.1 Fast).\n- Kie.ai account for AI thumbnail generation (Nano Banana Pro model).\n- YouTube Data API credentials for caption polling.\n\n**Customization Options:**\n- Tailor system prompts to fit specific content niches.\n- Modify clip identification criteria in the Grok prompt.\n- Adjust thumbnail generation styles by updating the image prompt optimizer.\n- Add custom fields to Airtable for tracking performance metrics or additional metadata.\n- Integrate with additional platforms like TikTok or Instagram APIs for automated posting.",
+    "original_description": "This n8n template demonstrates how to automate YouTube content repurposing using AI. Upload a video to Google Drive and automatically generate transcriptions, A/B testable titles, AI thumbnails, short-form clips with captions, and YouTube descriptions with chapter timestamps.\n\nUse cases include: Content creators who publish 1-2 long-form videos per week and need to extract 5-10 short-form clips, YouTube agencies managing multiple channels, or automation consultants building content systems for clients.\n\n## Good to know\n\n* Processing time is approximately 10-15 minutes per video depending on length\n* Cost per video is roughly $1.00 (transcription $0.65, AI generation $0.35)\n* YouTube captions take 10-60 minutes to generate after upload - the workflow includes automatic polling to check when captions are ready\n* Manual steps still required: video clipping (using provided timestamps), social media posting, and YouTube A/B test setup\n\n## How it works\n\n* When a video is uploaded to Google Drive, the workflow automatically triggers and creates an Airtable record\n* The video URL is sent to AssemblyAI (via Apify) for transcription with H:MM:SS.mmm timestamps\n* GPT-4o-mini analyzes the transcript and generates 3 title variations optimized for A/B testing\n* When you click \"Generate thumbnail\" in Airtable, your prompt is optimized and sent to Kie.ai's Nano Banana Pro model with 2 reference images for consistent branding\n* After uploading to YouTube, the workflow polls YouTube's API every 5 minutes to check if auto-generated captions are ready\n* Once captions are available, click \"Generate clips\" and Grok 4.1 Fast analyzes the transcript to identify 3-8 elite clips (45+ seconds each) with proper start/end boundaries and action-oriented captions\n* GPT-4o-mini generates a YouTube description with chapter timestamps based on the transcript\n* All outputs are saved to Airtable: titles, thumbnail, clip timestamps with captions, and description\n\n## How to use\n\n* Duplicate the provided Airtable base template and connect it to your n8n instance\n* Create a Google Drive folder for uploading edited videos\n* After activating the workflow, copy webhook URLs and paste them into Airtable button formulas and automations\n* Upload your edited video to the designated Google Drive folder to trigger the system\n* The workflow automatically generates titles and begins transcription\n* Add your thumbnail prompt and 2 reference images to Airtable, then click \"Generate thumbnail\"\n* Upload the video to YouTube as unlisted, paste the video ID into Airtable, and check the box to trigger clip generation\n* Use the provided timestamps to manually clip videos in your editor\n* Copy titles, thumbnail, clips, and description from Airtable to publish across platforms\n\n## Requirements\n\n* Airtable account (Pro plan recommended for automations)\n* Google Drive for video upload monitoring\n* Apify account for video transcription via AssemblyAI actor\n* OpenAI API key for title and description generation (GPT-4o-mini)\n* OpenRouter API key for clip identification (Grok 4.1 Fast)\n* Kie.ai account for AI thumbnail generation (Nano Banana Pro model)\n* YouTube Data API credentials for caption polling\n\n## Customising this workflow\n\n* Tailor the system prompts to your content niche by asking Claude to adjust them without changing the core structure\n* Modify the clip identification criteria (length, caption style, number of clips) in the Grok prompt\n* Adjust thumbnail generation style by updating the image prompt optimizer\n* Add custom fields to Airtable for tracking performance metrics or additional metadata\n* Integrate with additional platforms like TikTok or Instagram APIs for automated posting",
+    "description_length": 3765,
+    "usage": {
+      "prompt_tokens": 975,
+      "completion_tokens": 791,
+      "total_tokens": 1766
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:37:36.538812"
+  },
+  "original_description": "This n8n template demonstrates how to automate YouTube content repurposing using AI. Upload a video to Google Drive and automatically generate transcriptions, A/B testable titles, AI thumbnails, short-form clips with captions, and YouTube descriptions with chapter timestamps.\n\nUse cases include: Content creators who publish 1-2 long-form videos per week and need to extract 5-10 short-form clips, YouTube agencies managing multiple channels, or automation consultants building content systems for clients.\n\n## Good to know\n\n* Processing time is approximately 10-15 minutes per video depending on length\n* Cost per video is roughly $1.00 (transcription $0.65, AI generation $0.35)\n* YouTube captions take 10-60 minutes to generate after upload - the workflow includes automatic polling to check when captions are ready\n* Manual steps still required: video clipping (using provided timestamps), social media posting, and YouTube A/B test setup\n\n## How it works\n\n* When a video is uploaded to Google Drive, the workflow automatically triggers and creates an Airtable record\n* The video URL is sent to AssemblyAI (via Apify) for transcription with H:MM:SS.mmm timestamps\n* GPT-4o-mini analyzes the transcript and generates 3 title variations optimized for A/B testing\n* When you click \"Generate thumbnail\" in Airtable, your prompt is optimized and sent to Kie.ai's Nano Banana Pro model with 2 reference images for consistent branding\n* After uploading to YouTube, the workflow polls YouTube's API every 5 minutes to check if auto-generated captions are ready\n* Once captions are available, click \"Generate clips\" and Grok 4.1 Fast analyzes the transcript to identify 3-8 elite clips (45+ seconds each) with proper start/end boundaries and action-oriented captions\n* GPT-4o-mini generates a YouTube description with chapter timestamps based on the transcript\n* All outputs are saved to Airtable: titles, thumbnail, clip timestamps with captions, and description\n\n## How to use\n\n* Duplicate the provided Airtable base template and connect it to your n8n instance\n* Create a Google Drive folder for uploading edited videos\n* After activating the workflow, copy webhook URLs and paste them into Airtable button formulas and automations\n* Upload your edited video to the designated Google Drive folder to trigger the system\n* The workflow automatically generates titles and begins transcription\n* Add your thumbnail prompt and 2 reference images to Airtable, then click \"Generate thumbnail\"\n* Upload the video to YouTube as unlisted, paste the video ID into Airtable, and check the box to trigger clip generation\n* Use the provided timestamps to manually clip videos in your editor\n* Copy titles, thumbnail, clips, and description from Airtable to publish across platforms\n\n## Requirements\n\n* Airtable account (Pro plan recommended for automations)\n* Google Drive for video upload monitoring\n* Apify account for video transcription via AssemblyAI actor\n* OpenAI API key for title and description generation (GPT-4o-mini)\n* OpenRouter API key for clip identification (Grok 4.1 Fast)\n* Kie.ai account for AI thumbnail generation (Nano Banana Pro model)\n* YouTube Data API credentials for caption polling\n\n## Customising this workflow\n\n* Tailor the system prompts to your content niche by asking Claude to adjust them without changing the core structure\n* Modify the clip identification criteria (length, caption style, number of clips) in the Grok prompt\n* Adjust thumbnail generation style by updating the image prompt optimizer\n* Add custom fields to Airtable for tracking performance metrics or additional metadata\n* Integrate with additional platforms like TikTok or Instagram APIs for automated posting",
+  "optimized_description": "This n8n workflow automates the process of repurposing YouTube content using AI technologies. The workflow is designed for content creators who publish 1-2 long-form videos weekly and need to extract 5-10 short-form clips, as well as for YouTube agencies managing multiple channels and automation consultants building content systems for clients.\n\n**Trigger:**\nThe workflow is triggered when a video is uploaded to a designated Google Drive folder.\n\n**Data Sources and APIs Needed:**\n1. Google Drive - for video uploads.\n2. Airtable - for managing records and outputs.\n3. Apify - for video transcription via AssemblyAI.\n4. OpenAI API (GPT-4o-mini) - for generating titles and descriptions.\n5. OpenRouter API (Grok 4.1 Fast) - for clip identification.\n6. Kie.ai - for AI thumbnail generation using the Nano Banana Pro model.\n7. YouTube Data API - for polling and checking the status of auto-generated captions.\n\n**Operations and Processing Steps:**\n1. **Video Upload:** A video is uploaded to a specific Google Drive folder, triggering the workflow.\n2. **Create Airtable Record:** An Airtable record is created for the uploaded video.\n3. **Transcription:** The video URL is sent to AssemblyAI (via Apify) for transcription, including H:MM:SS.mmm timestamps.\n4. **Title Generation:** The transcript is analyzed using GPT-4o-mini to generate three title variations optimized for A/B testing.\n5. **Thumbnail Generation:** When the \"Generate thumbnail\" button is clicked in Airtable, a prompt is optimized and sent to Kie.ai's Nano Banana Pro model, along with two reference images for branding consistency.\n6. **Caption Polling:** After the video is uploaded to YouTube, the workflow polls the YouTube API every five minutes to check if auto-generated captions are ready.\n7. **Clip Generation:** Once captions are available, clicking \"Generate clips\" triggers Grok 4.1 Fast to analyze the transcript and identify three to eight elite clips (45+ seconds each) with appropriate start/end boundaries and action-oriented captions.\n8. **Description Generation:** GPT-4o-mini generates a YouTube description with chapter timestamps based on the transcript.\n9. **Save Outputs:** All generated outputs, including titles, thumbnail, clip timestamps with captions, and descriptions, are saved to Airtable.\n\n**Final Output or Action:**\nThe final outputs are organized in Airtable, ready for the user to manually clip videos using the provided timestamps, and to copy titles, thumbnails, clips, and descriptions for publishing across various platforms.\n\n**Additional Notes:**\n- Processing time is approximately 10-15 minutes per video, depending on length.\n- Cost per video is roughly $1.00 (transcription $0.65, AI generation $0.35).\n- YouTube captions take 10-60 minutes to generate after upload, with automatic polling included in the workflow.\n- Manual steps required include video clipping, social media posting, and YouTube A/B test setup.\n\n**Requirements:**\n- Airtable account (Pro plan recommended for automations).\n- Google Drive for video upload monitoring.\n- Apify account for video transcription via AssemblyAI actor.\n- OpenAI API key for title and description generation (GPT-4o-mini).\n- OpenRouter API key for clip identification (Grok 4.1 Fast).\n- Kie.ai account for AI thumbnail generation (Nano Banana Pro model).\n- YouTube Data API credentials for caption polling.\n\n**Customization Options:**\n- Tailor system prompts to fit specific content niches.\n- Modify clip identification criteria in the Grok prompt.\n- Adjust thumbnail generation styles by updating the image prompt optimizer.\n- Add custom fields to Airtable for tracking performance metrics or additional metadata.\n- Integrate with additional platforms like TikTok or Instagram APIs for automated posting.",
+  "error": null,
+  "generated_at": "2026-01-25T23:37:49.987131",
+  "metrics": {
+    "node_type_precision": 0.5555555555555556,
+    "node_type_recall": 0.14285714285714285,
+    "node_type_f1": 0.22727272727272727,
+    "tp": 5,
+    "fp": 4,
+    "fn": 30,
+    "gt_node_count": 35,
+    "llm_node_count": 9,
+    "connection_precision": 0.25,
+    "connection_recall": 0.08333333333333333,
+    "connection_f1": 0.125,
+    "correct_connections": 2,
+    "gt_connection_count": 24,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.02361111111111111,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4552,
+        "completion_tokens": 1536,
+        "total_tokens": 6088
+      },
+      "description_optimization": {
+        "prompt_tokens": 975,
+        "completion_tokens": 791,
+        "total_tokens": 1766
+      },
+      "total_tokens": 7854,
+      "total_prompt_tokens": 5527,
+      "total_completion_tokens": 2327
+    },
+    "total_cost": 0.0370875,
+    "description_optimization_cost": 0.0103475,
+    "workflow_generation_cost": 0.026740000000000003
+  }
+}

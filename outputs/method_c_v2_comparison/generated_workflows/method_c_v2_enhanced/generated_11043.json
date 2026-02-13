@@ -1,0 +1,269 @@
+{
+  "template_id": "11043",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Telegram message containing an avatar photo and a video URL.",
+      "data_sources": "Telegram API, Replicate API, FAL API, Google Sheets API, Blotato API",
+      "operations": "1. Receive Telegram message, 2. Extract audio using Replicate, 3. Replace character in video using FAL WAN Replace, 4. Transform voice using FAL Chatterbox, 5. Merge video and audio using FAL FFmpeg, 6. Save results to Google Sheets, 7. Publish video to TikTok via Blotato, 8. Send confirmation message",
+      "output_actions": "Publish the final video to TikTok and send a confirmation message",
+      "nodes_plan": "telegramTrigger, replicateAPI, falWanReplace, falChatterbox, falFFmpeg, googleSheets, blotatoPublish, telegramSendMessage",
+      "connections_plan": "telegramTrigger -> replicateAPI -> falWanReplace -> falChatterbox -> falFFmpeg -> googleSheets -> blotatoPublish -> telegramSendMessage"
+    },
+    "workflowPlan": {
+      "name": "Viral Video AI Avatar Swap and Publish",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{ $env.TELEGRAM_BOT_TOKEN }}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.replicate.com/v1/predictions",
+            "body": {
+              "version": "audio-extraction-model",
+              "input": {
+                "video_url": "={{ $json.message.caption }}"
+              }
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "headers": {
+                  "Authorization": "Bearer {{ $env.REPLICATE_API_KEY }}"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "FAL WAN Replace",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.com/wan-replace",
+            "body": {
+              "avatar_image": "={{ $json.message.photo[0].file_id }}",
+              "video_url": "={{ $json.message.caption }}"
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "headers": {
+                  "Authorization": "Bearer {{ $env.FAL_API_KEY }}"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "FAL Chatterbox",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.com/chatterbox",
+            "body": {
+              "audio_url": "={{ $node[\"Extract Audio\"].json[\"output_url\"] }}",
+              "target_voice": "={{ $env.TARGET_VOICE_AUDIO_URL }}"
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "headers": {
+                  "Authorization": "Bearer {{ $env.FAL_API_KEY }}"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "FAL FFmpeg",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.com/ffmpeg",
+            "body": {
+              "video_url": "={{ $node[\"FAL WAN Replace\"].json[\"output_url\"] }}",
+              "audio_url": "={{ $node[\"FAL Chatterbox\"].json[\"output_url\"] }}"
+            },
+            "authentication": {
+              "type": "headerAuth",
+              "properties": {
+                "headers": {
+                  "Authorization": "Bearer {{ $env.FAL_API_KEY }}"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{ $env.GOOGLE_SHEET_ID }}",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{ $json.message.caption }}",
+                "={{ $node[\"FAL FFmpeg\"].json[\"output_url\"] }}",
+                "={{ new Date().toISOString() }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish to TikTok",
+          "nodeType": "blotato.n8n-nodes-blotato",
+          "typeVersion": 1,
+          "params": {
+            "operation": "publish",
+            "platform": "tiktok",
+            "video_url": "={{ $node[\"FAL FFmpeg\"].json[\"output_url\"] }}",
+            "account": "={{ $env.BLOTATO_TIKTOK_ACCOUNT }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Confirmation",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.message.chat.id }}",
+            "text": "Your video has been successfully published on TikTok!"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5888,
+    "completion_tokens": 1667,
+    "total_tokens": 7555
+  },
+  "description_optimization": null,
+  "original_description": "# Convert Viral Videos into AI Avatar Swaps and Publish on TikTok with Blotato\n\n![Workflow Overview](https://www.dr-firas.com/wan.png)\n\n### Who is this for?\nThis workflow is designed for content creators, agencies, influencers, and automation builders who want to transform viral videos into personalized avatar-based edits \u2014 and automatically publish them on TikTok (and other platforms) without manual editing or video software.\n\n### What problem is this workflow solving?\nReplacing a character in a video, transforming the voice, merging audio/video, and publishing to social networks typically requires multiple tools, editing skills, and a lot of time.  \nThis workflow automates the entire pipeline end-to-end:\n\n- No manual video editing  \n- No audio processing  \n- No API debugging  \n- No uploading/publishing hassles  \n\nIt\u2019s a full AI-powered transformation system that produces ready-to-post content in minutes.\n\n### What this workflow does\nThis workflow receives an avatar image + a viral video URL and automatically:\n\n1. Extracts the audio using Replicate  \n2. Replaces the character in the video using **FAL WAN Replace**  \n3. Transforms the voice using **FAL Chatterbox Speech-to-Speech**  \n4. Merges the new video and audio using **FAL FFmpeg**  \n5. Saves results to Google Sheets for tracking  \n6. Publishes the final video to **TikTok** via Blotato (and optionally to Instagram, Facebook, LinkedIn, X, and YouTube)  \n7. Sends a confirmation message when publishing is complete\n\nEverything runs automatically, in parallel, for maximum speed.\n\n### Setup\n1. **Telegram Bot**  \n   - Add your Telegram Bot credentials in the **Telegram Trigger** node.  \n   - Send an avatar photo + video URL in one message (URL in the caption).\n\n2. **Workflow Configuration**  \n   - Add your **FAL API key**  \n   - Add your **Replicate API key**  \n   - Add your **targetVoiceAudioUrl** (this is the voice the output will use)\n\n3. **Google Sheets**  \n   - Connect your Google Sheets OAuth credentials  \n   - Select your sheet and ensure columns exist (e.g. original URL, output URL)\n\n4. **Blotato Publishing**  \n   - Install community node `@blotato/n8n-nodes-blotato`  \n   - Connect your [Blotato](https://blotato.com/?ref=firas) API credentials  \n   - Select the TikTok account (and optional other accounts)\n\n5. **Test the workflow**  \n   - Send a Telegram message with:\n     - A photo (avatar)\n     - Video URL in the caption  \n   - The workflow will process everything automatically.\n\n### How to customize this workflow to your needs\n- **Change platforms**: remove or add publishing outputs (TikTok, Instagram, LinkedIn, Facebook, YouTube, X).  \n- **Change voice style**: update the `targetVoiceAudioUrl` in the Workflow Configuration node.  \n- **Use your own avatar**: send any image in Telegram \u2014 the workflow automatically makes it public and ready for AI processing.  \n- **Adjust video logic**: swap FAL models, update merg\n\n---\n### \ud83d\udc4b Need help or want to customize this?\n\ud83d\udce9 Contact: [LinkedIn](https://www.linkedin.com/in/dr-firas/)  \n\ud83d\udcfa YouTube: [@DRFIRASS](https://www.youtube.com/@DRFIRASS)  \n\ud83d\ude80 Workshops: [Mes Ateliers n8n](https://hotm.art/formation-n8n)\n\n---\n\ud83d\udcc4 **Documentation**: [Notion Guide](https://automatisation.notion.site/Convert-viral-videos-into-AI-avatar-swaps-and-publish-on-TikTok-with-Blotato-2b13d6550fd9809d98d4c8b7bac85e20?source=copy_link)\n### Need help customizing?\nContact me for consulting and support : [Linkedin](https://www.linkedin.com/in/dr-firas/) / [Youtube](https://www.youtube.com/channel/UCriIQI8uaoEro5FEnOpeidQ) / [\ud83d\ude80 Mes Ateliers n8n  ](https://hotm.art/formation-n8n)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:49:04.923451",
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.21212121212121213,
+    "node_type_f1": 0.3414634146341463,
+    "tp": 7,
+    "fp": 1,
+    "fn": 26,
+    "gt_node_count": 33,
+    "llm_node_count": 8,
+    "connection_precision": 0.4,
+    "connection_recall": 0.10526315789473684,
+    "connection_f1": 0.16666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 19,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.052721088435374146,
+    "usage": {
+      "prompt_tokens": 5888,
+      "completion_tokens": 1667,
+      "total_tokens": 7555
+    },
+    "total_cost": 0.03139
+  }
+}

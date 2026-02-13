@@ -1,0 +1,266 @@
+{
+  "template_id": 9810,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Form Submission Video Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "On Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "form-submission"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check: Has Image?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{!!$json[\"image\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload to ImgBB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.imgbb.com/1/upload",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "image",
+                  "value": "={{$json[\"image\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Download Video (Text)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/download-video",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "text",
+                  "value": "={{$json[\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Status (Text)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/check-status",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "taskId",
+                  "value": "={{$json[\"taskId\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait (Text)",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "={{$json[\"status\"] !== 'ready'}}",
+            "interval": 10000
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Convert Text to Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/convert-text-to-video",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "text",
+                  "value": "={{$json[\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download Video (Image)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/download-video",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "imageUrl",
+                  "value": "={{$json[\"imageUrl\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Check Status (Image)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/check-status",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "taskId",
+                  "value": "={{$json[\"taskId\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "8"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 706,
+    "completion_tokens": 1312,
+    "total_tokens": 2018
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:34:33.897388",
+  "generated_description": "This n8n workflow is initiated when a form is submitted, as indicated by the \"On form submission\" trigger. Upon activation, the workflow first checks if the submitted form contains an image using the \"Check: Has Image?\" switch. If an image is present, it is uploaded to ImgBB via an HTTP request.\n\nFor text-based submissions, the workflow proceeds to download a video related to the text using the \"Download Video (Text)\" HTTP request. It then checks the status of this operation with the \"Check Status (Text)\" HTTP request and waits if necessary, using the \"Wait (Text)\" node, until the video is ready. Once ready, the workflow uses another HTTP request to convert the text to video.\n\nFor image-based submissions, after uploading to ImgBB, the workflow downloads a video related to the image using the \"Download Video (Image)\" HTTP request. It similarly checks the status of this operation with the \"Check Status (Image)\" HTTP request.\n\nThe workflow involves a series of conditional checks and waits to ensure that the video processing tasks are completed successfully. The final output of this workflow is a video generated from either the text or image submitted through the form, depending on the initial input.",
+  "description_generation_usage": {
+    "prompt_tokens": 236,
+    "completion_tokens": 244,
+    "total_tokens": 480
+  },
+  "metrics": {
+    "node_type_precision": 0.8888888888888888,
+    "node_type_recall": 0.5333333333333333,
+    "node_type_f1": 0.6666666666666667,
+    "tp": 8,
+    "fp": 1,
+    "fn": 7,
+    "gt_node_count": 15,
+    "llm_node_count": 9,
+    "connection_precision": 0.8,
+    "connection_recall": 0.4444444444444444,
+    "connection_f1": 0.5714285714285714,
+    "correct_connections": 4,
+    "gt_connection_count": 9,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.06785714285714287,
+    "usage": {
+      "prompt_tokens": 706,
+      "completion_tokens": 1312,
+      "total_tokens": 2018
+    },
+    "total_cost": 0.017915000000000004,
+    "description_generation_cost": 0.0030300000000000006,
+    "workflow_generation_cost": 0.014885000000000002
+  },
+  "original_description": "## Sora 2 Video Generator - No Watermark (Minimal Setup)\n\n### This n8n workflow enables you to generate professional AI videos using OpenAI's Sora 2 without watermarks. Create videos from text descriptions or animate your images with a simple web form interface - ready to use in just 5 minutes!\n\nGenerate cinematic AI videos for social media, marketing campaigns, product demos, or creative projects. The workflow handles both text-to-video and image-to-video generation with automatic status polling until your video is ready.\n\n**Good to know:**\n\n\u2022 Kie.AI charges per video generation. Check their pricing page for current rates\n\u2022 Videos typically take 30-60 seconds for standard quality, 60-120 seconds for HD\n\u2022 The workflow automatically retries status checks every 30 seconds until completion\n\u2022 No watermarks on output videos \n\n---\n\n### How it works\n\n\u2022 Users submit video requests via a beautiful web form with description, aspect ratio, and quality options\n\u2022 The workflow detects if an image was uploaded and routes to either text-to-video or image-to-video \n\u2022 For image uploads, the file is automatically uploaded to ImgBB to generate a public URL\n\u2022 The request is sent to Sora 2 API via Kie.AI with your specifications (prompt, quality, aspect ratio)\n\u2022 The workflow waits 30 seconds, then checks if video generation is complete\n\u2022 If not ready, it automatically loops back and checks again every 30 seconds\n\u2022 Once complete, the video is downloaded and optionally sent via Telegram notification\n\u2022 Clean, watermark-free MP4 video output ready for use\n\n---\n\n### Set up steps\n\n**Step 1: Get Kie.AI API Key**\n\u2022 Sign up at kie.ai and navigate to your dashboard\n\u2022 Go to API Keys section and generate a new key\n\u2022 Copy the API key for the next step\n\n**Step 2: Configure n8n Credentials**\n\u2022 In n8n, go to Credentials \u2192 New Credential\n\u2022 Select \"HTTP Header Auth\"\n\u2022 Name: `Kie Ai(Veo and more)` (exact name required)\n\u2022 Header Name: `Authorization`\n\u2022 Header Value: `Bearer YOUR_API_KEY`\n\u2022 Save the credential\n\n**Step 3: ImgBB Setup (for Image-to-Video)**\n\u2022 Get a free API key from api.imgbb.com\n\u2022 Open the \"Upload to ImgBB\" node in the workflow\n\u2022 Replace the `YOUR_ImgBB_API_KEY` parameter with your ImgBB API key\n\n**Step 4: (Optional) Telegram Notifications**\n\u2022 Create a bot with @BotFather on Telegram\n\u2022 Get your Chat ID from @get_id_bot\n\u2022 Update YOUR_CHAT_ID in both Telegram nodes\n\u2022 Or delete Telegram nodes entirely if not needed\n\n### Requirements\n\n\u2022 Kie.AI account with API access for Sora 2\n\u2022 ImgBB account for image hosting (free tier available)\n\u2022 (Optional) Telegram bot for video delivery notifications\n\n---\n\n### Customising this workflow\n\n\u2022 Adjust wait times in the Wait nodes if generation takes longer in your region\n\u2022 Add email notifications instead of/in addition to Telegram\n\u2022 Modify the form to collect additional metadata (user info, project names, etc.)\n\u2022 Add error handling nodes for production deployments\n\u2022 Connect to cloud storage (Google Drive, Dropbox) instead of Telegram for video delivery\n\u2022 Integrate with your existing CMS or content management system\n\n**For assistance and support:** contact@bilsimaging.com"
+}

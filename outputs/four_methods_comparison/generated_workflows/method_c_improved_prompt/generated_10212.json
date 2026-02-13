@@ -1,0 +1,226 @@
+{
+  "template_id": "10212",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or on a recurring schedule to check for new entries in a Google Sheet.",
+      "data_sources": "Google Sheets for prompts, Fal.ai API for video generation, OpenAI for title generation, Postiz API for TikTok publishing.",
+      "operations": "1. Fetch new prompts from Google Sheets. 2. Generate video using Fal.ai. 3. Poll for video completion. 4. Download video. 5. Generate title using OpenAI. 6. Upload video to TikTok via Postiz.",
+      "output_actions": "The final output is a video published on TikTok with an AI-generated title.",
+      "nodes_plan": "googleSheets (fetch data), httpRequest (Fal.ai video generation), wait (polling), httpRequest (download video), openAi (generate title), httpRequest (upload to Postiz/TikTok)",
+      "connections_plan": "googleSheets -> httpRequest (Fal.ai create) -> wait -> httpRequest (Fal.ai status) -> httpRequest (download video) -> openAi -> httpRequest (Postiz upload)"
+    },
+    "workflowPlan": {
+      "name": "AI Video to TikTok Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Prompts",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your_sheet_id",
+            "range": "Sheet1!A:C",
+            "options": {
+              "returnAllData": false,
+              "dataLocation": "valueRenderOption"
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.ai/video",
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "body": {
+              "prompt": "={{ $json['PROMPT'] }}",
+              "duration": "={{ $json['DURATION'] }}"
+            },
+            "options": {
+              "json": true
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait for Video",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "interval": 60
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.fal.ai/video/status",
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "query": {
+              "videoId": "={{ $json['videoId'] }}"
+            },
+            "options": {
+              "json": true
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json['videoUrl'] }}",
+            "options": {
+              "json": false,
+              "download": true
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Title",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate an engaging title for the video based on this prompt: {{ $json['PROMPT'] }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to TikTok",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.postiz.com/tiktok/upload",
+            "headers": {
+              "Authorization": "Bearer YOUR_POSTIZ_API_KEY"
+            },
+            "body": {
+              "channelId": "YOUR_CHANNEL_ID",
+              "title": "={{ $json['title'] }}",
+              "videoFile": "={{ $binary['data'] }}"
+            },
+            "options": {
+              "json": true
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4615,
+    "completion_tokens": 1305,
+    "total_tokens": 5920
+  },
+  "description_optimization": null,
+  "original_description": "This automation creates a fully integrated pipeline to **generate AI-powered videos**, **store them**, and **publish them on TikTok** \u2014 all automatically.\nIt connects **OpenAI Sora 2**, and **Postiz (for TikTok publishing)** to streamline content creation.\n\n---\n\n### **Key Benefits**\n\n\u2705 **Full Automation** \u2013 From text prompt to TikTok upload, everything happens automatically with no manual intervention once set up.\n\u2705 **Centralized Control** \u2013 Google Sheets acts as a simple dashboard to manage prompts, durations, and generated results.\n\u2705 **AI-Powered Creativity** \u2013 Uses **OpenAI Sora 2** for realistic video generation and **GPT-5** for optimized titles.\n\u2705 **Social Media Integration** \u2013 Seamlessly posts videos to **TikTok** via **Postiz**, ready for your audience.\n\u2705 **Scalable & Customizable** \u2013 Can easily be extended to other platforms like YouTube, Instagram, or LinkedIn.\n\u2705 **Time-Saving** \u2013 Eliminates repetitive steps like manual video uploads or caption writing.\n\n---\n\n### How it works\n\nThis workflow automates the end-to-end process of generating AI videos and publishing them to TikTok. It is triggered either manually or on a recurring schedule.\n\n1.  **Trigger & Data Fetch:** The workflow starts by checking a specified Form for new entries. It looks for rows where a video has been requested (a \"PROMPT\" is filled) but not yet generated (the \"VIDEO\" column is empty).\n\n2.  **AI Video Generation:** For each new prompt found, the workflow sends a request to the **Fal.ai Sora 2** model to generate a video. It then enters a polling loop, repeatedly checking the status of the generation request every 60 seconds until the video is \"COMPLETED\".\n\n3.  **Post-Processing & Upload:** Once the video is ready, the workflow performs several actions in parallel:\n    *   **Fetch Video & Store:** It retrieves the final video URL, downloads the video file\n    *   **Generate Title:** It uses the **OpenAI GPT-4o-mini** model to analyze the original prompt and generate an optimized, engaging title for the video.\n    *   **Publish to TikTok:** The video file is uploaded to **Postiz**, a social media scheduling tool, which then automatically publishes it to a connected TikTok channel, using the AI-generated title as the post's caption.\n\n---\n### Set up steps\n\nTo make this workflow functional, you need to complete the following configuration steps:\n\n1.  **Prepare the Google Sheet:**\n    *   Create a Form with at least \"PROMPT\", \"DURATION\", and \"VIDEO\" fields.\n\n2.  **Configure Fal.ai for Video Generation:**\n    *   Create an account at [Fal.ai](https://fal.ai/) and obtain your API key.\n    *   In both the **\"Create Video\"** and **\"Get status\"** HTTP Request nodes, set up the \"Header Auth\" credential.\n    *   Set the `Name` to `Authorization` and the `Value` to `Key YOUR_API_KEY`.\n\n3.  **Set up TikTok Publishing via Postiz:**\n    *   Create an account on [Postiz](https://postiz.com/) and connect your TikTok account to get a **Channel ID**.\n    *   Obtain your Postiz API key.\n    *   In the **\"Upload Video to Postiz\"** and **\"TikTok\" (Postiz)** nodes, configure the API credentials.\n    *   In the **\"TikTok\"** node, replace the placeholder `\"XXX\"` in the `integrationId` field with your actual TikTok Channel ID from Postiz.\n\n4.  **(Optional) Configure AI Title Generation:**\n    *   The **\"Generate title\"** node uses OpenAI. Ensure you have valid OpenAI API credentials configured in n8n for this node to work.\n\n---\n### **Need help customizing?**  \n[Contact me](mailto:info@n3w.it) for consulting and support or add me on [Linkedin](https://www.linkedin.com/in/davideboizza/). \n## Header 2",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:58:48.073592",
+  "metrics": {
+    "node_type_precision": 0.8571428571428571,
+    "node_type_recall": 0.6,
+    "node_type_f1": 0.7058823529411764,
+    "tp": 6,
+    "fp": 1,
+    "fn": 4,
+    "gt_node_count": 10,
+    "llm_node_count": 7,
+    "connection_precision": 0.8333333333333334,
+    "connection_recall": 0.5,
+    "connection_f1": 0.625,
+    "correct_connections": 5,
+    "gt_connection_count": 10,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 4615,
+      "completion_tokens": 1305,
+      "total_tokens": 5920
+    },
+    "total_cost": 0.0245875
+  }
+}

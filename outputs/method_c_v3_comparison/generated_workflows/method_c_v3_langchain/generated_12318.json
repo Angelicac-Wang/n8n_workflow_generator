@@ -1,0 +1,193 @@
+{
+  "template_id": "12318",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a sequential automation for social media content creation and scheduling. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered on a daily schedule.",
+      "data_sources": "Notion API for fetching brand guidelines and post themes, OpenAI API for generating image prompts and captions, Fal.ai API for image generation, Postiz API for scheduling posts.",
+      "operations": "1. Trigger daily, 2. Fetch data from Notion, 3. Generate image prompt with OpenAI, 4. Create image with Fal.ai, 5. Generate caption with OpenAI, 6. Schedule post with Postiz.",
+      "output_actions": "Schedule posts on LinkedIn, X (Twitter), Facebook, and Instagram via Postiz.",
+      "nodes_plan": "scheduleTrigger, httpRequest (Notion), openAi (prompt generation), httpRequest (Fal.ai), openAi (caption generation), httpRequest (Postiz)",
+      "connections_plan": "scheduleTrigger -> Notion (fetch guidelines and theme) -> OpenAI (generate prompt) -> Fal.ai (generate image) -> OpenAI (generate caption) -> Postiz (schedule post)"
+    },
+    "workflowPlan": {
+      "name": "Automated Social Media Content Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Brand Guidelines and Theme",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.notion.com/v1/databases/YOUR_DATABASE_ID/query",
+            "headers": {
+              "Authorization": "Bearer YOUR_NOTION_API_KEY",
+              "Notion-Version": "2022-06-28"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Image Prompt",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate an image prompt based on the theme: {{ $json.theme }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Image with Fal.ai",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.ai/generate",
+            "body": {
+              "prompt": "={{ $json.prompt }}"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_FAL_AI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Caption",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Write a caption for the image based on the theme: {{ $json.theme }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Schedule Post with Postiz",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.postiz.com/schedule",
+            "body": {
+              "platforms": [
+                "LinkedIn",
+                "Twitter",
+                "Facebook",
+                "Instagram"
+              ],
+              "image": "={{ $json.imageUrl }}",
+              "caption": "={{ $json.caption }}",
+              "integration_id": "YOUR_POSTIZ_INTEGRATION_ID"
+            },
+            "headers": {
+              "Authorization": "Bearer YOUR_POSTIZ_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8440,
+    "completion_tokens": 1144,
+    "total_tokens": 9584
+  },
+  "description_optimization": null,
+  "original_description": "*This workflow automates your daily social media content creation by generating unique, on-brand posts based on specific themes stored in Notion. It creates images using Fal.ai, writes captions with OpenAI, and schedules them to multiple platforms via Postiz.*\n\n**\ud83d\udcfa How It Works**\n\n1. **Daily Trigger:** The workflow runs automatically every day at a set time.\n2. **Context Fetching:** It pulls your \"Brand Guidelines\" and the specific \"Post Theme\" for the day (e.g., Expert Advice, System, or Activity) from **Notion**.\n3. **Image Generation:** It uses **OpenAI** to craft a detailed image prompt based on the theme, then sends it to **Fal.ai** to generate a high-quality visual.\n4. **Caption Writing:** It uses **OpenAI** again to write an engaging caption that adheres to your brand voice.\n5. **Scheduling:** Finally, it uploads the media to **Postiz** and schedules it for publication on LinkedIn, X (Twitter), Facebook, and Instagram.\n\n**\ud83d\udd27 How to set up**\n\n1. **Notion:** Create a \"Brand Guidelines\" database and a \"Post Themes\" database.\n2. **Configure Nodes:** Update the Notion nodes in the workflow to point to your specific Database IDs.\n3. **Credentials:** Connect your accounts for OpenAI, Fal.ai, Google Drive, Notion, and Postiz.\n4. **Postiz IDs:** In the final HTTP Request nodes, replace the `integration_id` fields with the specific IDs from your Postiz account for each social platform.\n\n**\ud83d\udccb Requirements**\n\n* n8n (Self-hosted or Cloud)\n* Notion account\n* OpenAI API Key\n* Fal.ai API Key\n* Postiz instance (or account)\n* Google Drive account (for temporary image storage)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:26:33.511371",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.09090909090909091,
+    "node_type_f1": 0.16,
+    "tp": 4,
+    "fp": 2,
+    "fn": 40,
+    "gt_node_count": 44,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 13,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.125,
+    "usage": {
+      "prompt_tokens": 8440,
+      "completion_tokens": 1144,
+      "total_tokens": 9584
+    },
+    "total_cost": 0.03254
+  },
+  "is_ai_workflow": true
+}

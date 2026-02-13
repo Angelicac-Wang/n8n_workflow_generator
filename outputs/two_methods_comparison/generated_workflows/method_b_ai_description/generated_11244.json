@@ -1,0 +1,236 @@
+{
+  "template_id": 11244,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "LINE Webhook to Image Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "LINE Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "line-webhook",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { data: items[0].json };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Gemini",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "optimizeData",
+            "data": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Parse Gemini Response",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { parsedData: items[0].json };"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Submit to Nano Banana Pro",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.nanobananapro.com/submit",
+            "method": "POST",
+            "body": "={{$json[\"parsedData\"]}}",
+            "json": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait for Processing",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1m"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Check Job Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.nanobananapro.com/status",
+            "method": "GET",
+            "json": true
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "If Job Ready",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "value2": "ready"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Parse Result",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { finalData: items[0].json };"
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Download Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"finalData\"][\"imageUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 705,
+    "completion_tokens": 1184,
+    "total_tokens": 1889
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:40:38.560433",
+  "generated_description": "This n8n workflow is initiated by a LINE Webhook, which serves as the trigger for the entire process. Once activated, the workflow extracts data from the incoming webhook payload using a custom code node. This extracted data is then optimized for data visualization purposes through a Google Gemini node, which likely involves refining or structuring the data to enhance its usability.\n\nFollowing the optimization, the workflow parses the response from Google Gemini to prepare it for the next steps. The processed data is then submitted to an external service called Nano Banana Pro via an HTTP request. After submission, the workflow enters a waiting phase to allow time for the external service to process the request.\n\nSubsequently, the workflow checks the job status by making another HTTP request to determine if the processing is complete. An \"If\" node evaluates whether the job is ready. If the job is ready, the workflow proceeds to parse the result using a code node, ensuring the data is in a suitable format for the final steps.\n\nFinally, the workflow downloads an image related to the processed data through another HTTP request, completing the automation process. This workflow efficiently manages data extraction, optimization, submission, and retrieval, ultimately resulting in the download of a processed image.",
+  "description_generation_usage": {
+    "prompt_tokens": 220,
+    "completion_tokens": 243,
+    "total_tokens": 463
+  },
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.8333333333333334,
+    "node_type_f1": 0.9090909090909091,
+    "tp": 10,
+    "fp": 0,
+    "fn": 2,
+    "gt_node_count": 12,
+    "llm_node_count": 10,
+    "connection_precision": 1.0,
+    "connection_recall": 0.7272727272727273,
+    "connection_f1": 0.8421052631578948,
+    "correct_connections": 8,
+    "gt_connection_count": 11,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.1625,
+    "usage": {
+      "prompt_tokens": 705,
+      "completion_tokens": 1184,
+      "total_tokens": 1889
+    },
+    "total_cost": 0.016582500000000003,
+    "description_generation_cost": 0.0029800000000000004,
+    "workflow_generation_cost": 0.013602500000000002
+  },
+  "original_description": "## About This Template\nThis workflow turns complex data or topics sent via LINE into beautiful, easy-to-understand Infographics.\n\nIt combines **Gemini** (to analyze data and structure the visual layout) and **Nano Banana Pro** (accessed via Kie.ai API) to generate high-quality, data-rich graphics (Charts, timelines, processes).\n\n## How It Works\n1.  **Input:** User sends a topic or data points via LINE (e.g., \"Japan's Energy Mix: 20% Solar, 10% Wind...\").\n2.  **Data Visualization Logic:** Gemini acts as an Information Designer, deciding the best chart type (Pie, Bar, Flow) and layout for the data.\n3.  **Render:** Nano Banana generates a professional **3:4 Vertical Infographic**.\n4.  **Smart Polling:** The workflow uses a loop to check the API status every 5 seconds, ensuring it waits exactly as long as needed.\n5.  **Delivery:** Uploads to S3 and sends the visual report back to LINE.\n\n## Who It\u2019s For\n* Social Media Managers needing quick visual content.\n* Educators and presenters summarizing data.\n* Consultants creating quick visual reports on the go.\n\n## Requirements\n* **n8n** (Cloud or Self-hosted).\n* **Kie.ai API Key** (Nano Banana Pro).\n* **Google Gemini API Key**.\n* **AWS S3 Bucket** (Public access).\n* **LINE Official Account**.\n\n## Setup Steps\n1.  **Credentials:** Configure Header Auth for Kie.ai and your other service credentials.\n2.  **Webhook:** Add the production URL to LINE Developers console."
+}

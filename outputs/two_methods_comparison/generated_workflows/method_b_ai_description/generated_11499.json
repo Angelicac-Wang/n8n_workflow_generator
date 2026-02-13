@@ -1,0 +1,270 @@
+{
+  "template_id": 11499,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Meta Insights to Google Sheets",
+      "nodes": [
+        {
+          "id": "trigger1",
+          "label": "Daily Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyDay",
+                  "hour": 6,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "trigger2",
+          "label": "Manual Backfill Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "setConfig",
+          "label": "Set Config (Meta + Sheets)",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "metaAccessToken",
+                  "value": "YOUR_META_ACCESS_TOKEN"
+                },
+                {
+                  "name": "sheetId",
+                  "value": "YOUR_GOOGLE_SHEET_ID"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "fetchMetaInsights",
+          "label": "Fetch Meta Insights (yesterday)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/insights",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "access_token",
+                "value": "={{$json[\"metaAccessToken\"]}}"
+              },
+              {
+                "name": "date_preset",
+                "value": "yesterday"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "transformData",
+          "label": "Transform Meta Data for Sheets",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { return { json: { date: item.json.date, insights: item.json.data } }; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "appendDailyRows",
+          "label": "Append Daily Rows to Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$json[\"sheetId\"]}}",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "setBackfillConfig",
+          "label": "Set Backfill Config",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "startDate",
+                  "value": "START_DATE"
+                },
+                {
+                  "name": "endDate",
+                  "value": "END_DATE"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "fetchBackfillMetaInsights",
+          "label": "Fetch Meta Insights (time_range)",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://graph.facebook.com/v12.0/insights",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "access_token",
+                "value": "={{$json[\"metaAccessToken\"]}}"
+              },
+              {
+                "name": "time_range",
+                "value": "{\"since\":\"{{$json[\"startDate\"]}}\",\"until\":\"{{$json[\"endDate\"]}}\"}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        },
+        {
+          "id": "transformBackfillData",
+          "label": "Transform Backfill Data for Sheets",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { return { json: { date: item.json.date, insights: item.json.data } }; });"
+          },
+          "position": {
+            "x": 800,
+            "y": 600
+          }
+        },
+        {
+          "id": "appendBackfillRows",
+          "label": "Append Backfill Rows to Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{$json[\"sheetId\"]}}",
+            "range": "Sheet1!A1",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger1",
+          "to": "setConfig"
+        },
+        {
+          "from": "setConfig",
+          "to": "fetchMetaInsights"
+        },
+        {
+          "from": "fetchMetaInsights",
+          "to": "transformData"
+        },
+        {
+          "from": "transformData",
+          "to": "appendDailyRows"
+        },
+        {
+          "from": "trigger2",
+          "to": "setBackfillConfig"
+        },
+        {
+          "from": "setBackfillConfig",
+          "to": "fetchBackfillMetaInsights"
+        },
+        {
+          "from": "fetchBackfillMetaInsights",
+          "to": "transformBackfillData"
+        },
+        {
+          "from": "transformBackfillData",
+          "to": "appendBackfillRows"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 762,
+    "completion_tokens": 1464,
+    "total_tokens": 2226
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:33:52.965370",
+  "generated_description": "This n8n workflow is designed to automate the process of fetching and storing Meta Insights data into a Google Sheet. \n\n1. **Triggers**: The workflow is triggered in two ways: automatically on a daily schedule at 06:00 and manually for backfilling data.\n   \n2. **Data Sources and APIs**: It utilizes the Facebook Graph API to fetch Meta Insights data and Google Sheets API to store the data.\n\n3. **Operations**:\n   - The \"Set config (Meta + Sheets)\" node initializes configuration settings for accessing Meta Insights and Google Sheets.\n   - The \"Fetch Meta Insights (yesterday)\" node retrieves insights data from Meta for the previous day.\n   - The \"Transform Meta data for Sheets\" node processes and formats the retrieved data to be compatible with Google Sheets.\n   - The \"Append daily rows to Google Sheet\" node adds the transformed data as new rows in a specified Google Sheet.\n   - For backfilling data, the \"Manual backfill trigger\" allows manual initiation of the process.\n   - The \"Set backfill config\" node sets the necessary configurations for backfilling.\n   - The \"Fetch Meta Insights (time_range)\" node retrieves insights data for a specified time range.\n   - The \"Transform backfill data for Sheets\" node formats this backfill data.\n   - The \"Append backfill rows to Google Sheet\" node appends the formatted backfill data to the Google Sheet.\n\n4. **Final Output/Action**:",
+  "description_generation_usage": {
+    "prompt_tokens": 245,
+    "completion_tokens": 300,
+    "total_tokens": 545
+  },
+  "metrics": {
+    "node_type_precision": 0.7,
+    "node_type_recall": 0.7,
+    "node_type_f1": 0.7,
+    "tp": 7,
+    "fp": 3,
+    "fn": 3,
+    "gt_node_count": 10,
+    "llm_node_count": 10,
+    "connection_precision": 0.4,
+    "connection_recall": 0.4,
+    "connection_f1": 0.4000000000000001,
+    "correct_connections": 2,
+    "gt_connection_count": 5,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.4571428571428572,
+    "usage": {
+      "prompt_tokens": 762,
+      "completion_tokens": 1464,
+      "total_tokens": 2226
+    },
+    "total_cost": 0.020157500000000002,
+    "description_generation_cost": 0.0036125000000000003,
+    "workflow_generation_cost": 0.016545
+  },
+  "original_description": "## Overview\n\nThis template automatically exports **Meta (Facebook) Ads campaign performance** into **Google Sheets** \u2014 both **daily** and for **historical backfills**. It\u2019s ideal for performance marketers, agencies, and analytics teams who want a reliable data pipeline from Meta Ads into their reporting stack.\n\n## What this workflow does\n\n- Runs a **daily cron job** to pull *yesterday\u2019s* campaign-level performance from the Meta Ads Insights API.\n- Flattens the API response and calculates key KPIs like **CPL, CPA, ROAS, CTR, CPC, CPM, frequency** and more.\n- Appends one row per **campaign per day** to a Google Sheet (for dashboards and further analysis).\n- Provides a separate **Manual Backfill** section to import historical data using a `time_range` parameter (e.g. last 12\u201324 months).\n\n## Use cases\n\n- Build Looker Studio / Power BI dashboards on top of a clean, daily Meta Ads dataset.\n- Track ROAS, CPL, CPA, CTR, and frequency trends over time.\n- Combine campaign data with CRM or ecommerce data in the same spreadsheet.\n- Quickly backfill past performance when onboarding a new Meta Ads account.\n\n## How it works\n\n1. **Daily Incremental Flow**\n   - A `Schedule Trigger` runs every day at 05:00.\n   - The `Set config` node defines ad account, date preset (`yesterday`), and Google Sheet details.\n   - The `Meta Insights` node calls the Facebook Graph `insights` edge at `level=campaign`.\n   - The `Code` node flattens the data and derives CPL, CPA, ROAS, and other KPIs.\n   - The `Google Sheets` node appends the rows to your `Meta_Daily_Data` sheet.\n\n2. **Manual Backfill Flow**\n   - A `Manual Trigger` lets you run the flow on demand.\n   - The `Set backfill config` node defines `backfillSince` and `backfillUntil`.\n   - The `Meta Insights (time_range)` node fetches performance for that historical range.\n   - The same transform logic is applied, and rows are appended to the same sheet.\n\n## Prerequisites\n\n- A Meta Business account with:\n  - A **system user** and a **long-lived access token** with `ads_read` / `read_insights`.\n- A **Google Sheet** with a header row that matches the mapped column names.\n- n8n credentials for:\n  - **Facebook Graph API**\n  - **Google Sheets OAuth2**\n\n## Setup steps\n\n1. Import this template into your n8n instance.\n2. Open the `Set config` and `Set backfill config` nodes:\n   - Set your `adAccountId` (e.g. `act_123456789012345`).\n   - Set your `sheetId` (Google Sheet ID) and sheet name (e.g. `Meta_Daily_Data`).\n3. Configure your **Facebook Graph API** and **Google Sheets** credentials in n8n.\n4. (Optional) Run the **Manual Backfill** section for your desired historical ranges (e.g. per quarter).\n5. Enable the workflow so the **Daily Incremental** section runs automatically.\n\n## Customization\n\n- Change `level` from `campaign` to `adset` or `ad` if you need more granular reporting.\n- Add **breakdowns** (e.g. `publisher_platform`, `platform_position`) to split by platform and placement.\n- Extend the transform code with additional KPIs or dimensions that match your reporting needs.\n- Use a separate sheet for raw data and build dashboards on top of a cleaned or pivoted view.\n\n## Consulting & support\n\nIf you need help with:\n\n- **E-Commerce Strategy & Development**\n(Shopify, Shopware 6, Magento 2, SAP Commerce Cloud, etc.)\n- **Growth & Performance Marketing**\n(Google / Meta / Microsoft Ads, etc.)\n- **Data & Analytics Setups**\n(tracking, dashboards, attribution, gdpr, etc.)\n\nplease reach out to **Serendipity Technologies**:\n\n\ud83d\udc49 [https://www.serendipity.at](https://www.serendipity.at)\n\nWe can help you turn this workflow into a full analytics stack and reporting system tailored to your business."
+}

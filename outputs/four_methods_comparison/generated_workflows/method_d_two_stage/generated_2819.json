@@ -1,0 +1,164 @@
+{
+  "template_id": "2819",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by receiving a new message from a chat platform, which can be implemented using a webhook trigger.",
+      "data_sources": "The workflow requires access to a chat platform API to receive messages and send responses, and the Google Sheets API to save the parsed expense data.",
+      "operations": "1. Receive a chat message, 2. Parse the message using an AI-powered language model, 3. Save the parsed data to Google Sheets, 4. Send a confirmation message back to the chat.",
+      "output_actions": "A new row is added to the Google Sheet with the expense details, and a confirmation message is sent back to the user in the chat.",
+      "nodes_plan": "webhook (trigger), openAi (parse message), subWorkflow (save to Google Sheets), chatResponse (send confirmation)",
+      "connections_plan": "webhook -> openAi -> subWorkflow -> chatResponse (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Expense Tracking via Chat Message",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "expense-tracking"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Message with AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.message }}\n\nExtract the following details: description, amount, currency, and date. Return JSON: {\"descr\": \"...\", \"cost\": \"...\", \"date\": \"...\", \"msg\": \"...\"}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse msg and save to Sheets",
+          "nodeType": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1,
+          "params": {
+            "workflowId": "parse-msg-save-to-sheets"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Chat Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://chat-platform.com/api/sendMessage",
+            "body": {
+              "message": "Your expense saved, here is the output of save sub-workflow: {{ $json }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4291,
+      "completion_tokens": 751,
+      "total_tokens": 5042
+    },
+    "description_optimization": {
+      "prompt_tokens": 624,
+      "completion_tokens": 530,
+      "total_tokens": 1154
+    },
+    "total_tokens": 6196,
+    "total_prompt_tokens": 4915,
+    "total_completion_tokens": 1281
+  },
+  "description_optimization": {
+    "template_id": "2819",
+    "optimized_description": "Workflow Description: Expense Tracking via Chat Message\n\nTrigger:\nThe workflow is initiated when a user sends a chat message containing expense details in the format: \"description; amount currency; date\". For example, \"car wash; 59.3 usd; 25 jan 2024\".\n\nData Sources and APIs Needed:\n1. Chat platform API (to receive messages and send responses).\n2. Google Sheets API (to save expense data).\n\nOperations and Processing Steps:\n1. **Receive Chat Message**: The workflow starts by listening for incoming chat messages from the specified chat platform.\n2. **Parse Message**: Upon receiving a message, the workflow utilizes an AI-powered language model (LLM) to parse the message into structured JSON format. The expected output structure is:\n   - \"cost\": (numerical value extracted from the message)\n   - \"descr\": (description of the expense extracted from the message)\n   - \"date\": (date extracted from the message in the format YYYY-MM-DD)\n   - \"msg\": (the original message received)\n3. **Save to Google Sheets**: The parsed JSON data is then passed to a sub-workflow named \"Parse msg and save to Sheets\". This sub-workflow is responsible for inserting a new row in the specified Google Sheet with the following columns:\n   - Description (descr)\n   - Cost (cost)\n   - Date (date)\n4. **Send Response**: After successfully saving the expense to Google Sheets, the workflow sends a confirmation message back to the chat. The response message includes the structured output of the saved expense in JSON format, confirming the successful operation. The message format is: \n   \"Your expense saved, here is the output of save sub-workflow: {JSON output}\".\n\nFinal Output or Action:\n- A new row is added to the Google Sheet with the expense details.\n- A confirmation message is sent back to the user in the chat, confirming that the expense has been saved along with the structured JSON output.\n\nInstallation Steps:\n1. Set up Google Sheets: Clone the provided Google Sheet link and make a copy. Choose this copied sheet in the \"Save expense into Google Sheets\" node of the workflow.\n2. Fix Sub-Workflow Dropdown: Open the \"Parse msg and save to Sheets\" node and ensure that the same workflow is selected in the dropdown for proper execution of the sub-workflow.\n3. Activate the Workflow: Ensure the workflow is activated to allow it to respond to chat messages correctly.\n\nBy following these steps, users can conveniently add expenses via chat messages, and the workflow will handle the parsing and saving of the data seamlessly.",
+    "original_description": "## Use Case\nIt is very convenient to add expenses via simple chat message. This workflow attempts to do exactly this using AI-powered n8n magic!\n\n![20250129 at 17.37.png](fileId:921)\nSend message to a chat, something like **\"car wash; 59.3 usd; 25 jan 2024\"**\n\nAnd get a response:\n**Your expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}**\n\n\nLLM will smartly parse your message to structured JSON and save the expense as a new row into Google Sheet!\n\n\n\n## Installation\n### 1. Set up Google Sheets:\nClone this Sheet:\nhttps://docs.google.com/spreadsheets/d/1D0r3tun7LF7Ypb21CmbTKEtn76WE-kaHvBCM5NdgiPU/edit?gid=0#gid=0\n\n(File -&gt; Make a copy)\n\nChoose this sheet into \"Save expense into Google Sheets\" node.\n\n\n### 2. Fix sub-workflow dropdown: \nopen \"Parse msg and save to Sheets\" node (which is an n8n sub-workflow executor tool) and make sure the SAME workflow is chosen in the dropdown. it will allow n8n to locate and call \"Workflow Input Trigger\" properly when needed.\n\n\n### 3. Activate the workflow to make chat work properly.\nSent message to chat, something like \"car wash; 59.3 usd; 25 jan 2024\"\n\nyou should get a response:\nYour expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}\n\nand new row in Google sheets should be inserted!",
+    "description_length": 2518,
+    "usage": {
+      "prompt_tokens": 624,
+      "completion_tokens": 530,
+      "total_tokens": 1154
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:31:35.227454"
+  },
+  "original_description": "## Use Case\nIt is very convenient to add expenses via simple chat message. This workflow attempts to do exactly this using AI-powered n8n magic!\n\n![20250129 at 17.37.png](fileId:921)\nSend message to a chat, something like **\"car wash; 59.3 usd; 25 jan 2024\"**\n\nAnd get a response:\n**Your expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}**\n\n\nLLM will smartly parse your message to structured JSON and save the expense as a new row into Google Sheet!\n\n\n\n## Installation\n### 1. Set up Google Sheets:\nClone this Sheet:\nhttps://docs.google.com/spreadsheets/d/1D0r3tun7LF7Ypb21CmbTKEtn76WE-kaHvBCM5NdgiPU/edit?gid=0#gid=0\n\n(File -&gt; Make a copy)\n\nChoose this sheet into \"Save expense into Google Sheets\" node.\n\n\n### 2. Fix sub-workflow dropdown: \nopen \"Parse msg and save to Sheets\" node (which is an n8n sub-workflow executor tool) and make sure the SAME workflow is chosen in the dropdown. it will allow n8n to locate and call \"Workflow Input Trigger\" properly when needed.\n\n\n### 3. Activate the workflow to make chat work properly.\nSent message to chat, something like \"car wash; 59.3 usd; 25 jan 2024\"\n\nyou should get a response:\nYour expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}\n\nand new row in Google sheets should be inserted!",
+  "optimized_description": "Workflow Description: Expense Tracking via Chat Message\n\nTrigger:\nThe workflow is initiated when a user sends a chat message containing expense details in the format: \"description; amount currency; date\". For example, \"car wash; 59.3 usd; 25 jan 2024\".\n\nData Sources and APIs Needed:\n1. Chat platform API (to receive messages and send responses).\n2. Google Sheets API (to save expense data).\n\nOperations and Processing Steps:\n1. **Receive Chat Message**: The workflow starts by listening for incoming chat messages from the specified chat platform.\n2. **Parse Message**: Upon receiving a message, the workflow utilizes an AI-powered language model (LLM) to parse the message into structured JSON format. The expected output structure is:\n   - \"cost\": (numerical value extracted from the message)\n   - \"descr\": (description of the expense extracted from the message)\n   - \"date\": (date extracted from the message in the format YYYY-MM-DD)\n   - \"msg\": (the original message received)\n3. **Save to Google Sheets**: The parsed JSON data is then passed to a sub-workflow named \"Parse msg and save to Sheets\". This sub-workflow is responsible for inserting a new row in the specified Google Sheet with the following columns:\n   - Description (descr)\n   - Cost (cost)\n   - Date (date)\n4. **Send Response**: After successfully saving the expense to Google Sheets, the workflow sends a confirmation message back to the chat. The response message includes the structured output of the saved expense in JSON format, confirming the successful operation. The message format is: \n   \"Your expense saved, here is the output of save sub-workflow: {JSON output}\".\n\nFinal Output or Action:\n- A new row is added to the Google Sheet with the expense details.\n- A confirmation message is sent back to the user in the chat, confirming that the expense has been saved along with the structured JSON output.\n\nInstallation Steps:\n1. Set up Google Sheets: Clone the provided Google Sheet link and make a copy. Choose this copied sheet in the \"Save expense into Google Sheets\" node of the workflow.\n2. Fix Sub-Workflow Dropdown: Open the \"Parse msg and save to Sheets\" node and ensure that the same workflow is selected in the dropdown for proper execution of the sub-workflow.\n3. Activate the Workflow: Ensure the workflow is activated to allow it to respond to chat messages correctly.\n\nBy following these steps, users can conveniently add expenses via chat messages, and the workflow will handle the parsing and saving of the data seamlessly.",
+  "error": null,
+  "generated_at": "2026-01-25T23:31:46.779972",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 4,
+    "fn": 9,
+    "gt_node_count": 9,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 3,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4291,
+        "completion_tokens": 751,
+        "total_tokens": 5042
+      },
+      "description_optimization": {
+        "prompt_tokens": 624,
+        "completion_tokens": 530,
+        "total_tokens": 1154
+      },
+      "total_tokens": 6196,
+      "total_prompt_tokens": 4915,
+      "total_completion_tokens": 1281
+    },
+    "total_cost": 0.025097500000000002,
+    "description_optimization_cost": 0.00686,
+    "workflow_generation_cost": 0.0182375
+  }
+}

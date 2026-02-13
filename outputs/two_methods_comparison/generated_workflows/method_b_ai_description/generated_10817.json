@@ -1,0 +1,192 @@
+{
+  "template_id": 10817,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Shopify New Product to Social Media",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Shopify Trigger",
+          "nodeType": "n8n-nodes-base.shopifyTrigger",
+          "typeVersion": 1,
+          "params": {
+            "resource": "product",
+            "operation": "new"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Generate Caption",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a creative caption and hashtags for the following product: {{$json[\"name\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Download Product Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "{{$json[\"image_url\"]}}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Instagram Media Container",
+          "nodeType": "n8n-nodes-base.instagramGraphApi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createMediaContainer",
+            "mediaType": "IMAGE",
+            "imageUrl": "{{$node[\"Download Product Image\"].binary[\"data\"]}}",
+            "caption": "{{$node[\"OpenAI Generate Caption\"].json[\"choices\"][0][\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish Instagram Media",
+          "nodeType": "n8n-nodes-base.instagramGraphApi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "publishMedia",
+            "mediaContainerId": "{{$node[\"Create Instagram Media Container\"].json[\"id\"]}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Post to Facebook",
+          "nodeType": "n8n-nodes-base.facebook",
+          "typeVersion": 1,
+          "params": {
+            "resource": "post",
+            "operation": "create",
+            "message": "{{$node[\"OpenAI Generate Caption\"].json[\"choices\"][0][\"text\"]}}",
+            "link": "{{$json[\"product_url\"]}}",
+            "attachedMedia": [
+              {
+                "mediaType": "image",
+                "mediaUrl": "{{$json[\"image_url\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "data": [
+              [
+                "{{$json[\"name\"]}}",
+                "{{$json[\"product_url\"]}}",
+                "{{$node[\"OpenAI Generate Caption\"].json[\"choices\"][0][\"text\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "6"
+        },
+        {
+          "from": "1",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 632,
+    "completion_tokens": 1007,
+    "total_tokens": 1639
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:46:22.849891",
+  "generated_description": "This n8n workflow is initiated by a trigger from Shopify, specifically when a new product is added to the Shopify store. Upon activation, the workflow proceeds to parse the product data to extract relevant details. It then uses OpenAI to generate a creative caption and appropriate hashtags for the product. \n\nFollowing this, the workflow downloads an image associated with the product for use on Facebook. It then creates an Instagram media container and waits for the processing to complete before publishing the media on Instagram. Concurrently, the workflow posts the product image, along with the generated caption and hashtags, to a specified Facebook Page.\n\nAdditionally, the workflow logs the details of the product post, including any relevant data, into a Google Sheets document for record-keeping and analysis. This automation streamlines the process of promoting new Shopify products across social media platforms, enhancing marketing efficiency.",
+  "description_generation_usage": {
+    "prompt_tokens": 225,
+    "completion_tokens": 170,
+    "total_tokens": 395
+  },
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.4210526315789474,
+    "tp": 4,
+    "fp": 3,
+    "fn": 8,
+    "gt_node_count": 12,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 10,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.011363636363636364,
+    "usage": {
+      "prompt_tokens": 632,
+      "completion_tokens": 1007,
+      "total_tokens": 1639
+    },
+    "total_cost": 0.013912500000000001,
+    "description_generation_cost": 0.0022625,
+    "workflow_generation_cost": 0.01165
+  },
+  "original_description": "## How it works\nThis workflow listens for new products in Shopify and transforms the product data into polished social media content. It generates captions and hashtags using an AI model, then posts the product to Instagram and Facebook using the Facebook Graph API. It logs every post to Google Sheets and sends a confirmation message to Discord. The flow ensures consistent publishing across all platforms with automated formatting and tracking.\n\n## Step-by-step\n\n- **Trigger on Shopify product creation**  \n  - **Shopify Trigger** \u2013 Activates when a new product is added to the store.\n\n- **Prepare product data**  \n  - **parse product data** \u2013 Extracts product name, price, description, URL, image, and timestamp.\n\n- **Generate caption and hashtags**  \n  - **Generate caption and hashtags** \u2013 Uses an AI model to craft a caption and produce 10 relevant hashtags.\n\n- **Configure posting parameters**  \n  - **Set Configuration** \u2013 Stores access tokens, platform IDs, caption text, hashtags, and image URL.\n\n- **Publish to Instagram**  \n  - **Create Instagram Media Container** \u2013 Sends the image and caption to create a media container.  \n  - **Wait for Processing** \u2013 Waits for the container to finish processing.  \n  - **Publish Instagram Media** \u2013 Publishes the processed container to the Instagram feed.\n\n- **Publish to Facebook**  \n  - **Download Image for Facebook** \u2013 Downloads the product image from Shopify.  \n  - **Post to Facebook Page** \u2013 Uploads the image with the caption and hashtags to the Facebook Page.\n\n- **Merge publishing results**  \n  - **Merge** \u2013 Combines responses from Instagram and Facebook for unified logging.\n\n- **Log post to Google Sheets**  \n  - **Log Product Post Data** \u2013 Appends product info, caption, and hashtags to a spreadsheet.\n\n- **Notify via Discord**  \n  - **Notify Discord About Post** \u2013 Sends a message summarizing the published product.\n\n## Why use this?\n- Ensures every new Shopify product is promoted instantly across major social platforms.  \n- Eliminates manual posting and caption creation with reliable automation.  \n- Maintains centralized logging for auditing, tracking, or analytics.  \n- Provides real-time team notifications to confirm successful posts.  \n- Reduces errors and keeps brand messaging consistent across channels."
+}

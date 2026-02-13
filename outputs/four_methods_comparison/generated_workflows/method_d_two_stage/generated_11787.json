@@ -1,0 +1,352 @@
+{
+  "template_id": "11787",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a voice message sent to a Telegram bot, using a Telegram Trigger node.",
+      "data_sources": "The workflow requires the Telegram Bot API for receiving and sending messages, and the Groq API for speech-to-text and text-to-speech processing.",
+      "operations": "1. Receive voice message from Telegram. 2. Convert voice to text using Groq API. 3. Load current game state from n8n's memory. 4. Analyze player's action from transcribed text. 5. Enforce game rules. 6. Request dice roll authorization if needed. 7. Perform dice roll if authorized. 8. Resolve outcome and update game state. 9. Generate narrative response. 10. Convert text to voice using Groq API. 11. Send voice response back to player.",
+      "output_actions": "The final output is a voice message sent back to the player via Telegram, narrating the outcome of their action and updating the game state.",
+      "nodes_plan": "telegramTrigger (trigger), groqSTT (httpRequest), loadGameState (set), analyzeAction (function), enforceRules (function), diceRollAuthorization (if), performDiceRoll (function), resolveOutcome (function), updateGameState (set), generateNarration (function), groqTTS (httpRequest), sendTelegramMessage (telegram)",
+      "connections_plan": "telegramTrigger -> groqSTT -> loadGameState -> analyzeAction -> enforceRules -> diceRollAuthorization -> [performDiceRoll (true) | resolveOutcome (false)] -> resolveOutcome -> updateGameState -> generateNarration -> groqTTS -> sendTelegramMessage"
+    },
+    "workflowPlan": {
+      "name": "Dungeons and Goblins AI Telegram Voice Adventure with Persistent Memory",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ],
+            "botToken": "={{ $env.TELEGRAM_BOT_TOKEN }}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Groq STT",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.groq.com/stt",
+            "body": {
+              "file": "={{ $json['message']['voice']['file_id'] }}"
+            },
+            "authentication": "={{ $env.GROQ_API_TOKEN }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Load Game State",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "gameState",
+                  "value": "={{ $json['gameState'] }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Action",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { action: analyzePlayerAction($json['text']) };"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Enforce Rules",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return enforceGameRules($json['action'], $json['gameState']);"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Dice Roll Authorization",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json['action'].requiresDiceRoll }}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Perform Dice Roll",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { diceResult: rollDice() };"
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Resolve Outcome",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return resolveGameOutcome($json['diceResult'], $json['gameState']);"
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Update Game State",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "updatedGameState",
+                  "value": "={{ $json['updatedGameState'] }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Generate Narration",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return generateNarrative($json['updatedGameState']);"
+          },
+          "position": {
+            "x": 1700,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Groq TTS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.groq.com/tts",
+            "body": {
+              "text": "={{ $json['narration'] }}"
+            },
+            "authentication": "={{ $env.GROQ_API_TOKEN }}"
+          },
+          "position": {
+            "x": 1900,
+            "y": 300
+          }
+        },
+        {
+          "id": "12",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendVoice",
+            "chatId": "={{ $json['chat']['id'] }}",
+            "voice": "={{ $json['voiceFile'] }}"
+          },
+          "position": {
+            "x": 2100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "11",
+          "to": "12",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4345,
+      "completion_tokens": 1946,
+      "total_tokens": 6291
+    },
+    "description_optimization": {
+      "prompt_tokens": 452,
+      "completion_tokens": 584,
+      "total_tokens": 1036
+    },
+    "total_tokens": 7327,
+    "total_prompt_tokens": 4797,
+    "total_completion_tokens": 2530
+  },
+  "description_optimization": {
+    "template_id": "11787",
+    "optimized_description": "Workflow Title: Dungeons and Goblins \u2014 AI Telegram Voice Adventure with Persistent Memory\n\nTrigger:\nThe workflow is triggered by a voice message sent to a Telegram bot by a player participating in the fantasy role-playing game.\n\nData Sources and APIs Needed:\n1. Groq API for Speech-to-Text (STT) and Text-to-Speech (TTS) processing.\n2. Telegram Bot API for receiving player voice messages and sending responses.\n\nOperations and Processing Steps:\n1. **Receive Voice Message**: The workflow starts when a player sends a voice message to the Telegram bot.\n2. **Convert Voice to Text**: Use Groq's STT API to transcribe the voice message into text.\n3. **Load Game State**: Retrieve the current game state from n8n's memory storage to understand the context of the game.\n4. **Process Player Action**: Analyze the transcribed text to identify the player's action. This includes checking for specific commands, character actions, or requests for information.\n5. **Enforce Game Rules**: Apply a strict system prompt that governs the rules, turn flow, and narration style of the game to ensure consistency and adherence to the game's mechanics.\n6. **Dice Roll Authorization**: If the player's action requires a dice roll (e.g., for combat or skill checks), prompt the player for authorization to roll the dice.\n7. **Perform Dice Roll**: Upon receiving authorization, use a random number generator to simulate the dice roll and determine the outcome.\n8. **Resolve Outcome**: Analyze the result of the dice roll and apply the necessary changes to the game state, such as updating player health, inventory, or narrative elements.\n9. **Update Game State**: Emit all state updates as structured data and save the updated game state back to n8n's memory for future reference.\n10. **Generate Narration**: Create a narrative response based on the updated game state and the outcome of the player's action, ensuring it aligns with the established rules and storytelling style.\n11. **Convert Text to Voice**: Use Groq's TTS API to convert the generated narrative response into a voice message.\n12. **Send Response**: Deliver the voice response back to the player through the Telegram bot, completing the interaction.\n\nFinal Output or Action:\nThe final output of this workflow is a voice message sent to the player via Telegram, narrating the outcome of their action and providing updates on the game state, thus enhancing the immersive experience of the AI-driven fantasy adventure. The game state is persistently saved for future interactions, allowing for a continuous and evolving gameplay experience. \n\nUse Cases:\n- Solo text-based fantasy campaigns.\n- Persistent AI-driven adventures.\n- Testing stateful AI agents in n8n.\n- Educational examples of memory-aware workflows. \n\nRequirements:\n- Groq API token (free tier supported).\n- Telegram bot API token.",
+    "original_description": "## Dungeons and Goblins \u2014 AI Telegram Voice Adventure with Persistent Memory\n\nThis n8n template demonstrates how to use an AI agent with persistent memory to run a structured, rules-driven fantasy role-playing game entirely through Telegram voice messages. The workflow acts as a Dungeon Master, narrating scenes, resolving mechanics, performing dice rolls when authorized, and explicitly saving game state between turns.\n\n## How it works\n\n- A player actions are provided to Telegram bot via voice messages.\n\n- The AI agent loads the current game state from n8n memory.\n\n- A strict system prompt enforces rules, turn flow, and narration.\n\n- When an action requires a dice roll, the agent waits for player authorization.\n\n- Once authorized, the AI rolls, resolves the outcome, and applies changes.\n\n- All state updates are emitted as structured data and saved to memory.\n\n- The request and response are processed in Groq's STT and TTS.\n\n## Use cases\n\n- Solo text-based fantasy campaigns\n\n- Persistent AI-driven adventures\n\n- Testing stateful AI agents in n8n\n\n- Educational examples of memory-aware workflows\n\n## Requirements\n\n- Groq API token (free tier supported)\n\n- Telegram bot API token",
+    "description_length": 2839,
+    "usage": {
+      "prompt_tokens": 452,
+      "completion_tokens": 584,
+      "total_tokens": 1036
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:09:02.381038"
+  },
+  "original_description": "## Dungeons and Goblins \u2014 AI Telegram Voice Adventure with Persistent Memory\n\nThis n8n template demonstrates how to use an AI agent with persistent memory to run a structured, rules-driven fantasy role-playing game entirely through Telegram voice messages. The workflow acts as a Dungeon Master, narrating scenes, resolving mechanics, performing dice rolls when authorized, and explicitly saving game state between turns.\n\n## How it works\n\n- A player actions are provided to Telegram bot via voice messages.\n\n- The AI agent loads the current game state from n8n memory.\n\n- A strict system prompt enforces rules, turn flow, and narration.\n\n- When an action requires a dice roll, the agent waits for player authorization.\n\n- Once authorized, the AI rolls, resolves the outcome, and applies changes.\n\n- All state updates are emitted as structured data and saved to memory.\n\n- The request and response are processed in Groq's STT and TTS.\n\n## Use cases\n\n- Solo text-based fantasy campaigns\n\n- Persistent AI-driven adventures\n\n- Testing stateful AI agents in n8n\n\n- Educational examples of memory-aware workflows\n\n## Requirements\n\n- Groq API token (free tier supported)\n\n- Telegram bot API token",
+  "optimized_description": "Workflow Title: Dungeons and Goblins  AI Telegram Voice Adventure with Persistent Memory\n\nTrigger:\nThe workflow is triggered by a voice message sent to a Telegram bot by a player participating in the fantasy role-playing game.\n\nData Sources and APIs Needed:\n1. Groq API for Speech-to-Text (STT) and Text-to-Speech (TTS) processing.\n2. Telegram Bot API for receiving player voice messages and sending responses.\n\nOperations and Processing Steps:\n1. **Receive Voice Message**: The workflow starts when a player sends a voice message to the Telegram bot.\n2. **Convert Voice to Text**: Use Groq's STT API to transcribe the voice message into text.\n3. **Load Game State**: Retrieve the current game state from n8n's memory storage to understand the context of the game.\n4. **Process Player Action**: Analyze the transcribed text to identify the player's action. This includes checking for specific commands, character actions, or requests for information.\n5. **Enforce Game Rules**: Apply a strict system prompt that governs the rules, turn flow, and narration style of the game to ensure consistency and adherence to the game's mechanics.\n6. **Dice Roll Authorization**: If the player's action requires a dice roll (e.g., for combat or skill checks), prompt the player for authorization to roll the dice.\n7. **Perform Dice Roll**: Upon receiving authorization, use a random number generator to simulate the dice roll and determine the outcome.\n8. **Resolve Outcome**: Analyze the result of the dice roll and apply the necessary changes to the game state, such as updating player health, inventory, or narrative elements.\n9. **Update Game State**: Emit all state updates as structured data and save the updated game state back to n8n's memory for future reference.\n10. **Generate Narration**: Create a narrative response based on the updated game state and the outcome of the player's action, ensuring it aligns with the established rules and storytelling style.\n11. **Convert Text to Voice**: Use Groq's TTS API to convert the generated narrative response into a voice message.\n12. **Send Response**: Deliver the voice response back to the player through the Telegram bot, completing the interaction.\n\nFinal Output or Action:\nThe final output of this workflow is a voice message sent to the player via Telegram, narrating the outcome of their action and providing updates on the game state, thus enhancing the immersive experience of the AI-driven fantasy adventure. The game state is persistently saved for future interactions, allowing for a continuous and evolving gameplay experience. \n\nUse Cases:\n- Solo text-based fantasy campaigns.\n- Persistent AI-driven adventures.\n- Testing stateful AI agents in n8n.\n- Educational examples of memory-aware workflows. \n\nRequirements:\n- Groq API token (free tier supported).\n- Telegram bot API token.",
+  "error": null,
+  "generated_at": "2026-01-25T23:09:22.935506",
+  "metrics": {
+    "node_type_precision": 0.4166666666666667,
+    "node_type_recall": 0.5555555555555556,
+    "node_type_f1": 0.4761904761904762,
+    "tp": 5,
+    "fp": 7,
+    "fn": 4,
+    "gt_node_count": 9,
+    "llm_node_count": 12,
+    "connection_precision": 0.1111111111111111,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.13333333333333333,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.19999999999999998,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4345,
+        "completion_tokens": 1946,
+        "total_tokens": 6291
+      },
+      "description_optimization": {
+        "prompt_tokens": 452,
+        "completion_tokens": 584,
+        "total_tokens": 1036
+      },
+      "total_tokens": 7327,
+      "total_prompt_tokens": 4797,
+      "total_completion_tokens": 2530
+    },
+    "total_cost": 0.037292500000000006,
+    "description_optimization_cost": 0.0069700000000000005,
+    "workflow_generation_cost": 0.030322500000000002
+  }
+}

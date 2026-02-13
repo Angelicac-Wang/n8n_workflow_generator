@@ -1,0 +1,247 @@
+{
+  "template_id": "11152",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow to automate gathering and summarizing information from online sources and sending it to Slack.",
+    "workflowPlan": {
+      "name": "Weekly Information Summary to Slack",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Weekly Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Apify Facebook Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/facebook-scraper/run-sync-get-dataset-items",
+            "method": "GET",
+            "options": {
+              "query": {
+                "token": "YOUR_APIFY_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Apify Google News Scraper",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.apify.com/v2/actor-tasks/google-news-scraper/run-sync-get-dataset-items",
+            "method": "GET",
+            "options": {
+              "query": {
+                "token": "YOUR_APIFY_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openrouter.ai/v1/chat",
+            "method": "POST",
+            "body": {
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Analyze and summarize the following data."
+                },
+                {
+                  "role": "user",
+                  "content": "{{$json[\"data\"]}}"
+                }
+              ]
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_OPENROUTER_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Parse LLM Response",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { return { json: { summary: item.json.choices[0].message.content } }; });"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Limit to 5 Items",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.slice(0, 5);"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Create Slack Message",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { text: items.map(item => item.json.summary).join('\\n') } }];"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send to Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "YOUR_SLACK_CHANNEL",
+            "text": "={{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 748,
+    "completion_tokens": 1258,
+    "total_tokens": 2006
+  },
+  "description_optimization": null,
+  "original_description": "# Description \nThis workflow automates the process of finding new content ideas by scraping trending news and social media posts, analyzing them with AI, and delivering a summarized report to Slack.\nIt is perfect for content marketers, social media managers, and strategists who spend hours researching trending topics manually.\n# Who is this for\nContent Marketers: To discover trending topics for blogs or newsletters.\nSocial Media Managers: To keep up with competitor activity or industry news.\nMarket Researchers: To monitor specific keywords or brands.\n# How it works\nSchedule: The workflow runs automatically on a weekly schedule (default is Monday morning).\nData Collection: It uses Apify to scrape the latest news from Google Search and recent posts from specific Facebook pages.\nData Processing: The results are merged, and the top 5 most relevant items are selected to prevent information overload.\nAI Analysis: An AI Agent (powered by OpenRouter/LLM) analyzes each article to classify it into a theme (e.g., Marketing, Technology, Strategy) and extracts 3 catchy keywords.\nNotification: The analyzed insights, including the theme, keywords, summary, and original URL, are formatted and sent directly to Slack.\n# Requirements\nApify Account: You need an API token and access to the Google Search Results Scraper and Facebook Posts Scraper actors.\nOpenRouter API Key: Used to power the AI analysis (can be swapped for OpenAI/Anthropic if preferred).\nSlack Account: To receive the notifications.\n# How to set up\nConfigure Credentials:\nOpen the Workflow Configuration node and paste your Apify API Token and OpenRouter API Key.\nConnect your Slack account in the Slack node.\nAdjust Apify Settings:\nIn the Apify Google news node, change the search query (currently set to \"Top News\" in Japanese) to your desired topic.\nIn the Apify Facebook node, update the startUrls to the Facebook pages you want to monitor.\nCustomize AI Prompt:\n(Optional) Open the AI Agent node to adjust the language or the specific themes you want the AI to classify.\n# How to customize\nChange the LLM: Replace the OpenRouter model with the OpenAI or Anthropic Chat Model node if you prefer those providers.\nIncrease Data Volume: Adjust the \"Limit 5 items\" Code node to process more articles at once (mind your API usage limits).\nChange Destination: Replace the Slack node with Notion, Google Sheets, or Email to save the ideas elsewhere.\n3. \u26a0\ufe0f Crucial Checklist Before Submission\nThe n8n team will reject templates that contain non-English text in the nodes. Please apply these changes to your workflow in the n8n editor before exporting the JSON for submission:\nRename Nodes to English:\nCron \u30c8\u30ea\u30ac\u30fc \u2192 Schedule Trigger\nFunction: Slack\u30e1\u30c3\u30bb\u30fc\u30b8\u4f5c\u6210 \u2192 Format Slack Message\nSlack: \u4f01\u753b\u30cd\u30bf\u6295\u7a3f \u2192 Slack Post\nFunction: LLM\u30ec\u30b9\u30dd\u30f3\u30b9\u6574\u5f62 \u2192 Parse LLM Response\nMerge Data (\u7d71\u5408) \u2192 Merge Data\nFunction: \u30c7\u30fc\u30bf\u62bd\u51fa\u30fb5\u4ef6\u5236\u9650 \u2192 Limit to 5 Items\nFunction: Google\u30c7\u30fc\u30bf\u62bd\u51fa \u2192 Extract Google Data\nFunction: Facebook\u30c7\u30fc\u30bf\u62bd\u51fa \u2192 Extract FB Data\nTranslate Code Comments & Prompts:\nInside the Code nodes, ensure comments are in English (e.g., // Slack\u3078\u306e\u6295\u7a3f\u30e1\u30c3\u30bb\u30fc\u30b8\u3092\u4f5c\u6210\u3057\u307e\u3059 \u2192 // Create message for Slack).\nInside the AI Agent node, translate the System Prompt into English (e.g., \"You are a professional content planner...\" instead of \"\u3042\u306a\u305f\u306f\u30d7\u30ed\u306e...\"). Even if you want the output in Japanese, the template default should usually be English, or clearly labeled as a Japanese template.\nAdd the Mandatory Sticky Note:\nAdd a Yellow Sticky Note to the canvas.\nPaste the \"Description\" text (from step 2 above) into this sticky note.\nPlace it clearly next to the start of the workflow.\nRemove Hardcoded IDs:\nEnsure MASKED_USER_ID and MASKED_WEBHOOK_ID are cleared out or set to expressions that reference the user's setup.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:41:03.396991",
+  "generated_description": "This n8n workflow is designed to automate the process of gathering and summarizing information from various online sources on a weekly basis, and then communicating the insights through Slack. \n\n1. **Trigger**: The workflow is initiated by a \"Weekly Schedule Trigger,\" which activates the process at a specified time each week.\n\n2. **Data Sources and APIs**: \n   - The workflow utilizes the \"Apify Facebook Scraper\" and \"Apify Google News Scraper\" to collect data from Facebook and Google News, respectively.\n   - It also employs an \"AI Agent\" and the \"OpenRouter Chat Model\" to process and analyze the collected data.\n\n3. **Operations**:\n   - A function node, \"Create Slack Message,\" is used to format the information into a message suitable for Slack.\n   - The \"Workflow Configuration\" node sets up necessary parameters or variables for the workflow.\n   - The \"Merge Data\" node combines data from different sources into a cohesive dataset.\n   - The \"Parse LLM Response\" function processes responses from the language model to extract relevant insights.\n   - The \"Limit to 5 Items\" function ensures that only the top five items are included in the final output.\n\n4. **Final Output**: The workflow culminates in sending a summarized message to a Slack channel, providing a concise overview of the most pertinent information gathered from Facebook and Google News, enhanced by AI analysis.",
+  "description_generation_usage": {
+    "prompt_tokens": 232,
+    "completion_tokens": 286,
+    "total_tokens": 518
+  },
+  "metrics": {
+    "node_type_precision": 0.5555555555555556,
+    "node_type_recall": 0.38461538461538464,
+    "node_type_f1": 0.4545454545454546,
+    "tp": 5,
+    "fp": 4,
+    "fn": 8,
+    "gt_node_count": 13,
+    "llm_node_count": 9,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.2222222222222222,
+    "connection_f1": 0.26666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 9,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.02222222222222222,
+    "usage": {
+      "prompt_tokens": 748,
+      "completion_tokens": 1258,
+      "total_tokens": 2006
+    },
+    "total_cost": 0.017890000000000003,
+    "description_generation_cost": 0.0034400000000000003,
+    "workflow_generation_cost": 0.014450000000000001
+  }
+}

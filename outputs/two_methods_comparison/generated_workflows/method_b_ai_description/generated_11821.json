@@ -1,0 +1,249 @@
+{
+  "template_id": 11821,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Event Registration and Check-in",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Registration Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "registration",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Ticket Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "ticketData",
+                "value": "={{$json[\"body\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Save to Participants Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Participants!A1",
+            "data": "={{$json[\"ticketData\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Prepare QR Payload",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "qrPayload",
+                "value": "={{$json[\"ticketData\"][\"email\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate QR Code",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.qrserver.com/v1/create-qr-code/?data={{$json[\"qrPayload\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Ticket Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{$json[\"ticketData\"][\"email\"]}}",
+            "subject": "Your Event Ticket",
+            "text": "Please find your ticket attached.",
+            "attachments": [
+              {
+                "url": "={{$json[\"qrPayload\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Registration Success",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "Registration successful!"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Check-in Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "checkin",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "9",
+          "label": "Decode QR Code",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "decodedData",
+                "value": "={{$json[\"body\"][\"qrCode\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 600
+          }
+        },
+        {
+          "id": "10",
+          "label": "Is Valid QR?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json[\"decodedData\"]}}",
+                  "operation": "notEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 600
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 762,
+    "completion_tokens": 1230,
+    "total_tokens": 1992
+  },
+  "error": null,
+  "generated_at": "2026-01-13T03:01:36.439669",
+  "generated_description": "This n8n workflow is designed to manage event registration and check-in processes efficiently. It is triggered by two primary events: a registration submission and a check-in attempt.\n\n1. **Registration Process:**\n   - The workflow begins with the \"Registration Webhook\" node, which is triggered when a participant registers for an event.\n   - The \"Create Ticket Data\" node processes the registration details to prepare necessary data for ticket generation.\n   - The \"Save to Participants Sheet\" node stores the participant's information in a Google Sheets document for record-keeping.\n   - The \"Prepare QR Payload\" node generates a payload that will be used to create a unique QR code for the participant.\n   - The \"Generate QR Code\" node sends a request to an external service to generate a QR code based on the prepared payload.\n   - The \"Send Ticket Email\" node uses Gmail to send an email to the participant, which includes their ticket and QR code.\n   - Finally, the \"Registration Success\" node responds to the initial webhook, confirming successful registration to the participant.\n\n2. **Check-in Process:**\n   - The \"Check-in Webhook\" node is triggered when a participant attempts to check in at the event.\n   - The \"Decode QR Code\" node processes the QR code presented by the participant to extract the encoded information.\n   - The \"Is Valid QR?\" node evaluates whether the decoded QR code is valid and corresponds to a registered participant.\n   - Depending on the outcome,",
+  "description_generation_usage": {
+    "prompt_tokens": 222,
+    "completion_tokens": 300,
+    "total_tokens": 522
+  },
+  "metrics": {
+    "node_type_precision": 0.7,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.45161290322580644,
+    "tp": 7,
+    "fp": 3,
+    "fn": 14,
+    "gt_node_count": 21,
+    "llm_node_count": 10,
+    "connection_precision": 0.42857142857142855,
+    "connection_recall": 0.1875,
+    "connection_f1": 0.26086956521739124,
+    "correct_connections": 3,
+    "gt_connection_count": 16,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.22321428571428573,
+    "usage": {
+      "prompt_tokens": 762,
+      "completion_tokens": 1230,
+      "total_tokens": 1992
+    },
+    "total_cost": 0.01776,
+    "description_generation_cost": 0.003555,
+    "workflow_generation_cost": 0.014205
+  },
+  "original_description": "Who is this for?\nThis template is ideal for event organizers, conference managers, and community teams who need an automated participant management system. Perfect for workshops, conferences, meetups, or any event requiring registration and check-in tracking.\nWhat this workflow does\nThis workflow provides end-to-end event management with two main flows:\nRegistration Flow:\n\u2981\tReceives participant registration via webhook\n\u2981\tGenerates unique ticket ID and stores in Google Sheets\n\u2981\tCreates QR code using the QR Code node\n\u2981\tSends confirmation email with QR code attached\nCheck-in Flow:\n\u2981\tScans and decodes QR code at venue entrance\n\u2981\tValidates ticket against participant database\n\u2981\tBlocks duplicate check-ins with clear error messages\n\u2981\tSends Slack notification for VIP arrivals\n\u2981\tReturns real-time attendance statistics\nSetup\n1.\tCreate a Google Sheet with columns: Ticket ID, Event ID, Name, Email, Ticket Type, Registered At, Checked In, Check-in Time\n2.\tConnect your Google Sheets and Gmail credentials\n3.\tConfigure Slack for VIP notifications\n4.\tSet up the webhook URLs in your registration form\nRequirements\n\u2981\tGoogle Sheets (participant database)\n\u2981\tGmail account (confirmation emails)\n\u2981\tSlack workspace (VIP notifications)\nHow to customize\n\u2981\tAdd capacity limits by checking row count before registration\n\u2981\tModify QR code size and format in the QR Code node\n\u2981\tAdd additional ticket types beyond VIP/standard\n\u2981\tIntegrate with payment systems for paid events"
+}

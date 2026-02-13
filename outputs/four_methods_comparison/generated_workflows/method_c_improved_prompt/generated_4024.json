@@ -1,0 +1,217 @@
+{
+  "template_id": "4024",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered either on a schedule every 3 hours or manually via a Telegram command.",
+      "data_sources": "OpenAI API for content and image generation, OpenRouter for title and category generation, WordPress API for publishing, Telegram API for trigger and notifications, Discord Webhook for notifications.",
+      "operations": "1. Trigger via schedule or Telegram, 2. Generate content details (title, category, etc.) using OpenRouter, 3. Write article using OpenAI, 4. Generate image using OpenAI, 5. Publish to WordPress, 6. Send notifications to Discord and Telegram.",
+      "output_actions": "Publish a complete blog post on WordPress and send notifications with the post link.",
+      "nodes_plan": "schedule (trigger), telegram (trigger), openRouter (generate content details), openAi (write article), openAi (generate image), wordpress (publish post), discord (send notification), telegram (send notification)",
+      "connections_plan": "schedule/telegram -> openRouter -> openAi (write article) -> openAi (generate image) -> wordpress -> [discord, telegram]"
+    },
+    "workflowPlan": {
+      "name": "BlogBlitz",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "interval": "3h"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "command": "/generate"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Content Details",
+          "nodeType": "n8n-nodes-base.openRouter",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateTitleAndCategory",
+            "categories": [
+              "Technology",
+              "AI",
+              "Tech Fact",
+              "Tech History",
+              "Tech Tips"
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Write Article",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateText",
+            "prompt": "Write a 1500-2500 word article on {{ $json.category }} with SEO-friendly structure, headings, and a call-to-action."
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateImage",
+            "prompt": "Create a realistic featured image for an article about {{ $json.category }}."
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Publish to WordPress",
+          "nodeType": "n8n-nodes-base.wordpress",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createPost",
+            "title": "={{ $json.title }}",
+            "content": "={{ $json.article }}",
+            "categories": "={{ $json.categoryId }}",
+            "featuredImage": "={{ $json.imageUrl }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Discord Notification",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "webhookUrl": "your_discord_webhook_url",
+            "content": "New blog post published: {{ $json.title }} - {{ $json.postUrl }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "your_telegram_chat_id",
+            "text": "New blog post published: {{ $json.title }} - {{ $json.postUrl }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4689,
+    "completion_tokens": 1272,
+    "total_tokens": 5961
+  },
+  "description_optimization": null,
+  "original_description": "# Generate and Publish SEO-Optimized Blog Posts to WordPress\n\n\nThis n8n workflow, **BlogBlitz**, automates the creation and publishing of SEO-optimized blog posts for WordPress, saving you hours of content creation time. Triggered via Telegram or a scheduled interval, it generates 1,500\u20132,500-word articles on Technology, AI, Tech Facts, History, or Tips, complete with catchy titles, slugs, meta descriptions, and realistic featured images. Perfect for bloggers and marketers, BlogBlitz ensures your site stays fresh with high-quality content.\n\n## Who is this for?\nBloggers, content marketers, and WordPress site owners who want to automate high-quality, SEO-ready blog content creation without manual writing or formatting.\n\n## What problem is this workflow solving?\nManually creating engaging, SEO-optimized blog posts is time-consuming and requires expertise. BlogBlitz solves this by automating the entire process\u2014from generating ideas and writing articles to publishing and notifying you\u2014keeping your site active and discoverable.\n\n## What this workflow does\n- **Triggers**: Runs every 3 hours via a Schedule Trigger or on-demand with a Telegram command (\u201cgenerate\u201d).  \n- **Generates Content**: Uses OpenRouter to pick a category (e.g., Technology, AI) and create a title, slug, focus keyphrase, and meta description.  \n- **Writes Articles**: OpenAI crafts 1,500\u20132,500-word posts with SEO-friendly structure, headings, and a call-to-action.  \n- **Adds Visuals**: Generates realistic featured images with OpenAI and uploads them to WordPress.  \n- **SEO Features**: Generate optimized slug, focus keyphrase, meta description\n- **Publishes**: Posts articles to WordPress with proper categories and featured images.  \n- **Notifies**: Sends publish alerts with links to Discord and Telegram.  \n\n## Setup\n1. **[n8n instance](https://n8n.partnerlinks.io/khaisastudio) (Cloud or self-hosted)**: Ensure you have a cloud or self-hosted n8n instance.  \n2. **Credentials**:  \n   - WordPress: API access for `wp-json/wp/v2` endpoint.  \n   - OpenAI: For article and image generation.  \n   - OpenRouter: For title and category generation.  \n   - Telegram: Bot API for triggers and notifications.  \n   - Discord: Webhook for publish alerts.  \n3. **WordPress Configuration**:  \n   - Set up categories (Technology [ID:3], AI [ID:4], Tech Fact [ID:7], Tech History [ID:8], Tech Tips [ID:9]).  \n   - Ensure an admin user ID is available (default: 1).   \n4. **Node Setup**:  \n   - Use the Edit Fields node to centralize variables like category IDs.  \n5. **Test**: Send \u201cgenerate\u201d via Telegram to test the workflow. Check WordPress for the published post.  \n\n\n## How to customize this workflow to your needs\n- **Change Categories**: Update the WordPress Post Draft node to match your site\u2019s category IDs.  \n- **Adjust Schedule**: Modify the Schedule Trigger node for different intervals (e.g., daily).  \n- **Tweak Tone**: Edit the prompt in the Basic LLM Chain node for a different writing style (e.g., formal or casual).  \n- **Add Platforms**: Extend notifications to Slack or email by adding nodes.  \n- **Image Style**: Adjust the OpenAI image node for different sizes or styles (e.g., \u201cnatural\u201d instead of \u201cvivid\u201d).  \n\n## Pre-Requirements\n- **n8n Instance**: Cloud or self-hosted.  \n- **Credentials**:  \n  - WordPress API (wp-json/wp/v2 endpoint).  \n  - OpenAI API for text and images.  \n  - OpenRouter API for AI content.  \n  - Telegram bot API.  \n  - Discord Webhook API.  \n- **Dependencies**: `@n8n/n8n-nodes-langchain` package.  \n- **WordPress Setup**: Categories and admin user ID configured.  \n- **Network**: Stable internet for API calls.  \n\n---\n*Made by: [Khaisa Studio](https://khaisa.studio)*  \n*Tag: youtube, summarizer, telegram, openai*  \n*Category: AI Automation, Video Tools*\nNeed a custom? **[Contact Me](https://khmuhtadin.com)**",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:15:05.629842",
+  "metrics": {
+    "node_type_precision": 0.625,
+    "node_type_recall": 0.35714285714285715,
+    "node_type_f1": 0.45454545454545453,
+    "tp": 5,
+    "fp": 3,
+    "fn": 9,
+    "gt_node_count": 14,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 10,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 4689,
+      "completion_tokens": 1272,
+      "total_tokens": 5961
+    },
+    "total_cost": 0.0244425
+  }
+}

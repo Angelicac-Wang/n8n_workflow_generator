@@ -1,0 +1,226 @@
+{
+  "template_id": "11645",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a file upload to a specific Google Drive folder.",
+      "data_sources": "Google Drive for video uploads, AssemblyAI via Apify for transcription, OpenAI for title and description generation, Kie.ai for thumbnail generation, YouTube Data API for caption polling, Airtable for data storage.",
+      "operations": "1. Trigger on Google Drive upload, 2. Create Airtable record, 3. Send video URL to AssemblyAI for transcription, 4. Generate A/B testable titles with OpenAI, 5. Generate AI thumbnail with Kie.ai, 6. Poll YouTube for captions, 7. Generate clips with Grok, 8. Generate YouTube description with OpenAI, 9. Save outputs to Airtable.",
+      "output_actions": "Save generated titles, thumbnails, clip timestamps, captions, and descriptions to Airtable.",
+      "nodes_plan": "googleDriveTrigger, airtableCreate, apifyTask, openAi, kieAi, youtubePoll, grok, airtableUpdate",
+      "connections_plan": "googleDriveTrigger -> airtableCreate -> apifyTask -> openAi -> kieAi -> youtubePoll -> grok -> airtableUpdate"
+    },
+    "workflowPlan": {
+      "name": "YouTube Content Repurposing Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "your-folder-id",
+            "pollingInterval": "5 minutes"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Airtable Record",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "your-base-id",
+            "tableId": "your-table-id",
+            "fields": {
+              "Video URL": "={{ $json['webContentLink'] }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "AssemblyAI Transcription",
+          "nodeType": "n8n-nodes-base.apifyTask",
+          "typeVersion": 1,
+          "params": {
+            "taskId": "assemblyai-task-id",
+            "input": {
+              "videoUrl": "={{ $json['webContentLink'] }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Titles",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate 3 A/B testable titles for the video transcript: {{ $json['transcription'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Thumbnail",
+          "nodeType": "n8n-nodes-base.kieAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "Nano Banana Pro",
+            "prompt": "Generate a thumbnail for the video with consistent branding.",
+            "referenceImages": [
+              "image1.jpg",
+              "image2.jpg"
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Poll YouTube Captions",
+          "nodeType": "n8n-nodes-base.youtube",
+          "typeVersion": 1,
+          "params": {
+            "operation": "checkCaptions",
+            "videoId": "={{ $json['videoId'] }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Clips",
+          "nodeType": "n8n-nodes-base.grok",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyze",
+            "transcript": "={{ $json['transcription'] }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update Airtable",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "your-base-id",
+            "tableId": "your-table-id",
+            "recordId": "={{ $json['recordId'] }}",
+            "fields": {
+              "Titles": "={{ $json['titles'] }}",
+              "Thumbnail": "={{ $json['thumbnail'] }}",
+              "Clips": "={{ $json['clips'] }}",
+              "Description": "={{ $json['description'] }}"
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5774,
+    "completion_tokens": 1369,
+    "total_tokens": 7143
+  },
+  "description_optimization": null,
+  "original_description": "This n8n template demonstrates how to automate YouTube content repurposing using AI. Upload a video to Google Drive and automatically generate transcriptions, A/B testable titles, AI thumbnails, short-form clips with captions, and YouTube descriptions with chapter timestamps.\n\nUse cases include: Content creators who publish 1-2 long-form videos per week and need to extract 5-10 short-form clips, YouTube agencies managing multiple channels, or automation consultants building content systems for clients.\n\n## Good to know\n\n* Processing time is approximately 10-15 minutes per video depending on length\n* Cost per video is roughly $1.00 (transcription $0.65, AI generation $0.35)\n* YouTube captions take 10-60 minutes to generate after upload - the workflow includes automatic polling to check when captions are ready\n* Manual steps still required: video clipping (using provided timestamps), social media posting, and YouTube A/B test setup\n\n## How it works\n\n* When a video is uploaded to Google Drive, the workflow automatically triggers and creates an Airtable record\n* The video URL is sent to AssemblyAI (via Apify) for transcription with H:MM:SS.mmm timestamps\n* GPT-4o-mini analyzes the transcript and generates 3 title variations optimized for A/B testing\n* When you click \"Generate thumbnail\" in Airtable, your prompt is optimized and sent to Kie.ai's Nano Banana Pro model with 2 reference images for consistent branding\n* After uploading to YouTube, the workflow polls YouTube's API every 5 minutes to check if auto-generated captions are ready\n* Once captions are available, click \"Generate clips\" and Grok 4.1 Fast analyzes the transcript to identify 3-8 elite clips (45+ seconds each) with proper start/end boundaries and action-oriented captions\n* GPT-4o-mini generates a YouTube description with chapter timestamps based on the transcript\n* All outputs are saved to Airtable: titles, thumbnail, clip timestamps with captions, and description\n\n## How to use\n\n* Duplicate the provided Airtable base template and connect it to your n8n instance\n* Create a Google Drive folder for uploading edited videos\n* After activating the workflow, copy webhook URLs and paste them into Airtable button formulas and automations\n* Upload your edited video to the designated Google Drive folder to trigger the system\n* The workflow automatically generates titles and begins transcription\n* Add your thumbnail prompt and 2 reference images to Airtable, then click \"Generate thumbnail\"\n* Upload the video to YouTube as unlisted, paste the video ID into Airtable, and check the box to trigger clip generation\n* Use the provided timestamps to manually clip videos in your editor\n* Copy titles, thumbnail, clips, and description from Airtable to publish across platforms\n\n## Requirements\n\n* Airtable account (Pro plan recommended for automations)\n* Google Drive for video upload monitoring\n* Apify account for video transcription via AssemblyAI actor\n* OpenAI API key for title and description generation (GPT-4o-mini)\n* OpenRouter API key for clip identification (Grok 4.1 Fast)\n* Kie.ai account for AI thumbnail generation (Nano Banana Pro model)\n* YouTube Data API credentials for caption polling\n\n## Customising this workflow\n\n* Tailor the system prompts to your content niche by asking Claude to adjust them without changing the core structure\n* Modify the clip identification criteria (length, caption style, number of clips) in the Grok prompt\n* Adjust thumbnail generation style by updating the image prompt optimizer\n* Add custom fields to Airtable for tracking performance metrics or additional metadata\n* Integrate with additional platforms like TikTok or Instagram APIs for automated posting",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:56:21.706582",
+  "metrics": {
+    "node_type_precision": 0.625,
+    "node_type_recall": 0.14285714285714285,
+    "node_type_f1": 0.23255813953488372,
+    "tp": 5,
+    "fp": 3,
+    "fn": 30,
+    "gt_node_count": 35,
+    "llm_node_count": 8,
+    "connection_precision": 0.14285714285714285,
+    "connection_recall": 0.041666666666666664,
+    "connection_f1": 0.06451612903225806,
+    "correct_connections": 1,
+    "gt_connection_count": 24,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.05218253968253968,
+    "usage": {
+      "prompt_tokens": 5774,
+      "completion_tokens": 1369,
+      "total_tokens": 7143
+    },
+    "total_cost": 0.028125000000000004
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "template_id": "11058",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by new files in a Google Drive folder, using the Google Drive Trigger node.",
+      "data_sources": "Google Drive for file storage, OpenAI for AI processing, Google Sheets for logging extracted data.",
+      "operations": "1. Monitor Google Drive for new PDFs, 2. Download and extract text from PDFs, 3. Use AI to extract invoice details, 4. Rename and move the file to the correct folder, 5. Update Google Sheets with extracted data.",
+      "output_actions": "The final actions are saving the processed invoice in the correct folder and updating the Google Sheets booking list.",
+      "nodes_plan": "googleDriveTrigger (trigger), googleDriveDownload (download file), openAi (extract data), googleDriveUpload (upload file), googleSheets (update sheet), googleDriveMove (move file)",
+      "connections_plan": "googleDriveTrigger -> googleDriveDownload -> openAi -> googleDriveUpload -> googleSheets -> googleDriveMove"
+    },
+    "workflowPlan": {
+      "name": "AI Invoice Processing Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "file",
+            "folderId": "your-input-folder-id"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Drive Download",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{ $json['id'] }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI Extract Data",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Extract invoice details from the following text: {{ $json['data'] }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Drive Upload",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{ $json['invoiceNumber'] }} {{ $json['vendor'] }}.pdf",
+            "folderId": "={{ $json['folderId'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets Update",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1",
+            "data": [
+              [
+                "={{ $json['invoiceDate'] }}",
+                "={{ $json['vendor'] }}",
+                "={{ $json['currency'] }}",
+                "={{ $json['totalAmount'] }}",
+                "={{ $json['invoiceNumber'] }}",
+                "={{ $json['bookingText'] }}",
+                "={{ $json['bookingAccount'] }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Drive Move",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "move",
+            "fileId": "={{ $json['id'] }}",
+            "folderId": "your-output-folder-id"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5514,
+    "completion_tokens": 1060,
+    "total_tokens": 6574
+  },
+  "description_optimization": null,
+  "original_description": "![Bildschirmfoto 20251208 um 19.25.48.heic](fileId:3572)\n\nThis template is a fully automated AI invoice processing workflow for n8n.\nIt watches a Google Drive folder for new invoice PDFs, extracts all key information using an AI Agent, assigns the correct booking account, saves the renamed invoice in the right Drive folder, and updates your Google Sheets booking list.\n\nA perfect starter template if you want to build your own AI-powered accounting automation.\n\n\n## What this workflow does\n- Monitors a Google Drive folder for new invoice PDFs.\n- Downloads and extracts invoice text from the uploaded PDF.\n- Uses an AI Agent (OpenAI + Structured Output Parser) to extract:\n\t- invoice date\n\t- vendor\n\t- currency\n\t- total amount\n\t- invoice number\n\t- booking text\n\t- booking account\n\t- matching Google Drive folder ID\n- Automatically renames the PDF to a clean, consistent format (e.g. 250912 Vendor.pdf).\n- Saves the invoice into the correct accounting folder in Google Drive.\n- Updates your booking list in Google Sheets with all extracted fields.\n- Moves the processed invoice to an output folder to avoid duplicates.\n\nEverything runs hands-free after setup.\n\n\n\n## Key features\n- \ud83e\udde0 AI Invoice Reading using OpenAI + LangChain\n- \ud83d\udcd1 Structured Output Parser guarantees clean, validated fields\n- \ud83d\udcc1 Automated Google Drive File Routing\n- \ud83d\udcca Google Sheets logging for accounting records\n- \ud83d\udd04 File movement logic to keep input/output folders organized\n- \u2699\ufe0f Chart of Accounts integration from your Google Sheet\n- \ud83d\udfe6 Works out of the box with Invoice Agent \u2013 Folder Structure Setup (recommended)\n\n\n\n## Typical use cases\n- Automated accounting workflows\n- Pre-processing invoices before importing into ERP or sevDesk\n- AI-powered invoice extraction for small businesses or freelancers\n- Structured archiving of invoices for tax and audit requirements\n- Fully automated Google Drive invoice inbox\n\n\n\n## How to use this template\n1. Connect your Google Drive & Sheets credentials in all relevant nodes.\n2. Select your:\n\u2022 Input folder (where invoices are uploaded)\n\u2022 Output folder (where processed invoices go)\n\u2022 Folder structure sheet + booking accounts sheet\n3. Upload any invoice PDF into the input folder.\n4. The workflow starts automatically and processes the invoice end-to-end.\n\n\u2e3b\n\n## Requirements\n\u2022 Google Drive OAuth2\n\u2022 Google Sheets OAuth2\n\u2022 OpenAI API key\n\u2022 A Google Sheet containing your chart of accounts\n\u2022 A prepared folder structure (use the \u201cGoogle Drive Structure Setup\u201d template)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:34:28.652136",
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.4166666666666667,
+    "node_type_f1": 0.5555555555555556,
+    "tp": 5,
+    "fp": 1,
+    "fn": 7,
+    "gt_node_count": 12,
+    "llm_node_count": 6,
+    "connection_precision": 0.4,
+    "connection_recall": 0.2857142857142857,
+    "connection_f1": 0.3333333333333333,
+    "correct_connections": 2,
+    "gt_connection_count": 7,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.07952380952380952,
+    "usage": {
+      "prompt_tokens": 5514,
+      "completion_tokens": 1060,
+      "total_tokens": 6574
+    },
+    "total_cost": 0.024385
+  }
+}

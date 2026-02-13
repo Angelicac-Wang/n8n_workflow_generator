@@ -1,0 +1,368 @@
+{
+  "template_id": "12249",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule to run at regular intervals, such as every 5 minutes, for continuous monitoring.",
+      "data_sources": "CoinGecko API, Binance API, OpenAI API, WhatsApp API, Telegram API, SMTP or Gmail for email notifications.",
+      "operations": "1. Trigger on schedule, 2. Fetch real-time data from CoinGecko and Binance, 3. Filter necessary fields, 4. Loop through top 5 cryptocurrencies, 5. Calculate trading signals, 6. Use OpenAI for insights, 7. Send notifications via WhatsApp, Telegram, and email.",
+      "output_actions": "Send human-readable alerts via WhatsApp, Telegram, and email when BUY or SELL signals are generated.",
+      "nodes_plan": "schedule (trigger), httpRequest (CoinGecko), httpRequest (Binance), set (filter data), function (loop and calculate signals), openAi (generate insights), if (check signals), whatsapp (send message), telegram (send message), emailSend (send email), delay (manage rate limits)",
+      "connections_plan": "schedule -> httpRequest (CoinGecko) -> httpRequest (Binance) -> set -> function -> openAi -> if -> [whatsapp, telegram, emailSend]"
+    },
+    "workflowPlan": {
+      "name": "Crypto Monitoring and Alert System",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyX",
+                  "value": 5,
+                  "unit": "minutes"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch CoinGecko Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.coingecko.com/api/v3/coins/markets",
+            "queryParameters": [
+              {
+                "name": "vs_currency",
+                "value": "usd"
+              },
+              {
+                "name": "order",
+                "value": "market_cap_desc"
+              },
+              {
+                "name": "per_page",
+                "value": "5"
+              },
+              {
+                "name": "page",
+                "value": "1"
+              },
+              {
+                "name": "sparkline",
+                "value": "false"
+              }
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Binance Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.binance.com/api/v3/ticker/24hr",
+            "queryParameters": [
+              {
+                "name": "symbol",
+                "value": "BTCUSDT"
+              }
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "currentPrice",
+                  "value": "={{ $json.current_price }}"
+                },
+                {
+                  "name": "priceChangePercentage",
+                  "value": "={{ $json.price_change_percentage_24h }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Calculate Signals",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { const change = item.json.priceChangePercentage; let signal = 'HOLD'; if (change > 2) signal = 'BUY'; else if (change < -2) signal = 'SELL'; item.json.signal = signal; return item; });"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate AI Insights",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate insights and advice for trading {{ $json.signal }} signal on {{ $json.name }} with a price change of {{ $json.priceChangePercentage }}%."
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Check Signal",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.signal }}",
+                  "operation": "notEqual",
+                  "value2": "HOLD"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send WhatsApp",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "typeVersion": 1,
+          "params": {
+            "message": "Signal: {{ $json.signal }} for {{ $json.name }}. Price change: {{ $json.priceChangePercentage }}%. AI Insights: {{ $json.message.content }}",
+            "to": "+1234567890"
+          },
+          "position": {
+            "x": 1500,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "123456789",
+            "text": "Signal: {{ $json.signal }} for {{ $json.name }}. Price change: {{ $json.priceChangePercentage }}%. AI Insights: {{ $json.message.content }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Crypto Alert: {{ $json.signal }} for {{ $json.name }}",
+            "text": "Signal: {{ $json.signal }} for {{ $json.name }}. Price change: {{ $json.priceChangePercentage }}%. AI Insights: {{ $json.message.content }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 300
+          }
+        },
+        {
+          "id": "11",
+          "label": "Delay",
+          "nodeType": "n8n-nodes-base.delay",
+          "typeVersion": 1,
+          "params": {
+            "delay": {
+              "value": 1,
+              "unit": "seconds"
+            }
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4303,
+      "completion_tokens": 1999,
+      "total_tokens": 6302
+    },
+    "description_optimization": {
+      "prompt_tokens": 522,
+      "completion_tokens": 542,
+      "total_tokens": 1064
+    },
+    "total_tokens": 7366,
+    "total_prompt_tokens": 4825,
+    "total_completion_tokens": 2541
+  },
+  "description_optimization": {
+    "template_id": "12249",
+    "optimized_description": "This workflow is designed to monitor the top 5 cryptocurrencies in real-time, calculate trading signals (BUY, SELL, HOLD), and send human-readable alerts through multiple channels. The workflow integrates data fetching, signal processing, AI-generated insights, and multi-channel notifications to provide a professional-grade crypto monitoring solution.\n\nTrigger: The workflow is scheduled to run at regular intervals to continuously monitor the top 5 cryptocurrencies.\n\nData Sources and APIs Needed:\n1. CoinGecko API for fetching real-time cryptocurrency data.\n2. Binance API for additional real-time coin data.\n3. OpenAI API for generating insights and trading advice.\n4. WhatsApp API for sending notifications via WhatsApp.\n5. Telegram API for sending notifications via Telegram.\n6. SMTP or Gmail credentials for sending email notifications.\n\nOperations and Processing Steps:\n1. **Schedule Trigger**: Set up a trigger to initiate the workflow at defined intervals (e.g., every 5 minutes).\n2. **Fetch Real-Time Coin Data**: Use the CoinGecko and Binance APIs to retrieve real-time data for the top 5 cryptocurrencies.\n3. **Filter Required Fields**: Extract only the necessary fields from the fetched data, such as current price and 24-hour price change percentage.\n4. **Loop Through Each Coin**: Implement a loop to process each of the top 5 cryptocurrencies independently.\n5. **Minimum Percentage Comparison Logic**: For each cryptocurrency, check if the 24-hour price change is above 2% (for BUY signals) or below -2% (for SELL signals).\n6. **Dynamic Signal Calculation**: Assign the trading signals (BUY, SELL, HOLD) based on the percentage changes calculated in the previous step.\n7. **AI Analysis for Enhanced Insights**: If a signal is generated, use the OpenAI API to provide additional insights or trading advice related to the cryptocurrency.\n8. **Send Notifications**: Set conditions to send notifications only if the signal is 'SELL' or 'BUY'. \n   - Format the message to be human-readable, summarizing the signal and any AI-generated insights.\n   - Utilize the WhatsApp API, Telegram API, and SMTP or Gmail credentials to deliver alerts through multiple channels.\n9. **Wait/Delay Node**: Implement a wait or delay node to manage API rate limits and control the flow of alerts, ensuring that notifications are sent without exceeding the allowed request limits.\n\nFinal Output or Action: The workflow sends human-readable alerts via WhatsApp, Telegram, and email when significant trading signals (BUY or SELL) are generated for the monitored cryptocurrencies. Each alert includes the trading signal, relevant price change data, and AI-generated insights, providing users with actionable information in real-time.",
+    "original_description": "## Overview\n\nThis workflow is designed to monitor the Top 5 cryptocurrencies in real-time, calculate trading signals (BUY, SELL, HOLD), and send human-readable alerts through multiple channels. It integrates data fetching, signal processing, AI-generated insights, and multi-channel notifications to provide a professional-grade crypto monitoring solution.\n\n## Setup\n\n1. Schedule the trigger\n2. Fetch real-time coin data (CoinGecko, Binance API)\n3. Filter only required fields\n4. Check each data from loop\n5. Add the logic for minimum percentage comparison\n6. Use AI for analysis enhanced insights\n8. Send the notification only if signal is 'SELL' or  'BUY'\n\n## Key Features\n\n- Real-Time Crypto Monitoring: Continuously evaluates the top 5 cryptocurrencies for trading signals.\n- Dynamic Signal Calculation: Generates BUY, SELL, HOLD signals based on 24h price change.\n- If price changed below or above 2% the dynamic signal will assign to dedicated coin.\n- Signal Change Alerts: Sends notifications only when meaningful changes occur.\n- Human-Readable Messaging: Converts numeric signals into readable alerts.\n- AI Insights: Provides explanations or trading advice via OpenAI.\n- Multi-Channel Delivery: Supports WhatsApp, Telegram, and Email.\n- Looped Processing: Each coin is processed independently for accurate alerting.\n- Wait / Delay Node: Prevents API rate limit issues and controls alert flow.\n## Requirements\n\n1. OpenAI API\n2. WhatsApp API\n3. Telegram API\n4. SMTP Credentials or Gmail Credentials.",
+    "description_length": 2723,
+    "usage": {
+      "prompt_tokens": 522,
+      "completion_tokens": 542,
+      "total_tokens": 1064
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:24:45.365393"
+  },
+  "original_description": "## Overview\n\nThis workflow is designed to monitor the Top 5 cryptocurrencies in real-time, calculate trading signals (BUY, SELL, HOLD), and send human-readable alerts through multiple channels. It integrates data fetching, signal processing, AI-generated insights, and multi-channel notifications to provide a professional-grade crypto monitoring solution.\n\n## Setup\n\n1. Schedule the trigger\n2. Fetch real-time coin data (CoinGecko, Binance API)\n3. Filter only required fields\n4. Check each data from loop\n5. Add the logic for minimum percentage comparison\n6. Use AI for analysis enhanced insights\n8. Send the notification only if signal is 'SELL' or  'BUY'\n\n## Key Features\n\n- Real-Time Crypto Monitoring: Continuously evaluates the top 5 cryptocurrencies for trading signals.\n- Dynamic Signal Calculation: Generates BUY, SELL, HOLD signals based on 24h price change.\n- If price changed below or above 2% the dynamic signal will assign to dedicated coin.\n- Signal Change Alerts: Sends notifications only when meaningful changes occur.\n- Human-Readable Messaging: Converts numeric signals into readable alerts.\n- AI Insights: Provides explanations or trading advice via OpenAI.\n- Multi-Channel Delivery: Supports WhatsApp, Telegram, and Email.\n- Looped Processing: Each coin is processed independently for accurate alerting.\n- Wait / Delay Node: Prevents API rate limit issues and controls alert flow.\n## Requirements\n\n1. OpenAI API\n2. WhatsApp API\n3. Telegram API\n4. SMTP Credentials or Gmail Credentials.",
+  "optimized_description": "This workflow is designed to monitor the top 5 cryptocurrencies in real-time, calculate trading signals (BUY, SELL, HOLD), and send human-readable alerts through multiple channels. The workflow integrates data fetching, signal processing, AI-generated insights, and multi-channel notifications to provide a professional-grade crypto monitoring solution.\n\nTrigger: The workflow is scheduled to run at regular intervals to continuously monitor the top 5 cryptocurrencies.\n\nData Sources and APIs Needed:\n1. CoinGecko API for fetching real-time cryptocurrency data.\n2. Binance API for additional real-time coin data.\n3. OpenAI API for generating insights and trading advice.\n4. WhatsApp API for sending notifications via WhatsApp.\n5. Telegram API for sending notifications via Telegram.\n6. SMTP or Gmail credentials for sending email notifications.\n\nOperations and Processing Steps:\n1. **Schedule Trigger**: Set up a trigger to initiate the workflow at defined intervals (e.g., every 5 minutes).\n2. **Fetch Real-Time Coin Data**: Use the CoinGecko and Binance APIs to retrieve real-time data for the top 5 cryptocurrencies.\n3. **Filter Required Fields**: Extract only the necessary fields from the fetched data, such as current price and 24-hour price change percentage.\n4. **Loop Through Each Coin**: Implement a loop to process each of the top 5 cryptocurrencies independently.\n5. **Minimum Percentage Comparison Logic**: For each cryptocurrency, check if the 24-hour price change is above 2% (for BUY signals) or below -2% (for SELL signals).\n6. **Dynamic Signal Calculation**: Assign the trading signals (BUY, SELL, HOLD) based on the percentage changes calculated in the previous step.\n7. **AI Analysis for Enhanced Insights**: If a signal is generated, use the OpenAI API to provide additional insights or trading advice related to the cryptocurrency.\n8. **Send Notifications**: Set conditions to send notifications only if the signal is 'SELL' or 'BUY'. \n   - Format the message to be human-readable, summarizing the signal and any AI-generated insights.\n   - Utilize the WhatsApp API, Telegram API, and SMTP or Gmail credentials to deliver alerts through multiple channels.\n9. **Wait/Delay Node**: Implement a wait or delay node to manage API rate limits and control the flow of alerts, ensuring that notifications are sent without exceeding the allowed request limits.\n\nFinal Output or Action: The workflow sends human-readable alerts via WhatsApp, Telegram, and email when significant trading signals (BUY or SELL) are generated for the monitored cryptocurrencies. Each alert includes the trading signal, relevant price change data, and AI-generated insights, providing users with actionable information in real-time.",
+  "error": null,
+  "generated_at": "2026-01-25T23:25:01.943527",
+  "metrics": {
+    "node_type_precision": 0.6363636363636364,
+    "node_type_recall": 0.4666666666666667,
+    "node_type_f1": 0.5384615384615385,
+    "tp": 7,
+    "fp": 4,
+    "fn": 8,
+    "gt_node_count": 15,
+    "llm_node_count": 11,
+    "connection_precision": 0.08333333333333333,
+    "connection_recall": 0.07142857142857142,
+    "connection_f1": 0.07692307692307691,
+    "correct_connections": 1,
+    "gt_connection_count": 14,
+    "llm_connection_count": 12,
+    "avg_parameter_accuracy": 0.25,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4303,
+        "completion_tokens": 1999,
+        "total_tokens": 6302
+      },
+      "description_optimization": {
+        "prompt_tokens": 522,
+        "completion_tokens": 542,
+        "total_tokens": 1064
+      },
+      "total_tokens": 7366,
+      "total_prompt_tokens": 4825,
+      "total_completion_tokens": 2541
+    },
+    "total_cost": 0.037472500000000006,
+    "description_optimization_cost": 0.006725,
+    "workflow_generation_cost": 0.030747500000000004
+  }
+}

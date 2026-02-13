@@ -1,0 +1,223 @@
+{
+  "template_id": 3101,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Espionage Assignment Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "new-espionage-assignment",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Process espionage assignment"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse OpenAI Results",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return JSON.parse(items[0].json.result);"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Convert Message to URL",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/convert",
+            "method": "POST",
+            "body": {
+              "message": "={{$json[\"message\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Scrape Web Page 1",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url1\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Scrape Web Page 2",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url2\"]}}",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Wait One Day",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1d"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Email?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"sendEmail\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "Espionage Assignment Data",
+            "body": "Here is the data collected from the espionage assignment."
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 673,
+    "completion_tokens": 1094,
+    "total_tokens": 1767
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:38:48.488281",
+  "generated_description": "This n8n workflow is initiated by a form submission, specifically titled \"New espionage assignment.\" Upon receiving this trigger, the workflow engages the OpenAI Chat Model to potentially generate or process information related to the assignment. Subsequently, it utilizes a custom code node to parse the results from the OpenAI model.\n\nThe workflow then converts a message into a website URL and instructions using an HTTP request, preparing for a web scraping operation. It proceeds to scrape data from two separate web pages, each handled by individual HTTP request nodes.\n\nFollowing the data collection, the workflow incorporates a waiting period of one day, likely to allow for any necessary processing or to adhere to a specific schedule.\n\nFinally, the workflow evaluates whether to send an email using the Gmail node, which could involve notifying relevant parties or delivering the scraped data. The decision to send an email is determined by the \"send e-mail?\" node, which acts as a conditional check or agent in the process. The final output is the dissemination of information via email, contingent on the conditions set within the workflow.",
+  "description_generation_usage": {
+    "prompt_tokens": 216,
+    "completion_tokens": 211,
+    "total_tokens": 427
+  },
+  "metrics": {
+    "node_type_precision": 0.5555555555555556,
+    "node_type_recall": 0.5555555555555556,
+    "node_type_f1": 0.5555555555555556,
+    "tp": 5,
+    "fp": 4,
+    "fn": 4,
+    "gt_node_count": 9,
+    "llm_node_count": 9,
+    "connection_precision": 0.2857142857142857,
+    "connection_recall": 0.2857142857142857,
+    "connection_f1": 0.2857142857142857,
+    "correct_connections": 2,
+    "gt_connection_count": 7,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.02857142857142857,
+    "usage": {
+      "prompt_tokens": 673,
+      "completion_tokens": 1094,
+      "total_tokens": 1767
+    },
+    "total_cost": 0.015272500000000001,
+    "description_generation_cost": 0.0026500000000000004,
+    "workflow_generation_cost": 0.0126225
+  },
+  "original_description": "## Who is this template for?\nThis workflow template is designed for people seeking alerts when certain specific changes are made to any web page. Leveraging agentic AI, it analyzes the page every day and autonomously decides whether to send you an e-mail notification.\n\n## Example use cases\n- Track price changes on [competitor's website]. Notify me when the price drops below \u20ac50.\n- Monitor new blog posts on [industry leader's website] and summarize key insights.\n- Check [competitor's job page] for new job postings related to software development.\n- Watch for new product launches on [e-commerce site] and send me a summary.\n- Detect any changes in the terms and conditions of [specific website].\n- Track customer reviews for [specific product] on [review site] and extract key themes.\n\n## How it works\n- When clicking 'test workflow' in the editor, a new browser tab will open where you can fill in the details of your espionage assignment\n- Make sure you be as concise as possible when instructing AI. Instruct specific and to the point (see examples at the bottom).\n- After submission, the flow will start off by extracting both the relevant website url and an optimized prompt. OpenAI's structured outputs is utilized, followed by a code node to parse the results for further use.\n- From here on, the endless loop of daily checks will begin:\n1. Initial scrape \n2. 1 day delay\n3. Second scrape\n4. AI agent decides whether or not to notify you \n5. Back to step 1\n- You can cancel an espionage assignment at any time in the executions tab\n\n## Set up steps\n- Insert your OpenAI API key in the structured outputs node (second one)\n- Create a Firecrawl account and connect your Firecrawl API key in both 'Scrape page'-nodes\n- Connect your OpenAI account in the AI agents' model node\n- Connect your Gmail account in the AI agents' Gmail tool node"
+}

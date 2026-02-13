@@ -1,0 +1,187 @@
+{
+  "template_id": "2339",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a local file trigger that monitors a specific directory for new documents.",
+      "data_sources": "Local file system for input documents, Qdrant for knowledgebase management, and Mistral.ai for AI processing.",
+      "operations": "1. Detect new document, 2. Import document, 3. Extract and vectorize content, 4. Generate study guide, briefing document, and timeline using AI, 5. Export generated templates.",
+      "output_actions": "Export the study guide, briefing document, and timeline to a designated folder.",
+      "nodes_plan": "localFileTrigger (trigger), readFile (read document), qdrant (vectorize and store), mistralAI (generate templates), writeFile (export results)",
+      "connections_plan": "localFileTrigger -> readFile -> qdrant -> mistralAI -> writeFile (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Document Processing Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Local File Trigger",
+          "nodeType": "n8n-nodes-base.localFileTrigger",
+          "typeVersion": 1,
+          "params": {
+            "path": "/path/to/watch",
+            "pollingInterval": 60
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read File",
+          "nodeType": "n8n-nodes-base.readFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{ $json['filePath'] }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Qdrant Vector Store",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "typeVersion": 1,
+          "params": {
+            "operation": "vectorizeAndStore",
+            "collection": "documents",
+            "documentContent": "={{ $json['data'] }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Mistral AI",
+          "nodeType": "n8n-nodes-base.mistralAI",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateTemplates",
+            "templateTypes": [
+              "studyGuide",
+              "briefingDocument",
+              "timeline"
+            ],
+            "knowledgebase": "={{ $json['vectorizedData'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Write File",
+          "nodeType": "n8n-nodes-base.writeFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "output/{{ $json['templateType'] }}.txt",
+            "data": "={{ $json['generatedContent'] }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4297,
+      "completion_tokens": 826,
+      "total_tokens": 5123
+    },
+    "description_optimization": {
+      "prompt_tokens": 571,
+      "completion_tokens": 536,
+      "total_tokens": 1107
+    },
+    "total_tokens": 6230,
+    "total_prompt_tokens": 4868,
+    "total_completion_tokens": 1362
+  },
+  "description_optimization": {
+    "template_id": "2339",
+    "optimized_description": "This n8n workflow is designed to process documents such as research papers, marketing or sales decks, and company filings, transforming them into three distinct templates: a study guide, a briefing document, and a timeline. These templates aim to assist students, associates, or clerks in quickly summarizing, learning, and understanding the contents of the documents to enhance productivity.\n\n**Trigger:**\nThe workflow is initiated by a local file trigger that monitors a specified local network directory for the arrival of new documents.\n\n**Data Sources and APIs:**\n1. Local file system for document input.\n2. Qdrant vector store for knowledgebase creation and management.\n3. Mistral.ai account for generating embeddings and utilizing AI models for template creation.\n\n**Operations and Processing Steps:**\n1. **Document Detection:** The local file trigger detects new documents in the designated directory.\n2. **Document Import:** The detected document is imported into the workflow for processing.\n3. **Content Extraction:** The contents of the document are extracted and vectorized to create a knowledgebase in the Qdrant instance.\n4. **Template Generation:**\n   - **Study Guide Creation:** The AI agent queries the knowledgebase to generate a short quiz consisting of questions and answers derived from the document's content.\n   - **Briefing Document Creation:** Key information and insights are extracted by the AI and formatted into a digestible briefing document.\n   - **Timeline Generation:** The AI identifies key events, durations, and individuals mentioned in the document, compiling them into a clear and understandable timeline.\n5. **Exporting Results:** The generated study guide, briefing document, and timeline are exported to a designated folder for user access.\n\n**Final Output:**\nThe workflow produces three distinct outputs:\n1. A study guide containing a quiz of questions and answers.\n2. A briefing document summarizing key insights and information.\n3. A timeline listing important events, durations, and people related to the document.\n\n**Requirements:**\n- A self-hosted version of n8n to run the workflow.\n- A Qdrant instance to maintain the knowledgebase.\n- A Mistral.ai account to access AI models and generate embeddings.\n\n**Customization Options:**\nUsers are encouraged to customize the workflow by adding their own templates or modifying existing templates to better fit their specific use cases, allowing for a high degree of flexibility and creativity in document processing.\n\n**Alternative Option:**\nFor those looking to implement a fully local solution, an alternative version of this workflow utilizing Ollama is available for download at the provided link. \n\nThis structured workflow description provides a comprehensive overview of the process, ensuring clarity and completeness for effective workflow generation.",
+    "original_description": "This n8n workflow takes in a document such as a research paper, marketing or sales deck or company filings, and breaks them down into 3 templates: study guide, briefing doc and timeline.\n\nThese templates are designed to help a student, associate or clerk quickly summarise, learn and understand the contents to be more productive.\n\n* Study guide - a short quiz of questions and answered generated by the AI Agent using the contents of the document.\n* Briefing Doc - key information and insights are extracted by the AI into a digestable form.\n* Timeline - key events, durations and people are identified and listed into a simple to understand timeline by the AI\n\n## How it works\n* A local file trigger watches a local network directory for new documents.\n* New documents are imported into the workflow, its contents extracted and vectorised into a Qdrant vector store to build a mini-knowledgebase.\n* The document then passes through a series of template generating prompts where the AI will perform \"research\" on the knowledgebase to generate the template contents.\n* Generated study guide, briefing and timeline documents are exported to a designated folder for the user.\n\n## Requirements\n* Self-hosted version of n8n.\n* Qdrant instance for knowledgebase.\n* Mistral.ai account for embeddings and AI model.\n\n## Customising your workflow\n\nTry adding your own templates or adjusting the existing templates to suit your unique use-case. Anything is quite possible and limited only by your imagination!\n\n## Want to go fully local?\n\nA version of this workflow is available which uses Ollama instead. You can download this template here: https://drive.google.com/file/d/1VV5R2nW-IhVcFP_k8uEks4LsLRZrHSNG/view?usp=sharing",
+    "description_length": 2851,
+    "usage": {
+      "prompt_tokens": 571,
+      "completion_tokens": 536,
+      "total_tokens": 1107
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:09:38.113966"
+  },
+  "original_description": "This n8n workflow takes in a document such as a research paper, marketing or sales deck or company filings, and breaks them down into 3 templates: study guide, briefing doc and timeline.\n\nThese templates are designed to help a student, associate or clerk quickly summarise, learn and understand the contents to be more productive.\n\n* Study guide - a short quiz of questions and answered generated by the AI Agent using the contents of the document.\n* Briefing Doc - key information and insights are extracted by the AI into a digestable form.\n* Timeline - key events, durations and people are identified and listed into a simple to understand timeline by the AI\n\n## How it works\n* A local file trigger watches a local network directory for new documents.\n* New documents are imported into the workflow, its contents extracted and vectorised into a Qdrant vector store to build a mini-knowledgebase.\n* The document then passes through a series of template generating prompts where the AI will perform \"research\" on the knowledgebase to generate the template contents.\n* Generated study guide, briefing and timeline documents are exported to a designated folder for the user.\n\n## Requirements\n* Self-hosted version of n8n.\n* Qdrant instance for knowledgebase.\n* Mistral.ai account for embeddings and AI model.\n\n## Customising your workflow\n\nTry adding your own templates or adjusting the existing templates to suit your unique use-case. Anything is quite possible and limited only by your imagination!\n\n## Want to go fully local?\n\nA version of this workflow is available which uses Ollama instead. You can download this template here: https://drive.google.com/file/d/1VV5R2nW-IhVcFP_k8uEks4LsLRZrHSNG/view?usp=sharing",
+  "optimized_description": "This n8n workflow is designed to process documents such as research papers, marketing or sales decks, and company filings, transforming them into three distinct templates: a study guide, a briefing document, and a timeline. These templates aim to assist students, associates, or clerks in quickly summarizing, learning, and understanding the contents of the documents to enhance productivity.\n\n**Trigger:**\nThe workflow is initiated by a local file trigger that monitors a specified local network directory for the arrival of new documents.\n\n**Data Sources and APIs:**\n1. Local file system for document input.\n2. Qdrant vector store for knowledgebase creation and management.\n3. Mistral.ai account for generating embeddings and utilizing AI models for template creation.\n\n**Operations and Processing Steps:**\n1. **Document Detection:** The local file trigger detects new documents in the designated directory.\n2. **Document Import:** The detected document is imported into the workflow for processing.\n3. **Content Extraction:** The contents of the document are extracted and vectorized to create a knowledgebase in the Qdrant instance.\n4. **Template Generation:**\n   - **Study Guide Creation:** The AI agent queries the knowledgebase to generate a short quiz consisting of questions and answers derived from the document's content.\n   - **Briefing Document Creation:** Key information and insights are extracted by the AI and formatted into a digestible briefing document.\n   - **Timeline Generation:** The AI identifies key events, durations, and individuals mentioned in the document, compiling them into a clear and understandable timeline.\n5. **Exporting Results:** The generated study guide, briefing document, and timeline are exported to a designated folder for user access.\n\n**Final Output:**\nThe workflow produces three distinct outputs:\n1. A study guide containing a quiz of questions and answers.\n2. A briefing document summarizing key insights and information.\n3. A timeline listing important events, durations, and people related to the document.\n\n**Requirements:**\n- A self-hosted version of n8n to run the workflow.\n- A Qdrant instance to maintain the knowledgebase.\n- A Mistral.ai account to access AI models and generate embeddings.\n\n**Customization Options:**\nUsers are encouraged to customize the workflow by adding their own templates or modifying existing templates to better fit their specific use cases, allowing for a high degree of flexibility and creativity in document processing.\n\n**Alternative Option:**\nFor those looking to implement a fully local solution, an alternative version of this workflow utilizing Ollama is available for download at the provided link. \n\nThis structured workflow description provides a comprehensive overview of the process, ensuring clarity and completeness for effective workflow generation.",
+  "error": null,
+  "generated_at": "2026-01-25T23:09:49.495979",
+  "metrics": {
+    "node_type_precision": 0.2,
+    "node_type_recall": 0.02857142857142857,
+    "node_type_f1": 0.049999999999999996,
+    "tp": 1,
+    "fp": 4,
+    "fn": 34,
+    "gt_node_count": 35,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 23,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4297,
+        "completion_tokens": 826,
+        "total_tokens": 5123
+      },
+      "description_optimization": {
+        "prompt_tokens": 571,
+        "completion_tokens": 536,
+        "total_tokens": 1107
+      },
+      "total_tokens": 6230,
+      "total_prompt_tokens": 4868,
+      "total_completion_tokens": 1362
+    },
+    "total_cost": 0.02579,
+    "description_optimization_cost": 0.0067875,
+    "workflow_generation_cost": 0.0190025
+  }
+}

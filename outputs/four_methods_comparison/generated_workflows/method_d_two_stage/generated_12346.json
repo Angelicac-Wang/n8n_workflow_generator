@@ -1,0 +1,306 @@
+{
+  "template_id": "12346",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Telegram message, indicating a new input from the user.",
+      "data_sources": "Telegram for receiving and sending messages, Google Gemini for analyzing and generating images, BrowserAct for fetching context, CloudConvert for image conversion, Google Sheets for storing design data.",
+      "operations": "1. Trigger on Telegram message, 2. Classify message with Google Gemini, 3. Fetch context with BrowserAct if needed, 4. Standardize reference images with CloudConvert, 5. Reverse-engineer design with Google Gemini Vision, 6. Store design DNA in Google Sheets, 7. Select design template, 8. Generate image prompt, 9. Create resume image with Google Gemini, 10. Send image back via Telegram.",
+      "output_actions": "The final output is a resume image sent back to the user via Telegram.",
+      "nodes_plan": "telegramTrigger (trigger), googleGemini (classify), browserAct (fetch context), cloudConvert (image conversion), googleGeminiVision (design analysis), googleSheets (store design), set (select template), set (generate prompt), googleGemini (generate image), telegramSendMessage (send image)",
+      "connections_plan": "telegramTrigger -> googleGemini -> [browserAct (if needed) -> cloudConvert -> googleGeminiVision -> googleSheets] -> set (select template) -> set (generate prompt) -> googleGemini -> telegramSendMessage"
+    },
+    "workflowPlan": {
+      "name": "Automated Resume Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Classify Message",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "classify",
+            "text": "={{ $json.body.message.text }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Context",
+          "nodeType": "n8n-nodes-base.browserAct",
+          "typeVersion": 1,
+          "params": {
+            "template": "AI Resume Replicant"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Standardize Image",
+          "nodeType": "n8n-nodes-base.cloudConvert",
+          "typeVersion": 1,
+          "params": {
+            "operation": "convert",
+            "inputFormat": "auto",
+            "outputFormat": "png"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze Design",
+          "nodeType": "n8n-nodes-base.googleGeminiVision",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyze",
+            "image": "={{ $json['file']['data'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store Design DNA",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Resume Details",
+            "data": "={{ $json['designDNA'] }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Select Template",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "template",
+                  "value": "Corporate"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Prompt",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "prompt",
+                  "value": "Generate a resume image using the selected template and provided data."
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateImage",
+            "prompt": "={{ $json['prompt'] }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Image",
+          "nodeType": "n8n-nodes-base.telegramSendMessage",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "={{ $json.body.message.chat.id }}",
+            "text": "Here is your generated resume.",
+            "attachments": "={{ $json['image'] }}"
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0,
+          "condition": "resumeRequest"
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0,
+          "condition": "hasImage"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4633,
+      "completion_tokens": 1570,
+      "total_tokens": 6203
+    },
+    "description_optimization": {
+      "prompt_tokens": 1008,
+      "completion_tokens": 872,
+      "total_tokens": 1880
+    },
+    "total_tokens": 8083,
+    "total_prompt_tokens": 5641,
+    "total_completion_tokens": 2442
+  },
+  "description_optimization": {
+    "template_id": "12346",
+    "optimized_description": "This workflow automates the generation of visually appealing resumes from text-based inputs received via Telegram, utilizing Google Gemini's advanced reasoning and vision capabilities. The target audience includes job seekers, career coaches, resume writers, and recruitment agencies who wish to streamline the design generation process.\n\n**Trigger:** The workflow begins with a trigger from **Telegram**, which listens for incoming messages. Upon receiving a message, a **Google Gemini** agent analyzes the content to classify it as either a casual chat or a request for resume generation.\n\n**Data Sources and APIs Needed:**\n1. **Telegram** - For receiving input messages and sending generated resumes.\n2. **Google Gemini** - For analyzing input and generating resume images.\n3. **BrowserAct** - To fetch external context or data using the \"AI Resume Replicant\" template.\n4. **CloudConvert** - To standardize any reference images provided by the user.\n5. **Google Sheets** - To store and manage the \"Visual DNA\" of design layouts and styles.\n\n**Operations and Processing Steps:**\n1. **Classify Input:** The workflow starts with a Telegram trigger that captures incoming messages. A Google Gemini agent determines if the message is a resume request.\n2. **Fetch Context:** If the message is identified as a resume request, a **BrowserAct** node is activated to trigger the \"AI Resume Replicant\" template, fetching necessary external context or data.\n3. **Ingest Designs (Optional):** If a reference image is included in the request, the **CloudConvert** node standardizes the file format. The **Google Gemini Vision** component reverse-engineers the layout and style of the image, saving the resulting \"Visual DNA\" to a **Google Sheets** document.\n4. **Draft Blueprint:** The \"Resume Writer\" AI agent selects an appropriate design template from the stored options based on the candidate's industry (e.g., \"Corporate\" for Finance, \"Creative\" for Design) and maps the text content to the selected layout.\n5. **Generate Prompt:** A \"Visualizer\" AI agent transforms the structured blueprint into a detailed natural language prompt suitable for image generation.\n6. **Render & Deliver:** Finally, **Google Gemini** generates the high-quality resume image, which is sent back to the user via **Telegram**.\n\n**Final Output or Action:** The completed resume image is delivered directly to the user through Telegram, providing a visually appealing representation of their resume data.\n\n**Setup Instructions:**\n1. **Configure Credentials:** Connect your **Telegram**, **Google Gemini**, **Google Sheets**, **CloudConvert**, and **BrowserAct** accounts in n8n.\n2. **Prepare BrowserAct:** Ensure the \"AI Resume Replicant\" template is saved in your BrowserAct account.\n3. **Setup Google Sheet:** Create a new Google Sheet with the header \"Resume Details.\"\n4. **Connect Sheet:** Open the Google Sheets nodes (Clear, Get, Append) and select your newly created spreadsheet.\n5. **Configure Telegram:** Ensure your Telegram Bot is connected to the Trigger and Message nodes.\n\n**Google Sheet Headers:** To utilize this workflow, create a Google Sheet with the following header:\n- Resume Details\n\n**Requirements:**\n- A **BrowserAct** account with the \"AI Resume Replicant\" template.\n- A **Google Gemini** account.\n- A **Telegram** account with a Bot Token.\n- A **CloudConvert** account.\n- A **Google Sheets** account.\n\n**Customization Options:**\n1. **Refine Design Logic:** Modify the system prompt in the \"Resume Writer\" agent to adjust how the AI matches industries to design styles (e.g., enforcing specific colors for certain roles).\n2. **Change Output Format:** Replace the Telegram response node with a Google Drive node to save the generated images as PDF or PNG files instead of sending them directly.\n3. **Switch Image Model:** Update the \"Generate an image\" node to utilize a different image generation model if desired (e.g., OpenAI DALL-E).\n\nFor additional assistance, refer to the following resources:\n- How to Find Your BrowserAct API Key & Workflow ID\n- How to Connect n8n to BrowserAct\n- How to Use & Customize BrowserAct Templates\n\nThis structured workflow description provides a comprehensive overview of the process, ensuring clarity and completeness for optimal workflow generation.",
+    "original_description": "# Generate visual resumes from Telegram inputs using Google Gemini\n\nThis workflow transforms text-based resume data into visually stunning images by leveraging Google Gemini's reasoning and vision capabilities. It autonomously analyzes the candidate's profile, selects an appropriate design template based on their industry, and renders a high-quality resume image directly in Telegram.\n\n## Target Audience\nJob seekers, career coaches, resume writers, and recruitment agencies looking to automate design generation.\n\n## How it works\n1. **Classify Input**: The workflow starts with a **Telegram** trigger. A **Google Gemini** agent analyzes the incoming message to determine if it is a casual chat or a resume generation request.\n2. **Fetch Context**: If it is a resume request, a **BrowserAct** node triggers a workflow (using the \"AI Resume Replicant\" template) to fetch necessary external context or data.\n3. **Ingest Designs (Optional)**: If a reference image is provided, **CloudConvert** standardizes the file, and **Google Gemini Vision** reverse-engineers the layout and style, saving the \"Visual DNA\" to **Google Sheets**.\n4. **Draft Blueprint**: The \"Resume Writer\" AI agent selects a stored design template that matches the candidate's industry (e.g., \"Corporate\" for Finance, \"Creative\" for Design) and maps the text content to the layout.\n5. **Generate Prompt**: A \"Visualizer\" AI agent converts the structured blueprint into a highly detailed natural language prompt for image generation.\n6. **Render & Deliver**: **Google Gemini** generates the final resume image, which is then sent back to the user via **Telegram**.\n\n## How to set up\n1. **Configure Credentials**: Connect your **Telegram**, **Google Gemini**, **Google Sheets**, **CloudConvert**, and **BrowserAct** accounts in n8n.\n2. **Prepare BrowserAct**: Ensure the **AI Resume Replicant** template is saved in your BrowserAct account.\n3. **Setup Google Sheet**: Create a new Google Sheet with the required header (listed below).\n4. **Connect Sheet**: Open the **Google Sheets** nodes (Clear, Get, Append) and select your new spreadsheet.\n5. **Configure Telegram**: Ensure your Telegram Bot is connected to the Trigger and Message nodes.\n\n## Google Sheet Headers\nTo use this workflow, create a Google Sheet with the following header:\n* Resume Details\n\n## Requirements\n* **BrowserAct** account (Template: **AI Resume Replicant**).\n* **Google Gemini** account.\n* **Telegram** account (Bot Token).\n* **CloudConvert** account.\n* **Google Sheets** account.\n\n## How to customize the workflow\n1. **Refine Design Logic**: Modify the system prompt in the \"Resume Writer\" agent to change how the AI matches industries to design styles (e.g., force specific colors for specific roles).\n2. **Change Output Format**: Replace the **Telegram** response node with a **Google Drive** node to save the generated images as PDF or PNG files instead of sending them.\n3. **Switch Image Model**: Update the \"Generate an image\" node to use a different image generation model if preferred (e.g., OpenAI DALL-E).\n\n## Need Help?\n* [How to Find Your BrowserAct API Key & Workflow ID](https://www.youtube.com/watch?v=pDjoZWEsZlE)\n* [How to Connect n8n to BrowserAct](https://www.youtube.com/watch?v=RoYMdJaRdcQ)\n* [How to Use & Customize BrowserAct Templates](https://www.youtube.com/watch?v=CPZHFUASncY)\n\n---\n### Workflow Guidance and Showcase Video\n\n* #### [I Built a Resume Bot that CLONES Any Template! \ud83e\udd16 (BrowserAct + n8n + Gemini Tutorial)](https://youtu.be/TnObYpgHXSs)",
+    "description_length": 4281,
+    "usage": {
+      "prompt_tokens": 1008,
+      "completion_tokens": 872,
+      "total_tokens": 1880
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:51:49.628277"
+  },
+  "original_description": "# Generate visual resumes from Telegram inputs using Google Gemini\n\nThis workflow transforms text-based resume data into visually stunning images by leveraging Google Gemini's reasoning and vision capabilities. It autonomously analyzes the candidate's profile, selects an appropriate design template based on their industry, and renders a high-quality resume image directly in Telegram.\n\n## Target Audience\nJob seekers, career coaches, resume writers, and recruitment agencies looking to automate design generation.\n\n## How it works\n1. **Classify Input**: The workflow starts with a **Telegram** trigger. A **Google Gemini** agent analyzes the incoming message to determine if it is a casual chat or a resume generation request.\n2. **Fetch Context**: If it is a resume request, a **BrowserAct** node triggers a workflow (using the \"AI Resume Replicant\" template) to fetch necessary external context or data.\n3. **Ingest Designs (Optional)**: If a reference image is provided, **CloudConvert** standardizes the file, and **Google Gemini Vision** reverse-engineers the layout and style, saving the \"Visual DNA\" to **Google Sheets**.\n4. **Draft Blueprint**: The \"Resume Writer\" AI agent selects a stored design template that matches the candidate's industry (e.g., \"Corporate\" for Finance, \"Creative\" for Design) and maps the text content to the layout.\n5. **Generate Prompt**: A \"Visualizer\" AI agent converts the structured blueprint into a highly detailed natural language prompt for image generation.\n6. **Render & Deliver**: **Google Gemini** generates the final resume image, which is then sent back to the user via **Telegram**.\n\n## How to set up\n1. **Configure Credentials**: Connect your **Telegram**, **Google Gemini**, **Google Sheets**, **CloudConvert**, and **BrowserAct** accounts in n8n.\n2. **Prepare BrowserAct**: Ensure the **AI Resume Replicant** template is saved in your BrowserAct account.\n3. **Setup Google Sheet**: Create a new Google Sheet with the required header (listed below).\n4. **Connect Sheet**: Open the **Google Sheets** nodes (Clear, Get, Append) and select your new spreadsheet.\n5. **Configure Telegram**: Ensure your Telegram Bot is connected to the Trigger and Message nodes.\n\n## Google Sheet Headers\nTo use this workflow, create a Google Sheet with the following header:\n* Resume Details\n\n## Requirements\n* **BrowserAct** account (Template: **AI Resume Replicant**).\n* **Google Gemini** account.\n* **Telegram** account (Bot Token).\n* **CloudConvert** account.\n* **Google Sheets** account.\n\n## How to customize the workflow\n1. **Refine Design Logic**: Modify the system prompt in the \"Resume Writer\" agent to change how the AI matches industries to design styles (e.g., force specific colors for specific roles).\n2. **Change Output Format**: Replace the **Telegram** response node with a **Google Drive** node to save the generated images as PDF or PNG files instead of sending them.\n3. **Switch Image Model**: Update the \"Generate an image\" node to use a different image generation model if preferred (e.g., OpenAI DALL-E).\n\n## Need Help?\n* [How to Find Your BrowserAct API Key & Workflow ID](https://www.youtube.com/watch?v=pDjoZWEsZlE)\n* [How to Connect n8n to BrowserAct](https://www.youtube.com/watch?v=RoYMdJaRdcQ)\n* [How to Use & Customize BrowserAct Templates](https://www.youtube.com/watch?v=CPZHFUASncY)\n\n---\n### Workflow Guidance and Showcase Video\n\n* #### [I Built a Resume Bot that CLONES Any Template! \ud83e\udd16 (BrowserAct + n8n + Gemini Tutorial)](https://youtu.be/TnObYpgHXSs)",
+  "optimized_description": "This workflow automates the generation of visually appealing resumes from text-based inputs received via Telegram, utilizing Google Gemini's advanced reasoning and vision capabilities. The target audience includes job seekers, career coaches, resume writers, and recruitment agencies who wish to streamline the design generation process.\n\n**Trigger:** The workflow begins with a trigger from **Telegram**, which listens for incoming messages. Upon receiving a message, a **Google Gemini** agent analyzes the content to classify it as either a casual chat or a request for resume generation.\n\n**Data Sources and APIs Needed:**\n1. **Telegram** - For receiving input messages and sending generated resumes.\n2. **Google Gemini** - For analyzing input and generating resume images.\n3. **BrowserAct** - To fetch external context or data using the \"AI Resume Replicant\" template.\n4. **CloudConvert** - To standardize any reference images provided by the user.\n5. **Google Sheets** - To store and manage the \"Visual DNA\" of design layouts and styles.\n\n**Operations and Processing Steps:**\n1. **Classify Input:** The workflow starts with a Telegram trigger that captures incoming messages. A Google Gemini agent determines if the message is a resume request.\n2. **Fetch Context:** If the message is identified as a resume request, a **BrowserAct** node is activated to trigger the \"AI Resume Replicant\" template, fetching necessary external context or data.\n3. **Ingest Designs (Optional):** If a reference image is included in the request, the **CloudConvert** node standardizes the file format. The **Google Gemini Vision** component reverse-engineers the layout and style of the image, saving the resulting \"Visual DNA\" to a **Google Sheets** document.\n4. **Draft Blueprint:** The \"Resume Writer\" AI agent selects an appropriate design template from the stored options based on the candidate's industry (e.g., \"Corporate\" for Finance, \"Creative\" for Design) and maps the text content to the selected layout.\n5. **Generate Prompt:** A \"Visualizer\" AI agent transforms the structured blueprint into a detailed natural language prompt suitable for image generation.\n6. **Render & Deliver:** Finally, **Google Gemini** generates the high-quality resume image, which is sent back to the user via **Telegram**.\n\n**Final Output or Action:** The completed resume image is delivered directly to the user through Telegram, providing a visually appealing representation of their resume data.\n\n**Setup Instructions:**\n1. **Configure Credentials:** Connect your **Telegram**, **Google Gemini**, **Google Sheets**, **CloudConvert**, and **BrowserAct** accounts in n8n.\n2. **Prepare BrowserAct:** Ensure the \"AI Resume Replicant\" template is saved in your BrowserAct account.\n3. **Setup Google Sheet:** Create a new Google Sheet with the header \"Resume Details.\"\n4. **Connect Sheet:** Open the Google Sheets nodes (Clear, Get, Append) and select your newly created spreadsheet.\n5. **Configure Telegram:** Ensure your Telegram Bot is connected to the Trigger and Message nodes.\n\n**Google Sheet Headers:** To utilize this workflow, create a Google Sheet with the following header:\n- Resume Details\n\n**Requirements:**\n- A **BrowserAct** account with the \"AI Resume Replicant\" template.\n- A **Google Gemini** account.\n- A **Telegram** account with a Bot Token.\n- A **CloudConvert** account.\n- A **Google Sheets** account.\n\n**Customization Options:**\n1. **Refine Design Logic:** Modify the system prompt in the \"Resume Writer\" agent to adjust how the AI matches industries to design styles (e.g., enforcing specific colors for certain roles).\n2. **Change Output Format:** Replace the Telegram response node with a Google Drive node to save the generated images as PDF or PNG files instead of sending them directly.\n3. **Switch Image Model:** Update the \"Generate an image\" node to utilize a different image generation model if desired (e.g., OpenAI DALL-E).\n\nFor additional assistance, refer to the following resources:\n- How to Find Your BrowserAct API Key & Workflow ID\n- How to Connect n8n to BrowserAct\n- How to Use & Customize BrowserAct Templates\n\nThis structured workflow description provides a comprehensive overview of the process, ensuring clarity and completeness for optimal workflow generation.",
+  "error": null,
+  "generated_at": "2026-01-25T23:51:58.657298",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 0.2222222222222222,
+    "node_type_f1": 0.32432432432432434,
+    "tp": 6,
+    "fp": 4,
+    "fn": 21,
+    "gt_node_count": 27,
+    "llm_node_count": 10,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 20,
+    "llm_connection_count": 10,
+    "avg_parameter_accuracy": 0.35714285714285715,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4633,
+        "completion_tokens": 1570,
+        "total_tokens": 6203
+      },
+      "description_optimization": {
+        "prompt_tokens": 1008,
+        "completion_tokens": 872,
+        "total_tokens": 1880
+      },
+      "total_tokens": 8083,
+      "total_prompt_tokens": 5641,
+      "total_completion_tokens": 2442
+    },
+    "total_cost": 0.0385225,
+    "description_optimization_cost": 0.01124,
+    "workflow_generation_cost": 0.0272825
+  }
+}

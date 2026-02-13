@@ -1,0 +1,294 @@
+{
+  "template_id": "4767",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a form submission, so a webhook trigger is appropriate.",
+      "data_sources": "Anthropic API for prompt optimization, Fal.ai API for video generation, Google Drive API for video upload.",
+      "operations": "1. Receive form data, 2. Optimize prompt with Anthropic API, 3. Generate video with Fal.ai API, 4. Wait for processing, 5. Check video status, 6. Retrieve video URL, 7. Download video, 8. Upload to Google Drive, 9. Notify user with video link.",
+      "output_actions": "Provide the user with a link to the video stored in Google Drive.",
+      "nodes_plan": "webhook (trigger), httpRequest (Anthropic API), httpRequest (Fal.ai API), wait, httpRequest (check status), httpRequest (get video URL), httpRequest (download video), googleDrive (upload), set (completion message)",
+      "connections_plan": "webhook -> httpRequest (Anthropic) -> httpRequest (Fal.ai) -> wait -> httpRequest (check status) -> [loop or proceed] -> httpRequest (get video URL) -> httpRequest (download video) -> googleDrive -> set (completion message)"
+    },
+    "workflowPlan": {
+      "name": "VEO3 Video Generator Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "VEO3 Generator Form",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "veo3-video-generator"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Optimize Prompt",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.anthropic.com/claude",
+            "body": {
+              "text": "={{ $json.body.videoIdea }}",
+              "model": "claude-4-sonnet"
+            },
+            "authentication": "anthropicApi"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create VEO3 Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.ai/veo3",
+            "body": {
+              "prompt": "={{ $json.text }}",
+              "format": "16:9",
+              "duration": 8
+            },
+            "authentication": "falApi"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait 30 seconds",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": 30
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check VEO3 Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.fal.ai/veo3/status",
+            "queryParameters": [
+              {
+                "name": "videoId",
+                "value": "={{ $json.videoId }}"
+              }
+            ],
+            "authentication": "falApi"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Get VEO3 Video URL",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.fal.ai/veo3/video",
+            "queryParameters": [
+              {
+                "name": "videoId",
+                "value": "={{ $json.videoId }}"
+              }
+            ],
+            "authentication": "falApi"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Download VEO3 Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.videoUrl }}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Save Video to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "generated_video.mp4",
+            "fileContent": "={{ $json.file }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Video Output",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "message",
+                  "value": "Video generation complete. Access your video here: {{ $json.webViewLink }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4519,
+      "completion_tokens": 1540,
+      "total_tokens": 6059
+    },
+    "description_optimization": {
+      "prompt_tokens": 1002,
+      "completion_tokens": 758,
+      "total_tokens": 1760
+    },
+    "total_tokens": 7819,
+    "total_prompt_tokens": 5521,
+    "total_completion_tokens": 2298
+  },
+  "description_optimization": {
+    "template_id": "4767",
+    "optimized_description": "Workflow Title: VEO3 Video Generator Workflow\n\nTrigger: The workflow is initiated when a user submits a video idea through the VEO3 Generator Form, which serves as a web interface for inputting video content, format, and duration.\n\nData Sources and APIs Required:\n1. Anthropic API (Claude 4 Sonnet) for intelligent prompt optimization. Documentation available at: https://docs.n8n.io/integrations/builtin/credentials/anthropic/\n2. Fal.ai API (VEO3 Model) for video generation. Create an API key at: https://fal.ai/dashboard/keys\n3. Google Drive API for uploading and sharing generated videos. Documentation available at: https://docs.n8n.io/integrations/builtin/credentials/google/\n\nWorkflow Operations and Processing Steps:\n1. **VEO3 Generator Form**: Users input their video ideas, including content, format, and desired duration.\n2. **Video Prompt Generator**: The Claude 4 Sonnet AI agent processes the user input to:\n   - Analyze the requirements for video content.\n   - Create factual and professional video titles.\n   - Generate detailed VEO3 prompts that include subject, context, action, style, camera motion, composition, ambiance, and audio elements.\n   - Optimize prompts specifically for a 16:9 landscape format and an 8-second duration.\n3. **Create VEO3 Video**: The optimized prompt is submitted to the fal.ai VEO3 API to initiate video generation.\n4. **Wait 30 seconds**: The workflow includes an initial waiting period to allow video processing to begin.\n5. **Check VEO3 Status**: The workflow continuously monitors the video generation status through the fal.ai API.\n6. **Video completed?**: A decision node checks if the video generation is finished:\n   - If not completed, the workflow returns to the wait cycle.\n   - If completed, the workflow proceeds to video retrieval.\n7. **Get VEO3 Video URL**: The final video download URL is retrieved from the fal.ai API.\n8. **Download VEO3 Video**: The generated MP4 video file is downloaded.\n9. **Merge**: The video data is combined with relevant metadata for final processing.\n10. **Save Video to Google Drive**: The completed video is uploaded to a specified folder in Google Drive.\n11. **Video Output**: A completion message is displayed to the user, including a link to the video stored in Google Drive.\n\nFinal Output or Action: The workflow concludes by providing the user with a completion message that includes a link to the generated video stored in Google Drive, allowing for easy access and sharing.\n\nWorkflow Features:\n- User-friendly web form for easy video content input.\n- AI-powered prompt optimization using Claude 4 Sonnet for professional video prompts.\n- Automatic video generation leveraging Google's VEO3 model via fal.ai.\n- Real-time status monitoring of video generation progress.\n- Seamless integration with Google Drive for automatic video upload and sharing.\n- Consistent video titles and professional prompt formatting.\n- Native audio generation by VEO3, including ambient sounds and music.\n\nCurrent Limitations:\n- Only 16:9 landscape videos are supported.\n- Only 8-second videos can be generated.\n- Video processing typically takes between 60-120 seconds.\n\nUse Cases:\n- Content creation for social media, websites, and presentations.\n- Development of marketing materials, including promotional videos and advertisements.\n- Production of educational content, such as instructional and explanatory videos.\n- Rapid prototyping for video concept development and testing.\n- Generation of artistic and experimental video projects.\n- Creation of professional video content for business presentations and pitches. \n\nFor any questions, please feel free to contact me via LinkedIn.",
+    "original_description": "# Welcome to my VEO3 Video Generator Workflow!\n\nThis automated workflow transforms simple text descriptions into professional 8-second videos using Google's cutting-edge VEO3 AI model. Users submit video ideas through a web form, and the system automatically generates optimized prompts, creates high-quality videos with native audio, and delivers them via Google Drive - all powered by Claude 4 Sonnet for intelligent prompt optimization.\n\n![image.png](fileId:1453)\n\n## This workflow has the following sequence:\n1. **VEO3 Generator Form** - Web form interface for users to input video content, format, and duration\n2. **Video Prompt Generator** - AI agent powered by Claude 4 Sonnet that:\n   - Analyzes user input for video content requirements\n   - Creates factual, professional video titles\n   - Generates detailed VEO3 prompts with subject, context, action, style, camera motion, composition, ambiance, and audio elements\n   - Optimizes prompts for 16:9 landscape format and 8-second duration\n3. **Create VEO3 Video** - Submits the optimized prompt to fal.ai VEO3 API for video generation\n4. **Wait 30 seconds** - Initial waiting period for video processing to begin\n5. **Check VEO3 Status** - Monitors the video generation status via fal.ai API\n6. **Video completed?** - Decision node that checks if video generation is finished\n   - If not completed: Returns to wait cycle\n   - If completed: Proceeds to video retrieval\n7. **Get VEO3 Video URL** - Retrieves the final video download URL from fal.ai\n8. **Download VEO3 Video** - Downloads the generated MP4 video file\n9. **Merge** - Combines video data with metadata for final processing\n10. **Save Video to Google Drive** - Uploads the video to specified Google Drive folder\n11. **Video Output** - Displays completion message with Google Drive link to user\n\n## The following accesses are required for the workflow:\n- **Anthropic API** (Claude 4 Sonnet): [Documentation](https://docs.n8n.io/integrations/builtin/credentials/anthropic/)\n- **Fal.ai API** (VEO3 Model): Create API key at [https://fal.ai/dashboard/keys](https://fal.ai/dashboard/keys)\n- **Google Drive API**: [Documentation](https://docs.n8n.io/integrations/builtin/credentials/google/)\n\n## Workflow Features:\n- **User-friendly web form**: Simple interface for video content input\n- **AI-powered prompt optimization**: Claude 4 Sonnet creates professional VEO3 prompts\n- **Automatic video generation**: Leverages Google's VEO3 model via fal.ai\n- **Status monitoring**: Real-time tracking of video generation progress\n- **Google Drive integration**: Automatic upload and sharing of generated videos\n- **Structured output**: Consistent video titles and professional prompt formatting\n- **Audio optimization**: VEO3's native audio generation with ambient sounds and music\n\n## Current Limitations:\n- **Format**: Only 16:9 landscape videos supported\n- **Duration**: Only 8-second videos supported\n- **Processing time**: Videos typically take 60-120 seconds to generate\n\n## Use Cases:\n- **Content creation**: Generate videos for social media, websites, and presentations\n- **Marketing materials**: Create promotional videos and advertisements\n- **Educational content**: Produce instructional and explanatory videos\n- **Prototyping**: Rapid video concept development and testing\n- **Creative projects**: Artistic and experimental video generation\n- **Business presentations**: Professional video content for meetings and pitches\n\nFeel free to [contact me via LinkedIn](https://www.linkedin.com/in/friedemann-schuetz), if you have any questions!",
+    "description_length": 3663,
+    "usage": {
+      "prompt_tokens": 1002,
+      "completion_tokens": 758,
+      "total_tokens": 1760
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:46:02.422737"
+  },
+  "original_description": "# Welcome to my VEO3 Video Generator Workflow!\n\nThis automated workflow transforms simple text descriptions into professional 8-second videos using Google's cutting-edge VEO3 AI model. Users submit video ideas through a web form, and the system automatically generates optimized prompts, creates high-quality videos with native audio, and delivers them via Google Drive - all powered by Claude 4 Sonnet for intelligent prompt optimization.\n\n![image.png](fileId:1453)\n\n## This workflow has the following sequence:\n1. **VEO3 Generator Form** - Web form interface for users to input video content, format, and duration\n2. **Video Prompt Generator** - AI agent powered by Claude 4 Sonnet that:\n   - Analyzes user input for video content requirements\n   - Creates factual, professional video titles\n   - Generates detailed VEO3 prompts with subject, context, action, style, camera motion, composition, ambiance, and audio elements\n   - Optimizes prompts for 16:9 landscape format and 8-second duration\n3. **Create VEO3 Video** - Submits the optimized prompt to fal.ai VEO3 API for video generation\n4. **Wait 30 seconds** - Initial waiting period for video processing to begin\n5. **Check VEO3 Status** - Monitors the video generation status via fal.ai API\n6. **Video completed?** - Decision node that checks if video generation is finished\n   - If not completed: Returns to wait cycle\n   - If completed: Proceeds to video retrieval\n7. **Get VEO3 Video URL** - Retrieves the final video download URL from fal.ai\n8. **Download VEO3 Video** - Downloads the generated MP4 video file\n9. **Merge** - Combines video data with metadata for final processing\n10. **Save Video to Google Drive** - Uploads the video to specified Google Drive folder\n11. **Video Output** - Displays completion message with Google Drive link to user\n\n## The following accesses are required for the workflow:\n- **Anthropic API** (Claude 4 Sonnet): [Documentation](https://docs.n8n.io/integrations/builtin/credentials/anthropic/)\n- **Fal.ai API** (VEO3 Model): Create API key at [https://fal.ai/dashboard/keys](https://fal.ai/dashboard/keys)\n- **Google Drive API**: [Documentation](https://docs.n8n.io/integrations/builtin/credentials/google/)\n\n## Workflow Features:\n- **User-friendly web form**: Simple interface for video content input\n- **AI-powered prompt optimization**: Claude 4 Sonnet creates professional VEO3 prompts\n- **Automatic video generation**: Leverages Google's VEO3 model via fal.ai\n- **Status monitoring**: Real-time tracking of video generation progress\n- **Google Drive integration**: Automatic upload and sharing of generated videos\n- **Structured output**: Consistent video titles and professional prompt formatting\n- **Audio optimization**: VEO3's native audio generation with ambient sounds and music\n\n## Current Limitations:\n- **Format**: Only 16:9 landscape videos supported\n- **Duration**: Only 8-second videos supported\n- **Processing time**: Videos typically take 60-120 seconds to generate\n\n## Use Cases:\n- **Content creation**: Generate videos for social media, websites, and presentations\n- **Marketing materials**: Create promotional videos and advertisements\n- **Educational content**: Produce instructional and explanatory videos\n- **Prototyping**: Rapid video concept development and testing\n- **Creative projects**: Artistic and experimental video generation\n- **Business presentations**: Professional video content for meetings and pitches\n\nFeel free to [contact me via LinkedIn](https://www.linkedin.com/in/friedemann-schuetz), if you have any questions!",
+  "optimized_description": "Workflow Title: VEO3 Video Generator Workflow\n\nTrigger: The workflow is initiated when a user submits a video idea through the VEO3 Generator Form, which serves as a web interface for inputting video content, format, and duration.\n\nData Sources and APIs Required:\n1. Anthropic API (Claude 4 Sonnet) for intelligent prompt optimization. Documentation available at: https://docs.n8n.io/integrations/builtin/credentials/anthropic/\n2. Fal.ai API (VEO3 Model) for video generation. Create an API key at: https://fal.ai/dashboard/keys\n3. Google Drive API for uploading and sharing generated videos. Documentation available at: https://docs.n8n.io/integrations/builtin/credentials/google/\n\nWorkflow Operations and Processing Steps:\n1. **VEO3 Generator Form**: Users input their video ideas, including content, format, and desired duration.\n2. **Video Prompt Generator**: The Claude 4 Sonnet AI agent processes the user input to:\n   - Analyze the requirements for video content.\n   - Create factual and professional video titles.\n   - Generate detailed VEO3 prompts that include subject, context, action, style, camera motion, composition, ambiance, and audio elements.\n   - Optimize prompts specifically for a 16:9 landscape format and an 8-second duration.\n3. **Create VEO3 Video**: The optimized prompt is submitted to the fal.ai VEO3 API to initiate video generation.\n4. **Wait 30 seconds**: The workflow includes an initial waiting period to allow video processing to begin.\n5. **Check VEO3 Status**: The workflow continuously monitors the video generation status through the fal.ai API.\n6. **Video completed?**: A decision node checks if the video generation is finished:\n   - If not completed, the workflow returns to the wait cycle.\n   - If completed, the workflow proceeds to video retrieval.\n7. **Get VEO3 Video URL**: The final video download URL is retrieved from the fal.ai API.\n8. **Download VEO3 Video**: The generated MP4 video file is downloaded.\n9. **Merge**: The video data is combined with relevant metadata for final processing.\n10. **Save Video to Google Drive**: The completed video is uploaded to a specified folder in Google Drive.\n11. **Video Output**: A completion message is displayed to the user, including a link to the video stored in Google Drive.\n\nFinal Output or Action: The workflow concludes by providing the user with a completion message that includes a link to the generated video stored in Google Drive, allowing for easy access and sharing.\n\nWorkflow Features:\n- User-friendly web form for easy video content input.\n- AI-powered prompt optimization using Claude 4 Sonnet for professional video prompts.\n- Automatic video generation leveraging Google's VEO3 model via fal.ai.\n- Real-time status monitoring of video generation progress.\n- Seamless integration with Google Drive for automatic video upload and sharing.\n- Consistent video titles and professional prompt formatting.\n- Native audio generation by VEO3, including ambient sounds and music.\n\nCurrent Limitations:\n- Only 16:9 landscape videos are supported.\n- Only 8-second videos can be generated.\n- Video processing typically takes between 60-120 seconds.\n\nUse Cases:\n- Content creation for social media, websites, and presentations.\n- Development of marketing materials, including promotional videos and advertisements.\n- Production of educational content, such as instructional and explanatory videos.\n- Rapid prototyping for video concept development and testing.\n- Generation of artistic and experimental video projects.\n- Creation of professional video content for business presentations and pitches. \n\nFor any questions, please feel free to contact me via LinkedIn.",
+  "error": null,
+  "generated_at": "2026-01-25T22:46:19.360137",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.46153846153846156,
+    "node_type_f1": 0.5454545454545455,
+    "tp": 6,
+    "fp": 3,
+    "fn": 7,
+    "gt_node_count": 13,
+    "llm_node_count": 9,
+    "connection_precision": 0.5,
+    "connection_recall": 0.25,
+    "connection_f1": 0.3333333333333333,
+    "correct_connections": 3,
+    "gt_connection_count": 12,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.018518518518518517,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4519,
+        "completion_tokens": 1540,
+        "total_tokens": 6059
+      },
+      "description_optimization": {
+        "prompt_tokens": 1002,
+        "completion_tokens": 758,
+        "total_tokens": 1760
+      },
+      "total_tokens": 7819,
+      "total_prompt_tokens": 5521,
+      "total_completion_tokens": 2298
+    },
+    "total_cost": 0.036782499999999996,
+    "description_optimization_cost": 0.010085,
+    "workflow_generation_cost": 0.0266975
+  }
+}

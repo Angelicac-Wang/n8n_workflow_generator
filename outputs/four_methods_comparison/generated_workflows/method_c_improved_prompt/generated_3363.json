@@ -1,0 +1,181 @@
+{
+  "template_id": "3363",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook to start the conversation with the candidate.",
+      "data_sources": "Google Calendar API to check availability and OpenAI API for conversational AI capabilities.",
+      "operations": "1. Trigger on webhook, 2. Engage candidate with AI, 3. Check calendar availability, 4. Generate available time slots, 5. Book meeting on calendar, 6. Confirm appointment with candidate.",
+      "output_actions": "The final output is a booked meeting on Google Calendar and a confirmation message sent to the candidate.",
+      "nodes_plan": "webhook (trigger), openAi (conversation), googleCalendar (check availability), code (generate slots), googleCalendar (create event), set (confirmation message)",
+      "connections_plan": "webhook -> openAi -> googleCalendar (check) -> code (generate slots) -> googleCalendar (create event) -> set (confirmation)"
+    },
+    "workflowPlan": {
+      "name": "Interview Scheduler",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Candidate Chat",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "candidate-chat"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Interview Scheduler",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.message }}",
+            "model": "gpt-4o"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Availability",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "calendarId": "primary",
+            "timeMin": "={{ $json.timeMin }}",
+            "timeMax": "={{ $json.timeMax }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate 30 Minute Timeslots",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const startHour = 9;\nconst endHour = 17;\nconst timeZone = 'America/New_York';\nconst slots = [];\n// Generate slots logic here\nreturn slots;"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Book Meeting",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendarId": "primary",
+            "start": "={{ $json.start }}",
+            "end": "={{ $json.end }}",
+            "summary": "Interview with Candidate",
+            "attendees": "={{ $json.attendees }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Final Response to User",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "confirmationMessage",
+                  "value": "Your interview is scheduled for {{ $json.start }}. You will receive a calendar invite shortly."
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4870,
+    "completion_tokens": 1031,
+    "total_tokens": 5901
+  },
+  "description_optimization": null,
+  "original_description": "\u2728 Overview\n\nThis workflow allows candidates to schedule interviews through a conversational AI assistant. It integrates with your Google Calendar to check for existing events and generates a list of available 30-minute weekday slots between 9 AM and 5 PM Eastern Time. Once the candidate selects a suitable time and provides their contact information, the AI bot automatically books the meeting on your calendar and confirms the appointment.\n\n\u26a1 Prerequisites\n\nTo use this workflow, you need an OpenAI account with access to the GPT-4o model, a Google account with a calendar that can be accessed through the Google Calendar API, and an active instance of n8n\u2014either self-hosted or via n8n cloud. Within n8n, you must have two credential configurations ready: one for Google Calendar using OAuth2 authentication, and another for your OpenAI API key.\n\n\ud83d\udd10 API Credentials Setup\n\nFor Google Calendar, go to the Google Cloud Console and create a new project. Enable the Google Calendar API, then create OAuth2 credentials by selecting \u201cWeb Application\u201d as the application type. Add http://localhost:5678/rest/oauth2-credential/callback as the redirect URI if using local n8n. After that, go to n8n, navigate to the Credentials section, and create a new Google Calendar OAuth2 credential using your account. For OpenAI, visit platform.openai.com to retrieve your API key. Then go to the n8n Credentials page, create a new credential for OpenAI, paste your key, and name it for reference.\n\n\ud83d\udd27 How to Make This Workflow Yours\n\nTo customize the workflow for your use, start by replacing all instances of the calendar email rbreen.ynteractive@gmail.com with your own Google Calendar email. This email is referenced in multiple places, including Google Calendar nodes and the ToolWorkflow JSON for the node named \"Run Get Availability.\" Also update any instances where the Google Calendar credential is labeled as Google Calendar account to match your own credential name within n8n. Do the same for the OpenAI credential label, replacing OpenAi account with the name of your own credential.\n\nNext, go to the node labeled Candidate Chat and copy the webhook URL. This is the public chat interface where candidates will engage with the bot\u2014share this URL with them through email, your website, or anywhere you want to allow access. Optionally, you can also tweak the system message in the Interview Scheduler node to modify the tone, language, or logic used during conversations. If you want to add branding, update the title, subtitle, and inputPlaceholder in the Candidate Chat node, and consider modifying the final confirmation message in Final Response to User to reflect your brand voice. You can also update the business rules such as time zone, working hours, or default duration by editing the logic in the Generate 30 Minute Timeslots code node.\n\n\ud83e\udde9 Workflow Explanation\n\nThis workflow begins with the Candidate Chat node, which triggers when a user visits the public chat URL. The Interview Scheduler node acts as an AI agent, guiding the user through providing their email, phone number, and preferred interview time. It checks availability using the Run Get Availability tool, which in turn reads your calendar and compares it with generated free time slots from the Generate 30 Minute Timeslots node. The check day names tool helps the AI interpret natural language date expressions like \u201cnext Tuesday.\u201d\n\nThe schedule is only populated with 30-minute weekday slots from 9 AM to 5 PM Eastern Time, and no events are scheduled if they overlap with existing ones. When a suitable time is confirmed, the AI formats the result into structured JSON, creates an event on your Google Calendar, and sends a confirmation back to the user with all relevant meeting details.\n\n\ud83d\ude80 Deployment Steps\n\nTo deploy the interview scheduler, import the provided workflow JSON into your n8n instance. Update the Google Calendar email, OpenAI and Google credential labels, system prompts, and branding as needed. Test the connections to ensure the API credentials are working correctly. Once everything is configured, copy and share the public chat URL from the Candidate Chat node. When candidates engage with the chat, the workflow will walk them through the interview booking process, check your availability, and finalize the booking automatically.\n\n\ud83d\udca1 Additional Tips\n\nBy default, the workflow avoids scheduling interviews on weekends and outside of 9\u20135 EST. Each interview lasts exactly 30 minutes, and overlapping with existing events is prevented. The assistant does not reveal details about other meetings. You can customize every part of this workflow to fit your use case, including subworkflows like Get Availability and check day names, or even white-label it for client use. This workflow is ready to become your AI-powered interview scheduling assistant.\n\n## \ud83e\udd1d Connect with Me\n\n## Description  \nI\u2019m Robert Breen, founder of Ynteractive \u2014 a consulting firm that helps businesses automate operations using **n8n**, **AI agents**, and custom workflows. I\u2019ve helped clients build everything from intelligent chatbots to complex sales automations, and I\u2019m always excited to collaborate or support new projects.\n\nIf you found this workflow helpful or want to talk through an idea, I\u2019d love to hear from you.\n\n## Links  \n\ud83c\udf10 Website: [https://www.ynteractive.com](https://www.ynteractive.com)  \n\ud83d\udcfa YouTube: [@ynteractivetraining](https://www.youtube.com/@ynteractivetraining)  \n\ud83d\udcbc LinkedIn: [https://www.linkedin.com/in/robert-breen](https://www.linkedin.com/in/robert-breen)  \n\ud83d\udcec Email: rbreen@ynteractive.com",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:49:09.855897",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.18181818181818182,
+    "node_type_f1": 0.28571428571428575,
+    "tp": 4,
+    "fp": 2,
+    "fn": 18,
+    "gt_node_count": 22,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.07692307692307693,
+    "connection_f1": 0.1111111111111111,
+    "correct_connections": 1,
+    "gt_connection_count": 13,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.25,
+    "usage": {
+      "prompt_tokens": 4870,
+      "completion_tokens": 1031,
+      "total_tokens": 5901
+    },
+    "total_cost": 0.022485000000000005
+  }
+}

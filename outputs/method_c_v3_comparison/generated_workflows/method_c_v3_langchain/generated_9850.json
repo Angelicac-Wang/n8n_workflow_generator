@@ -1,0 +1,195 @@
+{
+  "template_id": "9850",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation workflow with AI-powered calling and calendar integration. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered by a message received on Telegram, so a Telegram trigger is needed.",
+      "data_sources": "Telegram API for receiving messages and sending notifications, calendar API for checking availability, telephony API for making calls.",
+      "operations": "1. Receive message from Telegram, 2. Parse intent and details from message, 3. Check calendar availability, 4. Make AI-powered calls to schedule viewings and reservations, 5. Send confirmation back to Telegram, 6. Optionally update calendar with confirmed bookings.",
+      "output_actions": "Send a summary of the confirmed bookings back to the user on Telegram.",
+      "nodes_plan": "telegramTrigger (trigger), parseMessage (code), checkCalendar (httpRequest), makeCall (httpRequest), sendTelegramMessage (telegram), updateCalendar (httpRequest)",
+      "connections_plan": "telegramTrigger -> parseMessage -> checkCalendar -> makeCall -> sendTelegramMessage -> updateCalendar"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Booking Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "={{ $credentials.telegramApi.botToken }}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Message",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const message = $json.body.message.text;\n// Implement parsing logic here\nreturn { data: { intent: 'viewing', details: message } };"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Calendar",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.calendar.com/checkAvailability",
+            "queryParameters": [
+              {
+                "name": "timeWindow",
+                "value": "={{ $json.data.details.timeWindow }}"
+              }
+            ],
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credentials": "={{ $credentials.calendarApi }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Make AI Call",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.telephony.com/makeCall",
+            "body": {
+              "intent": "={{ $json.data.intent }}",
+              "details": "={{ $json.data.details }}"
+            },
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credentials": "={{ $credentials.telephonyApi }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.body.message.chat.id }}",
+            "text": "Booking confirmed: {{ $json.data.details }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Calendar",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.calendar.com/addEvent",
+            "body": {
+              "eventDetails": "={{ $json.data.details }}"
+            },
+            "authentication": "oAuth2",
+            "oAuth2": {
+              "credentials": "={{ $credentials.calendarApi }}"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8961,
+    "completion_tokens": 1154,
+    "total_tokens": 10115
+  },
+  "description_optimization": null,
+  "original_description": "![image.png](fileId:3007)\n\nThis automation template is an AI-powered booking agent that schedules property viewings and reserves restaurant tables for you, all coordinated through Telegram. It checks your calendar to avoid conflicts, places the calls on your behalf, negotiates times, confirms details, and delivers a crisp summary back to Telegram\u2014hands-free.\n\n***Note: This workflow uses a voice-calling provider for outbound calls, your calendar for availability, and Telegram for notifications. Usage costs depend on your telephony provider, call duration, and any API usage.***\n\n## Who Is This For?\n- **Home Buyers & Renters:** Queue up and confirm viewings without calling around.\n- **Real Estate Agents & Property Managers:** Automate client viewing scheduling and confirmations.\n- **Relocation Specialists & Assistants:** Coordinate multi-property tours with calendar-aware logic.\n- **Busy Professionals:** Let AI handle restaurant bookings and post-viewing meals.\n- **Concierge & Ops Teams:** Standardize bookings with structured logs and Telegram updates.\n\n## What Problem Does This Workflow Solve?\nScheduling property viewings and restaurant tables often means endless calls, conflicts, and coordination. This workflow removes the friction by:\n- **AI Phone Calls on Your Behalf:** Natural voice calls to agents/venues to secure slots.\n- **Calendar-Aware Booking:** Checks your real-time availability and avoids overlaps.\n- **Preference Handling:** Location, budget, party size, time windows, language, and notes.\n- **Instant Telegram Summaries:** Clear outcomes (confirmed, waitlist, action needed) and quick next steps.\n- **Scalable Coordination:** Handles multiple properties and dining options with fallback logic.\n\n## How It Works\n1. **Intent Capture (Telegram):** You send a simple message (e.g., \u201cViewings tomorrow 17:00\u201320:00, Eixample, 2-bed; table for 4 at 21:30 near there\u201d).\n2. **Calendar Check:** Reads free/busy blocks and suggests viable windows or alternatives.\n3. **AI Calling:** Places outbound calls to listing agents/restaurants, negotiates slots, and confirms.\n4. **Result Parsing:** Extracts confirmed time, address, contact name, reservation name, and special instructions.\n5. **Telegram Delivery:** Sends a concise recap plus optional quick-reply buttons (confirm/cancel/map/nav).\n6. **Optional Calendar Hold:** Adds confirmed bookings to your calendar and blocks time.\n7. **Logging (Optional):** Writes outcomes to a sheet/database for tracking and analytics.\n\n## Setup\n1. **Telephony Provider:** Connect your AI calling service (API key). Configure voice/language.\n2. **Calendar Access:** Link Google Calendar (or similar). Grant read (and optionally write) access.\n3. **Telegram Bot:** Create a bot with BotFather and add the bot token to credentials.\n4. **Environment/Credentials:** Store calling API token, calendar credentials, Telegram token in n8n.\n5. **Preferences:** Set defaults for viewings (areas, price range, time windows) and dining (party size, cuisine, budget).\n6. **Test Run:** Trial a single booking to verify calling, calendar sync, and Telegram delivery.\n\n## Requirements\n- **Accounts:** n8n, telephony provider, calendar account, Telegram bot.\n- **API Keys:** Telephony API token, Calendar credentials, Telegram bot token.\n- **Permissions:** Calendar read (and write if auto-blocking); outbound calls enabled.\n- **Budget:** Telephony per-minute fees and minor API costs where applicable.\n\n## Features\n- **Dual-Domain Booking:** Property viewings + restaurant tables in one flow.\n- **Calendar Intelligence:** Checks conflicts and proposes best-fit time slots.\n- **Telegram-Native UX:** Simple prompts, instant confirmations, and quick actions.\n- **Preference Profiles:** Time windows, neighborhoods, max budget, language, and notes.\n- **Fallbacks & Alternatives:** Suggests nearby times/venues if first choice is unavailable.\n- **Multilingual Voice:** Configure voice and language to match region/venue.\n- **Structured Logs:** Optional recording of outcomes for reporting and audits.\n- **Extensible:** Add CRM, maps, SMS, or payment links as needed.\n\nAutomate your day from tours to tables: message your intent on Telegram, and let the AI book, confirm, and keep your calendar clean\u2014so you just show up on time.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:14:27.248315",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.19047619047619047,
+    "node_type_f1": 0.2962962962962963,
+    "tp": 4,
+    "fp": 2,
+    "fn": 17,
+    "gt_node_count": 21,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 7,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.03125,
+    "usage": {
+      "prompt_tokens": 8961,
+      "completion_tokens": 1154,
+      "total_tokens": 10115
+    },
+    "total_cost": 0.0339425
+  },
+  "is_ai_workflow": false
+}

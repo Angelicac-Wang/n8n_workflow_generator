@@ -1,0 +1,243 @@
+{
+  "template_id": 10212,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated Video Creation and Posting",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "form-submission"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Process Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/check-status",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Wait 60 Seconds",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 60
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check If Process Completed",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "value2": "completed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/create-video",
+            "method": "POST",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Retrieve Video URL",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/get-video-url",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Retrieve Video File",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"videoUrl\"]}}",
+            "method": "GET",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Video Title",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Generate a suitable title for the video.",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Upload to Postiz",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://postiz.com/api/upload",
+            "method": "POST",
+            "responseFormat": "json",
+            "body": {
+              "videoFile": "={{$binary[\"data\"]}}",
+              "title": "={{$json[\"title\"]}}"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Post to TikTok",
+          "nodeType": "n8n-nodes-base.postiz",
+          "typeVersion": 1,
+          "params": {
+            "action": "postToTikTok",
+            "videoId": "={{$json[\"videoId\"]}}"
+          },
+          "position": {
+            "x": 2000,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 657,
+    "completion_tokens": 1225,
+    "total_tokens": 1882
+  },
+  "error": null,
+  "generated_at": "2026-01-13T03:00:21.004228",
+  "generated_description": "This n8n workflow is initiated by a form submission, which serves as the trigger for the sequence of actions. Upon receiving a form submission, the workflow first sends an HTTP request to check the status of a particular process. It then waits for 60 seconds before proceeding to evaluate whether the process is completed using an \"if\" condition.\n\nIf the process is deemed complete, the workflow continues by creating a video through another HTTP request. Once the video is created, it retrieves the video URL and subsequently the video file itself via additional HTTP requests. Following this, the workflow utilizes OpenAI to generate a suitable title for the video.\n\nThe video, along with its generated title, is then uploaded to Postiz, a platform for managing social media posts, via an HTTP request. Finally, the video is posted on TikTok using the Postiz integration. The workflow effectively automates the process of creating, titling, and posting a video to TikTok following a form submission.",
+  "description_generation_usage": {
+    "prompt_tokens": 214,
+    "completion_tokens": 195,
+    "total_tokens": 409
+  },
+  "metrics": {
+    "node_type_precision": 0.9,
+    "node_type_recall": 0.9,
+    "node_type_f1": 0.9,
+    "tp": 9,
+    "fp": 1,
+    "fn": 1,
+    "gt_node_count": 10,
+    "llm_node_count": 10,
+    "connection_precision": 0.75,
+    "connection_recall": 0.6,
+    "connection_f1": 0.6666666666666665,
+    "correct_connections": 6,
+    "gt_connection_count": 10,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.16203703703703703,
+    "usage": {
+      "prompt_tokens": 657,
+      "completion_tokens": 1225,
+      "total_tokens": 1882
+    },
+    "total_cost": 0.0163775,
+    "description_generation_cost": 0.0024850000000000002,
+    "workflow_generation_cost": 0.0138925
+  },
+  "original_description": "This automation creates a fully integrated pipeline to **generate AI-powered videos**, **store them**, and **publish them on TikTok** \u2014 all automatically.\nIt connects **OpenAI Sora 2**, and **Postiz (for TikTok publishing)** to streamline content creation.\n\n---\n\n### **Key Benefits**\n\n\u2705 **Full Automation** \u2013 From text prompt to TikTok upload, everything happens automatically with no manual intervention once set up.\n\u2705 **Centralized Control** \u2013 Google Sheets acts as a simple dashboard to manage prompts, durations, and generated results.\n\u2705 **AI-Powered Creativity** \u2013 Uses **OpenAI Sora 2** for realistic video generation and **GPT-5** for optimized titles.\n\u2705 **Social Media Integration** \u2013 Seamlessly posts videos to **TikTok** via **Postiz**, ready for your audience.\n\u2705 **Scalable & Customizable** \u2013 Can easily be extended to other platforms like YouTube, Instagram, or LinkedIn.\n\u2705 **Time-Saving** \u2013 Eliminates repetitive steps like manual video uploads or caption writing.\n\n---\n\n### How it works\n\nThis workflow automates the end-to-end process of generating AI videos and publishing them to TikTok. It is triggered either manually or on a recurring schedule.\n\n1.  **Trigger & Data Fetch:** The workflow starts by checking a specified Form for new entries. It looks for rows where a video has been requested (a \"PROMPT\" is filled) but not yet generated (the \"VIDEO\" column is empty).\n\n2.  **AI Video Generation:** For each new prompt found, the workflow sends a request to the **Fal.ai Sora 2** model to generate a video. It then enters a polling loop, repeatedly checking the status of the generation request every 60 seconds until the video is \"COMPLETED\".\n\n3.  **Post-Processing & Upload:** Once the video is ready, the workflow performs several actions in parallel:\n    *   **Fetch Video & Store:** It retrieves the final video URL, downloads the video file\n    *   **Generate Title:** It uses the **OpenAI GPT-4o-mini** model to analyze the original prompt and generate an optimized, engaging title for the video.\n    *   **Publish to TikTok:** The video file is uploaded to **Postiz**, a social media scheduling tool, which then automatically publishes it to a connected TikTok channel, using the AI-generated title as the post's caption.\n\n---\n### Set up steps\n\nTo make this workflow functional, you need to complete the following configuration steps:\n\n1.  **Prepare the Google Sheet:**\n    *   Create a Form with at least \"PROMPT\", \"DURATION\", and \"VIDEO\" fields.\n\n2.  **Configure Fal.ai for Video Generation:**\n    *   Create an account at [Fal.ai](https://fal.ai/) and obtain your API key.\n    *   In both the **\"Create Video\"** and **\"Get status\"** HTTP Request nodes, set up the \"Header Auth\" credential.\n    *   Set the `Name` to `Authorization` and the `Value` to `Key YOUR_API_KEY`.\n\n3.  **Set up TikTok Publishing via Postiz:**\n    *   Create an account on [Postiz](https://postiz.com/) and connect your TikTok account to get a **Channel ID**.\n    *   Obtain your Postiz API key.\n    *   In the **\"Upload Video to Postiz\"** and **\"TikTok\" (Postiz)** nodes, configure the API credentials.\n    *   In the **\"TikTok\"** node, replace the placeholder `\"XXX\"` in the `integrationId` field with your actual TikTok Channel ID from Postiz.\n\n4.  **(Optional) Configure AI Title Generation:**\n    *   The **\"Generate title\"** node uses OpenAI. Ensure you have valid OpenAI API credentials configured in n8n for this node to work.\n\n---\n### **Need help customizing?**  \n[Contact me](mailto:info@n3w.it) for consulting and support or add me on [Linkedin](https://www.linkedin.com/in/davideboizza/). \n## Header 2"
+}

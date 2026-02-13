@@ -1,0 +1,153 @@
+{
+  "template_id": "2612",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'AI agent', 'conversational interactions', 'dynamic SQL querying'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Supabase PostgreSQL database accessed via LangChain tool architecture",
+      "operations": "1. Receive chat input via chatTrigger, 2. Agent orchestrates with LLM reasoning, 3. Agent calls database tool when needed, 4. Memory maintains context, 5. Return formatted response",
+      "output_actions": "Intelligent chat response back to user with database query results",
+      "nodes_plan": "chatTrigger (chat input), agent (orchestrator - REQUIRED), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context), postgresTool (database access)",
+      "connections_plan": "chatTrigger \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow, postgresTool as sub-nodes"
+    },
+    "workflowPlan": {
+      "name": "AI Database Chat Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are a helpful database assistant. Answer user questions about the database by querying it when needed. Be concise and accurate.",
+            "options": {}
+          },
+          "position": {
+            "x": 320,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 180
+          }
+        },
+        {
+          "id": "4",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 540,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Postgres Database Tool",
+          "nodeType": "n8n-nodes-base.postgresTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "description": "Query the PostgreSQL database to retrieve information"
+          },
+          "position": {
+            "x": 540,
+            "y": 420
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9275,
+    "completion_tokens": 885,
+    "total_tokens": 10160
+  },
+  "description_optimization": null,
+  "original_description": "### Video Guide\n\nI prepared a detailed guide that showed the whole process of building a resume analyzer.\n\n[![OPENAI 14.png](https://res.cloudinary.com/de9jgixzm/image/upload/v1739773279/Youtube%20Thumbs/Chat%20With%20DB.png)](https://youtu.be/-GgKzhCNxjk)\n\n### Who is this for?\nThis workflow is ideal for developers, data analysts, and business owners who want to enable conversational interactions with their database. It\u2019s particularly useful for cases where users need to extract, analyze, or aggregate data without writing SQL queries manually.\n\n### What problem does this workflow solve?\nAccessing and analyzing database data often requires SQL expertise or dedicated reports, which can be time-consuming. This workflow empowers users to interact with a database conversationally through an AI-powered agent. It dynamically generates SQL queries based on user requests, streamlining data retrieval and analysis.\n\n### What this workflow does\nThis workflow integrates OpenAI with a Supabase database, enabling users to interact with their data via an AI agent. The agent can:\n- Retrieve records from the database.\n- Extract and analyze JSON data stored in tables.\n- Provide summaries, aggregations, or specific data points based on user queries.\n\n1. **Dynamic SQL Querying**: The agent uses user prompts to create and execute SQL queries on the database.\n2. **Understand JSON Structure**: The workflow identifies JSON schema from sample records, enabling the agent to parse and analyze JSON fields effectively.\n3. **Database Schema Exploration**: It provides the agent with tools to retrieve table structures, column details, and relationships for precise query generation.\n\n### Setup\n\n#### Preparation\n1. **Create Accounts**:\n   - [N8N](https://n8n.partnerlinks.io/2hr10zpkki6a): For workflow automation.\n   - [Supabase](https://supabase.com/): For database hosting and management.\n   - [OpenAI](https://openai.com/): For building the conversational AI agent.\n2. **Configure Database Connection**:\n   - Set up a PostgreSQL database in Supabase.\n   - Use appropriate credentials (`username`, `password`, `host`, and `database` name) in your workflow.\n\n#### N8N Workflow\n\nAI agent with tools:\n\n1. **Code Tool**:\n   - Execute SQL queries based on user input.\n2. **Database Schema Tool**:\n   - Retrieve a list of all tables in the database.\n   - Use a predefined SQL query to fetch table definitions, including column names, types, and references.\n3. **Table Definition**:\n   - Retrieve a list of columns with types for one table.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:54:06.359693",
+  "metrics": {
+    "node_type_precision": 0.8,
+    "node_type_recall": 0.6666666666666666,
+    "node_type_f1": 0.7272727272727272,
+    "tp": 4,
+    "fp": 1,
+    "fn": 2,
+    "gt_node_count": 6,
+    "llm_node_count": 5,
+    "connection_precision": 0.25,
+    "connection_recall": 1.0,
+    "connection_f1": 0.4,
+    "correct_connections": 1,
+    "gt_connection_count": 1,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.125,
+    "usage": {
+      "prompt_tokens": 9275,
+      "completion_tokens": 885,
+      "total_tokens": 10160
+    },
+    "total_cost": 0.032037500000000003
+  },
+  "is_ai_workflow": true
+}

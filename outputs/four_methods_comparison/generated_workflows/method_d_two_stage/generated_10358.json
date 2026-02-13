@@ -1,0 +1,215 @@
+{
+  "template_id": "10358",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered when new ideas are added to a specified Google Sheets document, using the Google Sheets trigger node.",
+      "data_sources": "Google Sheets API, OpenAI API for GPT-4, Veo 3.1 API, Google Drive API, Blotato API.",
+      "operations": "1. Read new ideas from Google Sheets. 2. Generate story scripts using GPT-4. 3. Create cinematic videos with Veo 3.1. 4. Upload videos to Google Drive. 5. Publish videos using Blotato API. 6. Update Google Sheets with video URL and status.",
+      "output_actions": "The final output is a cinematic AI-generated video published across multiple social media platforms, with the Google Sheets updated with the video URL and status.",
+      "nodes_plan": "googleSheets (trigger), openAi (GPT-4), veoApi (video creation), googleDrive (upload), blotatoApi (publish), googleSheets (update)",
+      "connections_plan": "googleSheets -> openAi -> veoApi -> googleDrive -> blotatoApi -> googleSheets (linear flow with updates)"
+    },
+    "workflowPlan": {
+      "name": "Automate AI Video Creation & Multi-Platform Publishing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:H",
+            "triggerOn": "newRow"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Story Script",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json['idea'] }}",
+            "model": "gpt-4"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Create Cinematic Video",
+          "nodeType": "custom.veoApi",
+          "typeVersion": 1,
+          "params": {
+            "script": "={{ $json['message'] }}",
+            "imageUrls": [
+              "={{ $json['url_1'] }}",
+              "={{ $json['url_2'] }}",
+              "={{ $json['url_3'] }}"
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{ $json['id_video'] }}.mp4",
+            "fileContent": "={{ $json['videoContent'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish Video",
+          "nodeType": "custom.blotatoApi",
+          "typeVersion": 1,
+          "params": {
+            "videoUrl": "={{ $json['url_final'] }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!G:H",
+            "data": [
+              [
+                "={{ $json['url_final'] }}",
+                "Completed"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4458,
+      "completion_tokens": 1059,
+      "total_tokens": 5517
+    },
+    "description_optimization": {
+      "prompt_tokens": 1147,
+      "completion_tokens": 697,
+      "total_tokens": 1844
+    },
+    "total_tokens": 7361,
+    "total_prompt_tokens": 5605,
+    "total_completion_tokens": 1756
+  },
+  "description_optimization": {
+    "template_id": "10358",
+    "optimized_description": "Workflow Title: Automate AI Video Creation & Multi-Platform Publishing with Veo 3.1 & Blotato\n\nTrigger: The workflow is initiated when new ideas are added to a specified Google Sheets document.\n\nData Sources and APIs Needed:\n1. OpenAI API for GPT-4 (API key required)\n2. Veo 3.1 API (API key required)\n3. Google Sheets API for reading and updating data (Google Cloud Console setup required)\n4. Google Drive API for uploading videos (Google Cloud Console setup required)\n5. Blotato API for publishing videos to social media platforms (API key required)\n\nOperations and Processing Steps:\n1. **Read New Ideas**: The workflow begins by reading new entries from a designated Google Sheets document. The structure of the sheet includes:\n   - Column A: id_video\n   - Column B: niche\n   - Column C: idea\n   - Column D: url_1 (image reference 1)\n   - Column E: url_2 (image reference 2)\n   - Column F: url_3 (image reference 3)\n   - Column G: url_final (final video URL)\n   - Column H: status (to indicate if the process is completed or failed)\n\n2. **Generate Story Scripts**: Using the GPT-4 API, the workflow generates a story script based on the idea provided in Column C of the Google Sheets.\n\n3. **Create Cinematic Videos**: The workflow utilizes the Veo 3.1 API to create a cinematic video. It requires three input reference images from Columns D, E, and F, along with the generated script.\n\n4. **Upload Final Video**: Once the video is created, it is automatically uploaded to Google Drive, and the final video URL is stored in Column G of the Google Sheets.\n\n5. **Publish Video Across Platforms**: The workflow uses the Blotato API to publish the video on multiple social media platforms, including TikTok, Instagram, Facebook, X, LinkedIn, and YouTube.\n\n6. **Update Google Sheets**: After publishing, the workflow updates the Google Sheets document with the final video URL and the status of the operation (Completed or Failed) in Column H.\n\nFinal Output or Action: The expected outcome is a fully automated process that transforms a new idea into a cinematic AI-generated video within 2-3 minutes, which is then published across multiple social media channels. This workflow saves significant time on manual editing and posting, allowing content creators to focus on strategy and creativity.\n\nSetup Instructions:\n1. Create a Google Sheets document with the specified structure.\n2. Obtain and add your API keys for OpenAI, Veo 3.1, Google Cloud Console, and Blotato to the Workflow Configuration node.\n3. Populate the Google Sheets with three image URLs and a short idea.\n4. Activate the workflow and monitor the automation process.\n\nCustomization Options:\n- Adjust the video duration or aspect ratio by editing the Veo 3.1 node JSON body.\n- Modify the prompt style for GPT-4 to achieve a desired tone or cinematic look.\n- Extend the Blotato integration to include additional platforms like Pinterest, Reddit, or Threads.\n- Enable a Telegram trigger for users to submit ideas and images directly via Telegram.\n\nFor further assistance or customization inquiries, please contact via LinkedIn or YouTube. Documentation and additional resources are available through the provided Notion guide link.",
+    "original_description": "# \ud83d\udca5 Automate AI Video Creation & Multi-Platform Publishing with Veo 3.1 & Blotato\n\n![Workflow Overview](https://www.dr-firas.com/veo31.png)\n\n### \ud83c\udfaf Who is this for?\nThis workflow is designed for **content creators, marketers, and automation enthusiasts** who want to produce professional AI-generated videos and publish them automatically on social media \u2014 without editing or manual uploads. Perfect for those using **Veo 3.1**, **GPT-4**, and **Blotato** to scale video creation.\n\n---\n\n### \ud83d\udca1 What problem is this workflow solving?\nCreating short-form content (TikTok, Instagram Reels, YouTube Shorts) is time-consuming \u2014 from writing scripts to video editing and posting.  \nThis workflow eliminates the manual steps by combining **AI storytelling + video generation + automated publishing**, letting you focus on creativity while your system handles production and distribution.\n\n---\n\n### \u2699\ufe0f What this workflow does\n1. **Reads new ideas from Google Sheets**  \n2. **Generates story scripts** using GPT-4  \n3. **Creates cinematic videos** using Veo 3.1 (`fal.ai/veo3.1/reference-to-video`) with 3 input reference images  \n4. **Uploads the final video** automatically to Google Drive  \n5. **Publishes the video** across multiple platforms (TikTok, Instagram, Facebook, X, LinkedIn, YouTube) via **Blotato**  \n6. **Updates Google Sheets** with video URL and status (Completed / Failed)\n\n---\n\n### \ud83e\udde9 Setup\n**Required accounts:**\n- [OpenAI](https://platform.openai.com/api-keys) \u2192 GPT-4 API key  \n- [fal.ai](https://fal.ai/dashboard/keys) \u2192 Veo 3.1 API key  \n- [Google Cloud Console](https://console.cloud.google.com) \u2192 Sheets & Drive connection  \n- [Blotato](https://blotato.com/?ref=firas) \u2192 API key for social media publishing  \n\n**Configuration steps:**\n1. Copy the **Google Sheets structure**:  \n   - A: `id_video`  \n   - B: `niche`  \n   - C: `idea`  \n   - D: `url_1`  \n   - E: `url_2`  \n   - F: `url_3`  \n   - G: `url_final`  \n   - H: `status`  \n\n2. Add your API keys to the **Workflow Configuration** node.  \n3. Insert three image URLs and a short idea into your sheet.  \n4. Wait for the automation to process and generate your video.  \n\n---\n\n### \ud83e\udde0 How to customize this workflow\n- **Change duration or aspect ratio** \u2192 Edit the Veo 3.1 node JSON body (`duration`, `aspect_ratio`)  \n- **Modify prompt style** \u2192 Adjust the \u201cOptimize Prompt for Veo\u201d node for your desired tone or cinematic look  \n- **Add more platforms** \u2192 Extend Blotato integration to publish on Pinterest, Reddit, or Threads  \n- **Enable Telegram Trigger** \u2192 Allow users to submit ideas and images directly via Telegram  \n\n---\n\n### \ud83d\ude80 Expected Outcome\nWithin **2\u20133 minutes**, your idea is transformed into a full cinematic AI video \u2014 complete with storytelling, visuals, and automatic posting to your social media channels.  \n\nSave hours of editing and focus on strategy, creativity, and growth.\n\n---\n\n### \ud83d\udc4b Need help or want to customize this?\n\ud83d\udce9 Contact: [LinkedIn](https://www.linkedin.com/in/dr-firas/)  \n\ud83d\udcfa YouTube: [@DRFIRASS](https://www.youtube.com/@DRFIRASS)  \n\ud83d\ude80 Workshops: [Mes Ateliers n8n](https://hotm.art/formation-n8n)\n\n---\n\ud83d\udcc4 **Documentation**: [Notion Guide](https://automatisation.notion.site/Automate-AI-Video-Creation-Multi-Platform-Publishing-with-Veo-3-1-Blotato-29c3d6550fd981cd982fd4a031bdfe07?source=copy_link)\n### Need help customizing?\nContact me for consulting and support : [Linkedin](https://www.linkedin.com/in/dr-firas/) / [Youtube](https://www.youtube.com/channel/UCriIQI8uaoEro5FEnOpeidQ) / [\ud83d\ude80 Mes Ateliers n8n  ](https://hotm.art/formation-n8n)",
+    "description_length": 3194,
+    "usage": {
+      "prompt_tokens": 1147,
+      "completion_tokens": 697,
+      "total_tokens": 1844
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:39:58.067084"
+  },
+  "original_description": "# \ud83d\udca5 Automate AI Video Creation & Multi-Platform Publishing with Veo 3.1 & Blotato\n\n![Workflow Overview](https://www.dr-firas.com/veo31.png)\n\n### \ud83c\udfaf Who is this for?\nThis workflow is designed for **content creators, marketers, and automation enthusiasts** who want to produce professional AI-generated videos and publish them automatically on social media \u2014 without editing or manual uploads. Perfect for those using **Veo 3.1**, **GPT-4**, and **Blotato** to scale video creation.\n\n---\n\n### \ud83d\udca1 What problem is this workflow solving?\nCreating short-form content (TikTok, Instagram Reels, YouTube Shorts) is time-consuming \u2014 from writing scripts to video editing and posting.  \nThis workflow eliminates the manual steps by combining **AI storytelling + video generation + automated publishing**, letting you focus on creativity while your system handles production and distribution.\n\n---\n\n### \u2699\ufe0f What this workflow does\n1. **Reads new ideas from Google Sheets**  \n2. **Generates story scripts** using GPT-4  \n3. **Creates cinematic videos** using Veo 3.1 (`fal.ai/veo3.1/reference-to-video`) with 3 input reference images  \n4. **Uploads the final video** automatically to Google Drive  \n5. **Publishes the video** across multiple platforms (TikTok, Instagram, Facebook, X, LinkedIn, YouTube) via **Blotato**  \n6. **Updates Google Sheets** with video URL and status (Completed / Failed)\n\n---\n\n### \ud83e\udde9 Setup\n**Required accounts:**\n- [OpenAI](https://platform.openai.com/api-keys) \u2192 GPT-4 API key  \n- [fal.ai](https://fal.ai/dashboard/keys) \u2192 Veo 3.1 API key  \n- [Google Cloud Console](https://console.cloud.google.com) \u2192 Sheets & Drive connection  \n- [Blotato](https://blotato.com/?ref=firas) \u2192 API key for social media publishing  \n\n**Configuration steps:**\n1. Copy the **Google Sheets structure**:  \n   - A: `id_video`  \n   - B: `niche`  \n   - C: `idea`  \n   - D: `url_1`  \n   - E: `url_2`  \n   - F: `url_3`  \n   - G: `url_final`  \n   - H: `status`  \n\n2. Add your API keys to the **Workflow Configuration** node.  \n3. Insert three image URLs and a short idea into your sheet.  \n4. Wait for the automation to process and generate your video.  \n\n---\n\n### \ud83e\udde0 How to customize this workflow\n- **Change duration or aspect ratio** \u2192 Edit the Veo 3.1 node JSON body (`duration`, `aspect_ratio`)  \n- **Modify prompt style** \u2192 Adjust the \u201cOptimize Prompt for Veo\u201d node for your desired tone or cinematic look  \n- **Add more platforms** \u2192 Extend Blotato integration to publish on Pinterest, Reddit, or Threads  \n- **Enable Telegram Trigger** \u2192 Allow users to submit ideas and images directly via Telegram  \n\n---\n\n### \ud83d\ude80 Expected Outcome\nWithin **2\u20133 minutes**, your idea is transformed into a full cinematic AI video \u2014 complete with storytelling, visuals, and automatic posting to your social media channels.  \n\nSave hours of editing and focus on strategy, creativity, and growth.\n\n---\n\n### \ud83d\udc4b Need help or want to customize this?\n\ud83d\udce9 Contact: [LinkedIn](https://www.linkedin.com/in/dr-firas/)  \n\ud83d\udcfa YouTube: [@DRFIRASS](https://www.youtube.com/@DRFIRASS)  \n\ud83d\ude80 Workshops: [Mes Ateliers n8n](https://hotm.art/formation-n8n)\n\n---\n\ud83d\udcc4 **Documentation**: [Notion Guide](https://automatisation.notion.site/Automate-AI-Video-Creation-Multi-Platform-Publishing-with-Veo-3-1-Blotato-29c3d6550fd981cd982fd4a031bdfe07?source=copy_link)\n### Need help customizing?\nContact me for consulting and support : [Linkedin](https://www.linkedin.com/in/dr-firas/) / [Youtube](https://www.youtube.com/channel/UCriIQI8uaoEro5FEnOpeidQ) / [\ud83d\ude80 Mes Ateliers n8n  ](https://hotm.art/formation-n8n)",
+  "optimized_description": "Workflow Title: Automate AI Video Creation & Multi-Platform Publishing with Veo 3.1 & Blotato\n\nTrigger: The workflow is initiated when new ideas are added to a specified Google Sheets document.\n\nData Sources and APIs Needed:\n1. OpenAI API for GPT-4 (API key required)\n2. Veo 3.1 API (API key required)\n3. Google Sheets API for reading and updating data (Google Cloud Console setup required)\n4. Google Drive API for uploading videos (Google Cloud Console setup required)\n5. Blotato API for publishing videos to social media platforms (API key required)\n\nOperations and Processing Steps:\n1. **Read New Ideas**: The workflow begins by reading new entries from a designated Google Sheets document. The structure of the sheet includes:\n   - Column A: id_video\n   - Column B: niche\n   - Column C: idea\n   - Column D: url_1 (image reference 1)\n   - Column E: url_2 (image reference 2)\n   - Column F: url_3 (image reference 3)\n   - Column G: url_final (final video URL)\n   - Column H: status (to indicate if the process is completed or failed)\n\n2. **Generate Story Scripts**: Using the GPT-4 API, the workflow generates a story script based on the idea provided in Column C of the Google Sheets.\n\n3. **Create Cinematic Videos**: The workflow utilizes the Veo 3.1 API to create a cinematic video. It requires three input reference images from Columns D, E, and F, along with the generated script.\n\n4. **Upload Final Video**: Once the video is created, it is automatically uploaded to Google Drive, and the final video URL is stored in Column G of the Google Sheets.\n\n5. **Publish Video Across Platforms**: The workflow uses the Blotato API to publish the video on multiple social media platforms, including TikTok, Instagram, Facebook, X, LinkedIn, and YouTube.\n\n6. **Update Google Sheets**: After publishing, the workflow updates the Google Sheets document with the final video URL and the status of the operation (Completed or Failed) in Column H.\n\nFinal Output or Action: The expected outcome is a fully automated process that transforms a new idea into a cinematic AI-generated video within 2-3 minutes, which is then published across multiple social media channels. This workflow saves significant time on manual editing and posting, allowing content creators to focus on strategy and creativity.\n\nSetup Instructions:\n1. Create a Google Sheets document with the specified structure.\n2. Obtain and add your API keys for OpenAI, Veo 3.1, Google Cloud Console, and Blotato to the Workflow Configuration node.\n3. Populate the Google Sheets with three image URLs and a short idea.\n4. Activate the workflow and monitor the automation process.\n\nCustomization Options:\n- Adjust the video duration or aspect ratio by editing the Veo 3.1 node JSON body.\n- Modify the prompt style for GPT-4 to achieve a desired tone or cinematic look.\n- Extend the Blotato integration to include additional platforms like Pinterest, Reddit, or Threads.\n- Enable a Telegram trigger for users to submit ideas and images directly via Telegram.\n\nFor further assistance or customization inquiries, please contact via LinkedIn or YouTube. Documentation and additional resources are available through the provided Notion guide link.",
+  "error": null,
+  "generated_at": "2026-01-25T23:40:07.864359",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.19047619047619047,
+    "node_type_f1": 0.2962962962962963,
+    "tp": 4,
+    "fp": 2,
+    "fn": 17,
+    "gt_node_count": 21,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 13,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.08035714285714285,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4458,
+        "completion_tokens": 1059,
+        "total_tokens": 5517
+      },
+      "description_optimization": {
+        "prompt_tokens": 1147,
+        "completion_tokens": 697,
+        "total_tokens": 1844
+      },
+      "total_tokens": 7361,
+      "total_prompt_tokens": 5605,
+      "total_completion_tokens": 1756
+    },
+    "total_cost": 0.0315725,
+    "description_optimization_cost": 0.0098375,
+    "workflow_generation_cost": 0.021735
+  }
+}

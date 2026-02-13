@@ -1,0 +1,252 @@
+{
+  "template_id": "2137",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule to check for replies and send follow-up emails at specified intervals.",
+      "data_sources": "Google Sheets for email list and details, Gmail for sending and checking emails.",
+      "operations": "1. Retrieve email list from Google Sheets, 2. Send initial email via Gmail, 3. Check for replies, 4. Send follow-up emails if no reply, 5. Skip weekends for sending.",
+      "output_actions": "Send emails through Gmail, update status in Google Sheets.",
+      "nodes_plan": "googleSheets (read), gmail (send), gmail (check), if (condition), wait (delay), set (prepare data).",
+      "connections_plan": "googleSheets -> set -> gmail (send initial) -> wait -> gmail (check replies) -> if (no reply) -> gmail (send follow-up)"
+    },
+    "workflowPlan": {
+      "name": "Email Campaign Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Read Email List",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Prepare Initial Email",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "subject",
+                  "value": "Hi {{ $json.name }}, nice to meet you at the conference"
+                },
+                {
+                  "name": "body",
+                  "value": "Was wondering whether {{ $json.company }} would be interested in a quick call about X?"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Initial Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{ $json.email }}",
+            "subject": "={{ $json.subject }}",
+            "body": "={{ $json.body }}",
+            "additionalFields": {
+              "labelIds": [
+                "EmailCampaign"
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait 3 Days",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "3d"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Replies",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "labelIds": [
+              "EmailCampaign"
+            ],
+            "query": "from:{{ $json.email }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "If No Reply",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json['messages'].length }}",
+                  "operation": "equal",
+                  "value2": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Prepare Follow-up Email",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "subject",
+                  "value": "Hi {{ $json.name }}, just wanted to check in on this"
+                },
+                {
+                  "name": "body",
+                  "value": "Let me know if there's any interest!"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Follow-up Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{ $json.email }}",
+            "subject": "={{ $json.subject }}",
+            "body": "={{ $json.body }}",
+            "additionalFields": {
+              "labelIds": [
+                "EmailCampaign"
+              ]
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4137,
+    "completion_tokens": 1342,
+    "total_tokens": 5479
+  },
+  "description_optimization": null,
+  "original_description": "This workflow allows you to send multi-step email campaigns using n8n, Gmail and Google Sheets.\n\nYou define a sequence of emails, and a list of email addresses to send them to. The first email is sent to everyone, but the later emails in the sequence are only sent if no-one has replied to the thread yet.\n\nThis means you only need to worry about replying to people who respond to your email, not chasing people who don\u2019t.\n\n### Requirements\n\n1. A list of emails in a Google sheet. You can define extra info that will be available to your email templates (e.g. name, company, etc.)\n\n![table.png](fileId:750)\n\n2. A sequence of emails to send, plus how long to wait to send each one, e.g.\n\n- **On day 0:** \u201cHi, {name} \u2014 nice to meet you at the conference. Was wondering whether {company} would be interested in a quick call about X?\u201d\n- **On day 3:** \u201cHi, {name}, just wanted to check in on this. Let me know if there\u2019s any interest!\u201d\n- **On day 7:** \u201c{name}, just wanted to give this one last try\u201d\n\n3. A Gmail account (although you could also swap out that part for any other email service)\n\n### How it works\n\nWhen sending the emails, n8n inserts a hidden attribute in each one that tags it as being part of the email campaign. It then regularly looks through the email threads with that tag and checks whether:\n\n1. No-one has replied yet\n2. It\u2019s time to send the next message\n\nThe workflow doesn\u2019t send emails on weekends.\n\n### Notes\n\n- This workflow is not intended for spam! Please use responsibly\n- You can use this workflow for multiple different campaigns by making copies of the workflow and changing the sequence / Google Sheet that it uses",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:57:08.950178",
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.28,
+    "node_type_f1": 0.42424242424242425,
+    "tp": 7,
+    "fp": 1,
+    "fn": 18,
+    "gt_node_count": 25,
+    "llm_node_count": 8,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.058823529411764705,
+    "connection_f1": 0.08695652173913045,
+    "correct_connections": 1,
+    "gt_connection_count": 17,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.028571428571428574,
+    "usage": {
+      "prompt_tokens": 4137,
+      "completion_tokens": 1342,
+      "total_tokens": 5479
+    },
+    "total_cost": 0.023762500000000002
+  }
+}

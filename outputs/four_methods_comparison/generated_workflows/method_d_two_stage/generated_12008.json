@@ -1,0 +1,383 @@
+{
+  "template_id": "12008",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Cron node to execute daily at a specified time.",
+      "data_sources": "MSSQL Database, Google Analytics, Google Sheets, OpenAI or Google Gemini API, Gmail, Twilio, Slack, Telegram.",
+      "operations": "1. Collect data from MSSQL, Google Analytics, and Google Sheets. 2. Merge data. 3. Process data into JSON. 4. Calculate KPIs. 5. Apply business logic. 6. Use AI for reasoning. 7. Format notifications. 8. Send notifications via multiple channels.",
+      "output_actions": "Send formatted notifications through WhatsApp, Email, Slack, or Telegram.",
+      "nodes_plan": "cron (trigger), mssql (data), googleAnalytics (data), googleSheets (data), merge (data), function (process), calculateKPIs (function), businessLogic (if/switch), aiReasoning (openAi), formatNotification (set), sendEmail (emailSend), sendWhatsApp (twilio), sendSlack (slack), sendTelegram (telegram)",
+      "connections_plan": "cron -> [mssql, googleAnalytics, googleSheets] -> merge -> function -> calculateKPIs -> businessLogic -> aiReasoning -> formatNotification -> [sendEmail, sendWhatsApp, sendSlack, sendTelegram]"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Business Intelligence Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Cron Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "MSSQL",
+          "nodeType": "n8n-nodes-base.mssql",
+          "typeVersion": 1,
+          "params": {
+            "query": "SELECT revenue, users, marketing_spend FROM metrics"
+          },
+          "position": {
+            "x": 300,
+            "y": 50
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Analytics",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "typeVersion": 1,
+          "params": {
+            "metrics": "sessions, pageviews"
+          },
+          "position": {
+            "x": 300,
+            "y": 150
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1:D10"
+          },
+          "position": {
+            "x": 300,
+            "y": 250
+          }
+        },
+        {
+          "id": "5",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "multiplex"
+          },
+          "position": {
+            "x": 500,
+            "y": 150
+          }
+        },
+        {
+          "id": "6",
+          "label": "Process Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { data: items.map(item => item.json) } }];"
+          },
+          "position": {
+            "x": 700,
+            "y": 150
+          }
+        },
+        {
+          "id": "7",
+          "label": "Calculate KPIs",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const data = $json.data; const roas = data.revenue / data.marketing_spend; const cac = data.marketing_spend / data.users; return [{ json: { roas, cac } }];"
+          },
+          "position": {
+            "x": 900,
+            "y": 150
+          }
+        },
+        {
+          "id": "8",
+          "label": "Business Logic",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.roas }}",
+                  "operation": "greaterThan",
+                  "value2": 4
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 150
+          }
+        },
+        {
+          "id": "9",
+          "label": "AI Reasoning",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Analyze these KPIs and provide insights: ROAS: {{ $json.roas }}, CAC: {{ $json.cac }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 150
+          }
+        },
+        {
+          "id": "10",
+          "label": "Format Notification",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "message",
+                  "value": "ROAS: {{ $json.roas }}, CAC: {{ $json.cac }}, Insights: {{ $json.message.content }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 150
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "founder@example.com",
+            "subject": "Daily Business Insights",
+            "text": "={{ $json.message }}"
+          },
+          "position": {
+            "x": 1700,
+            "y": 50
+          }
+        },
+        {
+          "id": "12",
+          "label": "Send WhatsApp",
+          "nodeType": "n8n-nodes-base.twilio",
+          "typeVersion": 1,
+          "params": {
+            "to": "+123456789",
+            "message": "={{ $json.message }}"
+          },
+          "position": {
+            "x": 1700,
+            "y": 150
+          }
+        },
+        {
+          "id": "13",
+          "label": "Send Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#business-updates",
+            "text": "={{ $json.message }}"
+          },
+          "position": {
+            "x": 1700,
+            "y": 250
+          }
+        },
+        {
+          "id": "14",
+          "label": "Send Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "your-chat-id",
+            "text": "={{ $json.message }}"
+          },
+          "position": {
+            "x": 1700,
+            "y": 350
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 2
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "12",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "13",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "14",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4357,
+      "completion_tokens": 2065,
+      "total_tokens": 6422
+    },
+    "description_optimization": {
+      "prompt_tokens": 691,
+      "completion_tokens": 596,
+      "total_tokens": 1287
+    },
+    "total_tokens": 7709,
+    "total_prompt_tokens": 5048,
+    "total_completion_tokens": 2661
+  },
+  "description_optimization": {
+    "template_id": "12008",
+    "optimized_description": "This workflow is designed as an AI-powered business intelligence agent specifically for founders and business owners. It automates the collection of key business metrics, calculates essential performance KPIs, applies decision logic, utilizes AI reasoning, and sends clear, actionable notifications without the need for dashboards or manual reports.\n\n**Trigger:** The workflow is initiated by a Cron trigger, which executes daily at a specified time.\n\n**Data Sources and APIs Required:**\n1. MSSQL Database - for retrieving business metrics.\n2. Google Analytics - for website analytics data.\n3. Google Sheets - for additional data input.\n4. OpenAI or Google Gemini API - for AI reasoning capabilities.\n5. Messaging integrations including:\n   - Gmail - for email notifications.\n   - Twilio - for WhatsApp notifications.\n   - Slack - for team communication.\n   - Telegram - for messaging.\n\n**Workflow Steps:**\n1. **Data Collection:** The workflow begins by collecting relevant data, including revenue, number of users, marketing spend, and website analytics from the identified data sources.\n2. **Merge Node:** All collected data from the various sources is merged into a unified dataset.\n3. **Function Node:** The merged data is then processed and consolidated into a single JSON object for further analysis.\n4. **KPI Calculation:** The workflow calculates critical Key Performance Indicators (KPIs) such as Return on Advertising Spend (ROAS), Customer Acquisition Cost (CAC), and user growth rates.\n5. **Business Logic Engine:** This step applies rule-based decision logic to identify potential business risks and opportunities based on the calculated KPIs.\n6. **AI Reasoning Agent:** The AI component summarizes the insights derived from the data and suggests actionable recommendations for the business owner.\n7. **Notification Formatter:** A message is formatted in a clear and concise manner, tailored for the founder's understanding.\n8. **Notification Delivery:** The final step involves sending the formatted notifications through multiple channels, including WhatsApp, Email, Slack, or Telegram, ensuring that the business owner receives timely updates.\n\n**Final Output:** The workflow generates concise, human-friendly notifications that provide actionable insights based on the analysis of the collected data. These notifications inform the business owner of the current performance metrics, highlight any risks or opportunities detected, and suggest recommended actions.\n\n**Example Data Formation:**\nThe workflow processes data from various channels, such as:\n- Revenue: 4290\n- Registered Users: 20\n- Total Users: 3\n- Ad Spend: 800\n\nAfter applying rule-based logic, the output may include:\n- ROAS: 5.36\n- CAC: 40\n- Agent Status: Normal\n- Agent Priority: Low\n- Insights: \"Marketing campaigns are performing very well.\"\n\n**Workflow Highlights:**\nThis fully automated workflow runs daily without human intervention, integrates multiple business data sources, converts raw data into actionable KPIs, applies both rule-based logic and AI reasoning, and generates concise notifications sent through various channels.",
+    "original_description": "## WORKFLOW OVERVIEW\n\nThis workflow is an AI-powered business intelligence agent designed for founders and business owners.\nIt automatically collects key business metrics, calculates performance KPIs, applies decision logic, uses AI reasoning, and sends clear, actionable notifications \u2014 without dashboards or manual reports.\n\n## Key Features:\n\n\u2705 Aggregates multiple data sources (MSSQL, Google Analytics, Google Sheets)\n\u2705 Calculates critical KPIs: ROAS, CAC, Revenue & User Growth\n\u2705 Applies rule-based decision logic for business risk and opportunity detection\n\u2705 AI-powered reasoning: summarizes insights and recommends actions\n\u2705 Multi-channel notifications: Email, WhatsApp, Slack, Telegram\n\u2705 Fully automated daily execution via Cron trigger\n\u2705 Enterprise-ready: error handling, structured data, KPI validation\n\n## Setup & Requirements:\n\n\n- API access to data sources (MSSQL, Google Analytics, Google Sheets)\n- OpenAI or Google Gemini API for AI reasoning\n- Messaging integration: Gmail, Twilio (WhatsApp), Slack, Telegram\n- \n## Workflow Flow:\n\n- Cron Trigger \u2013 runs daily at a chosen time\n- Data Collection \u2013 revenue, users, marketing spend, website analytics\n- Merge Node \u2013 combines all data sources\n- Function Node \u2013 consolidates into a single JSON object\n- KPI Calculation \u2013 calculates ROAS, CAC, growth rates\n- Business Logic Engine \u2013 identifies risks and opportunities\n- AI Reasoning Agent \u2013 summarizes insights, suggests actions\n- Notification Formatter \u2013 builds founder-friendly message\n- Notification Delivery \u2013 sends via WhatsApp, Email, Slack, or Telegram\n\n## Example Data Formation\n\nThese data below Getting from all different channels.\n\n`{\n  \"revenue\": 4290,\n  \"registeredUsers\": 20,\n  \"totalUsers\": 3,\n  \"adSpend\": 800\n}`\n\nApplies rule-based logic to detect potential risks or opportunities\n\n`{\n  \"ROAS\": 5.36,\n  \"CAC\": 40,\n  \"agentStatus\": \"normal\",\n  \"agentPriority\": \"low\",\n  \"insights\": [\"Marketing campaigns are performing very well\"]\n}`\n\n## Workflow Highlights\n\nFully automated, runs daily without human intervention\nIntegrates multiple business data sources\nConverts raw data into KPIs for actionable insight\nApplies both rule-based logic and AI reasoning\nGenerates concise, human-friendly notifications\nSending notification to different channels.",
+    "description_length": 3119,
+    "usage": {
+      "prompt_tokens": 691,
+      "completion_tokens": 596,
+      "total_tokens": 1287
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:47:01.329848"
+  },
+  "original_description": "## WORKFLOW OVERVIEW\n\nThis workflow is an AI-powered business intelligence agent designed for founders and business owners.\nIt automatically collects key business metrics, calculates performance KPIs, applies decision logic, uses AI reasoning, and sends clear, actionable notifications \u2014 without dashboards or manual reports.\n\n## Key Features:\n\n\u2705 Aggregates multiple data sources (MSSQL, Google Analytics, Google Sheets)\n\u2705 Calculates critical KPIs: ROAS, CAC, Revenue & User Growth\n\u2705 Applies rule-based decision logic for business risk and opportunity detection\n\u2705 AI-powered reasoning: summarizes insights and recommends actions\n\u2705 Multi-channel notifications: Email, WhatsApp, Slack, Telegram\n\u2705 Fully automated daily execution via Cron trigger\n\u2705 Enterprise-ready: error handling, structured data, KPI validation\n\n## Setup & Requirements:\n\n\n- API access to data sources (MSSQL, Google Analytics, Google Sheets)\n- OpenAI or Google Gemini API for AI reasoning\n- Messaging integration: Gmail, Twilio (WhatsApp), Slack, Telegram\n- \n## Workflow Flow:\n\n- Cron Trigger \u2013 runs daily at a chosen time\n- Data Collection \u2013 revenue, users, marketing spend, website analytics\n- Merge Node \u2013 combines all data sources\n- Function Node \u2013 consolidates into a single JSON object\n- KPI Calculation \u2013 calculates ROAS, CAC, growth rates\n- Business Logic Engine \u2013 identifies risks and opportunities\n- AI Reasoning Agent \u2013 summarizes insights, suggests actions\n- Notification Formatter \u2013 builds founder-friendly message\n- Notification Delivery \u2013 sends via WhatsApp, Email, Slack, or Telegram\n\n## Example Data Formation\n\nThese data below Getting from all different channels.\n\n`{\n  \"revenue\": 4290,\n  \"registeredUsers\": 20,\n  \"totalUsers\": 3,\n  \"adSpend\": 800\n}`\n\nApplies rule-based logic to detect potential risks or opportunities\n\n`{\n  \"ROAS\": 5.36,\n  \"CAC\": 40,\n  \"agentStatus\": \"normal\",\n  \"agentPriority\": \"low\",\n  \"insights\": [\"Marketing campaigns are performing very well\"]\n}`\n\n## Workflow Highlights\n\nFully automated, runs daily without human intervention\nIntegrates multiple business data sources\nConverts raw data into KPIs for actionable insight\nApplies both rule-based logic and AI reasoning\nGenerates concise, human-friendly notifications\nSending notification to different channels.",
+  "optimized_description": "This workflow is designed as an AI-powered business intelligence agent specifically for founders and business owners. It automates the collection of key business metrics, calculates essential performance KPIs, applies decision logic, utilizes AI reasoning, and sends clear, actionable notifications without the need for dashboards or manual reports.\n\n**Trigger:** The workflow is initiated by a Cron trigger, which executes daily at a specified time.\n\n**Data Sources and APIs Required:**\n1. MSSQL Database - for retrieving business metrics.\n2. Google Analytics - for website analytics data.\n3. Google Sheets - for additional data input.\n4. OpenAI or Google Gemini API - for AI reasoning capabilities.\n5. Messaging integrations including:\n   - Gmail - for email notifications.\n   - Twilio - for WhatsApp notifications.\n   - Slack - for team communication.\n   - Telegram - for messaging.\n\n**Workflow Steps:**\n1. **Data Collection:** The workflow begins by collecting relevant data, including revenue, number of users, marketing spend, and website analytics from the identified data sources.\n2. **Merge Node:** All collected data from the various sources is merged into a unified dataset.\n3. **Function Node:** The merged data is then processed and consolidated into a single JSON object for further analysis.\n4. **KPI Calculation:** The workflow calculates critical Key Performance Indicators (KPIs) such as Return on Advertising Spend (ROAS), Customer Acquisition Cost (CAC), and user growth rates.\n5. **Business Logic Engine:** This step applies rule-based decision logic to identify potential business risks and opportunities based on the calculated KPIs.\n6. **AI Reasoning Agent:** The AI component summarizes the insights derived from the data and suggests actionable recommendations for the business owner.\n7. **Notification Formatter:** A message is formatted in a clear and concise manner, tailored for the founder's understanding.\n8. **Notification Delivery:** The final step involves sending the formatted notifications through multiple channels, including WhatsApp, Email, Slack, or Telegram, ensuring that the business owner receives timely updates.\n\n**Final Output:** The workflow generates concise, human-friendly notifications that provide actionable insights based on the analysis of the collected data. These notifications inform the business owner of the current performance metrics, highlight any risks or opportunities detected, and suggest recommended actions.\n\n**Example Data Formation:**\nThe workflow processes data from various channels, such as:\n- Revenue: 4290\n- Registered Users: 20\n- Total Users: 3\n- Ad Spend: 800\n\nAfter applying rule-based logic, the output may include:\n- ROAS: 5.36\n- CAC: 40\n- Agent Status: Normal\n- Agent Priority: Low\n- Insights: \"Marketing campaigns are performing very well.\"\n\n**Workflow Highlights:**\nThis fully automated workflow runs daily without human intervention, integrates multiple business data sources, converts raw data into actionable KPIs, applies both rule-based logic and AI reasoning, and generates concise notifications sent through various channels.",
+  "error": null,
+  "generated_at": "2026-01-25T22:47:22.939316",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.4210526315789474,
+    "tp": 8,
+    "fp": 6,
+    "fn": 16,
+    "gt_node_count": 24,
+    "llm_node_count": 14,
+    "connection_precision": 0.13333333333333333,
+    "connection_recall": 0.1111111111111111,
+    "connection_f1": 0.1212121212121212,
+    "correct_connections": 2,
+    "gt_connection_count": 18,
+    "llm_connection_count": 15,
+    "avg_parameter_accuracy": 0.125,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4357,
+        "completion_tokens": 2065,
+        "total_tokens": 6422
+      },
+      "description_optimization": {
+        "prompt_tokens": 691,
+        "completion_tokens": 596,
+        "total_tokens": 1287
+      },
+      "total_tokens": 7709,
+      "total_prompt_tokens": 5048,
+      "total_completion_tokens": 2661
+    },
+    "total_cost": 0.03923,
+    "description_optimization_cost": 0.007687500000000001,
+    "workflow_generation_cost": 0.0315425
+  }
+}

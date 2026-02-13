@@ -1,0 +1,187 @@
+{
+  "template_id": "4359",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a form submission, which can be captured using a webhook node.",
+      "data_sources": "OpenAI API for content generation, Google Drive and Google Slides for document handling, Gmail API for sending emails.",
+      "operations": "1. Capture form submission via webhook, 2. Send data to OpenAI for proposal content generation, 3. Create a Google Slides document from a template in Google Drive, 4. Populate the Google Slides with generated content, 5. Send the completed proposal via Gmail.",
+      "output_actions": "The final output is a professional proposal sent to the client via email.",
+      "nodes_plan": "webhook (trigger), openAi (content generation), googleDrive (copy template), googleSlides (populate content), gmail (send email)",
+      "connections_plan": "webhook -> openAi -> googleDrive -> googleSlides -> gmail (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Proposal Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "proposal-form"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Proposal Content",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a proposal based on the following client requirements: {{ $json.body }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Copy Proposal Template",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "copyFile",
+            "fileId": "template-file-id",
+            "destinationFolderId": "destination-folder-id"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Populate Google Slides",
+          "nodeType": "n8n-nodes-base.googleSlides",
+          "typeVersion": 1,
+          "params": {
+            "operation": "updatePresentation",
+            "presentationId": "={{ $json.presentationId }}",
+            "content": "={{ $node[\"Generate Proposal Content\"].json[\"message\"][\"content\"] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Proposal Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{ $json.body.email }}",
+            "subject": "Your Customized Proposal",
+            "text": "Please find attached your proposal.",
+            "attachments": "={{ $node[\"Populate Google Slides\"].json[\"presentationUrl\"] }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4483,
+      "completion_tokens": 868,
+      "total_tokens": 5351
+    },
+    "description_optimization": {
+      "prompt_tokens": 803,
+      "completion_tokens": 722,
+      "total_tokens": 1525
+    },
+    "total_tokens": 6876,
+    "total_prompt_tokens": 5286,
+    "total_completion_tokens": 1590
+  },
+  "description_optimization": {
+    "template_id": "4359",
+    "optimized_description": "AI-Powered Proposal Generator - Sales Automation Workflow\n\nOverview:\nThis n8n workflow automates the proposal generation process using AI, transforming client requirements into professional, customized proposals delivered via email in seconds. It is designed for agencies, consultants, and sales teams who require quick generation of high-quality proposals.\n\nTrigger:\nThe workflow is initiated by a form submission through a customizable web form that captures client information.\n\nData Sources and APIs Needed:\n1. OpenAI API (GPT-4) for content generation.\n2. Google Workspace account for Google Drive and Google Slides.\n3. Gmail API for sending emails.\n4. n8n instance (cloud or self-hosted) for workflow execution.\n\nOperations and Processing Steps:\n1. **Form Trigger**: The workflow begins when a client submits the web form, capturing essential information such as project requirements and client details.\n2. **OpenAI Integration**: The captured form data is sent to the OpenAI API, which processes the information and generates structured proposal content based on predefined templates.\n3. **Google Drive**: A copy of the proposal template is created in Google Drive to serve as the base for the proposal.\n4. **Google Slides**: The generated content from the OpenAI API is used to populate the Google Slides template, creating a polished presentation of the proposal.\n5. **Gmail**: The completed proposal is automatically sent to the client via email using the Gmail API, ensuring timely delivery.\n\nFinal Output or Action:\nThe final output of this workflow is a professional proposal that is automatically generated and sent to the client via email, significantly reducing the time spent on manual proposal writing.\n\nKey Features:\n- AI Content Generation: Utilizes GPT-4 to create personalized and contextually relevant proposal content.\n- Professional Templates: Integrates with Google Slides for high-quality presentation formats.\n- Automated Delivery: Ensures proposals are sent directly to clients without manual intervention.\n- Form Integration: Efficiently captures all necessary client data through web forms.\n- Customizable Output: Generates structured proposals with multiple sections tailored to client needs.\n\nTemplate Sections Generated:\n- Proposal title and description.\n- Problem summary analysis.\n- Three-part solution breakdown.\n- Project scope details.\n- Milestone timeline with specific dates.\n- Cost integration.\n\nRequirements:\n- An n8n instance (either cloud-based or self-hosted).\n- OpenAI API key for content generation.\n- Google Workspace account to access Google Slides and Gmail.\n- Basic knowledge of n8n for setup and customization.\n\nSetup Complexity:\nThe setup is classified as intermediate, requiring configuration of API credentials and basic workflow customization.\n\nBenefits:\n- Time Savings: Reduces proposal creation time from hours to minutes.\n- Consistency: Ensures all proposals adhere to a professional structure.\n- Personalization: AI analyzes client needs to generate relevant content.\n- Automation: Eliminates manual copy-pasting and formatting tasks.\n- Scalability: Capable of handling multiple proposal requests simultaneously.\n\nCustomization Options:\n- Modify AI prompts to cater to different industries or services.\n- Customize the design of Google Slides templates.\n- Adjust form fields to capture specific information needs.\n- Personalize email templates and signatures.\n- Configure milestone templates for various project types.\n\nError Handling:\nThe workflow includes basic error handling for API failures and form validation to ensure reliable operation.\n\nSecurity Notes:\nUsers must configure their own credentials for the following:\n- OpenAI API.\n- Google OAuth2 connections for Google Slides, Drive, and Gmail.\n- Webhook configuration for the form.\n\nThis workflow exemplifies practical AI integration in business processes and showcases n8n's capabilities for complex automation scenarios.",
+    "original_description": "# AI-Powered Proposal Generator - Sales Automation Workflow\n\n## Overview\n![Screenshot 20250524 143046.png](fileId:1373)\nThis n8n workflow automates the entire proposal generation process using AI, transforming client requirements into professional, customized proposals delivered via email in seconds.\n\n## Use Case\nPerfect for agencies, consultants, and sales teams who need to generate high-quality proposals quickly. Instead of spending hours writing proposals manually, this workflow captures client information through a web form and uses GPT-4 to generate contextually relevant, professional proposals.\n\n## How It Works\n1. **Form Trigger** - Captures client information through a customizable web form\n2. **OpenAI Integration** - Processes form data and generates structured proposal content\n3. **Google Drive** - Creates a copy of your proposal template\n4. **Google Slides** - Populates the template with AI-generated content\n5. **Gmail** - Automatically sends the completed proposal to the client\n\n## Key Features\n- **AI Content Generation**: Uses GPT-4 to create personalized proposal content\n- **Professional Templates**: Integrates with Google Slides for polished presentations\n- **Automated Delivery**: Sends proposals directly to clients via email\n- **Form Integration**: Captures all necessary client data through web forms\n- **Customizable Output**: Generates structured proposals with multiple sections\n\n## Template Sections Generated\n- Proposal title and description\n- Problem summary analysis\n- Three-part solution breakdown\n- Project scope details\n- Milestone timeline with dates\n- Cost integration\n\n## Requirements\n- **n8n instance** (cloud or self-hosted)\n- **OpenAI API key** for content generation\n- **Google Workspace account** for Slides and Gmail\n- **Basic n8n knowledge** for setup and customization\n\n## Setup Complexity\n**Intermediate** - Requires API credentials setup and basic workflow customization\n\n## Benefits\n- **Time Savings**: Reduces proposal creation from hours to minutes\n- **Consistency**: Ensures all proposals follow the same professional structure\n- **Personalization**: AI analyzes client needs for relevant content\n- **Automation**: Eliminates manual copy-paste and formatting work\n- **Scalability**: Handle multiple proposal requests simultaneously\n\n## Customization Options\n- Modify AI prompts for different industries or services\n- Customize Google Slides template design\n- Adjust form fields for specific information needs\n- Personalize email templates and signatures\n- Configure milestone templates for different project types\n\n## Error Handling\nIncludes basic error handling for API failures and form validation to ensure reliable operation.\n\n## Security Notes\nAll credentials have been removed from this template. Users must configure their own:\n- OpenAI API credentials\n- Google OAuth2 connections for Slides, Drive, and Gmail\n- Form webhook configuration\n\nThis workflow demonstrates practical AI integration in business processes and showcases n8n's capabilities for complex automation scenarios.",
+    "description_length": 3943,
+    "usage": {
+      "prompt_tokens": 803,
+      "completion_tokens": 722,
+      "total_tokens": 1525
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:05:13.690309"
+  },
+  "original_description": "# AI-Powered Proposal Generator - Sales Automation Workflow\n\n## Overview\n![Screenshot 20250524 143046.png](fileId:1373)\nThis n8n workflow automates the entire proposal generation process using AI, transforming client requirements into professional, customized proposals delivered via email in seconds.\n\n## Use Case\nPerfect for agencies, consultants, and sales teams who need to generate high-quality proposals quickly. Instead of spending hours writing proposals manually, this workflow captures client information through a web form and uses GPT-4 to generate contextually relevant, professional proposals.\n\n## How It Works\n1. **Form Trigger** - Captures client information through a customizable web form\n2. **OpenAI Integration** - Processes form data and generates structured proposal content\n3. **Google Drive** - Creates a copy of your proposal template\n4. **Google Slides** - Populates the template with AI-generated content\n5. **Gmail** - Automatically sends the completed proposal to the client\n\n## Key Features\n- **AI Content Generation**: Uses GPT-4 to create personalized proposal content\n- **Professional Templates**: Integrates with Google Slides for polished presentations\n- **Automated Delivery**: Sends proposals directly to clients via email\n- **Form Integration**: Captures all necessary client data through web forms\n- **Customizable Output**: Generates structured proposals with multiple sections\n\n## Template Sections Generated\n- Proposal title and description\n- Problem summary analysis\n- Three-part solution breakdown\n- Project scope details\n- Milestone timeline with dates\n- Cost integration\n\n## Requirements\n- **n8n instance** (cloud or self-hosted)\n- **OpenAI API key** for content generation\n- **Google Workspace account** for Slides and Gmail\n- **Basic n8n knowledge** for setup and customization\n\n## Setup Complexity\n**Intermediate** - Requires API credentials setup and basic workflow customization\n\n## Benefits\n- **Time Savings**: Reduces proposal creation from hours to minutes\n- **Consistency**: Ensures all proposals follow the same professional structure\n- **Personalization**: AI analyzes client needs for relevant content\n- **Automation**: Eliminates manual copy-paste and formatting work\n- **Scalability**: Handle multiple proposal requests simultaneously\n\n## Customization Options\n- Modify AI prompts for different industries or services\n- Customize Google Slides template design\n- Adjust form fields for specific information needs\n- Personalize email templates and signatures\n- Configure milestone templates for different project types\n\n## Error Handling\nIncludes basic error handling for API failures and form validation to ensure reliable operation.\n\n## Security Notes\nAll credentials have been removed from this template. Users must configure their own:\n- OpenAI API credentials\n- Google OAuth2 connections for Slides, Drive, and Gmail\n- Form webhook configuration\n\nThis workflow demonstrates practical AI integration in business processes and showcases n8n's capabilities for complex automation scenarios.",
+  "optimized_description": "AI-Powered Proposal Generator - Sales Automation Workflow\n\nOverview:\nThis n8n workflow automates the proposal generation process using AI, transforming client requirements into professional, customized proposals delivered via email in seconds. It is designed for agencies, consultants, and sales teams who require quick generation of high-quality proposals.\n\nTrigger:\nThe workflow is initiated by a form submission through a customizable web form that captures client information.\n\nData Sources and APIs Needed:\n1. OpenAI API (GPT-4) for content generation.\n2. Google Workspace account for Google Drive and Google Slides.\n3. Gmail API for sending emails.\n4. n8n instance (cloud or self-hosted) for workflow execution.\n\nOperations and Processing Steps:\n1. **Form Trigger**: The workflow begins when a client submits the web form, capturing essential information such as project requirements and client details.\n2. **OpenAI Integration**: The captured form data is sent to the OpenAI API, which processes the information and generates structured proposal content based on predefined templates.\n3. **Google Drive**: A copy of the proposal template is created in Google Drive to serve as the base for the proposal.\n4. **Google Slides**: The generated content from the OpenAI API is used to populate the Google Slides template, creating a polished presentation of the proposal.\n5. **Gmail**: The completed proposal is automatically sent to the client via email using the Gmail API, ensuring timely delivery.\n\nFinal Output or Action:\nThe final output of this workflow is a professional proposal that is automatically generated and sent to the client via email, significantly reducing the time spent on manual proposal writing.\n\nKey Features:\n- AI Content Generation: Utilizes GPT-4 to create personalized and contextually relevant proposal content.\n- Professional Templates: Integrates with Google Slides for high-quality presentation formats.\n- Automated Delivery: Ensures proposals are sent directly to clients without manual intervention.\n- Form Integration: Efficiently captures all necessary client data through web forms.\n- Customizable Output: Generates structured proposals with multiple sections tailored to client needs.\n\nTemplate Sections Generated:\n- Proposal title and description.\n- Problem summary analysis.\n- Three-part solution breakdown.\n- Project scope details.\n- Milestone timeline with specific dates.\n- Cost integration.\n\nRequirements:\n- An n8n instance (either cloud-based or self-hosted).\n- OpenAI API key for content generation.\n- Google Workspace account to access Google Slides and Gmail.\n- Basic knowledge of n8n for setup and customization.\n\nSetup Complexity:\nThe setup is classified as intermediate, requiring configuration of API credentials and basic workflow customization.\n\nBenefits:\n- Time Savings: Reduces proposal creation time from hours to minutes.\n- Consistency: Ensures all proposals adhere to a professional structure.\n- Personalization: AI analyzes client needs to generate relevant content.\n- Automation: Eliminates manual copy-pasting and formatting tasks.\n- Scalability: Capable of handling multiple proposal requests simultaneously.\n\nCustomization Options:\n- Modify AI prompts to cater to different industries or services.\n- Customize the design of Google Slides templates.\n- Adjust form fields to capture specific information needs.\n- Personalize email templates and signatures.\n- Configure milestone templates for various project types.\n\nError Handling:\nThe workflow includes basic error handling for API failures and form validation to ensure reliable operation.\n\nSecurity Notes:\nUsers must configure their own credentials for the following:\n- OpenAI API.\n- Google OAuth2 connections for Google Slides, Drive, and Gmail.\n- Webhook configuration for the form.\n\nThis workflow exemplifies practical AI integration in business processes and showcases n8n's capabilities for complex automation scenarios.",
+  "error": null,
+  "generated_at": "2026-01-25T23:05:23.289113",
+  "metrics": {
+    "node_type_precision": 0.8,
+    "node_type_recall": 0.8,
+    "node_type_f1": 0.8000000000000002,
+    "tp": 4,
+    "fp": 1,
+    "fn": 1,
+    "gt_node_count": 5,
+    "llm_node_count": 5,
+    "connection_precision": 0.75,
+    "connection_recall": 0.75,
+    "connection_f1": 0.75,
+    "correct_connections": 3,
+    "gt_connection_count": 4,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.16666666666666666,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4483,
+        "completion_tokens": 868,
+        "total_tokens": 5351
+      },
+      "description_optimization": {
+        "prompt_tokens": 803,
+        "completion_tokens": 722,
+        "total_tokens": 1525
+      },
+      "total_tokens": 6876,
+      "total_prompt_tokens": 5286,
+      "total_completion_tokens": 1590
+    },
+    "total_cost": 0.029115000000000002,
+    "description_optimization_cost": 0.009227500000000001,
+    "workflow_generation_cost": 0.019887500000000002
+  }
+}

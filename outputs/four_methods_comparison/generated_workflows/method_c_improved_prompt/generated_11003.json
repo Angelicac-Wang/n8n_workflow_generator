@@ -1,0 +1,221 @@
+{
+  "template_id": "11003",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or on a schedule to periodically check for new TikTok trends.",
+      "data_sources": "Apify for TikTok scraping, Google Sheets for storing data, OpenRouter for AI analysis, Fal AI for video generation, and Google Drive for storing the final video.",
+      "operations": "1. Scrape TikTok data, 2. Store data in Google Sheets, 3. Analyze data with AI, 4. Generate video prompt, 5. Create video with Fal AI, 6. Upload video to Google Drive.",
+      "output_actions": "The final output is a generated video file uploaded to a specified Google Drive folder.",
+      "nodes_plan": "httpRequest (Apify), googleSheets (store data), openAi (analyze data), googleSheets (log prompt), httpRequest (Fal AI video generation), wait (for video generation), googleDrive (upload video)",
+      "connections_plan": "httpRequest (Apify) -> googleSheets (store data) -> openAi (analyze data) -> googleSheets (log prompt) -> httpRequest (Fal AI) -> wait -> googleDrive (upload video)"
+    },
+    "workflowPlan": {
+      "name": "Automated TikTok Repurposing & Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scrape TikTok",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/actor-tasks/clockworks~tiktok-scraper/run-sync-get-dataset-items",
+            "body": {
+              "searchQueries": [
+                "Job Change",
+                "Employment"
+              ],
+              "token": "YOUR_APIFY_API_TOKEN"
+            },
+            "options": {
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Store Raw Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "1",
+            "valueInputMode": "RAW",
+            "values": "={{ $json }}"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze with AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Analyze the following TikTok data and generate a video prompt: {{ $json }}",
+            "apiKey": "YOUR_OPENROUTER_API_KEY"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Log Prompts",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Prompts",
+            "valueInputMode": "RAW",
+            "values": "={{ $json }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.ai/veo3/generate",
+            "body": {
+              "prompt": "={{ $json }}",
+              "duration": "8s",
+              "aspectRatio": "9:16",
+              "audio": true
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_FAL_AI_API_KEY",
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait for Video",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "={{ $json.videoId }}",
+            "interval": 30000
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "GeneratedVideo.mp4",
+            "fileContent": "={{ $json.videoFile }}",
+            "parentId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4562,
+    "completion_tokens": 1335,
+    "total_tokens": 5897
+  },
+  "description_optimization": null,
+  "original_description": "# Automated TikTok Repurposing & Video Generation Workflow\n\n## Who\u2019s it for\nThis workflow is designed for **content creators, social media managers, and marketers**\u2014specifically those in the **career, recruitment, or \"job change\" (\u8ee2\u8077/\u5c31\u8077)** niches. It is ideal for anyone looking to automate the process of finding trending short-form content concepts and converting them into fresh AI-generated videos.\n\n## How it works / What it does\nThis workflow automates the pipeline from content research to video creation:\n1.  **Scrape Data:** It triggers an Apify actor (`clockworks/tiktok-scraper`) to search and scrape TikTok videos related to \"Job Change\" (\u8ee2\u8077) and \"Employment\" (\u5c31\u8077).\n2.  **Store Raw Data:** It saves the scraped TikTok metadata (text, stats, author info) into a Google Sheet.\n3.  **AI Analysis & Prompting:** An AI Agent (via OpenRouter) analyzes the scraped video content and creates a detailed prompt for a new video (concept, visual cues, aspect ratio).\n4.  **Log Prompts:** The generated prompt is saved to a separate tab in the Google Sheet.\n5.  **Video Generation:** The prompt is sent to **Fal AI (Veo3 model)** to generate a new 8-second, vertical (9:16) video with audio.\n6.  **Wait & Retrieve:** The workflow waits for the generation to complete, then retrieves the video file.\n7.  **Cloud Storage:** Finally, it uploads the generated video file to a specific Google Drive folder.\n\n## How to set up\n1.  **Credentials:** Configure the following credentials in n8n:\n    *   **Apify API:** (Currently passed via URL query params in the workflow, recommended to switch to Header Auth).\n    *   **Google Sheets OAuth2:** Connect your Google account.\n    *   **OpenRouter API:** For the AI Agent.\n    *   **Fal AI (Header Auth):** For the video generation API.\n    *   **Google Drive OAuth2:** For uploading the final video.\n2.  **Google Sheets:**\n    *   Create a spreadsheet.\n    *   Note the `documentId` and update the Google Sheets nodes.\n    *   Ensure you have the necessary Sheet names (e.g., \"\u30b7\u30fc\u30c81\" for raw data, \"\u751f\u6210\u6e08\u307f\" for prompts) and columns mapped.\n3.  **Google Drive:**\n    *   Create a destination folder.\n    *   Update the **Upload file** node with the correct `folderId`.\n4.  **Apify:**\n    *   Update the `token` in the **HTTP Request** and **HTTP Request1** URLs with your own Apify API token.\n\n## Requirements\n*   **n8n Version:** 1.x or higher (Workflow uses version 4.3 nodes).\n*   **Apify Account:** With access to `clockworks/tiktok-scraper` and sufficient credits.\n*   **Fal.ai Account:** With credits for the `fal-ai/veo3` model.\n*   **OpenRouter Account:** With credits for the selected LLM.\n*   **Google Workspace:** Access to Drive and Sheets.\n\n## How to customize the workflow\n*   **Change the Niche:** Update the `searchQueries` JSON body in the first **HTTP Request** node (e.g., change \"\u8ee2\u8077\" to \"Cooking\" or \"Fitness\").\n*   **Adjust AI Logic:** Modify the **AI Agent** system prompt to change the style, tone, or structure of the video prompts it generates.\n*   **Video Settings:** In the **Fal Submit** node, adjust `bodyParameters` to change the duration (e.g., `5s`), aspect ratio (e.g., `16:9`), or disable audio.\n*   **Scale:** Increase the `amount` in the **Limit** node to process more than one video per execution.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:59:33.558884",
+  "metrics": {
+    "node_type_precision": 0.8571428571428571,
+    "node_type_recall": 0.46153846153846156,
+    "node_type_f1": 0.6,
+    "tp": 6,
+    "fp": 1,
+    "fn": 7,
+    "gt_node_count": 13,
+    "llm_node_count": 7,
+    "connection_precision": 0.5,
+    "connection_recall": 0.3333333333333333,
+    "connection_f1": 0.4,
+    "correct_connections": 3,
+    "gt_connection_count": 9,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.05714285714285714,
+    "usage": {
+      "prompt_tokens": 4562,
+      "completion_tokens": 1335,
+      "total_tokens": 5897
+    },
+    "total_cost": 0.024755
+  }
+}

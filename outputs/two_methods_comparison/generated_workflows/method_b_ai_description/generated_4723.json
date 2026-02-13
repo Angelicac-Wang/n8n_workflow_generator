@@ -1,0 +1,190 @@
+{
+  "template_id": 4723,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for managing emails with Gmail and Google Calendar integration.",
+    "workflowPlan": {
+      "name": "Email Management with AI and Calendar Integration",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Retrieve Emails",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "returnAll": true,
+            "filters": {
+              "labelIds": [
+                "UNREAD"
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Categorize Emails",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "FYI",
+                  "operation": "contains",
+                  "value2": "subject"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "AI Email Analysis",
+          "nodeType": "n8n-nodes-base.anthropic",
+          "typeVersion": 1,
+          "params": {
+            "model": "chat",
+            "prompt": "Analyze and summarize the email content."
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Simple Memory",
+          "nodeType": "n8n-nodes-base.memory",
+          "typeVersion": 1,
+          "params": {
+            "operation": "set",
+            "key": "emailContext"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEvent",
+            "calendarId": "primary",
+            "start": "now",
+            "end": "in1hour",
+            "summary": "Meeting from email"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email Response",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "email@example.com",
+            "subject": "Re: Your Email",
+            "body": "This is an automated response."
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6"
+        },
+        {
+          "from": "5",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 760,
+    "completion_tokens": 860,
+    "total_tokens": 1620
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:57:16.278121",
+  "generated_description": "This n8n workflow is manually triggered by the user clicking 'Test workflow'. It primarily interacts with Gmail and Google Calendar services, as well as utilizing an AI language model for processing and decision-making.\n\n1. **Email Retrieval and Categorization**: The workflow begins by retrieving emails using the Gmail API. It distinguishes between unread emails that are for information purposes (FYI) and those that require a response.\n\n2. **AI Interaction**: The workflow employs the Anthropic Chat Model to analyze and generate responses or summaries for the emails. This AI model assists in understanding the content and context of the emails.\n\n3. **Memory Management**: A Simple Memory node is used to store and manage information temporarily, likely to keep track of conversation context or email processing states.\n\n4. **Calendar Integration**: The Google Calendar node is used to access or update calendar events, possibly to schedule meetings or set reminders based on email content.\n\n5. **Email Response and Sent Check**: The workflow includes functionality to draft or send email responses using the Gmail API. It also checks if certain emails have been sent, ensuring communication is tracked and managed effectively.\n\n6. **Email Assistant**: An agent node likely acts as an orchestrator, coordinating between the AI model, email retrieval, and response actions to streamline email management.\n\nOverall, this workflow automates the process of managing emails by categorizing them, generating AI-assisted responses, and integrating with the user's calendar, enhancing productivity and ensuring timely communication.",
+  "description_generation_usage": {
+    "prompt_tokens": 236,
+    "completion_tokens": 298,
+    "total_tokens": 534
+  },
+  "metrics": {
+    "node_type_precision": 0.14285714285714285,
+    "node_type_recall": 0.038461538461538464,
+    "node_type_f1": 0.060606060606060615,
+    "tp": 1,
+    "fp": 6,
+    "fn": 25,
+    "gt_node_count": 26,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 5,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 1.0,
+    "usage": {
+      "prompt_tokens": 760,
+      "completion_tokens": 860,
+      "total_tokens": 1620
+    },
+    "total_cost": 0.014070000000000001,
+    "description_generation_cost": 0.0035700000000000003,
+    "workflow_generation_cost": 0.0105
+  },
+  "original_description": "# Email Personal Assistant - Comprehensive Communication Manager\n\nThis automation flow is designed to proactively monitor email, calendar, and Slack communications, analyze priorities across all channels, and generate a comprehensive daily briefing with actionable tasks for executive productivity management.\n\n\u2699\ufe0f **How It Works (Step-by-Step):**\n\n1. **\u23f0 Automated Daily Trigger**\nRuns automatically on weekdays:\n```\nScheduled execution every weekday at 8:00 AM\nManual trigger available for on-demand analysis\nComprehensive daily communication audit\n```\n\n2. **\ud83d\udce7 Email Assistant Agent**\nAnalyzes inbox priorities and context:\n```\nScans unread emails across \"To Respond\" and \"FYI\" labels\nChecks email history to determine relationship context\nIdentifies *company-related opportunities and partnerships\nCategorizes emails by urgency (High, Medium, Low)\nCross-references with sent emails for follow-up context\n```\n\n3. **\ud83d\udcc5 Follow-Up Assistant Agent**\nMonitors meeting follow-up requirements:\n```\nReviews last 3 days of calendar meetings\nFetches Fireflies transcripts for recorded sessions\nIdentifies meetings without post-meeting communication\nFlags meetings requiring action items or follow-ups\nChecks sent emails and Slack for completed follow-ups\n```\n\n4. **\ud83d\udcac Slack Assistant Agent**\nTracks Slack communication priorities:\n```\nMonitors direct messages and @mentions\nIdentifies unreplied Slack conversations\nCross-references with email and calendar context\nPrioritizes responses based on sender importance\nChecks for threaded conversations requiring attention\n```\n\n5. **\ud83c\udfaf Master Orchestrator Agent**\nSynthesizes all communication data:\n```\nCombines reports from all three assistant agents\nCross-references with existing Google Sheets to-do list\nPrioritizes tasks by urgency and business impact\nIdentifies correlations between different communication channels\nCreates comprehensive daily action plan\n```\n\n6. **\ud83d\udcca Task Management Integration**\nAutomated tracking and delivery:\n```\nAppends new tasks to Google Sheets to-do tracker\nSends personalized daily briefing via Slack DM\nMaintains conversation memory for context continuity\nTracks outstanding vs. completed items\n```\n\n\ud83d\udee0\ufe0f **Tools Used:**\n```\nn8n: Workflow orchestration and scheduling\nClaude Sonnet 4 & Opus 4: Multi-agent AI analysis\nGmail API: Email monitoring and history checking\nGoogle Calendar: Meeting tracking and scheduling\nSlack API: Message monitoring and user management\nFireflies API: Meeting transcript analysis\nGoogle Sheets: Task tracking and persistence\n```\n\n\ud83d\udce6 **Key Features:**\n```\nMulti-channel communication monitoring (Email, Calendar, Slack)\nAI-powered priority assessment and context analysis\nCross-platform relationship tracking and history\nAutomated daily briefing generation and delivery\nPersistent task tracking with Google Sheets integration\nMeeting follow-up verification and flagging\nConversation memory for continuity across sessions\n```\n\n\ud83d\ude80 **Ideal Use Cases:**\n```\nC-level executives managing multiple communication channels\nSales leaders tracking prospect interactions and follow-ups\nBusiness development professionals managing partnerships\nBusy professionals needing communication prioritization\nTeams requiring systematic follow-up management\nAnyone wanting automated daily productivity briefings\n```"
+}

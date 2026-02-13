@@ -1,0 +1,208 @@
+{
+  "template_id": "3416",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow that transforms an idea from a Google Sheet into multimedia content.",
+    "workflowPlan": {
+      "name": "Idea to Multimedia Content",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets - Retrieve Idea",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1:A1"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Image Prompt Agent",
+          "nodeType": "custom.imagePromptAgent",
+          "params": {
+            "input": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Clean Prompt",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "functionCode": "return [{ json: { prompt: $json[\"prompt\"].replace(/\\n/g, ' ') } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "External API - Get Images",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.example.com/get-images",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}"
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Limit Images",
+          "nodeType": "n8n-nodes-base.limit",
+          "params": {
+            "maxItems": 5
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Flash 2.0",
+          "nodeType": "custom.flash2.0",
+          "params": {
+            "input": "={{$json}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Prepare Audio Settings",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "values": {
+              "audioSettings": {
+                "format": "mp3",
+                "language": "en"
+              }
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Generate Audio",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://api.example.com/generate-audio",
+            "method": "POST",
+            "body": {
+              "images": "={{$json}}",
+              "settings": "={{$json[\"audioSettings\"]}}"
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 691,
+    "completion_tokens": 984,
+    "total_tokens": 1675
+  },
+  "description_optimization": null,
+  "original_description": "# Automated Video Creation Workflow Using n8n  \n\nThis workflow automates the creation and publishing of animated videos based on ideas listed in a Google Sheet. It processes one idea at a time, generating text prompts, images, animations, sound effects, and merging them into a final video before uploading it to YouTube.  \n\n## Table of Contents  \n- [Pre-conditions and Requirements](#pre-conditions-and-requirements)  \n- [Google Sheets Setup](#google-sheets-setup)  \n- [Step-by-Step Workflow Explanation](#step-by-step-workflow-explanation)  \n- [Customization Guide](#customization-guide)  \n\n---\n\n## Pre-conditions and Requirements  \n\n### 1. **API Keys Required**  \nTo run this workflow, you'll need API access to the following services:  \n- **Anthropic Claude or Google Gemini** (for text prompt generation)  \n- **Flux AI** ([RapidAPI](https://rapidapi.com/poorav925/api/ai-text-to-image-generator-flux-free-api/playground/apiendpoint_b28cd8ef-63fe-4242-98e4-908a332770d3)) (for AI-generated images)  \n- **RunwayML** ([API Documentation](https://dev.runwayml.com/)) (for AI video animation)  \n- **ElevenLabs** (for AI-generated voiceovers and sound effects)  \n- **Creatomate** ([Website](https://creatomate.com)) (for video/audio merging and rendering)  \n- **YouTube API** (for video upload and posting)  \n\n### 2. **n8n Instance Setup**  \n- Use cloud (n8n.io) or Install and run n8n ([Official Guide](https://docs.n8n.io/))  \n- Set up credentials for each API in n8n\u2019s settings  \n\n---\n\n## Google Sheets Setup  \n\nBefore running the workflow, ensure your Google Sheet is structured as follows:  \n\n| **Column Name**  | **Description**  |  \n|------------------|----------------|  \n| `title`         | Video title (e.g., \"Elijah's Fiery Chariot\") |  \n| `bibleverse`    | Corresponding Bible verse reference |  \n| `idea`         | Brief description of the scene |  \n| `style`        | Animation style (e.g., cinematic, vibrant, etc.) |  \n| `caption`      | Suggested caption for social media |  \n| `videoStatus`  | Status of video creation (`To Do`, `Created`) |  \n| `publishStatus`| Publishing status (`Not Processed`, `Processed`) |  \n\n---\n\n## Step-by-Step Workflow Explanation  \n\n### 1. **Extract an Idea from Google Sheets**  \n- The workflow retrieves the first row where `videoStatus = \"To Do\"`.  \n- Marks it as `Processing` to avoid duplicate processing.  \n\n### 2. **Generate a Prompt for AI Image Creation and Sound Effects/Audio**  \n- Uses **Anthropic Claude** or **Google Gemini** to generate prompts.  \n\n### 3. **Generate an AI Image with Flux AI**  \n- Sends the prompt to **Flux AI** to create a high-quality image.  \n\n### 4. **Animate the Image Using RunwayML**  \n- The generated image is sent to **RunwayML**, which animates the image.  \n\n### 5. **Generate Sound Effects and Voiceover with ElevenLabs**  \n- ElevenLabs produces a realistic narration based on the video content.  \n- Background sound effects (e.g., storm sounds, fire crackling) are also generated.  \n\n### 6. **Merge Video and Audio Using Creatomate**  \n- **Creatomate** compiles the animated video with the audio.  \n\n### 7. **Upload and Publish to YouTube**  \n- The finalized video is automatically uploaded to **YouTube** using the YouTube API.  \n\n### 8. **Update Google Sheet Status**  \n- Marks `videoStatus` as `Created`.  \n- Marks `publishStatus` as `Processed`.  \n\n---\n\n## Customization Guide  \n\n### **Modifying the Animation Style**  \n- Update the `style` column in Google Sheets with custom animation preferences (e.g., cinematic, slow-motion).  \n- Modify the prompt generation step in n8n to incorporate different styles.  \n\n### **Changing the Video Length**  \n- Adjust the **RunwayML** settings to control animation speed and length.  \n- Modify the **Creatomate** rendering step to adjust clip duration.  \n\n### **Adding Subtitles**  \n- Modify the **Creatomate** step to include AI-generated subtitles from ElevenLabs' text output.  \n\n### **Publishing to Other Platforms**  \n- Add additional steps to post to TikTok, Instagram, or Facebook using their respective APIs.  \n\n---\n\nThis workflow ensures a fully automated video creation pipeline, reducing manual effort and optimizing content production. \ud83d\ude80",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:39:47.129120",
+  "generated_description": "This n8n workflow is manually triggered when a user clicks 'Test workflow'. It begins by retrieving an idea from a Google Sheets document, which serves as the initial data source. The workflow then processes this idea through an 'Image Prompt Agent' to generate a suitable image prompt. Any newline characters in the prompt are removed using a code node to ensure clean data formatting.\n\nSubsequently, the workflow sets up the prompts for further processing. It sends a request to an external API to obtain images based on the refined prompts. A 'Limit' node is used to control the number of images retrieved, ensuring that the workflow handles a manageable amount of data.\n\nFollowing the image retrieval, the workflow utilizes the 'Flash 2.0' node, which likely involves a language model component (such as Google Gemini) to enhance or analyze the image data. The workflow then prepares audio settings and sends another HTTP request to generate audio content associated with the images.\n\nIn summary, this workflow automates the process of transforming an idea from a Google Sheet into visual and audio content by leveraging image generation and language model technologies, culminating in the creation of multimedia outputs.",
+  "description_generation_usage": {
+    "prompt_tokens": 221,
+    "completion_tokens": 229,
+    "total_tokens": 450
+  },
+  "metrics": {
+    "node_type_precision": 0.7777777777777778,
+    "node_type_recall": 0.25925925925925924,
+    "node_type_f1": 0.3888888888888889,
+    "tp": 7,
+    "fp": 2,
+    "fn": 20,
+    "gt_node_count": 27,
+    "llm_node_count": 9,
+    "connection_precision": 0.375,
+    "connection_recall": 0.15,
+    "connection_f1": 0.21428571428571425,
+    "correct_connections": 3,
+    "gt_connection_count": 20,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.14285714285714285,
+    "usage": {
+      "prompt_tokens": 691,
+      "completion_tokens": 984,
+      "total_tokens": 1675
+    },
+    "total_cost": 0.014410000000000003,
+    "description_generation_cost": 0.0028425000000000004,
+    "workflow_generation_cost": 0.011567500000000001
+  }
+}

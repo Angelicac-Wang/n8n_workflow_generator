@@ -1,0 +1,141 @@
+{
+  "template_id": "7990",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a new file upload in a specific Google Drive folder.",
+      "data_sources": "Google Drive API for file detection, OCR service for text extraction, AI service for data structuring, Google Sheets API for data storage.",
+      "operations": "1. Detect new receipt upload, 2. Extract text using OCR, 3. Analyze and structure data using AI, 4. Save structured data to Google Sheets.",
+      "output_actions": "The final output is structured receipt data saved into a Google Sheet.",
+      "nodes_plan": "googleDriveTrigger (trigger), ocr (httpRequest), aiAgent (openAi), googleSheets (googleSheets)",
+      "connections_plan": "googleDriveTrigger -> ocr -> aiAgent -> googleSheets (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Receipt Processing Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "YOUR_FOLDER_ID",
+            "pollingInterval": "5m"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OCR Extraction",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.ocrservice.com/extract",
+            "body": {
+              "fileUrl": "={{ $json.fileUrl }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Data Structuring",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.text }}\n\nExtract and structure the following information: vendor, date, total, tax."
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{ $json.vendor }}",
+                "={{ $json.date }}",
+                "={{ $json.total }}",
+                "={{ $json.tax }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 3927,
+    "completion_tokens": 746,
+    "total_tokens": 4673
+  },
+  "description_optimization": null,
+  "original_description": "### How it works:\n- Automatically detects when a new receipt is uploaded to Google Drive.\n- Extracts text from the receipt using OCR.\n- Uses an AI Agent to analyze the extracted data and structure it (e.g., vendor, date, total, tax).\n- Saves the organized receipt data into a Google Sheet for easy tracking.\n\n### Set up steps:\n- Setup takes around 15\u201320 minutes.\n- You'll need a Google Drive folder for receipts and a Google Sheet to store results.\n- Configure your Google Drive Trigger, OCR extraction, AI Agent, and Google Sheets connection.\n\nDetailed instructions and explanations are included in [this n8n Starter Session tutorial series](https://www.youtube.com/playlist?list=PLWYu7XaUG3XOJwOOGiX89SQ_w67vw3dq7).",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:53:59.851803",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.42857142857142855,
+    "node_type_f1": 0.5454545454545454,
+    "tp": 3,
+    "fp": 1,
+    "fn": 4,
+    "gt_node_count": 7,
+    "llm_node_count": 4,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.25,
+    "connection_f1": 0.28571428571428575,
+    "correct_connections": 1,
+    "gt_connection_count": 4,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.015873015873015872,
+    "usage": {
+      "prompt_tokens": 3927,
+      "completion_tokens": 746,
+      "total_tokens": 4673
+    },
+    "total_cost": 0.0172775
+  }
+}

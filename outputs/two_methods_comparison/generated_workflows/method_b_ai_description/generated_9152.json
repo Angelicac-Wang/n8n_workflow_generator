@@ -1,0 +1,258 @@
+{
+  "template_id": 9152,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Image Handling and Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Airtable Trigger",
+          "nodeType": "n8n-nodes-base.airtableTrigger",
+          "typeVersion": 1,
+          "params": {
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "triggerOn": "create"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert Image",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const convertedImage = /* your conversion logic */; return { data: convertedImage };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload Image to Airtable",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.airtable.com/v0/yourBaseId/yourTableId",
+            "method": "POST",
+            "authentication": "predefinedCredentialType",
+            "bodyParameters": [
+              {
+                "name": "fields",
+                "value": "={{ $json.data }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Retrieve Airtable Record",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "get",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "recordId": "={{ $json[\"recordId\"] }}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze Image with Google Gemini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.google.com/gemini/analyze",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "image",
+                "value": "={{ $json[\"data\"] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1 minute"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Update Airtable Record",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "recordId": "={{ $json[\"recordId\"] }}",
+            "fields": {
+              "AnalysisResult": "={{ $json[\"analysisResult\"] }}"
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Video with Veo 3",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.veo3.com/generate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "data",
+                "value": "={{ $json[\"analysisResult\"] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Retrieve Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.veo3.com/retrieve",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "videoId",
+                "value": "={{ $json[\"videoId\"] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Convert Video to Downloadable Format",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const downloadableVideo = /* your conversion logic */; return { data: downloadableVideo };"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 695,
+    "completion_tokens": 1356,
+    "total_tokens": 2051
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:48:13.985817",
+  "generated_description": "This n8n workflow is designed to automate the process of handling images and generating videos using Airtable and external services. The workflow is triggered by the creation of a new record in Airtable. Upon triggering, it performs the following operations:\n\n1. It converts an image file to a suitable format for storage using a custom code node.\n2. The converted image is then uploaded to Airtable using an HTTP request.\n3. The workflow retrieves a specific record from Airtable to access necessary data.\n4. It analyzes the image using Google Gemini to extract relevant information or insights.\n5. The workflow includes a wait node to manage timing or dependencies between operations.\n6. It updates the Airtable record with new information or results from the image analysis.\n7. A request is made to generate a video using an external service (Veo 3) via an HTTP request.\n8. Once the video is generated, it is retrieved using another HTTP request.\n9. The final step involves converting the video into a downloadable file format.\n\nOverall, this workflow efficiently manages the process of image handling, analysis, and video generation, integrating multiple services to automate and streamline these tasks.",
+  "description_generation_usage": {
+    "prompt_tokens": 230,
+    "completion_tokens": 233,
+    "total_tokens": 463
+  },
+  "metrics": {
+    "node_type_precision": 0.8,
+    "node_type_recall": 0.6153846153846154,
+    "node_type_f1": 0.6956521739130435,
+    "tp": 8,
+    "fp": 2,
+    "fn": 5,
+    "gt_node_count": 13,
+    "llm_node_count": 10,
+    "connection_precision": 0.625,
+    "connection_recall": 0.45454545454545453,
+    "connection_f1": 0.5263157894736842,
+    "correct_connections": 5,
+    "gt_connection_count": 11,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.06770833333333333,
+    "usage": {
+      "prompt_tokens": 695,
+      "completion_tokens": 1356,
+      "total_tokens": 2051
+    },
+    "total_cost": 0.0182025,
+    "description_generation_cost": 0.002905,
+    "workflow_generation_cost": 0.0152975
+  },
+  "original_description": "## This n8n template from [Intuz](https://www.intuz.com/) provides a complete and automated solution for transforming a static product image and a creative idea into a dynamic, AI-generated video ad. \n\nUsing Google's state-of-the-art Veo 3 model, this workflow manages the entire creative process from concept to a final, downloadable video file.\n\n## Who's this workflow for?\n- E-commerce Brands & Marketers\n- Advertising Agencies\n- Social Media Content Creators\n- Product Managers\n\n## How it works\n**1. Submit a Creative Brief:** The workflow starts when a user submits a creative idea via a simple web form (e.g., \"A Pepsi can exploding into a vibrant disco party\").\n\n**2. Upload a Product Image:** The user is then prompted to upload a corresponding image (e.g., a high-quality photo of the Pepsi can).\n\n**3. Log the Project in Airtable:** The idea and the uploaded image are saved to an Airtable base, which acts as the central tracking system for all video generation projects.\n\n**4. AI Creative Analysis:** Google Gemini analyzes both the user's text prompt and the uploaded image. It acts as an \"AI Creative Director,\" generating a detailed video brief that reinterprets the static image according to the user's creative vision.\n\n**5. Generate Video with Veo 3:** The detailed creative brief is sent to Google's Veo 3 AI video generation model. The workflow initiates a long-running task to create the video.\n\n**6. Retrieve the Final Video:** After a brief waiting period, the workflow polls the Veo 3 API to retrieve the finished video, converts it into a binary file, and makes it available for download directly from the n8n execution log.\n\n## Key Requirements to Use This Template\n**n8n Instance & Required Nodes:**\n- An active n8n account (Cloud or self-hosted).\nThis workflow uses the official n8n LangChain integration (@n8n/n8n-nodes-langchain). \n- If you are using a self-hosted version of n8n, please ensure this package is installed.\n\n**Google Cloud Account:**\n- A Google Cloud Project with the Vertex AI API enabled.\n- You must have access to both the Gemini and Veo 3 models within your project.\n- You will need a Gemini API Key and a Google OAuth2 Credential configured for the Vertex AI scope.\n\n**Airtable Account:**\n- An Airtable base with a table set up to track the video projects. It should have columns for Image Prompt, Image (Attachment), Video (Attachment/URL), and Status.\n\n## Setup Instructions\n**1. Airtable Configuration (Crucial):**\n- In the Create a record, Get a record, and Update record nodes, connect your Airtable credentials and update the Base ID and Table ID to match your setup.\n- In the Uploading Image in Airtable (HTTP Request) node, you must edit the URL and the \"Authorization\" header to include your Base ID, Table ID, and Personal Access Token.\n\n**2. Google AI Configuration (Gemini & Veo):**\n- In the Analyze image (Google Gemini) node, select your Gemini API credentials.\n- In both the Generate Video Veo 3 and Get the the Video (HTTP Request) nodes: \n\n- You must replace [Project ID] and [Location] in the URLs with your own Google Cloud Project ID and region (e.g., us-central1).\n- Select your Google OAuth2 credentials for authentication.\n\n**3. Customize Video Parameters (Optional):**\n- In the Parse Request (Code) node, you can modify the JavaScript code to change video generation settings like aspectRatio, durationSeconds, and resolution.\n\n**4. Execute the Workflow:**\n- Activate the workflow. Open the Form URL from the Prompt your Idea node to start the process.\n\n## [Sample Videos](https://drive.google.com/drive/folders/1brGvAKJB4PY_CClqqRVh31Kr8fY6cTLs?usp=sharing)\n\n## Connect with us\n- Website: https://www.intuz.com/services\n- Email: getstarted@intuz.com\n- LinkedIn: https://www.linkedin.com/company/intuz\n- Get Started: https://n8n.partnerlinks.io/intuz\n\n## For Custom Workflow Automation\nClick here- [Get Started](https://www.intuz.com/get-started)"
+}

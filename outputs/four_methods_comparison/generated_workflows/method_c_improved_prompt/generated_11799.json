@@ -1,0 +1,233 @@
+{
+  "template_id": "11799",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on an hourly schedule to ensure timely inventory management and predictive reordering.",
+      "data_sources": "Shopify API for inventory and orders, Google Sheets for inventory master, supplier list, and PO log, Slack API for notifications.",
+      "operations": "1. Fetch inventory and order data from Shopify, 2. Read data from Google Sheets, 3. Calculate sales velocity and reorder points, 4. Check for stock redistribution, 5. Generate and send POs, 6. Send Slack alerts, 7. Log POs and update analytics.",
+      "output_actions": "Send purchase orders to suppliers, notify stakeholders via Slack, update Google Sheets logs.",
+      "nodes_plan": "schedule (trigger), shopify (httpRequest), googleSheets (read/write), set (data processing), if (conditions), slack (notifications), emailSend/httpRequest (PO dispatch)",
+      "connections_plan": "schedule -> shopify -> googleSheets -> set -> if -> [slack | emailSend/httpRequest] -> googleSheets"
+    },
+    "workflowPlan": {
+      "name": "Shopify Inventory Management and Reordering",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 * * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Shopify Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-10/inventory_levels.json",
+            "authentication": "shopifyApi"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Read Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-google-sheet-id",
+            "range": "Inventory Master!A1:Z1000"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calculate Reorder Points",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "number": [
+                {
+                  "name": "reorderPoint",
+                  "value": "={{ $json.salesVelocity * $json.leadTime + $json.safetyStock }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Stock Redistribution",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.currentStock }}",
+                  "operation": "less",
+                  "value2": "={{ $json.reorderPoint }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#inventory-alerts",
+            "text": "Critical stock level alert for SKU: {{ $json.sku }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Purchase Order",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "supplier@example.com",
+            "subject": "Purchase Order for SKU: {{ $json.sku }}",
+            "text": "Please send us {{ $json.orderQuantity }} units of SKU: {{ $json.sku }}."
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Update PO Log",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Purchase Order Log!A1:Z1000",
+            "data": [
+              [
+                "={{ $json.sku }}",
+                "={{ $json.orderQuantity }}",
+                "={{ $json.supplier }}",
+                "={{ $json.orderDate }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4874,
+    "completion_tokens": 1362,
+    "total_tokens": 6236
+  },
+  "description_optimization": null,
+  "original_description": "This workflow automates inventory management and predictive reordering for Shopify stores. It integrates Shopify, Google Sheets, and Slack to monitor inventory levels, calculate dynamic reorder points based on sales velocity, and automate supplier communication. The workflow helps prevent stockouts, reduces overstock, and streamlines the purchase order process with minimal manual intervention.\n\n---\n\n## Key Features\n\n- **Automated Inventory Monitoring:** Fetches real-time inventory, product, and order data from Shopify and Google Sheets.\n- **Predictive Reordering:** Calculates sales velocity and dynamic reorder points for each SKU.\n- **Supplier Communication:** Automatically generates and sends purchase orders (POs) to suppliers via email or API.\n- **Multi-Warehouse Logic:** Checks for possible stock redistribution before triggering new orders.\n- **Business Rule Enforcement:** Applies custom rules (MOQ, budget, business days, approval thresholds).\n- **Real-Time Alerts:** Notifies stakeholders via Slack about critical stock risks and slow-moving products.\n- **Comprehensive Logging:** Updates purchase order logs and analytics dashboards for full traceability.\n\n---\n\n## How to Configure\n\n1. **Shopify Integration**\n   - Create a [Shopify Private App](https://shopify.dev/docs/apps/auth) and obtain your API credentials (API key, password, and store URL).\n   - In n8n, set up Shopify credentials using these details.\n\n2. **Google Sheets Integration**\n   - Prepare three Google Sheets:\n     - **Inventory Master:** Contains SKU, product details, and ideal stock levels.\n     - **Suppliers:** Contains supplier contact information and SKU mapping.\n     - **Purchase Order Log:** Tracks all generated POs.\n   - Share these sheets with the Google account connected to n8n and set up Google Sheets credentials.\n\n3. **Slack Integration**\n   - Create a [Slack Incoming Webhook](https://api.slack.com/messaging/webhooks) for the channel where you want to receive alerts and summaries.\n   - Add the webhook URL to the relevant Slack nodes in the workflow.\n\n4. **Supplier Communication**\n   - For email: Configure the Email node with your SMTP credentials and supplier email addresses.\n   - For API: Set up HTTP Request nodes with supplier API endpoints and authentication as required.\n\n5. **Workflow Parameters**\n   - Adjust configuration nodes to set business rules such as:\n     - Reorder point multipliers\n     - Safety stock days\n     - Budget limits\n     - Minimum order quantities (MOQ)\n     - Approval thresholds\n\n6. **Scheduling**\n   - The workflow is set to run hourly by default. Adjust the trigger node as needed.\n\n7. **Testing**\n   - Run the workflow manually with test data to ensure all integrations and logic work as expected before enabling automation.\n\n---\n\n## How It Works\n\n1. **Trigger:** Runs automatically on an hourly schedule.\n2. **Configuration:** Sets business parameters (Shopify URL, reorder multipliers, safety stock days, budget, etc.).\n3. **Data Collection:** Retrieves inventory, product details, and recent orders from Shopify. Reads inventory master, supplier list, and PO log from Google Sheets.\n4. **Data Merging:** Combines all sources into a unified SKU-level dataset.\n5. **Sales Velocity Calculation:** Computes 7/30-day sales velocity for each SKU.\n6. **Dynamic Reorder Point:** Calculates reorder points based on sales velocity, lead time, and safety stock.\n7. **Reorder Check:** Identifies SKUs below their reorder point.\n8. **Stockout Risk Assessment:** Flags SKUs at high risk of stockout and sends Slack alerts.\n9. **Warehouse Redistribution:** Attempts to balance stock between warehouses before reordering.\n10. **Supplier Data Enrichment:** Adds supplier info and checks availability.\n11. **Business Rule Checks:** Validates business day, MOQ, promotional periods, budget, and approval needs.\n12. **Order Calculation:** Determines optimal order quantities and prioritizes by profitability.\n13. **PO Structuring:** Prepares PO line items and context for supplier communication.\n14. **PO Dispatch:** Sends PO via email or API to the supplier.\n15. **PO Confirmation & Logging:** Waits for confirmation and updates the PO log in Google Sheets.\n16. **Slow-Mover Detection:** Identifies slow-selling SKUs and sends actionable Slack suggestions.\n17. **Inventory Update:** Syncs inventory changes back to Shopify.\n18. **Analytics & Reporting:** Updates dashboards, scenario planning sheets, and accounting systems.\n19. **Daily Summary:** Aggregates and sends a daily activity summary to Slack.\n\n---\n\n## Example Use Case\n\nA Shopify retailer uses this workflow to automate inventory management. Every hour, the workflow checks current stock and sales trends, predicts which products are at risk of running out, and automatically creates purchase orders for suppliers. If a product is selling slowly, the system notifies the team with suggestions for discounts or bundling. All actions are logged and summarized daily, ensuring the team stays informed and inventory is always optimized.\n\n---\n\n## Prerequisites\n\n- Shopify account with API access\n- Google Sheets with inventory, supplier, and PO log sheets\n- Slack workspace and webhook for notifications\n- Supplier email/API endpoints for PO dispatch\n\n---\n\n## Limitations & Notes\n\n- Customization may be required for specific business rules or supplier integrations.\n- Ensure API credentials and sheet structures match the workflow\u2019s configuration.\n- Multi-warehouse logic assumes accurate warehouse-level inventory data.\n\n---\n\nIf you need further customization or have specific requirements for your business logic, adjust the configuration and node parameters accordingly.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T22:49:01.772134",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.13333333333333333,
+    "node_type_f1": 0.22641509433962267,
+    "tp": 6,
+    "fp": 2,
+    "fn": 39,
+    "gt_node_count": 45,
+    "llm_node_count": 8,
+    "connection_precision": 0.14285714285714285,
+    "connection_recall": 0.043478260869565216,
+    "connection_f1": 0.06666666666666667,
+    "correct_connections": 1,
+    "gt_connection_count": 23,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.03333333333333333,
+    "usage": {
+      "prompt_tokens": 4874,
+      "completion_tokens": 1362,
+      "total_tokens": 6236
+    },
+    "total_cost": 0.025805
+  }
+}

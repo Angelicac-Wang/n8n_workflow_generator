@@ -1,0 +1,208 @@
+{
+  "template_id": 12008,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow to automate the generation and evaluation of daily business performance reports.",
+    "workflowPlan": {
+      "name": "Daily Business Performance Report",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Revenue Data",
+          "nodeType": "n8n-nodes-base.mssql",
+          "typeVersion": 1,
+          "params": {
+            "query": "SELECT SUM(revenue) as totalRevenue, COUNT(user_id) as userCount FROM sales WHERE date = CONVERT(date, GETDATE()-1)"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Google Analytics Data",
+          "nodeType": "n8n-nodes-base.googleAnalytics",
+          "typeVersion": 1,
+          "params": {
+            "viewId": "YOUR_VIEW_ID",
+            "dateRanges": [
+              {
+                "startDate": "yesterday",
+                "endDate": "yesterday"
+              }
+            ],
+            "metrics": [
+              {
+                "expression": "ga:sessions"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Data Validity",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"totalRevenue\"] > 0}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Marketing Expenses",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Marketing!A2:B",
+            "valueRenderOption": "UNFORMATTED_VALUE"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Marketing Data",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"expenses\"] > 0}}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Report",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "report",
+                  "value": "Revenue: {{$node[\"Fetch Revenue Data\"].json[\"totalRevenue\"]}}, Users: {{$node[\"Fetch Revenue Data\"].json[\"userCount\"]}}, Marketing Expenses: {{$node[\"Fetch Marketing Expenses\"].json[\"expenses\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 1
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 661,
+    "completion_tokens": 1021,
+    "total_tokens": 1682
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:56:02.883844",
+  "generated_description": "This n8n workflow is designed to automate the generation and evaluation of daily business performance reports. It is triggered by a Schedule Trigger, which initiates the workflow at a specified time each day. The workflow interacts with multiple data sources, including Microsoft SQL databases, Google Analytics, and Google Sheets.\n\nFirstly, it retrieves data from a Microsoft SQL database to gather information on yesterday's revenue and the number of registered users. It also accesses Google Analytics to obtain a report for the previous day. The workflow then uses conditional logic to check the validity and completeness of the retrieved data.\n\nSubsequently, it fetches information on marketing expenses from a Google Sheets document. The workflow includes additional conditional checks to determine if the Google report and marketing data meet specific criteria.\n\nThroughout the process, the workflow performs operations such as summarizing the total revenue amount. The final output of this workflow is a comprehensive daily report that provides insights into revenue, user registrations, and marketing expenses, facilitating informed decision-making for business stakeholders.",
+  "description_generation_usage": {
+    "prompt_tokens": 225,
+    "completion_tokens": 199,
+    "total_tokens": 424
+  },
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.20833333333333334,
+    "node_type_f1": 0.3225806451612903,
+    "tp": 5,
+    "fp": 2,
+    "fn": 19,
+    "gt_node_count": 24,
+    "llm_node_count": 7,
+    "connection_precision": 0.42857142857142855,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.24,
+    "correct_connections": 3,
+    "gt_connection_count": 18,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.2,
+    "usage": {
+      "prompt_tokens": 661,
+      "completion_tokens": 1021,
+      "total_tokens": 1682
+    },
+    "total_cost": 0.014415,
+    "description_generation_cost": 0.0025525,
+    "workflow_generation_cost": 0.0118625
+  },
+  "original_description": "## WORKFLOW OVERVIEW\n\nThis workflow is an AI-powered business intelligence agent designed for founders and business owners.\nIt automatically collects key business metrics, calculates performance KPIs, applies decision logic, uses AI reasoning, and sends clear, actionable notifications \u2014 without dashboards or manual reports.\n\n## Key Features:\n\n\u2705 Aggregates multiple data sources (MSSQL, Google Analytics, Google Sheets)\n\u2705 Calculates critical KPIs: ROAS, CAC, Revenue & User Growth\n\u2705 Applies rule-based decision logic for business risk and opportunity detection\n\u2705 AI-powered reasoning: summarizes insights and recommends actions\n\u2705 Multi-channel notifications: Email, WhatsApp, Slack, Telegram\n\u2705 Fully automated daily execution via Cron trigger\n\u2705 Enterprise-ready: error handling, structured data, KPI validation\n\n## Setup & Requirements:\n\n\n- API access to data sources (MSSQL, Google Analytics, Google Sheets)\n- OpenAI or Google Gemini API for AI reasoning\n- Messaging integration: Gmail, Twilio (WhatsApp), Slack, Telegram\n- \n## Workflow Flow:\n\n- Cron Trigger \u2013 runs daily at a chosen time\n- Data Collection \u2013 revenue, users, marketing spend, website analytics\n- Merge Node \u2013 combines all data sources\n- Function Node \u2013 consolidates into a single JSON object\n- KPI Calculation \u2013 calculates ROAS, CAC, growth rates\n- Business Logic Engine \u2013 identifies risks and opportunities\n- AI Reasoning Agent \u2013 summarizes insights, suggests actions\n- Notification Formatter \u2013 builds founder-friendly message\n- Notification Delivery \u2013 sends via WhatsApp, Email, Slack, or Telegram\n\n## Example Data Formation\n\nThese data below Getting from all different channels.\n\n`{\n  \"revenue\": 4290,\n  \"registeredUsers\": 20,\n  \"totalUsers\": 3,\n  \"adSpend\": 800\n}`\n\nApplies rule-based logic to detect potential risks or opportunities\n\n`{\n  \"ROAS\": 5.36,\n  \"CAC\": 40,\n  \"agentStatus\": \"normal\",\n  \"agentPriority\": \"low\",\n  \"insights\": [\"Marketing campaigns are performing very well\"]\n}`\n\n## Workflow Highlights\n\nFully automated, runs daily without human intervention\nIntegrates multiple business data sources\nConverts raw data into KPIs for actionable insight\nApplies both rule-based logic and AI reasoning\nGenerates concise, human-friendly notifications\nSending notification to different channels."
+}

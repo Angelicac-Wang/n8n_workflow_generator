@@ -1,0 +1,347 @@
+{
+  "template_id": "10352",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a travel planning automation with fixed API calls and AI processing. Use base nodes.",
+      "trigger_analysis": "Webhook trigger to receive incoming travel planning requests.",
+      "data_sources": "APIs for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, OpenRouter.",
+      "operations": "1. Receive webhook, 2. Extract travel parameters, 3. Fetch data from APIs in parallel, 4. Merge data, 5. Use AI to build itinerary, 6. Score options, 7. Generate HTML email, 8. Send via Gmail and Slack.",
+      "output_actions": "Send itinerary via Gmail and Slack, respond to webhook with confirmation.",
+      "nodes_plan": "webhook (trigger), set (extract parameters), httpRequest (API calls), merge (combine data), openAi (AI processing), code (scoring), html (generate HTML), gmail (send email), slack (send message), respondToWebhook (confirmation).",
+      "connections_plan": "webhook -> set -> [httpRequest (flights), httpRequest (hotels), httpRequest (activities), httpRequest (weather)] -> merge -> openAi -> code -> html -> [gmail, slack] -> respondToWebhook."
+    },
+    "workflowPlan": {
+      "name": "Travel Planning Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "travel-planning"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "destination",
+                  "value": "={{ $json.body.destination }}"
+                },
+                {
+                  "name": "dates",
+                  "value": "={{ $json.body.dates }}"
+                },
+                {
+                  "name": "preferences",
+                  "value": "={{ $json.body.preferences }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Flights",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.skyscanner.net/apiservices/browsequotes/v1.0/{{ $json.destination }}/{{ $json.dates }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Fetch Hotels",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.booking.com/v1/hotels?destination={{ $json.destination }}&dates={{ $json.dates }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Activities",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.viator.com/v1/activities?location={{ $json.destination }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Weather",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.openweathermap.org/data/2.5/forecast?q={{ $json.destination }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "mergeByIndex"
+          },
+          "position": {
+            "x": 700,
+            "y": 250
+          }
+        },
+        {
+          "id": "8",
+          "label": "Build Itinerary",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Create a travel itinerary based on the following data: {{ $json }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 250
+          }
+        },
+        {
+          "id": "9",
+          "label": "Score Options",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.score = Math.random(); return item; });"
+          },
+          "position": {
+            "x": 1100,
+            "y": 250
+          }
+        },
+        {
+          "id": "10",
+          "label": "Generate HTML",
+          "nodeType": "n8n-nodes-base.html",
+          "typeVersion": 1,
+          "params": {
+            "html": "<html><body><h1>Your Itinerary</h1><p>{{ $json }}</p></body></html>"
+          },
+          "position": {
+            "x": 1300,
+            "y": 250
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{ $json.body.email }}",
+            "subject": "Your Travel Itinerary",
+            "html": "={{ $json.html }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 150
+          }
+        },
+        {
+          "id": "12",
+          "label": "Send Slack",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#travel-itineraries",
+            "text": "Your itinerary is ready: {{ $json.html }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 350
+          }
+        },
+        {
+          "id": "13",
+          "label": "Respond to Webhook",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "response": "Itinerary sent successfully."
+          },
+          "position": {
+            "x": 1700,
+            "y": 250
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 2
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 3
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "12",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "11",
+          "to": "13",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "12",
+          "to": "13",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8446,
+    "completion_tokens": 2029,
+    "total_tokens": 10475
+  },
+  "description_optimization": null,
+  "original_description": "## Introduction\nAutomates travel planning by aggregating flights, hotels, activities, and weather via APIs, then uses AI to generate professional itineraries delivered through Gmail and Slack.\n\n## How It Works\nWebhook receives requests, searches APIs (Skyscanner, Booking.com, Kiwi, Viator, weather), merges data, AI builds itineraries, scores options, generates HTML emails, delivers via Gmail/Slack.\n\n## Workflow Template\nWebhook \u2192 Extract \u2192 Parallel Searches (Flights/Hotels/Activities/Weather) \u2192 Merge \u2192 Build Itinerary \u2192 AI Processing \u2192 Score \u2192 Generate HTML \u2192 Gmail \u2192 Slack \u2192 Response\n\n## Workflow Steps\n1. Trigger & Extract: Receives destination, dates, preferences, extracts parameters.\n2. Data Gathering: Parallel APIs fetch flights, hotels, activities, weather, merges responses.\n3. AI Processing: Analyzes data, creates itinerary, ranks recommendations.\n4. Delivery: Generates HTML email, sends via Gmail/Slack, confirms completion.\n\n## Setup Instructions\n1. API Configuration: Add keys for Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, OpenRouter.\n2. Communication: Connect Gmail OAuth2, Slack webhook.\n3. Customization: Adjust endpoints, AI prompts, HTML template, scoring criteria.\n\n## Prerequisites\n- API keys: Skyscanner, Booking.com, Kiwi, Viator, OpenWeatherMap, OpenRouter\n- Gmail account\n- Slack workspace\n- n8n instance\n\n## Use Cases\n- Corporate travel planning\n- Vacation itinerary generation\n- Group trip coordination\n\n## Customization\n- Add sources (Airbnb, TripAdvisor)\n- Filter by budget preferences\n- Add PDF generation\n- Customize Slack format\n\n## Benefits\n- Saves 3-5 hours per trip\n- Real-time pricing aggregation\n- AI-powered personalization\n- Automated multi-channel delivery",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:23:20.011696",
+  "metrics": {
+    "node_type_precision": 0.7692307692307693,
+    "node_type_recall": 0.625,
+    "node_type_f1": 0.6896551724137931,
+    "tp": 10,
+    "fp": 3,
+    "fn": 6,
+    "gt_node_count": 16,
+    "llm_node_count": 13,
+    "connection_precision": 0.4,
+    "connection_recall": 0.4,
+    "connection_f1": 0.4000000000000001,
+    "correct_connections": 4,
+    "gt_connection_count": 10,
+    "llm_connection_count": 10,
+    "avg_parameter_accuracy": 0.26666666666666666,
+    "usage": {
+      "prompt_tokens": 8446,
+      "completion_tokens": 2029,
+      "total_tokens": 10475
+    },
+    "total_cost": 0.041405000000000004
+  },
+  "is_ai_workflow": false
+}

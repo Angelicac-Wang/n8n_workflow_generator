@@ -1,0 +1,181 @@
+{
+  "template_id": 3751,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to aggregate and analyze cryptocurrency news and sentiment.",
+    "workflowPlan": {
+      "name": "Crypto News Sentiment Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyHour"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch RSS Feeds",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "urls": [
+              "https://cointelegraph.com/rss",
+              "https://bitcoinmagazine.com/.rss/full/",
+              "https://www.coindesk.com/arc/outboundfeeds/rss/",
+              "https://www.bitcoinist.com/feed/",
+              "https://www.newsbtc.com/feed/",
+              "https://cryptopotato.com/feed/",
+              "https://99bitcoins.com/feed/"
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Crypto News & Sentiment Agent",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.cryptosentiment.com/analyze",
+            "method": "POST",
+            "jsonParameters": true,
+            "options": {},
+            "bodyParametersJson": {
+              "data": "={{$json[\"items\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the sentiment data and provide insights.",
+            "temperature": 0.7,
+            "maxTokens": 150
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Set Query",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "query",
+                  "value": "={{$json[\"insights\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Output Report",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{$json[\"query\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 687,
+    "completion_tokens": 850,
+    "total_tokens": 1537
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:57:54.001536",
+  "generated_description": "This n8n workflow is designed to aggregate and analyze cryptocurrency news and sentiment. It is triggered by a scheduled event or manual initiation. The workflow utilizes multiple data sources, specifically RSS feeds from prominent cryptocurrency news websites such as Cointelegraph, Bitcoinmagazine, Coindesk, Bitcoinist, Newsbtc, Cryptopotato, and 99bitcoins, among others. These RSS feeds are used to gather the latest articles and updates related to cryptocurrencies.\n\nOnce the news articles are collected, the workflow employs a \"Crypto News & Sentiment Agent\" to analyze the sentiment of the gathered news items. This analysis helps in understanding the overall market sentiment regarding cryptocurrencies at any given time.\n\nAdditionally, the workflow incorporates an \"OpenAI Chat Model\" node, which likely processes the sentiment data or generates insights based on the analyzed information. The \"Set Query\" node is used to configure or customize specific parameters or queries for the analysis.\n\nThe final output of this workflow is a comprehensive sentiment analysis report or insights regarding the current state of cryptocurrency news, which can be used for market analysis, decision-making, or further dissemination to interested stakeholders.",
+  "description_generation_usage": {
+    "prompt_tokens": 240,
+    "completion_tokens": 225,
+    "total_tokens": 465
+  },
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.15,
+    "node_type_f1": 0.23076923076923075,
+    "tp": 3,
+    "fp": 3,
+    "fn": 17,
+    "gt_node_count": 20,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.1,
+    "connection_f1": 0.13333333333333333,
+    "correct_connections": 1,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "prompt_tokens": 687,
+      "completion_tokens": 850,
+      "total_tokens": 1537
+    },
+    "total_cost": 0.013067500000000001,
+    "description_generation_cost": 0.00285,
+    "workflow_generation_cost": 0.010217500000000001
+  },
+  "original_description": "**Stay on top of the latest crypto news and market sentiment instantly, all inside Telegram!**  \nThis workflow aggregates articles from the top crypto news sources, filters for your topic of interest, and summarizes key news and market sentiment using **GPT-4o AI**. Ideal for **crypto traders, investors, analysts**, and **market watchers** needing fast, intelligent news briefings.\n\n&gt; \ud83d\udcac Just type a coin name (e.g., \"Bitcoin\", \"Solana\", \"DeFi\") into your Telegram AI Agent\u2014and get a smart news digest.\n\n---\n\n## How It Works\n\n1. **Telegram Bot Trigger**  \n   - User sends a keyword (e.g., \"Ethereum\") of questions to the Telegram AI Agent.\n\n2. **Keyword Extraction (AI-Powered)**  \n   - An AI agent identifies the main topic for better targeting.\n\n3. **News Aggregation**  \n   - Pulls articles from 9 major crypto news RSS feeds:  \n   \n     - Cointelegraph  \n     - Bitcoin Magazine  \n     - CoinDesk  \n     - Bitcoinist  \n     - NewsBTC  \n     - CryptoPotato  \n     - 99Bitcoins  \n     - CryptoBriefing  \n     - Crypto.news  \n\n4. **Filtering**  \n   - Finds and merges articles relevant to the user's keyword.\n\n5. **AI Summarization**  \n   - **GPT-4o** generates a 3-part summary:\n     1. News Summary  \n     2. Market Sentiment Analysis  \n     3. List of Article Links\n\n6. **Telegram Response**  \n   - Sends a structured, easy-to-read digest back to the user.\n\n---\n\n## \ud83d\udd0d What You Can Do with This Workflow\n\n\ud83d\udd39 Summarize breaking news for any crypto project or keyword  \n\ud83d\udd39 Monitor real-time market sentiment on Bitcoin, DeFi, NFTs, and more  \n\ud83d\udd39 Stay ahead of FUD, bullish trends, and major news events  \n\ud83d\udd39 Quickly brief yourself or your team via Telegram  \n\ud83d\udd39 Use it as a foundation for more advanced crypto alert bots\n\n---\n\n## \u2705 Example User Inputs\n\n\u2705 _\"Bitcoin\"_ \u2192 Latest Bitcoin news and sentiment summary  \n\u2705 _\"Solana\"_ \u2192 Updates on Solana projects, price movements, and community trends  \n\u2705 _\"NFT\"_ \u2192 Aggregated news about NFT markets and launches  \n\u2705 _\"Layer 2\"_ \u2192 Insights on Optimism, Arbitrum, and other L2s  \n\n---\n\n## \ud83d\udee0\ufe0f Setup Instructions\n\n1. **Create a Telegram Bot**  \n   - Use [@BotFather](https://t.me/BotFather) and obtain the Bot Token.\n\n2. **Configure Telegram Credentials in n8n**  \n   - Add your bot token under **Telegram API Credentials**.\n\n3. **Configure OpenAI API**  \n   - Add your OpenAI credentials for GPT-4o access.\n\n4. **Update Telegram Send Node**  \n   - In the **Telegram Send** node, replace the placeholder `chatId` with your real Telegram user or group chat ID.\n\n5. **Deploy and Test**  \n   - Start chatting with your bot: e.g., _\"Ethereum\"_ or _\"DeFi\"_.\n\n---\n\n## \ud83d\udccc Workflow Highlights\n\n- **9 major crypto news sources combined**\n- **Smart keyword matching** with AI query parsing\n- **Summarized insights** in human-readable format\n- **Reference links** included for deeper reading\n- **Instant delivery** via Telegram\n\n---\n\n\ud83d\ude80 **Get ahead of the crypto market\u2014automate your news and sentiment monitoring with AI inside Telegram!**"
+}

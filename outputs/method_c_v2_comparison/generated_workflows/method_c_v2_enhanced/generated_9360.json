@@ -1,0 +1,250 @@
+{
+  "template_id": "9360",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually via a form submission to collect user inputs.",
+      "data_sources": "OpenAI Sora 2 API for video generation and Google Drive API for file uploads.",
+      "operations": "1. Receive form submission, 2. Validate image format, 3. Send request to Sora 2 API, 4. Poll for status, 5. Handle errors, 6. Download video, 7. Upload to Google Drive, 8. Display results.",
+      "output_actions": "Upload the generated video to Google Drive and display a download link with a video preview.",
+      "nodes_plan": "manualTrigger (trigger), set (validate image), httpRequest (Sora 2 API), if (check status), wait (polling delay), httpRequest (download video), googleDrive (upload), respondToWebhook (display results)",
+      "connections_plan": "manualTrigger -> set -> httpRequest (Sora 2 API) -> if (status check) -> [wait (queued/in progress) | httpRequest (download video) -> googleDrive -> respondToWebhook]"
+    },
+    "workflowPlan": {
+      "name": "Sora 2 Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Validate Image",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "imageFormat",
+                  "value": "={{ $json.referenceImage.match(/\\.(jpg|png|webp)$/i) ? 'valid' : 'invalid' }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Sora 2 API Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.sora2.openai.com/generate",
+            "body": {
+              "prompt": "={{ $json.prompt }}",
+              "referenceImage": "={{ $json.referenceImage }}",
+              "apiKey": "={{ $json.apiKey }}",
+              "settings": "={{ $json.settings }}"
+            },
+            "options": {
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Status",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.status }}",
+                  "operation": "equal",
+                  "value2": "completed"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": {
+              "value": 30,
+              "unit": "seconds"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.videoUrl }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "generated_video.mp4",
+            "binaryData": true,
+            "dataPropertyName": "data"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Display Results",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": {
+              "data": [
+                {
+                  "name": "downloadLink",
+                  "value": "={{ $json.downloadLink }}"
+                },
+                {
+                  "name": "videoPreview",
+                  "value": "={{ $json.videoPreview }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 6325,
+    "completion_tokens": 1390,
+    "total_tokens": 7715
+  },
+  "description_optimization": null,
+  "original_description": "## Who's it for\nThis template is designed for filmmakers, content creators, social media managers, and AI developers who want to harness OpenAI's Sora 2 for creating physically accurate, cinematic videos with synchronized audio. Whether you're generating realistic scenes from text prompts or reference images with proper physics simulation, creating multi-shot sequences with persistent world state, or producing content with integrated dialogue and sound effects, this workflow streamlines the entire video generation process from prompt to preview and Google Drive upload.\n\n## What it does\nThis workflow:\n* Accepts a text prompt, optional reference image, OpenAI API key, and generation settings via form submission\n* Validates reference image format (jpg, png, or webp only)\n* Sends the prompt and optional reference to the Sora 2 API endpoint to request video generation\n* Continuously polls the video rendering status (queued \u2192 in progress \u2192 completed)\n* Waits 30 seconds between status checks to avoid rate limiting\n* Handles common generation errors with descriptive error messages\n* Automatically fetches the generated video once rendering is complete\n* Downloads the final .mp4 file\n* Uploads the resulting video to your Google Drive\n* Displays the download link and video preview/screenshot upon completion\n\n## How to set up\n\n### 1. Get Your OpenAI API Key\n\nYou'll need an OpenAI API key to use this workflow. Here's the general process:\n\n1. **Create an OpenAI account** at https://platform.openai.com\n2. **Set up billing** - Add payment information to enable API access\n3. **Generate your API key** through the API keys section in your OpenAI dashboard\n4. **Copy and save your key immediately** - you won't be able to view it again!\n\n\u26a0\ufe0f **Important**: Your API key will start with `sk-` and should be kept secure. If you lose it, you'll need to generate a new one.\n\n### 2. Connect Google Drive\n* Add your **Google Drive OAuth2** credential to n8n\n* Grant necessary permissions for file uploads\n\n### 3. Import and Run\n* Import this workflow into n8n\n* Execute the workflow via the form trigger\n* Enter your API key, prompt, and desired settings in the form\n* **Optionally upload a reference image** to guide the video generation\n\n**All generation settings are configured through the form**, including:\n* **Model**: Choose between `sora-2` or `sora-2-pro`\n* **Duration**: 4, 8, or 12 seconds\n* **Resolution**: Portrait or Landscape options\n* **Reference Image** (optional): Upload jpg, png, or webp matching your target resolution\n\n## \u26a0\ufe0f Sora 2 Pricing\n\nThe workflow supports two Sora models which have the following API pricing:\n\n**Sora 2** - $0.10/sec\n* Portrait: 720x1280\n* Landscape: 1280x720\n\n**Sora 2 Pro** - $0.30/sec (720p) or $0.50/sec (1080p)\n* 720p - Portrait: 720x1280, Landscape: 1280x720\n* 1080p - Portrait: 1024x1792, Landscape: 1792x1024\n\n**Duration options**: 4, 8, 12 seconds (default: 4)\n\n**Example costs:**\n* 4-second video with Sora 2: $0.40\n* 12-second video with Sora 2 Pro (1080p): $6.00\n\n## Requirements\n* Valid OpenAI API key (starting with `sk-`)\n* Google Drive OAuth2 credential connected to n8n\n* **Reference image** (optional): jpg, png, or webp format - should match your selected video resolution for best results\n\n## How to customize the workflow\n\n### Modify generation parameters\n* Edit the form fields to include additional options:\n  * Style presets (cinematic, anime, realistic)\n  * Camera movement preferences\n  * Audio generation options\n  * Image reference strength/influence settings\n\n[It's recommended to visit the official documentation on prompting for a detailed Sora 2 guide.](https://cookbook.openai.com/examples/sora/sora2_prompting_guide)\n\n### Adjust polling behavior\n* Change the **Wait** node duration (default: 30 seconds)\n* Modify the **Check Status** polling frequency based on typical generation times\n* Add timeout logic for very long renders\n\n### Customize error handling\n* Extend error messages for additional failure scenarios\n* Add retry logic for transient errors\n* Configure notification webhooks for error alerts\n\n### Alternative upload destinations\n* Replace the **Google Drive** node with:\n  * Dropbox\n  * AWS S3\n  * Azure Blob Storage\n  * YouTube direct upload\n  * Slack/Discord notification with video attachment\n\n### Enhance result display\n* Customize the completion form to show additional metadata\n* Add video thumbnail generation\n* Include generation parameters in the results page\n* Enable direct playback in the completion form\n\n## Workflow Architecture\n\n**Step-by-step flow:**\n1. **Form Submission** \u2192 User inputs text prompt, optional reference image, API key, and generation settings\n2. **Create Video** \u2192 Sends request to Sora 2 API endpoint with all parameters and reference image (if provided)\n3. **Check Status** \u2192 Polls the API for video generation status\n4. **Status Decision** \u2192 Routes based on status:\n   * **Queued** \u2192 Wait 30 seconds \u2192 Check Status again\n   * **In Progress** \u2192 Wait 30 seconds \u2192 Check Status again\n   * **Completed** \u2192 Proceed to download\n   * **Failed** \u2192 Display descriptive error message\n5. **Wait** \u2192 30-second delay between status checks\n6. **Download** \u2192 Fetches the generated video file\n7. **Google Drive** \u2192 Uploads .mp4 to your Drive\n8. **Completion Form** \u2192 Displays download link and video preview/screenshot\n\n\n**If you have any questions, just contact me on [Linkedin](https://www.linkedin.com/in/crisandrews/?locale=en_US)**\n\n\n---\n\n**Ready to create cinematic AI videos with physics-accurate motion, synchronized audio, and optional image references? Import this workflow and start generating!** \ud83c\udfac\u2728",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:45:47.401245",
+  "metrics": {
+    "node_type_precision": 0.625,
+    "node_type_recall": 0.3125,
+    "node_type_f1": 0.4166666666666667,
+    "tp": 5,
+    "fp": 3,
+    "fn": 11,
+    "gt_node_count": 16,
+    "llm_node_count": 8,
+    "connection_precision": 0.25,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.2,
+    "correct_connections": 2,
+    "gt_connection_count": 12,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 6325,
+      "completion_tokens": 1390,
+      "total_tokens": 7715
+    },
+    "total_cost": 0.029712500000000003
+  }
+}

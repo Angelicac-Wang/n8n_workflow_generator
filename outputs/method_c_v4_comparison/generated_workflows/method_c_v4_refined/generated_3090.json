@@ -1,0 +1,181 @@
+{
+  "template_id": "3090",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'AI-powered chatbot', 'memory integration', 'natural language prompts'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Postgres/Supabase database accessed via LangChain tool architecture, QuickChart API for chart generation.",
+      "operations": "1. Receive chat input via chatTrigger, 2. Agent orchestrates with LLM reasoning, 3. Agent calls database tool when needed, 4. Generate charts using QuickChart, 5. Memory maintains context, 6. Return formatted response.",
+      "output_actions": "Intelligent chat response back to user with database query results or chart URL.",
+      "nodes_plan": "chatTrigger (chat input), agent (orchestrator - REQUIRED), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context), postgresTool (database access), httpRequestTool (QuickChart API).",
+      "connections_plan": "chatTrigger \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow, postgresTool, httpRequestTool as sub-nodes."
+    },
+    "workflowPlan": {
+      "name": "Multi-AI Agent Chatbot for Databases and Charts",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are a helpful assistant for querying databases and generating charts. Answer user questions by querying the database or generating charts as needed. Be concise and accurate.",
+            "options": {}
+          },
+          "position": {
+            "x": 320,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 180
+          }
+        },
+        {
+          "id": "4",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 540,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Postgres Database Tool",
+          "nodeType": "n8n-nodes-base.postgresTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "description": "Query the PostgreSQL database to retrieve information"
+          },
+          "position": {
+            "x": 540,
+            "y": 420
+          }
+        },
+        {
+          "id": "6",
+          "label": "QuickChart API",
+          "nodeType": "n8n-nodes-base.httpRequestTool",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://quickchart.io/chart/create",
+            "body": {
+              "chart": "={{ $json.chartConfig }}"
+            },
+            "options": {
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 540
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9197,
+    "completion_tokens": 1087,
+    "total_tokens": 10284
+  },
+  "description_optimization": null,
+  "original_description": "# Multi-AI Agent Chatbot for Postgres/Supabase Databases and QuickChart Generation\n\n## Who is this for?  \nThis workflow is ideal for **data analysts**, **developers**, and **business intelligence teams** who need an AI-powered chatbot to query Postgres/Supabase databases and generate dynamic charts for data visualization.\n\n## What problem does this solve?  \nIt simplifies data exploration by combining conversational AI with database querying and chart generation. Users can interact with their database using natural language, retrieve insights, and visualize data without manual SQL queries or chart configuration.\n\n## What this workflow does  \n1. **AI-Powered Chat Interface**:  \n   - Accepts natural language prompts to query databases or generate charts.  \n   - Routes user requests through a tool agent system to determine the appropriate action (query or chart).  \n\n2. **Database Querying**:  \n   - Executes SQL queries on Postgres/Supabase databases based on user input.  \n   - Retrieves schema information, table definitions, and specific data records.  \n\n3. **Dynamic Chart Generation**:  \n   - Uses QuickChart to create bar charts, line charts, or other visualizations from database records.  \n   - Outputs a shareable chart URL or JSON configuration for further customization.  \n\n4. **Memory Integration**:  \n   - Maintains chat history using Postgres memory nodes, enabling context-aware interactions.  \n\nWorkflow diagram showcasing AI agents, database querying, and chart generation paths.\n\n## Setup  \n1. **Prerequisites**:  \n   - A Postgres-compatible database (e.g., Supabase).  \n   - API credentials for OpenAI.  \n\n2. **Configuration Steps**:  \n   - Add your database connection credentials in the Postgres nodes.  \n   - Set up OpenAI credentials for GPT-4o-mini in the language model nodes.  \n   - Adjust the QuickChart schema in the \"QuickChart Object Schema\" node to fit your use case.  \n\n3. **Testing**:  \n   - Trigger the chat workflow via the \"When chat message received\" node.  \n   - Test with prompts like \"Generate a bar chart of sales data\" or \"Show me all users in the database.\"\n\n## How to customize this workflow  \n- **Modify AI Prompts**\n- **Add Chart Types**\n- **Integrate Other Tools**",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:54:19.728313",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.21052631578947367,
+    "node_type_f1": 0.32,
+    "tp": 4,
+    "fp": 2,
+    "fn": 15,
+    "gt_node_count": 19,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.1818181818181818,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.125,
+    "usage": {
+      "prompt_tokens": 9197,
+      "completion_tokens": 1087,
+      "total_tokens": 10284
+    },
+    "total_cost": 0.033862500000000004
+  },
+  "is_ai_workflow": true
+}

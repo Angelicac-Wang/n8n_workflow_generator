@@ -1,0 +1,255 @@
+{
+  "template_id": "11979",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation task involving API interactions and data processing. Use base nodes.",
+      "trigger_analysis": "Schedule trigger to periodically check the sitemap and perform indexing operations.",
+      "data_sources": "XML sitemap, Google Search Console API, Google Indexing API.",
+      "operations": "1. Fetch XML sitemap, 2. Parse and filter recent URLs, 3. Check indexing status via GSC, 4. Submit non-indexed URLs to Google Indexing API, 5. Track submissions to prevent redundant requests.",
+      "output_actions": "Submit URLs to Google Indexing API and log the submission status.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (fetch sitemap), xml (parse sitemap), set (filter URLs), httpRequest (GSC check), if (check indexing status), httpRequest (submit to Indexing API), set (track submissions).",
+      "connections_plan": "scheduleTrigger -> httpRequest (fetch sitemap) -> xml (parse sitemap) -> set (filter URLs) -> httpRequest (GSC check) -> if (check indexing status) -> [httpRequest (submit to Indexing API) | set (track submissions)]"
+    },
+    "workflowPlan": {
+      "name": "SEO URL Indexing Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Sitemap",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://example.com/sitemap.xml"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse Sitemap",
+          "nodeType": "n8n-nodes-base.xml",
+          "typeVersion": 1,
+          "params": {
+            "options": {
+              "attributeNamePrefix": "",
+              "textNodeName": "text",
+              "ignoreAttributes": false,
+              "ignoreNameSpace": false,
+              "allowBooleanAttributes": false,
+              "parseNodeValue": true,
+              "parseAttributeValue": false,
+              "trimValues": true,
+              "cdataTagName": "__cdata",
+              "cdataPositionChar": "\\c",
+              "localeRange": ""
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Recent URLs",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "url",
+                  "value": "={{ $json.url }}"
+                },
+                {
+                  "name": "lastmod",
+                  "value": "={{ $json.lastmod }}"
+                }
+              ]
+            },
+            "options": {
+              "keepOnlySet": true
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Indexing Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect",
+            "authentication": "googleServiceAccount",
+            "body": {
+              "inspectionUrl": "={{ $json.url }}",
+              "siteUrl": "https://example.com"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Is Not Indexed?",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.indexStatus }}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Submit to Indexing API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://indexing.googleapis.com/v3/urlNotifications:publish",
+            "authentication": "googleServiceAccount",
+            "body": {
+              "url": "={{ $json.url }}",
+              "type": "URL_UPDATED"
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Track Submissions",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "submissionStatus",
+                  "value": "Submitted"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 1,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8719,
+    "completion_tokens": 1441,
+    "total_tokens": 10160
+  },
+  "description_optimization": null,
+  "original_description": "This workflow helps SEO professionals and website owners automate the tedious process of monitoring and indexing URLs. It fetches your XML sitemap, filters for recent content, checks the current indexing status via Google Search Console (GSC), and automatically submits non-indexed URLs to the Google Indexing API.\n\nBy integrating a local submission state (Static Data), it ensures that your API quota is used efficiently by preventing redundant submissions within a 7-day window.\n\n## Key Features\n\n**Smart Sitemap Support**: Handles both standard sitemaps and Sitemap Indexes (nested sitemaps).\n\n**Status Check**: Uses GSC URL Inspection to verify if a page is truly missing from Google's index before taking action.\n\n**Quota Optimization**: Filters content by lastmod date and tracks submission history to stay within Google's API limits.\n\n**Rate Limiting**: Includes built-in batching and delays to comply with Google's API throughput requirements.\n\n## Prerequisites\n\n**Google Search Console API**: Enabled in your Google Cloud Console.\n\n**Google Indexing API**: Enabled for instant indexing.\n\n**Service Account**: You need a Service Account JSON key with \"Owner\" permissions in your GSC Property.\n\n## Setup steps\n\n**1. Configure Google Cloud Console**\n\nCreate Project: Go to the [Google Cloud Console](https://console.cloud.google.com/) and create a new project.\n\nEnable APIs: Search for and enable both the Google Search Console API and the Web Search Indexing API.\n\nCreate Service Account: Navigate to APIs & Services &gt; Credentials &gt; Create Credentials &gt; Service Account. Fill in the details and click Done.\n\nGenerate Key: Select your service account &gt; Edit service account &gt; Keys &gt; Add Key &gt; Create new key &gt; JSON. Save the downloaded file securely.\n\n**2. Set Up Credentials in n8n**\n\nNew Credential: In n8n, go to Create credentials &gt; Google Service Account API.\n\nInput Data: Paste the Service Account Email and Private Key from your downloaded JSON file. In JSON file, Service Account Email is client_email and Private Key is private_key.\n\nHTTP Request Setup: Enable Set up for use in HTTP Request node.\n\nScopes: Enter exactly: https://www.googleapis.com/auth/indexing https://www.googleapis.com/auth/webmasters.readonly into the Scopes field.\n\nGSC Permission: Add the Service Account email to your Google Search Console property as an Owner via Settings &gt; Users and permissions &gt; Add user.\n\n**3. Workflow Configuration**\n\nConfiguration Node: Open the Configuration node and enter your Sitemap URL and GSC Property URL. If your property type is URL prefix, the URL must end with a forward slash /. Example: https://hanthienhai.com/\n\nLink Credentials: Update the credentials in both the GSC: Inspect URL Status and GSC: Request Indexing nodes with the service account created in Step 2.\n\n**4. Schedule & Activate**\n\nSet Schedule: Adjust the Schedule Trigger node to your preferred execution frequency.\n\nActivate: Toggle the workflow to Active to start the automation.\n\n## Questions or Need Help?\n\nFor setup assistance, customization, or workflow support, feel free to contact me at admin@hanthienhai.com",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:22:29.497232",
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.47058823529411764,
+    "node_type_f1": 0.6399999999999999,
+    "tp": 8,
+    "fp": 0,
+    "fn": 9,
+    "gt_node_count": 17,
+    "llm_node_count": 8,
+    "connection_precision": 0.5714285714285714,
+    "connection_recall": 0.23529411764705882,
+    "connection_f1": 0.3333333333333333,
+    "correct_connections": 4,
+    "gt_connection_count": 17,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.26349206349206344,
+    "usage": {
+      "prompt_tokens": 8719,
+      "completion_tokens": 1441,
+      "total_tokens": 10160
+    },
+    "total_cost": 0.036207500000000004
+  },
+  "is_ai_workflow": false
+}

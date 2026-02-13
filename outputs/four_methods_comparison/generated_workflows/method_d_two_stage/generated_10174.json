@@ -1,0 +1,265 @@
+{
+  "template_id": "10174",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a schedule to run daily at 9 AM.",
+      "data_sources": "Google Ads API for campaign data, Google Sheets for logging, Slack for alerts, SMTP for email reports.",
+      "operations": "1. Schedule daily check, 2. Fetch Google Ads data, 3. Perform AI performance analysis, 4. Route by performance, 5. Update campaign dashboard, 6. Log all campaigns, 7. Send Slack alerts, 8. Generate action plan, 9. Email performance report.",
+      "output_actions": "Daily performance reports are sent via email, alerts are sent to Slack, and data is logged in Google Sheets.",
+      "nodes_plan": "schedule (trigger), httpRequest (Google Ads API), function (AI analysis), if (performance routing), googleSheets (update dashboard and log), slack (send alerts), emailSend (send reports).",
+      "connections_plan": "schedule -> httpRequest -> function -> if -> [googleSheets (update and log), slack (alerts), emailSend (reports)]"
+    },
+    "workflowPlan": {
+      "name": "Daily Google Ads Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Google Ads Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://googleads.googleapis.com/v10/customers/{customerId}/googleAds:search",
+            "authentication": "oAuth2",
+            "queryParameters": [
+              {
+                "name": "query",
+                "value": "SELECT campaign.id, campaign.name, metrics.clicks, metrics.impressions, metrics.conversions, metrics.cost_micros, metrics.conversions_from_interactions_rate FROM campaign WHERE campaign.status = 'ENABLED'"
+              }
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Performance Analysis",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const campaigns = items[0].json.results;\nreturn campaigns.map(campaign => {\n  const ctr = (campaign.metrics.clicks / campaign.metrics.impressions) * 100;\n  const conversionRate = campaign.metrics.conversions_from_interactions_rate;\n  const costPerConversion = campaign.metrics.cost_micros / campaign.metrics.conversions;\n  const trafficVolume = campaign.metrics.impressions;\n  let score = 0;\n  score += ctr > 2 ? 25 : 0;\n  score += conversionRate > 0.02 ? 25 : 0;\n  score += costPerConversion < 5000000 ? 25 : 0;\n  score += trafficVolume > 1000 ? 25 : 0;\n  let performanceCategory = 'Underperforming';\n  if (score >= 75) performanceCategory = 'Excellent';\n  else if (score >= 55) performanceCategory = 'Good';\n  else if (score >= 35) performanceCategory = 'Fair';\n  return { json: { ...campaign, score, performanceCategory } };\n});"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Route by Performance",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.score }}",
+                  "operation": "greaterEqual",
+                  "value2": 55
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Campaign Dashboard",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Daily Performance!A:F",
+            "data": "={{ $json }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log All Campaigns",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Campaign Log!A:F",
+            "data": "={{ $json }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Slack Alerts",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#ppc-team",
+            "text": "={{ $json.performanceCategory === 'Excellent' ? 'High-performing campaign detected: ' + $json.campaign.name : 'Underperforming campaign detected: ' + $json.campaign.name }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Email Performance Report",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "ppc-team@example.com",
+            "subject": "Daily Google Ads Performance Report",
+            "text": "Attached is the daily performance report for your Google Ads campaigns.",
+            "attachments": [
+              {
+                "binaryPropertyName": "report"
+              }
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "8",
+          "outputIndex": 1,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4405,
+      "completion_tokens": 1618,
+      "total_tokens": 6023
+    },
+    "description_optimization": {
+      "prompt_tokens": 1136,
+      "completion_tokens": 644,
+      "total_tokens": 1780
+    },
+    "total_tokens": 7803,
+    "total_prompt_tokens": 5541,
+    "total_completion_tokens": 2262
+  },
+  "description_optimization": {
+    "template_id": "10174",
+    "optimized_description": "This workflow automates the daily monitoring of Google Ads campaigns, providing AI-powered performance analysis to identify scaling opportunities and address issues proactively. The workflow is triggered every day at 9 AM, fetching all active campaign data from the Google Ads account, including clicks, impressions, conversions, costs, and conversion rates.\n\nData Sources and APIs Required:\n1. Google Ads account with active campaigns for fetching performance data.\n2. Google Sheets for logging campaign metrics and performance reports.\n3. Slack workspace for sending alerts to the PPC team.\n4. SMTP email provider (e.g., Gmail, SendGrid) for sending email reports.\n\nOperations and Processing Steps:\n1. **Schedule Daily Check:** Set to run at 9 AM daily to initiate the workflow.\n2. **Fetch Google Ads Data:** Connect to the Google Ads API to retrieve active campaign performance data.\n3. **AI Performance Analysis:** Evaluate campaigns based on four key dimensions:\n   - CTR (Click-Through Rate) for ad relevance.\n   - Conversion Rate for landing page effectiveness.\n   - Cost per Conversion for profitability assessment.\n   - Traffic Volume for identifying scale-readiness.\n   Each campaign receives a performance score ranging from 0 to 100 and is categorized as Excellent (75+), Good (55-74), Fair (35-54), or Underperforming (0-34).\n4. **Route by Performance:** Automatically categorize campaigns into high-performing and underperforming groups based on the performance scores.\n5. **Update Campaign Dashboard:** Log daily metrics into the \"Daily Performance\" tab of the Google Sheets dashboard.\n6. **Log All Campaigns:** Record historical data in the \"Campaign Log\" tab of Google Sheets.\n7. **Slack Alerts:** Send alerts to the PPC team via Slack for high-performing campaigns with scaling recommendations and for underperforming campaigns with urgent optimization actions.\n8. **Generate Action Plan:** Create customized email reports tailored to the brand voice, including action-oriented scaling plans for top performers and troubleshooting guides for campaigns needing attention.\n9. **Email Performance Report:** Configure SMTP settings and specify recipient email addresses for sending daily performance reports.\n\nFinal Output or Action:\nThe workflow generates daily intelligence reports that summarize campaign performance, highlights scaling opportunities, and identifies issues needing immediate attention. It transforms manual reporting into automated insights, saving time and enhancing decision-making for PPC managers, marketing agencies, e-commerce brands, and growth teams.\n\nCustomization Options:\n- Adjust scoring weights for CTR, conversion rate, cost efficiency, and traffic volume in the AI Performance Analysis node.\n- Modify performance thresholds and benchmark values to align with industry standards.\n- Create separate Slack channels for different alert types or utilize other communication platforms like Microsoft Teams or SMS via Twilio.\n- Configure different recipient lists for scaling alerts versus optimization alerts.\n- Change the monitoring frequency from daily to hourly or weekly based on campaign spend.\n- Duplicate the workflow for other advertising platforms like Facebook Ads, Microsoft Ads, or LinkedIn Ads.\n- Implement budget controls to automatically pause campaigns exceeding cost thresholds or adjust bids based on performance scores.\n\nOnce fully configured, this workflow will continuously monitor ad spend, uncover opportunities for revenue growth, and alert users to potential issues, ensuring efficient budget management and data-driven optimization decisions.",
+    "original_description": "## How it Works\n\nThis workflow automatically monitors your Google Ads campaigns every day, analyzing performance with AI-powered scoring to identify scaling opportunities and catch issues before they drain your budget. Each morning at 9 AM, it fetches all active campaign data including clicks, impressions, conversions, costs, and conversion rates from your Google Ads account.\n\nThe AI analysis engine evaluates four critical dimensions: CTR (click-through rate) to measure ad relevance, conversion rate to assess landing page effectiveness, cost per conversion to evaluate profitability, and traffic volume to identify scale-readiness. Each campaign receives a performance score (0-100 points) and is automatically categorized as Excellent (75+), Good (55-74), Fair (35-54), or Underperforming (0-34).\n\nHigh-performing campaigns trigger instant Slack alerts to your PPC team with detailed scaling recommendations and projected ROI improvements, while underperforming campaigns generate urgent alerts with specific optimization actions. Every campaign is logged to your Google Sheets dashboard with daily metrics, and the system generates personalized email reports\u2014action-oriented scaling plans for top performers and troubleshooting guides for campaigns needing attention.\n\nThe entire analysis takes minutes, providing your team with daily intelligence reports that would otherwise require hours of manual spreadsheet work and data analysis.\n\n---\n\n## Who is this for?\n\n- PPC managers and paid media specialists drowning in campaign data and manual reporting\n- Marketing agencies managing multiple client accounts needing automated performance monitoring\n- E-commerce brands running high-spend campaigns who can't afford budget waste\n- Growth teams looking to scale winners faster and pause losers immediately\n- Anyone spending $5K+ monthly on Google Ads who needs data-driven optimization decisions\n\n---\n\n## Setup Steps\n\n- **Setup time:** Approx. 15-25 minutes (credential configuration, dashboard setup, alert customization)\n- **Requirements:**\n    - Google Ads account with active campaigns\n    - Google account with a tracking spreadsheet\n    - Slack workspace\n    - SMTP email provider (Gmail, SendGrid, etc.)\n\n- Create a Google Sheets dashboard with two tabs: \"Daily Performance\" and \"Campaign Log\" with appropriate column headers.\n- Set up these nodes:\n    - **Schedule Daily Check:** Pre-configured to run at 9 AM daily (adjust timing if needed).\n    - **Fetch Google Ads Data:** Connect your Google Ads account and authorize API access.\n    - **AI Performance Analysis:** Review scoring thresholds (CTR, conversion rate, cost benchmarks).\n    - **Route by Performance:** Automatically splits campaigns into high-performers vs. issues.\n    - **Update Campaign Dashboard:** Connect Google Sheets and select your \"Daily Performance\" tab.\n    - **Log All Campaigns:** Select your \"Campaign Log\" tab for historical tracking.\n    - **Slack Alerts:** Connect workspace and configure separate channels for scaling opportunities and performance issues.\n    - **Generate Action Plan:** Customize email templates with your brand voice and action items.\n    - **Email Performance Report:** Configure SMTP and set recipient email addresses.\n\n- Credentials must be entered into their respective nodes for successful execution.\n\n---\n\n## Customization Guidance\n\n- **Scoring Weights:** Adjust point values for CTR (30), conversion rate (35), cost efficiency (25), and volume (10) in the AI Performance Analysis node based on your business priorities.\n- **Performance Thresholds:** Modify the 75-point Excellent threshold and 55-point Good threshold to match your campaign quality distribution and industry benchmarks.\n- **Benchmark Values:** Update CTR benchmarks (5% excellent, 3% good, 1.5% average) and conversion rate targets (10%, 5%, 2%) for your industry.\n- **Alert Channels:** Create separate Slack channels for different alert types or route critical alerts to Microsoft Teams, Discord, or SMS via Twilio.\n- **Email Recipients:** Configure different recipient lists for scaling alerts (executives, growth team) vs. optimization alerts (campaign managers).\n- **Schedule Frequency:** Change from daily to hourly monitoring for high-spend campaigns, or weekly for smaller accounts.\n- **Additional Platforms:** Duplicate the workflow structure for Facebook Ads, Microsoft Ads, or LinkedIn Ads with platform-specific nodes.\n- **Budget Controls:** Add nodes to automatically pause campaigns exceeding cost thresholds or adjust bids based on performance scores.\n\n---\n\nOnce configured, this workflow will continuously monitor your ad spend, identify opportunities worth thousands in additional revenue, and alert you to issues before they waste your budget\u2014transforming manual reporting into automated intelligence.\n\n---\n\n**Built by Daniel Shashko**  \n[Connect on LinkedIn](https://www.linkedin.com/in/daniel-shashko/)",
+    "description_length": 3611,
+    "usage": {
+      "prompt_tokens": 1136,
+      "completion_tokens": 644,
+      "total_tokens": 1780
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:44:57.790922"
+  },
+  "original_description": "## How it Works\n\nThis workflow automatically monitors your Google Ads campaigns every day, analyzing performance with AI-powered scoring to identify scaling opportunities and catch issues before they drain your budget. Each morning at 9 AM, it fetches all active campaign data including clicks, impressions, conversions, costs, and conversion rates from your Google Ads account.\n\nThe AI analysis engine evaluates four critical dimensions: CTR (click-through rate) to measure ad relevance, conversion rate to assess landing page effectiveness, cost per conversion to evaluate profitability, and traffic volume to identify scale-readiness. Each campaign receives a performance score (0-100 points) and is automatically categorized as Excellent (75+), Good (55-74), Fair (35-54), or Underperforming (0-34).\n\nHigh-performing campaigns trigger instant Slack alerts to your PPC team with detailed scaling recommendations and projected ROI improvements, while underperforming campaigns generate urgent alerts with specific optimization actions. Every campaign is logged to your Google Sheets dashboard with daily metrics, and the system generates personalized email reports\u2014action-oriented scaling plans for top performers and troubleshooting guides for campaigns needing attention.\n\nThe entire analysis takes minutes, providing your team with daily intelligence reports that would otherwise require hours of manual spreadsheet work and data analysis.\n\n---\n\n## Who is this for?\n\n- PPC managers and paid media specialists drowning in campaign data and manual reporting\n- Marketing agencies managing multiple client accounts needing automated performance monitoring\n- E-commerce brands running high-spend campaigns who can't afford budget waste\n- Growth teams looking to scale winners faster and pause losers immediately\n- Anyone spending $5K+ monthly on Google Ads who needs data-driven optimization decisions\n\n---\n\n## Setup Steps\n\n- **Setup time:** Approx. 15-25 minutes (credential configuration, dashboard setup, alert customization)\n- **Requirements:**\n    - Google Ads account with active campaigns\n    - Google account with a tracking spreadsheet\n    - Slack workspace\n    - SMTP email provider (Gmail, SendGrid, etc.)\n\n- Create a Google Sheets dashboard with two tabs: \"Daily Performance\" and \"Campaign Log\" with appropriate column headers.\n- Set up these nodes:\n    - **Schedule Daily Check:** Pre-configured to run at 9 AM daily (adjust timing if needed).\n    - **Fetch Google Ads Data:** Connect your Google Ads account and authorize API access.\n    - **AI Performance Analysis:** Review scoring thresholds (CTR, conversion rate, cost benchmarks).\n    - **Route by Performance:** Automatically splits campaigns into high-performers vs. issues.\n    - **Update Campaign Dashboard:** Connect Google Sheets and select your \"Daily Performance\" tab.\n    - **Log All Campaigns:** Select your \"Campaign Log\" tab for historical tracking.\n    - **Slack Alerts:** Connect workspace and configure separate channels for scaling opportunities and performance issues.\n    - **Generate Action Plan:** Customize email templates with your brand voice and action items.\n    - **Email Performance Report:** Configure SMTP and set recipient email addresses.\n\n- Credentials must be entered into their respective nodes for successful execution.\n\n---\n\n## Customization Guidance\n\n- **Scoring Weights:** Adjust point values for CTR (30), conversion rate (35), cost efficiency (25), and volume (10) in the AI Performance Analysis node based on your business priorities.\n- **Performance Thresholds:** Modify the 75-point Excellent threshold and 55-point Good threshold to match your campaign quality distribution and industry benchmarks.\n- **Benchmark Values:** Update CTR benchmarks (5% excellent, 3% good, 1.5% average) and conversion rate targets (10%, 5%, 2%) for your industry.\n- **Alert Channels:** Create separate Slack channels for different alert types or route critical alerts to Microsoft Teams, Discord, or SMS via Twilio.\n- **Email Recipients:** Configure different recipient lists for scaling alerts (executives, growth team) vs. optimization alerts (campaign managers).\n- **Schedule Frequency:** Change from daily to hourly monitoring for high-spend campaigns, or weekly for smaller accounts.\n- **Additional Platforms:** Duplicate the workflow structure for Facebook Ads, Microsoft Ads, or LinkedIn Ads with platform-specific nodes.\n- **Budget Controls:** Add nodes to automatically pause campaigns exceeding cost thresholds or adjust bids based on performance scores.\n\n---\n\nOnce configured, this workflow will continuously monitor your ad spend, identify opportunities worth thousands in additional revenue, and alert you to issues before they waste your budget\u2014transforming manual reporting into automated intelligence.\n\n---\n\n**Built by Daniel Shashko**  \n[Connect on LinkedIn](https://www.linkedin.com/in/daniel-shashko/)",
+  "optimized_description": "This workflow automates the daily monitoring of Google Ads campaigns, providing AI-powered performance analysis to identify scaling opportunities and address issues proactively. The workflow is triggered every day at 9 AM, fetching all active campaign data from the Google Ads account, including clicks, impressions, conversions, costs, and conversion rates.\n\nData Sources and APIs Required:\n1. Google Ads account with active campaigns for fetching performance data.\n2. Google Sheets for logging campaign metrics and performance reports.\n3. Slack workspace for sending alerts to the PPC team.\n4. SMTP email provider (e.g., Gmail, SendGrid) for sending email reports.\n\nOperations and Processing Steps:\n1. **Schedule Daily Check:** Set to run at 9 AM daily to initiate the workflow.\n2. **Fetch Google Ads Data:** Connect to the Google Ads API to retrieve active campaign performance data.\n3. **AI Performance Analysis:** Evaluate campaigns based on four key dimensions:\n   - CTR (Click-Through Rate) for ad relevance.\n   - Conversion Rate for landing page effectiveness.\n   - Cost per Conversion for profitability assessment.\n   - Traffic Volume for identifying scale-readiness.\n   Each campaign receives a performance score ranging from 0 to 100 and is categorized as Excellent (75+), Good (55-74), Fair (35-54), or Underperforming (0-34).\n4. **Route by Performance:** Automatically categorize campaigns into high-performing and underperforming groups based on the performance scores.\n5. **Update Campaign Dashboard:** Log daily metrics into the \"Daily Performance\" tab of the Google Sheets dashboard.\n6. **Log All Campaigns:** Record historical data in the \"Campaign Log\" tab of Google Sheets.\n7. **Slack Alerts:** Send alerts to the PPC team via Slack for high-performing campaigns with scaling recommendations and for underperforming campaigns with urgent optimization actions.\n8. **Generate Action Plan:** Create customized email reports tailored to the brand voice, including action-oriented scaling plans for top performers and troubleshooting guides for campaigns needing attention.\n9. **Email Performance Report:** Configure SMTP settings and specify recipient email addresses for sending daily performance reports.\n\nFinal Output or Action:\nThe workflow generates daily intelligence reports that summarize campaign performance, highlights scaling opportunities, and identifies issues needing immediate attention. It transforms manual reporting into automated insights, saving time and enhancing decision-making for PPC managers, marketing agencies, e-commerce brands, and growth teams.\n\nCustomization Options:\n- Adjust scoring weights for CTR, conversion rate, cost efficiency, and traffic volume in the AI Performance Analysis node.\n- Modify performance thresholds and benchmark values to align with industry standards.\n- Create separate Slack channels for different alert types or utilize other communication platforms like Microsoft Teams or SMS via Twilio.\n- Configure different recipient lists for scaling alerts versus optimization alerts.\n- Change the monitoring frequency from daily to hourly or weekly based on campaign spend.\n- Duplicate the workflow for other advertising platforms like Facebook Ads, Microsoft Ads, or LinkedIn Ads.\n- Implement budget controls to automatically pause campaigns exceeding cost thresholds or adjust bids based on performance scores.\n\nOnce fully configured, this workflow will continuously monitor ad spend, uncover opportunities for revenue growth, and alert users to potential issues, ensuring efficient budget management and data-driven optimization decisions.",
+  "error": null,
+  "generated_at": "2026-01-25T22:45:19.272235",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.5454545454545454,
+    "node_type_f1": 0.631578947368421,
+    "tp": 6,
+    "fp": 2,
+    "fn": 5,
+    "gt_node_count": 11,
+    "llm_node_count": 8,
+    "connection_precision": 0.5,
+    "connection_recall": 0.3333333333333333,
+    "connection_f1": 0.4,
+    "correct_connections": 3,
+    "gt_connection_count": 9,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.016505636070853463,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4405,
+        "completion_tokens": 1618,
+        "total_tokens": 6023
+      },
+      "description_optimization": {
+        "prompt_tokens": 1136,
+        "completion_tokens": 644,
+        "total_tokens": 1780
+      },
+      "total_tokens": 7803,
+      "total_prompt_tokens": 5541,
+      "total_completion_tokens": 2262
+    },
+    "total_cost": 0.036472500000000005,
+    "description_optimization_cost": 0.00928,
+    "workflow_generation_cost": 0.0271925
+  }
+}

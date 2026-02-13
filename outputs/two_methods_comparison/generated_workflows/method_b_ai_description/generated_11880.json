@@ -1,0 +1,229 @@
+{
+  "template_id": 11880,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow plan for automating the process of gathering and analyzing trending topics and integrating them with active marketing campaigns.",
+    "workflowPlan": {
+      "name": "Trending Topics and Marketing Campaign Integration",
+      "nodes": [
+        {
+          "id": "trigger1",
+          "label": "Daily Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "fetchRSS",
+          "label": "Fetch RSS Feed",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/rss"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "fetchReddit",
+          "label": "Fetch Reddit Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://www.reddit.com/r/popular.json",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "mergeData",
+          "label": "Merge Data",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "formatData",
+          "label": "Format Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "formattedTopic",
+                "value": "={{$json[\"title\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "readGoogleSheet",
+          "label": "Read Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "sheetId": "your-google-sheet-id",
+            "range": "Campaigns!A1:E"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "filterActiveCampaigns",
+          "label": "Filter Active Campaigns",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"status\"]}}",
+                  "operation": "equal",
+                  "value2": "active"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "enrichData",
+          "label": "Enrich Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "enrichedCampaign",
+                "value": "={{$json[\"formattedTopic\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "aiAnalysis",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.groqChatModel",
+          "typeVersion": 1,
+          "params": {
+            "input": "={{$json[\"enrichedCampaign\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "trigger1",
+          "to": "fetchRSS"
+        },
+        {
+          "from": "trigger1",
+          "to": "fetchReddit"
+        },
+        {
+          "from": "fetchRSS",
+          "to": "mergeData"
+        },
+        {
+          "from": "fetchReddit",
+          "to": "mergeData"
+        },
+        {
+          "from": "mergeData",
+          "to": "formatData"
+        },
+        {
+          "from": "formatData",
+          "to": "readGoogleSheet"
+        },
+        {
+          "from": "readGoogleSheet",
+          "to": "filterActiveCampaigns"
+        },
+        {
+          "from": "filterActiveCampaigns",
+          "to": "enrichData",
+          "outputIndex": 0
+        },
+        {
+          "from": "enrichData",
+          "to": "aiAnalysis"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 687,
+    "completion_tokens": 1151,
+    "total_tokens": 1838
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:56:20.774852",
+  "generated_description": "This n8n workflow is designed to automate the process of gathering and analyzing trending topics and integrating them with active marketing campaigns. The workflow is triggered daily at 8 AM.\n\n1. **Data Collection**: It begins by fetching the latest news from an RSS feed and popular posts from Reddit, ensuring a comprehensive view of current trends.\n\n2. **Data Processing**: The collected data is then merged to create a unified list of trending topics. These topics are further formatted for consistency and clarity.\n\n3. **Campaign Integration**: The workflow reads active marketing campaigns from a Google Sheets document. It checks the status of these campaigns to determine which are currently active.\n\n4. **Data Enrichment**: Active campaigns are enriched with the trending topics, potentially providing insights or content ideas that align with current public interests.\n\n5. **AI Analysis**: Finally, the enriched data is processed using a Groq Chat Model, which likely provides advanced analysis or generates insights based on the combined campaign and trend data.\n\nThe final output is a set of enriched marketing campaigns that are aligned with the latest trends, potentially enhancing their relevance and effectiveness.",
+  "description_generation_usage": {
+    "prompt_tokens": 234,
+    "completion_tokens": 225,
+    "total_tokens": 459
+  },
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.3,
+    "node_type_f1": 0.41379310344827586,
+    "tp": 6,
+    "fp": 3,
+    "fn": 14,
+    "gt_node_count": 20,
+    "llm_node_count": 9,
+    "connection_precision": 0.4444444444444444,
+    "connection_recall": 0.2222222222222222,
+    "connection_f1": 0.2962962962962963,
+    "correct_connections": 4,
+    "gt_connection_count": 18,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 687,
+      "completion_tokens": 1151,
+      "total_tokens": 1838
+    },
+    "total_cost": 0.0160625,
+    "description_generation_cost": 0.0028350000000000003,
+    "workflow_generation_cost": 0.013227500000000001
+  },
+  "original_description": "**How it works:**\n\n1. Daily Trigger:\nEvery morning at 8 AM, the workflow is automatically triggered.\n\n2. Fetch Trending Topics:\nThe workflow collects trending topics from external sources, such as news RSS feeds and Reddit popular posts. These trends are merged and summarized to provide up-to-date context for content generation.\n\n3. Read Active Campaigns:\nThe workflow reads all rows from the \u201cActive Campaigns\u201d Google Sheet, but only processes campaigns with a status of \"active\" to avoid generating content for paused or inactive campaigns.\n\n4. Enrich Campaigns with Trends:\nEach active campaign is enriched with the latest trending topics, so the generated content can reference current events or popular themes.\n\n5. AI Content Generation:\nFor each enriched campaign, Groq AI generates:\n- An engaging post caption tailored to the platform and target audience\n- Creative direction with visual suggestions\n- Relevant hashtags (5-10)\n- Best posting time recommendation for the platform\n\n6. Quality Scoring:\nThe workflow calculates a quality score for each generated content idea, considering factors like caption length, hashtag count, and creative direction.\n\n7. Append to Google Sheets:\nThe generated content ideas, along with their quality scores and other details, are appended to the \u201cDaily Content Plan\u201d Google Sheet for record-keeping and team collaboration.\n\n8. Schedule in Google Calendar:\nFor each campaign, an event is created in Google Calendar with the content details and recommended posting time, ensuring the team is reminded to review or publish the content.\n\n9. Daily Email Summary (Optional):\nAt the end of the process, a summary email can be sent to the team, including statistics such as the number of campaigns processed, average quality score, and a platform breakdown.\n\n\n**Set up steps:**\n\n1. Prepare Your Google Sheets:\n\n- Create a sheet named \u201cActive Campaigns\u201d with columns: Project Name, Theme, Target Audience, Platform, and Status (to mark campaigns as active/inactive).\n- Create another sheet named \u201cDaily Content Plan\u201d with columns for Project Name, Date, Platform, Caption, Creative Direction, Hashtags, and any other details you want to track.\n\n2. Connect Google Services to n8n:\n- In n8n, set up and authenticate your Google Sheets and Google Calendar credentials. You can find authentication information in the n8n documentation for Google credentials.\n\n3. Add a Cron Node:\nDrag in a Cron node and set it to trigger every day at 8:00 AM.\n\n4. Read Campaigns from Google Sheets:\n- Add a Google Sheets node.\n- Set the operation to \u201cRead Rows\u201d and select your \u201cActive Campaigns\u201d sheet.\n- (Optional) Use a Filter or IF node to process only rows where Status is \u201cactive\u201d.\n\n5. (Optional) Fetch Trending Topics:\nIf you want to enrich your content with trending topics, add nodes to fetch data from RSS feeds, Reddit, or other sources.\n\n6. Process Each Campaign:\n- Use a SplitInBatches node to process each campaign row individually.\n\n7. Generate Content Ideas with Groq AI:\n- Add a Groq AI node (or OpenAI node if Groq is not available).\n- Configure the prompt to generate a content idea using the campaign\u2019s theme, target audience, and platform. You can reference fields from the Google Sheets node using expressions like $(\"Google Sheets\").item.json['Theme'].\n\n8. Append Results to \u201cDaily Content Plan\u201d:\n- Add another Google Sheets node.\n- Set the operation to \u201cAppend\u201d and select your \u201cDaily Content Plan\u201d sheet.\n- Map the generated content fields to the appropriate columns.\n\n9. Schedule Events in Google Calendar:\n- Add a Google Calendar node.\n- Set the operation to \u201cCreate Event\u201d.\n- Use the project name and content idea for the event title and description, and set the event time as needed.\n\n10. (Optional) Send a Daily Summary Email:\n- Add an Email node to send a summary of the day\u2019s content plan to your team.\n\n11. Test the Workflow:\n- Run the workflow manually to ensure all steps work as expected.\n- Check that new content ideas appear in the \u201cDaily Content Plan\u201d sheet and that events are created in Google Calendar.\n\n12. Activate the Workflow:\n- Once you\u2019ve confirmed everything works, activate the workflow so it runs automatically every morning."
+}

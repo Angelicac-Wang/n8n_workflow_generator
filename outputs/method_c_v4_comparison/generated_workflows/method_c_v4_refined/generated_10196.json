@@ -1,0 +1,179 @@
+{
+  "template_id": "10196",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation with AI analysis using Google Gemini for content curation. Use base nodes.",
+      "trigger_analysis": "Schedule trigger to run the workflow daily at a specified time.",
+      "data_sources": "RSS feeds, Google Gemini API for AI analysis, SMTP for email delivery.",
+      "operations": "1. Schedule trigger to start workflow, 2. Fetch RSS feed content, 3. Split URLs and process feeds in batches, 4. Merge and convert RSS items to CSV, 5. Use Google Gemini API to analyze and filter content, 6. Send HTML newsletter via email.",
+      "output_actions": "Send a personalized HTML newsletter to the user.",
+      "nodes_plan": "scheduleTrigger (trigger), rssFeedRead (fetch), splitInBatches (process), merge (combine), googleGemini (AI analysis), emailSend (send newsletter)",
+      "connections_plan": "scheduleTrigger -> rssFeedRead -> splitInBatches -> merge -> googleGemini -> emailSend"
+    },
+    "workflowPlan": {
+      "name": "Automated Newsletter with AI Curation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 9 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "RSS Feed Read",
+          "nodeType": "n8n-nodes-base.rssFeedRead",
+          "typeVersion": 1,
+          "params": {
+            "urls": [
+              "https://example.com/rss1",
+              "https://example.com/rss2"
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split In Batches",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 10
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Merge RSS Items",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "append"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Gemini AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.google.com/gemini/analyze",
+            "authentication": "predefinedCredentialType",
+            "body": {
+              "content": "={{ $json }}",
+              "keywords": [
+                "keyword1",
+                "keyword2"
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "fromEmail": "newsletter@example.com",
+            "toEmail": "user@example.com",
+            "subject": "Your Daily Newsletter",
+            "html": "<html><body><h1>Top News</h1><p>{{ $json }}</p></body></html>"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9258,
+    "completion_tokens": 995,
+    "total_tokens": 10253
+  },
+  "description_optimization": null,
+  "original_description": "### Who's it for\n\nThis workflow is for anyone who wants to stay informed without the overwhelm. Whether you're tracking industry news, following your favorite blogs, monitoring competitors, or just keeping up with topics you care about\u2014this automated newsletter keeps you in the loop effortlessly.\n\n### What it does\n\nThis automated workflow fetches content from your favorite RSS feeds, filters it based on your interests using Google Gemini AI, and sends you a beautifully formatted HTML newsletter at your preferred time. The AI selects the top 10-15 items from each category based on keywords you define, delivering only what matters to you.\n\n### How it works\n\n1. **Schedule Trigger**: Runs daily at your chosen time (default: 9:00 AM)\n2. **RSS Feeds**: Fetches content from your favorite news sources and websites\n3. **Processing**: Splits URLs, loops through feeds in batches to avoid rate limits\n4. **Merge & Convert**: Combines all RSS items into a single CSV file\n5. **AI Curation**: Google Gemini analyzes the content and selects relevant items based on your keywords\n6. **Email Delivery**: Sends a personalized HTML newsletter with summaries and images\n\n### Requirements\n\n- **Google Gemini API** credentials (for AI curation)\n- **SMTP credentials** (for sending emails)\n- Active n8n instance (self-hosted or cloud)\n\n### How to set up\n\n1. Add your **Google Gemini API credentials** in both Gemini nodes\n2. Configure your **SMTP settings** in the \"Send email\" node\n3. Update the **email addresses** (from and to) in the email node\n4. Add your **favorite RSS feed URLs** in the \"Set\" nodes\n5. Customize the **AI keywords** in \"Analyze document\" to match your interests\n6. Set your preferred **schedule time** in the trigger node\n\n### How to customize\n\n- **Add your RSS feeds**: Replace the example URLs in both \"Set\" nodes with RSS feeds from your favorite sources (blogs, news sites, podcasts, YouTube channels, etc.)\n- **Define your interests**: Modify the keywords in the \"Analyze document\" AI prompt to filter content that matters to you\n- **Adjust categories**: Change the two sections to match your needs (e.g., \"Industry News\" and \"Competitor Updates\" or \"Learning Resources\" and \"Tools\")\n- **Change email format**: Update the HTML template in the AI prompt to customize the newsletter design\n- **Modify delivery time**: Update the schedule trigger to run at your preferred time",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:54:45.730514",
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.47619047619047616,
+    "tp": 5,
+    "fp": 1,
+    "fn": 10,
+    "gt_node_count": 15,
+    "llm_node_count": 6,
+    "connection_precision": 0.4,
+    "connection_recall": 0.18181818181818182,
+    "connection_f1": 0.25000000000000006,
+    "correct_connections": 2,
+    "gt_connection_count": 11,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.1,
+    "usage": {
+      "prompt_tokens": 9258,
+      "completion_tokens": 995,
+      "total_tokens": 10253
+    },
+    "total_cost": 0.033095
+  },
+  "is_ai_workflow": false
+}

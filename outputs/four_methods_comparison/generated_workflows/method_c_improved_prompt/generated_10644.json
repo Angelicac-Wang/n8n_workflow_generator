@@ -1,0 +1,190 @@
+{
+  "template_id": "10644",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a new video file being added to a specific Google Drive folder.",
+      "data_sources": "Google Drive API for file detection and download, Gemini AI for video analysis, fal.ai for thumbnail generation, Upload-Post API for YouTube upload.",
+      "operations": "1. Detect new video in Google Drive, 2. Analyze video with AI, 3. Generate title, description, tags, 4. User selects preferred concept, 5. Generate thumbnails, 6. User selects preferred thumbnail, 7. Upload video to YouTube.",
+      "output_actions": "The final action is to upload the video to YouTube with the selected metadata and thumbnail.",
+      "nodes_plan": "googleDriveTrigger (trigger), googleDriveDownload (download), geminiAI (analyze), userInput (select concept), falAI (generate thumbnails), userInput (select thumbnail), uploadPost (upload to YouTube)",
+      "connections_plan": "googleDriveTrigger -> googleDriveDownload -> geminiAI -> userInput (concept) -> falAI -> userInput (thumbnail) -> uploadPost"
+    },
+    "workflowPlan": {
+      "name": "YouTube Video Preparation and Upload",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFolder": "={{ $env.GOOGLE_DRIVE_FOLDER_ID }}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Drive Download",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{ $json.fileId }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Gemini AI Analysis",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyzeVideo",
+            "filePath": "={{ $json.filePath }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Select Concept",
+          "nodeType": "n8n-nodes-base.userInput",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Select your preferred title, description, and tags concept",
+            "options": "={{ $json.concepts }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Thumbnails",
+          "nodeType": "n8n-nodes-base.falAI",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateThumbnails",
+            "imageUrl": "={{ $env.FACE_IMAGE_URL }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Select Thumbnail",
+          "nodeType": "n8n-nodes-base.userInput",
+          "typeVersion": 1,
+          "params": {
+            "prompt": "Select your preferred thumbnail",
+            "options": "={{ $json.thumbnails }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.uploadPost",
+          "typeVersion": 1,
+          "params": {
+            "operation": "uploadVideo",
+            "title": "={{ $json.selectedConcept.title }}",
+            "description": "={{ $json.selectedConcept.description }}",
+            "tags": "={{ $json.selectedConcept.tags }}",
+            "thumbnail": "={{ $json.selectedThumbnail }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4478,
+    "completion_tokens": 1116,
+    "total_tokens": 5594
+  },
+  "description_optimization": null,
+  "original_description": "![image.png](fileId:3296)\n\nThis workflow transforms any video you drop into a Google Drive folder into a ready-to-publish YouTube upload. It analyzes the video with AI to craft 3 high-CTR title ideas, 3 long SEO-friendly descriptions (with timestamps), and 10\u201315 optimized tags. It then generates 4 thumbnail options using your face and lets you pick your favorite before auto-publishing to YouTube via Upload-Post.\n\n\n### Who Is This For?\n- **YouTube Creators & Editors:** Ship videos with winning titles, thumbnails, and SEO in minutes.\n- **Agencies & Media Teams:** Standardize output and speed across channels and clients.\n- **Founders & Solo Makers:** Maintain consistent publishing with minimal manual work.\n\n### What Problem Does It Solve?\nProducing SEO metadata and high-performing thumbnails is slow and inconsistent. This flow:\n- **Generates High-CTR Options:** 3 distinct angles for title/description/tags.\n- **Creates Thumbnails with Your Face:** 4 options ready for review in one pass.\n- **Auto-Publishes Safely:** Human selection gates reduce risk before going live.\n\n### How It Works\n1. **Google Drive Trigger:** Watches a folder for new video files.\n2. **AI Video Analysis (Gemini):** Produces an in-depth Spanish description and timestamps.\n3. **Concept Generation:** Returns 3 JSON concepts (title, thumbnail prompt, description, tags).\n4. **User Review #1:** Pick your favorite concept in a simple form.\n5. **Thumbnail Generation (fal.ai):** Creates 4 thumbnails using your face (provided image URL).\n6. **User Review #2:** Choose the best thumbnail.\n7. **Upload to YouTube (Upload-Post):** Publishes the video with your chosen title, description, tags, and thumbnail.\n\n### Setup\n1. **Credentials (all offer free trials, no credit card required):**\n   - Google Gemini (chat/vision for analysis)\n   - fal.ai API (thumbnail generation)\n   - [Upload-Post](https://www.upload-post.com) ( [Connect your Youtube channel](https://app.upload-post.com/manage-users) and [generate api keys](https://app.upload-post.com/api-keys))\n   - Google Drive OAuth (folder watch + file download)\n2. **Provide Your Face Image URL(s):** Used by fal.ai to integrate your face into thumbnails.\n3. **Select the Google Drive Folder:** Where you\u2019ll drop videos to process.\n4. **Pick & Publish:** Use the built-in forms to choose concept and thumbnail.\n\n### Requirements\n- **Accounts:** Google (Drive + Gemini), fal.ai, Upload-Post, n8n.\n- **API Keys:** Gemini, fal.ai; Upload-Post credentials; Google Drive OAuth.\n- **Assets:** At least one clear face image for thumbnails.\n\n### Features\n- **Three SEO Angles:** Distinct title/description sets to test different intents.\n- **Rich Descriptions with Timestamps:** Ready for YouTube SEO and viewer navigation.\n- **Face-Integrated Thumbnails:** 4 options aligned with the selected title.\n- **Human-in-the-Loop Controls:** Approve concepts and thumbnails before publishing.\n- **Auto-Publish via Upload-Post:** One click to push live to YouTube.\n- **Start Free:** All API calls can run on free trials, no credit card required.\n\n### Video demo \n\nhttps://www.youtube.com/watch?v=EOOgFveae-U",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:39:01.684369",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.2222222222222222,
+    "node_type_f1": 0.32,
+    "tp": 4,
+    "fp": 3,
+    "fn": 14,
+    "gt_node_count": 18,
+    "llm_node_count": 7,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.18181818181818182,
+    "connection_f1": 0.23529411764705885,
+    "correct_connections": 2,
+    "gt_connection_count": 11,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.1607142857142857,
+    "usage": {
+      "prompt_tokens": 4478,
+      "completion_tokens": 1116,
+      "total_tokens": 5594
+    },
+    "total_cost": 0.022355
+  }
+}

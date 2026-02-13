@@ -1,0 +1,147 @@
+{
+  "template_id": "2612",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or via a webhook to initiate the AI agent interaction.",
+      "data_sources": "Supabase database for data storage and OpenAI for AI-powered query generation.",
+      "operations": "1. Receive user input, 2. Retrieve database schema, 3. Generate SQL query using AI, 4. Execute SQL query, 5. Return results to user.",
+      "output_actions": "Return the query results to the user, possibly through a webhook response or another output method.",
+      "nodes_plan": "webhook (trigger), supabase (database), openAi (AI query generation), postgres (execute query), respondToWebhook (output results)",
+      "connections_plan": "webhook -> openAi -> supabase -> postgres -> respondToWebhook"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Database Query",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "query-database"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Query Generator",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate an SQL query for the following request: {{ $json.body.request }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Supabase Schema Retrieval",
+          "nodeType": "n8n-nodes-base.supabase",
+          "typeVersion": 1,
+          "params": {
+            "operation": "listTables",
+            "database": "your_database_name"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Execute SQL Query",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "={{ $json.query }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond with Results",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{ $json.results }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5559,
+    "completion_tokens": 756,
+    "total_tokens": 6315
+  },
+  "description_optimization": null,
+  "original_description": "### Video Guide\n\nI prepared a detailed guide that showed the whole process of building a resume analyzer.\n\n[![OPENAI 14.png](https://res.cloudinary.com/de9jgixzm/image/upload/v1739773279/Youtube%20Thumbs/Chat%20With%20DB.png)](https://youtu.be/-GgKzhCNxjk)\n\n### Who is this for?\nThis workflow is ideal for developers, data analysts, and business owners who want to enable conversational interactions with their database. It\u2019s particularly useful for cases where users need to extract, analyze, or aggregate data without writing SQL queries manually.\n\n### What problem does this workflow solve?\nAccessing and analyzing database data often requires SQL expertise or dedicated reports, which can be time-consuming. This workflow empowers users to interact with a database conversationally through an AI-powered agent. It dynamically generates SQL queries based on user requests, streamlining data retrieval and analysis.\n\n### What this workflow does\nThis workflow integrates OpenAI with a Supabase database, enabling users to interact with their data via an AI agent. The agent can:\n- Retrieve records from the database.\n- Extract and analyze JSON data stored in tables.\n- Provide summaries, aggregations, or specific data points based on user queries.\n\n1. **Dynamic SQL Querying**: The agent uses user prompts to create and execute SQL queries on the database.\n2. **Understand JSON Structure**: The workflow identifies JSON schema from sample records, enabling the agent to parse and analyze JSON fields effectively.\n3. **Database Schema Exploration**: It provides the agent with tools to retrieve table structures, column details, and relationships for precise query generation.\n\n### Setup\n\n#### Preparation\n1. **Create Accounts**:\n   - [N8N](https://n8n.partnerlinks.io/2hr10zpkki6a): For workflow automation.\n   - [Supabase](https://supabase.com/): For database hosting and management.\n   - [OpenAI](https://openai.com/): For building the conversational AI agent.\n2. **Configure Database Connection**:\n   - Set up a PostgreSQL database in Supabase.\n   - Use appropriate credentials (`username`, `password`, `host`, and `database` name) in your workflow.\n\n#### N8N Workflow\n\nAI agent with tools:\n\n1. **Code Tool**:\n   - Execute SQL queries based on user input.\n2. **Database Schema Tool**:\n   - Retrieve a list of all tables in the database.\n   - Use a predefined SQL query to fetch table definitions, including column names, types, and references.\n3. **Table Definition**:\n   - Retrieve a list of columns with types for one table.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:38:32.898587",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 5,
+    "fn": 6,
+    "gt_node_count": 6,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 5559,
+      "completion_tokens": 756,
+      "total_tokens": 6315
+    },
+    "total_cost": 0.021457500000000004
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "template_id": "3090",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a chat message, which can be implemented using a webhook or a manual trigger to simulate chat input.",
+      "data_sources": "Postgres/Supabase database for querying data, OpenAI API for natural language processing, and QuickChart API for chart generation.",
+      "operations": "1. Receive chat message, 2. Use AI to interpret the message, 3. Determine if the action is a database query or chart generation, 4. Execute SQL query if needed, 5. Generate chart using QuickChart if needed, 6. Maintain chat history in Postgres.",
+      "output_actions": "Return query results or a chart URL based on the user's request.",
+      "nodes_plan": "webhook (trigger), openAi (AI processing), switch (determine action), postgres (query database), quickChart (generate chart), postgres (store chat history)",
+      "connections_plan": "webhook -> openAi -> switch -> [postgres (query) | quickChart (chart)] -> postgres (store history)"
+    },
+    "workflowPlan": {
+      "name": "Multi-AI Agent Chatbot for Databases and Charts",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Process Chat with AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.message }}",
+            "model": "gpt-4o-mini"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Determine Action",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "mode": "expression",
+            "expression": "={{ $json.aiResponse.action }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Query Database",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "={{ $json.aiResponse.query }}",
+            "credentials": "Postgres Credentials"
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Chart",
+          "nodeType": "n8n-nodes-base.quickChart",
+          "typeVersion": 1,
+          "params": {
+            "chart": "={{ $json.aiResponse.chartConfig }}",
+            "width": 500,
+            "height": 300
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store Chat History",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "chat_history",
+            "columns": "message, response",
+            "values": "={{ $json.body.message }}, {{ $json.aiResponse }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4233,
+    "completion_tokens": 1011,
+    "total_tokens": 5244
+  },
+  "description_optimization": null,
+  "original_description": "# Multi-AI Agent Chatbot for Postgres/Supabase Databases and QuickChart Generation\n\n## Who is this for?  \nThis workflow is ideal for **data analysts**, **developers**, and **business intelligence teams** who need an AI-powered chatbot to query Postgres/Supabase databases and generate dynamic charts for data visualization.\n\n## What problem does this solve?  \nIt simplifies data exploration by combining conversational AI with database querying and chart generation. Users can interact with their database using natural language, retrieve insights, and visualize data without manual SQL queries or chart configuration.\n\n## What this workflow does  \n1. **AI-Powered Chat Interface**:  \n   - Accepts natural language prompts to query databases or generate charts.  \n   - Routes user requests through a tool agent system to determine the appropriate action (query or chart).  \n\n2. **Database Querying**:  \n   - Executes SQL queries on Postgres/Supabase databases based on user input.  \n   - Retrieves schema information, table definitions, and specific data records.  \n\n3. **Dynamic Chart Generation**:  \n   - Uses QuickChart to create bar charts, line charts, or other visualizations from database records.  \n   - Outputs a shareable chart URL or JSON configuration for further customization.  \n\n4. **Memory Integration**:  \n   - Maintains chat history using Postgres memory nodes, enabling context-aware interactions.  \n\nWorkflow diagram showcasing AI agents, database querying, and chart generation paths.\n\n## Setup  \n1. **Prerequisites**:  \n   - A Postgres-compatible database (e.g., Supabase).  \n   - API credentials for OpenAI.  \n\n2. **Configuration Steps**:  \n   - Add your database connection credentials in the Postgres nodes.  \n   - Set up OpenAI credentials for GPT-4o-mini in the language model nodes.  \n   - Adjust the QuickChart schema in the \"QuickChart Object Schema\" node to fit your use case.  \n\n3. **Testing**:  \n   - Trigger the chat workflow via the \"When chat message received\" node.  \n   - Test with prompts like \"Generate a bar chart of sales data\" or \"Show me all users in the database.\"\n\n## How to customize this workflow  \n- **Modify AI Prompts**\n- **Add Chart Types**\n- **Integrate Other Tools**",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:02:33.065223",
+  "metrics": {
+    "node_type_precision": 0.16666666666666666,
+    "node_type_recall": 0.05263157894736842,
+    "node_type_f1": 0.08,
+    "tp": 1,
+    "fp": 5,
+    "fn": 18,
+    "gt_node_count": 19,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 6,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 4233,
+      "completion_tokens": 1011,
+      "total_tokens": 5244
+    },
+    "total_cost": 0.020692500000000003
+  }
+}

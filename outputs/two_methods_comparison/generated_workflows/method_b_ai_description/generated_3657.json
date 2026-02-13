@@ -1,0 +1,178 @@
+{
+  "template_id": 3657,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Order and Appointment Management",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Order Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "n8n_order",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Appointment Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "n8n_appointment",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Order Data",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Process the order data and generate insights."
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Appointment Data",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Process the appointment data and generate insights."
+          },
+          "position": {
+            "x": 400,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "calendarId": "primary",
+            "start": "={{$json[\"start\"]}}",
+            "end": "={{$json[\"end\"]}}",
+            "summary": "={{$json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Qdrant Vector Search",
+          "nodeType": "n8n-nodes-base.qdrant",
+          "typeVersion": 1,
+          "params": {
+            "operation": "search",
+            "collection": "orders_appointments",
+            "vector": "={{$json[\"vector\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Response",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate a response based on the retrieved information."
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 704,
+    "completion_tokens": 848,
+    "total_tokens": 1552
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:50:35.461274",
+  "generated_description": "This n8n workflow is designed to manage and automate scheduling and information retrieval processes. It is triggered by two webhooks: one for receiving order data (`n8n_order`) and another for receiving appointment information (`n8n_appointment`). \n\nThe workflow integrates with Google Calendar to manage and update calendar events, likely related to the orders or appointments received. It utilizes multiple OpenAI Chat Models to process and generate responses or insights based on the data received. This suggests that the workflow might be involved in generating conversational responses or summaries related to the orders or appointments.\n\nAdditionally, the workflow interacts with a Qdrant Vector Store, which is a vector database, to retrieve relevant information. This is supported by the use of OpenAI's Embeddings to convert text data into vector format, which is then used by the RAG (Retrieval-Augmented Generation) tool to enhance the information retrieval process.\n\nOverall, the workflow automates the process of scheduling events in Google Calendar, processes incoming order and appointment data using AI models, and retrieves relevant information from a vector database to support decision-making or provide enhanced responses. The final output includes updated calendar entries and potentially AI-generated insights or responses based on the processed data.",
+  "description_generation_usage": {
+    "prompt_tokens": 250,
+    "completion_tokens": 242,
+    "total_tokens": 492
+  },
+  "metrics": {
+    "node_type_precision": 0.42857142857142855,
+    "node_type_recall": 0.10714285714285714,
+    "node_type_f1": 0.17142857142857143,
+    "tp": 3,
+    "fp": 4,
+    "fn": 25,
+    "gt_node_count": 28,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 12,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.08333333333333333,
+    "usage": {
+      "prompt_tokens": 704,
+      "completion_tokens": 848,
+      "total_tokens": 1552
+    },
+    "total_cost": 0.013285000000000002,
+    "description_generation_cost": 0.0030450000000000004,
+    "workflow_generation_cost": 0.01024
+  },
+  "original_description": "**Voiceflow** is a no-code platform that allows you to design, prototype, and deploy conversational assistants across multiple channels\u2014such as **chat**, **voice**, and **phone**\u2014with advanced logic and natural language understanding. It supports integration with APIs, webhooks, and even tools like Twilio for phone agents. It's perfect for building customer support agents, voice bots, or intelligent assistants.\n\nThis workflow connects **n8n** and **Voiceflow** with tools like **Google Calendar**, **Qdrant (vector database)**, **OpenAI**, and an **order tracking API** to power a smart, multi-channel conversational agent.\n\n![image](https://i.postimg.cc/3rSPwMn2/langflow.png)\n\nThere are 3 main webhook endpoints in n8n that Voiceflow interacts with:\n\n1. **`n8n_order`** \u2013 receives user input related to order tracking, queries an API, and responds with tracking status.\n2. **`n8n_appointment`** \u2013 processes appointment booking, reformats date input using OpenAI, and creates a Google Calendar event.\n3. **`n8n_rag`** \u2013 handles general product/service questions using a RAG (Retrieval-Augmented Generation) system backed by:\n   - **Google Drive** document ingestion,\n   - **Qdrant vector store** for search,\n   - and **OpenAI** models for context-based answers.\n\nEach webhook is connected to a corresponding **\"Capture\" block** inside Voiceflow, which sends data to n8n and waits for the response.\n\n---\n\n### **How It Works**  \nThis n8n workflow integrates **Voiceflow** for chatbot/voice interactions, **Google Calendar** for appointment scheduling, and **RAG (Retrieval-Augmented Generation)** for knowledge-based responses. Here\u2019s the flow:  \n\n- **Trigger**:  \n  - Three webhooks (`n8n_order`, `n8n_appointment`, `n8n_rag`) receive inputs from Voiceflow (chat, voice, or phone calls).  \n  - Each webhook routes requests to specific functions:  \n    - **Order Tracking**: Fetches order status via an external API.  \n    - **Appointment Scheduling**: Uses OpenAI to parse dates, creates Google Calendar events, and confirms via WhatsApp.  \n    - **RAG System**: Queries a Qdrant vector store (populated with Google Drive documents) to answer customer questions using GPT-4.  \n\n- **AI Processing**:  \n  - **OpenAI Chains**: Convert natural language dates to Google Calendar formats and generate responses.  \n  - **RAG Pipeline**: Embeds documents (via OpenAI), stores them in Qdrant, and retrieves context-aware answers.  \n  - **Voiceflow Integration**: Routes responses back to Voiceflow for multi-channel delivery (chat, voice, or phone).  \n\n- **Outputs**:  \n  - Confirmation messages (e.g., \"Event created successfully\").  \n  - Dynamic responses for orders, appointments, or product support. \n\n---\n\n### **Setup Steps**  \n\n##### **Prerequisites**:  \n- **APIs**:  \n  - Google Calendar & Drive OAuth credentials.  \n  - Qdrant vector database (hosted or cloud).  \n  - OpenAI API key (for GPT-4 and embeddings).  \n\n##### **Configuration**:  \n1. **Qdrant Setup**:  \n   - Run the **\"Create collection\"** and **\"Refresh collection\"** nodes to initialize the vector store.  \n   - Populate it with documents using the **Google Drive \u2192 Qdrant** pipeline (embeddings generated via OpenAI).  \n\n2. **Voiceflow Webhooks**:  \n   - Link Voiceflow\u2019s \"Captures\" to n8n\u2019s webhook URLs (`n8n_order`, `n8n_appointment`, `n8n_rag`).  \n\n3. **Google Calendar**:  \n   - Authenticate the **Google Calendar node** and set event templates (e.g., `summary`, `description`).  \n\n4. **RAG System**:  \n   - Configure the **Qdrant vector store** and **OpenAI embeddings** nodes.  \n   - Adjust the **Retrieve Agent**\u2019s system prompt for domain-specific queries (e.g., electronics store support).   \n\n#### **Optional**:  \n- Add Twilio for phone-agent capabilities.  \n- Customize OpenAI prompts for tone/accuracy.  \n\n![image](https://i.postimg.cc/855gyTZP/voiceflow-agent.png)\n![image](https://i.postimg.cc/5Nn4Sk43/voiceflow-agent2.png)\n\nPS. You can import a Twilio number to assign it to your agent for becoming a Phone Agent\n\n![image](https://i.postimg.cc/cLymTTFv/voiceflow-agent3.png)\n\n---\n### **Need help customizing?**  \n[Contact me](mailto:info@n3w.it) for consulting and support or add me on [Linkedin](https://www.linkedin.com/in/davideboizza/)"
+}

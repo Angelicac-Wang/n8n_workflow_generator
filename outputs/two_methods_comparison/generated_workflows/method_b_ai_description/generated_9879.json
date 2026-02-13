@@ -1,0 +1,213 @@
+{
+  "template_id": 9879,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "WooCommerce WhatsApp Verification and Messaging",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "woocommerce-webhook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set WhatsApp Number",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "string": [
+                {
+                  "name": "whatsappNumber",
+                  "value": "={{$json[\"customer_phone\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Verify WhatsApp Number",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapiwa.com/verify",
+            "method": "POST",
+            "body": {
+              "number": "={{$json[\"whatsappNumber\"]}}"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "If Verified",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"verified\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.rapiwa.com/send",
+            "method": "POST",
+            "body": {
+              "number": "={{$json[\"whatsappNumber\"]}}",
+              "message": "Thank you for your order!"
+            },
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log Verified & Sent",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Verified & Sent",
+            "data": [
+              {
+                "number": "={{$json[\"whatsappNumber\"]}}",
+                "status": "Sent"
+              }
+            ],
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log Unverified & Not Sent",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Unverified & Not sent",
+            "data": [
+              {
+                "number": "={{$json[\"whatsappNumber\"]}}",
+                "status": "Not Sent"
+              }
+            ],
+            "jsonParameters": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 753,
+    "completion_tokens": 1025,
+    "total_tokens": 1778
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:36:43.406630",
+  "generated_description": "This n8n workflow is triggered by an event in WooCommerce, likely a new order or customer interaction. Once triggered, the workflow performs a series of operations to manage and verify WhatsApp communication with customers.\n\n1. **Data Cleaning and Preparation**: The workflow begins by cleaning the response data from webhooks and formatting WhatsApp numbers to ensure they are in the correct format for further processing.\n\n2. **Verification and Messaging**: It utilizes the Rapiwa API to verify the WhatsApp numbers. If a number is verified, the workflow proceeds to send a message to the customer using the same Rapiwa service.\n\n3. **Conditional Logic and Data Management**: The workflow includes an 'If' node to determine the path based on whether the WhatsApp number is verified or not. Verified numbers that have been successfully sent a message are logged in a Google Sheet titled \"Verified & Sent.\" Conversely, unverified numbers or those that could not be sent a message are recorded in a separate Google Sheet named \"Unverified & Not sent.\"\n\n4. **Batch Processing and Delays**: The workflow employs a loop to process items in batches, which helps manage large volumes of data efficiently. It also includes a wait function, likely to handle rate limits or ensure proper sequencing of operations.\n\nIn summary, this workflow automates the process of verifying customer WhatsApp numbers and sending messages, while maintaining organized records of verified and unverified numbers in Google Sheets.",
+  "description_generation_usage": {
+    "prompt_tokens": 234,
+    "completion_tokens": 291,
+    "total_tokens": 525
+  },
+  "metrics": {
+    "node_type_precision": 0.42857142857142855,
+    "node_type_recall": 0.3,
+    "node_type_f1": 0.3529411764705882,
+    "tp": 3,
+    "fp": 4,
+    "fn": 7,
+    "gt_node_count": 10,
+    "llm_node_count": 7,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.1,
+    "connection_f1": 0.125,
+    "correct_connections": 1,
+    "gt_connection_count": 10,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.024691358024691357,
+    "usage": {
+      "prompt_tokens": 753,
+      "completion_tokens": 1025,
+      "total_tokens": 1778
+    },
+    "total_cost": 0.015627500000000003,
+    "description_generation_cost": 0.0034950000000000003,
+    "workflow_generation_cost": 0.012132500000000001
+  },
+  "original_description": "## Who is this for?\nThis workflow listens for new or updated WooCommerce orders, cleans and structures the order data, processes orders in batches, and standardizes WhatsApp phone numbers. It verifies phone numbers via the Rapiwa API, sends invoice links or messages to verified numbers, and logs results into separate Google Sheets tabs for verified and unverified numbers. Throttling and looping are managed using batch processing and wait delays.\n\n## What this Workflow Does\n- Receives order events (e.g., `order.updated`) from WooCommerce or a similar trigger.\n- Extracts customer, billing/shipping address, product list, and invoice link from the order payload.\n- Processes orders/items in batches for controlled throughput.\n- Cleans and normalizes phone numbers by removing non-digit characters.\n- Verifies whether a phone number is registered on WhatsApp using the Rapiwa API.\n- If verified, sends a personalized message or invoice link via Rapiwa's `send-message` endpoint.\n- If not verified, logs the customer as unverified in Google Sheets.\n- Logs every send attempt (status and validity) into Google Sheets.\n- Uses Wait nodes and batching to avoid API rate limits.\n\n## Key Features\n- Trigger-based automation (WooCommerce trigger; adaptable to Shopify webhook).\n- Batch processing using `SplitInBatches` for stable throughput.\n- Phone number cleaning using JavaScript (`waNoStr.replace(/\\D/g, \"\")`).\n- Pre-send WhatsApp verification via Rapiwa to reduce failed sends.\n- Conditional branching (IF node) between verified and unverified flows.\n- Personalized message templates that include product and customer fields.\n- Logging to Google Sheets with separate flows for verified/sent and unverified/not sent.\n- Wait node for throttling and looping control.\n\n\n## Requirements\n- Running n8n instance with nodes: HTTP Request, Code, SplitInBatches, IF, Google Sheets, Wait, and a WooCommerce trigger (or equivalent).\n- Rapiwa account and Bearer token for verify/send endpoints.\n- Google account and Google Sheets access with OAuth2 credentials.\n- WooCommerce store access credentials (or Shopify credentials if adapting).\n- Incoming order payloads containing `billing` and `line_items` fields.\n\n## Google Sheet format (example rows)\n**A Google Sheet** formatted like this \u27a4 [Sample](https://docs.google.com/spreadsheets/d/1NVYsvOg3mzsAGlzJiL7-2mtkN-5gsmqd3fG8hboE3vk/edit?usp=sharing)\n\n| Customer Name  | Phone Number  | Email Address     | Address     | Product Title    | Product ID | Size | Quantity | Total Price | Product Image                                                                                                                              | Invoice Link                                                                                                                                                                                           | Status   | Validity   |\n| -------------- | ------------- | --------------------------------------------------------------------- | ----------- | ------------------------------------ | ---------- | ---- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ---------- |\n| Abdul Mannan| 8801322827799 | contact@spagreen.net | mirpur| T-Shirt - XL | 110        | XL   | 1        | BDT 499.00  | https://your_shop_domain/Product/gg.img | https://your_shop_domain/INV/DAS | sent     | verified   |\n| Abdul Mannan| 8801322827799 | contact@spagreen.net | mirpur| T-Shirt - XL | 110        | XL   | 1        | BDT 499.00  | https://your_shop_domain/Product/gg.img | https://your_shop_domain/INV/DAS | not sent | unverified |\n\n\n## Important Notes\n- The Code nodes assume `billing` and `line_items` exist in the incoming payload; update mappings if your source differs.\n- The message template references `products[0]`; if orders contain multiple items, update logic to summarize or iterate products.\n- Start testing with small batches to avoid accidental mass messaging and to respect Rapiwa rate limits.\n\n## Useful Links\n- **Dashboard:** [https://app.rapiwa.com](https://app.rapiwa.com/login)\n- **Official Website:** [https://rapiwa.com](https://rapiwa.com/)\n- **Documentation:** [https://docs.rapiwa.com](https://docs.rapiwa.com/)\n\n## Support & Help\n- **WhatsApp**: [Chat on WhatsApp](https://wa.me/8801322827799)\n- **Discord**: [SpaGreen Community](https://discord.gg/SsCChWEP)\n- **Facebook Group**: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)\n- **Website**: [https://spagreen.net](https://spagreen.net)\n- **Developer Portfolio**: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)"
+}

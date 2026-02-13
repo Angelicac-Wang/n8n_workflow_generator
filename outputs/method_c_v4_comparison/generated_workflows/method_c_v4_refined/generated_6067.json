@@ -1,0 +1,192 @@
+{
+  "template_id": "6067",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation workflow for content creation using AI services. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered by a schedule, specifically every Monday at 6:00 AM.",
+      "data_sources": "Perplexity API for research, OpenAI for content generation, Leonardo AI for image creation, WordPress for publishing, Google Sheets for tracking.",
+      "operations": "1. Trigger workflow on schedule, 2. Research trending topics using Perplexity API, 3. Generate content with OpenAI, 4. Create an image with Leonardo AI, 5. Publish post to WordPress, 6. Log post details in Google Sheets.",
+      "output_actions": "Publish a blog post on WordPress and log the details in Google Sheets.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (Perplexity API), openAi (content generation), httpRequest (Leonardo AI), wordpress (publish), googleSheets (log)",
+      "connections_plan": "scheduleTrigger -> httpRequest (Perplexity) -> openAi -> httpRequest (Leonardo) -> wordpress -> googleSheets"
+    },
+    "workflowPlan": {
+      "name": "SEO Blog Post Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 6 * * 1"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Research Trending Topics",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.perplexity.ai/trending",
+            "headers": {
+              "Authorization": "Bearer YOUR_PERPLEXITY_API_KEY"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Content",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Write a 1000-1500 word article about {{ $json.trendingTopic }} in HTML format.",
+            "model": "gpt-4.1-mini"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Blog Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.leonardo.ai/generate-image",
+            "headers": {
+              "Authorization": "Bearer YOUR_LEONARDO_API_KEY"
+            },
+            "body": {
+              "prompt": "Cinematic image for a blog post about {{ $json.trendingTopic }}",
+              "style": "cinematic"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish to WordPress",
+          "nodeType": "n8n-nodes-base.wordpress",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createPost",
+            "title": "Weekly Update: {{ $json.trendingTopic }}",
+            "content": "={{ $json.content }}",
+            "featuredImage": "={{ $json.imageUrl }}",
+            "category": "YOUR_CATEGORY_ID",
+            "status": "publish"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "A1",
+            "data": [
+              [
+                "={{ $json.title }}",
+                "={{ $json.url }}",
+                "={{ $json.datePublished }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9172,
+    "completion_tokens": 1151,
+    "total_tokens": 10323
+  },
+  "description_optimization": null,
+  "original_description": "## \u2728 SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress\n\nThis workflow automates the creation and publishing of weekly SEO-optimized blog posts using AI and publishes them directly to WordPress \u2014 with featured images and tracking in Google Sheets.\n\n---\n\n## \ud83e\udde0 Who is this for\n\nThis automation is ideal for:\n\n- Startup platforms and tech blogs  \n- Content creators and marketers  \n- Solopreneurs who want consistent blog output  \n- Spanish-speaking audiences focused on startup trends  \n\n---\n\n## \u2699\ufe0f What it does\n\n- \u23f0 Runs every Monday at 6:00 AM via CRON  \n- \ud83d\udce1 Uses Perplexity AI to research trending startup topics  \n- \ud83d\udcdd Generates a 1000\u20131500 word article with GPT in structured HTML  \n- \ud83c\udfa8 Creates a cinematic blog image using Leonardo AI  \n- \ud83d\uddbc\ufe0f Uploads the image to WordPress with alt text and SEO-friendly filename  \n- \ud83d\udcf0 Publishes the post in a pre-defined category  \n- \ud83d\udcca Logs the post in Google Sheets for tracking  \n\n---\n\n## \ud83d\ude80 How to set it up\n\n1. **Connect your credentials**:\n   - Perplexity API  \n   - OpenAI (GPT-4.1 Mini or similar)  \n   - Leonardo AI (Bearer token)  \n   - WordPress (Basic Auth)  \n   - Google Sheets (OAuth2)\n\n2. **Customize your content**:\n   - Adjust the prompt inside the HTTP node to fit your tone or focus  \n   - Change the WordPress category ID  \n   - Update scheduling if you want a different publishing day  \n\n3. **Test the workflow manually** to ensure all steps function correctly\n\n---\n\n## \ud83d\udca1 Pro tips\n\n- Add Slack or email nodes to get notified when a post goes live  \n- Use multiple categories or RSS feeds for content diversification  \n- Adjust GPT prompt to support different languages or tones  \n- Add post-validation rules if needed before publishing  \n\n---\n\n## \ud83c\udfaf Why this matters\n\nThis workflow gives you a full editorial process on autopilot: research, writing, design, publishing, and tracking \u2014 all powered by AI. No more blank pages or manual posting.\n\n**Use it to scale your content strategy, boost your SEO, and stay relevant \u2014 100% hands-free.**",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T15:15:18.733164",
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.38461538461538464,
+    "node_type_f1": 0.5263157894736842,
+    "tp": 5,
+    "fp": 1,
+    "fn": 8,
+    "gt_node_count": 13,
+    "llm_node_count": 6,
+    "connection_precision": 0.4,
+    "connection_recall": 0.2,
+    "connection_f1": 0.26666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.08452380952380953,
+    "usage": {
+      "prompt_tokens": 9172,
+      "completion_tokens": 1151,
+      "total_tokens": 10323
+    },
+    "total_cost": 0.034440000000000005
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,280 @@
+{
+  "template_id": "3101",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow is triggered manually when the user clicks the 'test workflow' button in the editor.",
+      "data_sources": "OpenAI API for analysis, Firecrawl API for web scraping, Gmail for sending notifications.",
+      "operations": "1. User inputs URL and prompt, 2. Extract URL and prompt, 3. Scrape webpage content, 4. Analyze content with OpenAI, 5. Daily loop: Scrape, compare, analyze, notify if changes detected.",
+      "output_actions": "Send an email notification to the user if significant changes are detected on the webpage.",
+      "nodes_plan": "manualTrigger, set (extract input), httpRequest (Firecrawl scrape), openAi (analyze content), code (parse results), delay (wait 1 day), if (check changes), emailSend (notify user)",
+      "connections_plan": "manualTrigger -> set -> httpRequest (scrape 1) -> openAi -> code -> delay -> httpRequest (scrape 2) -> if -> emailSend (if true)"
+    },
+    "workflowPlan": {
+      "name": "Webpage Change Alert",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Input",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "url",
+                  "value": "https://example.com"
+                },
+                {
+                  "name": "prompt",
+                  "value": "Analyze changes on this page"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Scrape Page 1",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.url }}",
+            "headers": {
+              "Authorization": "Bearer YOUR_FIRECRAWL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Content",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.prompt }}: {{ $json.data }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Parse Results",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { changes: $json.result.includes('significant changes') };"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Delay 1 Day",
+          "nodeType": "n8n-nodes-base.delay",
+          "typeVersion": 1,
+          "params": {
+            "delay": "1d"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Scrape Page 2",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.url }}",
+            "headers": {
+              "Authorization": "Bearer YOUR_FIRECRAWL_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Check Changes",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.changes }}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Webpage Change Alert",
+            "text": "Significant changes detected on the monitored webpage."
+          },
+          "position": {
+            "x": 1700,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4236,
+      "completion_tokens": 1350,
+      "total_tokens": 5586
+    },
+    "description_optimization": {
+      "prompt_tokens": 617,
+      "completion_tokens": 475,
+      "total_tokens": 1092
+    },
+    "total_tokens": 6678,
+    "total_prompt_tokens": 4853,
+    "total_completion_tokens": 1825
+  },
+  "description_optimization": {
+    "template_id": "3101",
+    "optimized_description": "This workflow template is designed for users who want to receive alerts when specific changes occur on any web page. It utilizes agentic AI to analyze the designated page daily and autonomously determine whether to send an email notification based on the changes detected.\n\nTrigger:\nThe workflow is initiated when the user clicks the 'test workflow' button in the editor. This action opens a new browser tab where the user can input the details of their monitoring assignment, including the target URL and a concise prompt for the AI.\n\nData Sources and APIs Needed:\n1. OpenAI API key for processing and analyzing the webpage content.\n2. Firecrawl API key to scrape the specified web pages.\n3. Gmail account connection for sending email notifications.\n\nOperations and Processing Steps:\n1. User inputs the relevant website URL and an optimized prompt in the new browser tab.\n2. Upon submission, the workflow extracts the provided URL and prompt.\n3. The workflow utilizes OpenAI's structured outputs to analyze the webpage content.\n4. A code node is employed to parse the results for further processing.\n5. The workflow enters a continuous loop of daily checks, which includes:\n   - Initial scrape of the webpage to gather current content.\n   - A delay of one day to allow for changes to occur.\n   - A second scrape of the webpage to compare with the initial data.\n   - The AI agent evaluates the scraped data to determine if any significant changes warrant a notification.\n   - If changes meet the criteria, an email notification is sent to the user.\n6. The workflow then returns to the initial scrape step to repeat the process.\n\nFinal Output or Action:\nThe final output of this workflow is an email notification sent to the user when specific changes are detected on the monitored webpage, based on the criteria set by the AI agent. Users can cancel their monitoring assignment at any time by accessing the executions tab.\n\nSetup Steps:\n1. Insert your OpenAI API key in the structured outputs node (the second node).\n2. Create a Firecrawl account and connect your Firecrawl API key in both 'Scrape page' nodes.\n3. Connect your OpenAI account in the AI agent's model node.\n4. Connect your Gmail account in the AI agent's Gmail tool node.\n\nThis workflow provides a comprehensive solution for tracking changes on web pages and receiving timely notifications, ensuring users stay informed about important updates relevant to their interests.",
+    "original_description": "## Who is this template for?\nThis workflow template is designed for people seeking alerts when certain specific changes are made to any web page. Leveraging agentic AI, it analyzes the page every day and autonomously decides whether to send you an e-mail notification.\n\n## Example use cases\n- Track price changes on [competitor's website]. Notify me when the price drops below \u20ac50.\n- Monitor new blog posts on [industry leader's website] and summarize key insights.\n- Check [competitor's job page] for new job postings related to software development.\n- Watch for new product launches on [e-commerce site] and send me a summary.\n- Detect any changes in the terms and conditions of [specific website].\n- Track customer reviews for [specific product] on [review site] and extract key themes.\n\n## How it works\n- When clicking 'test workflow' in the editor, a new browser tab will open where you can fill in the details of your espionage assignment\n- Make sure you be as concise as possible when instructing AI. Instruct specific and to the point (see examples at the bottom).\n- After submission, the flow will start off by extracting both the relevant website url and an optimized prompt. OpenAI's structured outputs is utilized, followed by a code node to parse the results for further use.\n- From here on, the endless loop of daily checks will begin:\n1. Initial scrape \n2. 1 day delay\n3. Second scrape\n4. AI agent decides whether or not to notify you \n5. Back to step 1\n- You can cancel an espionage assignment at any time in the executions tab\n\n## Set up steps\n- Insert your OpenAI API key in the structured outputs node (second one)\n- Create a Firecrawl account and connect your Firecrawl API key in both 'Scrape page'-nodes\n- Connect your OpenAI account in the AI agents' model node\n- Connect your Gmail account in the AI agents' Gmail tool node",
+    "description_length": 2437,
+    "usage": {
+      "prompt_tokens": 617,
+      "completion_tokens": 475,
+      "total_tokens": 1092
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:25:21.671568"
+  },
+  "original_description": "## Who is this template for?\nThis workflow template is designed for people seeking alerts when certain specific changes are made to any web page. Leveraging agentic AI, it analyzes the page every day and autonomously decides whether to send you an e-mail notification.\n\n## Example use cases\n- Track price changes on [competitor's website]. Notify me when the price drops below \u20ac50.\n- Monitor new blog posts on [industry leader's website] and summarize key insights.\n- Check [competitor's job page] for new job postings related to software development.\n- Watch for new product launches on [e-commerce site] and send me a summary.\n- Detect any changes in the terms and conditions of [specific website].\n- Track customer reviews for [specific product] on [review site] and extract key themes.\n\n## How it works\n- When clicking 'test workflow' in the editor, a new browser tab will open where you can fill in the details of your espionage assignment\n- Make sure you be as concise as possible when instructing AI. Instruct specific and to the point (see examples at the bottom).\n- After submission, the flow will start off by extracting both the relevant website url and an optimized prompt. OpenAI's structured outputs is utilized, followed by a code node to parse the results for further use.\n- From here on, the endless loop of daily checks will begin:\n1. Initial scrape \n2. 1 day delay\n3. Second scrape\n4. AI agent decides whether or not to notify you \n5. Back to step 1\n- You can cancel an espionage assignment at any time in the executions tab\n\n## Set up steps\n- Insert your OpenAI API key in the structured outputs node (second one)\n- Create a Firecrawl account and connect your Firecrawl API key in both 'Scrape page'-nodes\n- Connect your OpenAI account in the AI agents' model node\n- Connect your Gmail account in the AI agents' Gmail tool node",
+  "optimized_description": "This workflow template is designed for users who want to receive alerts when specific changes occur on any web page. It utilizes agentic AI to analyze the designated page daily and autonomously determine whether to send an email notification based on the changes detected.\n\nTrigger:\nThe workflow is initiated when the user clicks the 'test workflow' button in the editor. This action opens a new browser tab where the user can input the details of their monitoring assignment, including the target URL and a concise prompt for the AI.\n\nData Sources and APIs Needed:\n1. OpenAI API key for processing and analyzing the webpage content.\n2. Firecrawl API key to scrape the specified web pages.\n3. Gmail account connection for sending email notifications.\n\nOperations and Processing Steps:\n1. User inputs the relevant website URL and an optimized prompt in the new browser tab.\n2. Upon submission, the workflow extracts the provided URL and prompt.\n3. The workflow utilizes OpenAI's structured outputs to analyze the webpage content.\n4. A code node is employed to parse the results for further processing.\n5. The workflow enters a continuous loop of daily checks, which includes:\n   - Initial scrape of the webpage to gather current content.\n   - A delay of one day to allow for changes to occur.\n   - A second scrape of the webpage to compare with the initial data.\n   - The AI agent evaluates the scraped data to determine if any significant changes warrant a notification.\n   - If changes meet the criteria, an email notification is sent to the user.\n6. The workflow then returns to the initial scrape step to repeat the process.\n\nFinal Output or Action:\nThe final output of this workflow is an email notification sent to the user when specific changes are detected on the monitored webpage, based on the criteria set by the AI agent. Users can cancel their monitoring assignment at any time by accessing the executions tab.\n\nSetup Steps:\n1. Insert your OpenAI API key in the structured outputs node (the second node).\n2. Create a Firecrawl account and connect your Firecrawl API key in both 'Scrape page' nodes.\n3. Connect your OpenAI account in the AI agent's model node.\n4. Connect your Gmail account in the AI agent's Gmail tool node.\n\nThis workflow provides a comprehensive solution for tracking changes on web pages and receiving timely notifications, ensuring users stay informed about important updates relevant to their interests.",
+  "error": null,
+  "generated_at": "2026-01-25T23:25:40.287927",
+  "metrics": {
+    "node_type_precision": 0.3333333333333333,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.3333333333333333,
+    "tp": 3,
+    "fp": 6,
+    "fn": 6,
+    "gt_node_count": 9,
+    "llm_node_count": 9,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 7,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4236,
+        "completion_tokens": 1350,
+        "total_tokens": 5586
+      },
+      "description_optimization": {
+        "prompt_tokens": 617,
+        "completion_tokens": 475,
+        "total_tokens": 1092
+      },
+      "total_tokens": 6678,
+      "total_prompt_tokens": 4853,
+      "total_completion_tokens": 1825
+    },
+    "total_cost": 0.0303825,
+    "description_optimization_cost": 0.006292500000000001,
+    "workflow_generation_cost": 0.02409
+  }
+}

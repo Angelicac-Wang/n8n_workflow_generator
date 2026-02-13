@@ -1,0 +1,201 @@
+{
+  "template_id": "11244",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a data visualization automation using fixed API calls. Use base nodes.",
+      "trigger_analysis": "Webhook trigger to receive data from LINE.",
+      "data_sources": "LINE API for input, Google Gemini API for data analysis, Kie.ai API for infographic generation, AWS S3 for storage.",
+      "operations": "1. Receive data from LINE, 2. Analyze data with Gemini, 3. Generate infographic with Nano Banana, 4. Poll for completion, 5. Upload to S3, 6. Send back to LINE.",
+      "output_actions": "Send the generated infographic back to the LINE user.",
+      "nodes_plan": "webhook (trigger), httpRequest (Gemini analysis), httpRequest (Nano Banana infographic generation), loop (polling), s3 (upload), httpRequest (send to LINE)",
+      "connections_plan": "webhook -> httpRequest (Gemini) -> httpRequest (Nano Banana) -> loop (polling) -> s3 -> httpRequest (LINE)"
+    },
+    "workflowPlan": {
+      "name": "LINE to Infographic",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "LINE Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "line-webhook"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Gemini Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.gemini.com/analyze",
+            "body": {
+              "data": "={{ $json.body.message }}"
+            },
+            "authentication": "headerAuth",
+            "headers": {
+              "Authorization": "Bearer YOUR_GEMINI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Nano Banana Infographic",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.kie.ai/nano-banana",
+            "body": {
+              "layout": "={{ $json.layout }}",
+              "data": "={{ $json.data }}"
+            },
+            "authentication": "headerAuth",
+            "headers": {
+              "Authorization": "Bearer YOUR_KIE_AI_API_KEY"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Poll for Completion",
+          "nodeType": "n8n-nodes-base.loop",
+          "typeVersion": 1,
+          "params": {
+            "interval": 5,
+            "condition": "={{ $json.status !== 'completed' }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload to S3",
+          "nodeType": "n8n-nodes-base.s3",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "bucketName": "your-s3-bucket",
+            "fileName": "infographic.png",
+            "fileContent": "={{ $json.file }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send to LINE",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.line.me/v2/bot/message/reply",
+            "body": {
+              "replyToken": "={{ $json.replyToken }}",
+              "messages": [
+                {
+                  "type": "image",
+                  "originalContentUrl": "={{ $json.s3Url }}",
+                  "previewImageUrl": "={{ $json.s3Url }}"
+                }
+              ]
+            },
+            "authentication": "headerAuth",
+            "headers": {
+              "Authorization": "Bearer YOUR_LINE_API_KEY"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8413,
+    "completion_tokens": 1164,
+    "total_tokens": 9577
+  },
+  "description_optimization": null,
+  "original_description": "## About This Template\nThis workflow turns complex data or topics sent via LINE into beautiful, easy-to-understand Infographics.\n\nIt combines **Gemini** (to analyze data and structure the visual layout) and **Nano Banana Pro** (accessed via Kie.ai API) to generate high-quality, data-rich graphics (Charts, timelines, processes).\n\n## How It Works\n1.  **Input:** User sends a topic or data points via LINE (e.g., \"Japan's Energy Mix: 20% Solar, 10% Wind...\").\n2.  **Data Visualization Logic:** Gemini acts as an Information Designer, deciding the best chart type (Pie, Bar, Flow) and layout for the data.\n3.  **Render:** Nano Banana generates a professional **3:4 Vertical Infographic**.\n4.  **Smart Polling:** The workflow uses a loop to check the API status every 5 seconds, ensuring it waits exactly as long as needed.\n5.  **Delivery:** Uploads to S3 and sends the visual report back to LINE.\n\n## Who It\u2019s For\n* Social Media Managers needing quick visual content.\n* Educators and presenters summarizing data.\n* Consultants creating quick visual reports on the go.\n\n## Requirements\n* **n8n** (Cloud or Self-hosted).\n* **Kie.ai API Key** (Nano Banana Pro).\n* **Google Gemini API Key**.\n* **AWS S3 Bucket** (Public access).\n* **LINE Official Account**.\n\n## Setup Steps\n1.  **Credentials:** Configure Header Auth for Kie.ai and your other service credentials.\n2.  **Webhook:** Add the production URL to LINE Developers console.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:24:03.255034",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.4444444444444444,
+    "tp": 4,
+    "fp": 2,
+    "fn": 8,
+    "gt_node_count": 12,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 11,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.15625,
+    "usage": {
+      "prompt_tokens": 8413,
+      "completion_tokens": 1164,
+      "total_tokens": 9577
+    },
+    "total_cost": 0.03267250000000001
+  },
+  "is_ai_workflow": false
+}

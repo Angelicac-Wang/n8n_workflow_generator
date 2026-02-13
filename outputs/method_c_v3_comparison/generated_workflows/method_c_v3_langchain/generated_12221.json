@@ -1,0 +1,219 @@
+{
+  "template_id": "12221",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a cybersecurity monitoring automation. Use base nodes.",
+      "trigger_analysis": "Scheduled trigger to check SSL certificate logs every hour.",
+      "data_sources": "crt.sh for SSL certificates, Urlscan.io for domain scanning, Slack API for notifications.",
+      "operations": "1. Schedule check on crt.sh, 2. Split multi-domain certificates, 3. Filter out legitimate domains, 4. Send suspicious domains to Urlscan.io, 5. Wait for scan completion, 6. Fetch scan results, 7. Send alerts to Slack.",
+      "output_actions": "Send a Slack message with domain details and scan results.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (crt.sh), splitInBatches (split domains), code (filter domains), httpRequest (Urlscan.io), wait (pause), httpRequest (fetch results), slack (send alert)",
+      "connections_plan": "scheduleTrigger -> httpRequest (crt.sh) -> splitInBatches -> code (filter) -> httpRequest (Urlscan.io) -> wait -> httpRequest (fetch results) -> slack (send alert) -> splitInBatches (loop back)"
+    },
+    "workflowPlan": {
+      "name": "Phishing Lookout and Brand Domain Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 * * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Poll crt.sh",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://crt.sh/?q=%.yourbrand.com&output=json"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Domains",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Domains",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const myDomains = ['yourbrand.com', 'sub.yourbrand.com'];\nreturn items.filter(item => !myDomains.includes(item.json.name));"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Scan with Urlscan.io",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://urlscan.io/api/v1/scan/",
+            "body": {
+              "url": "={{ $json.name }}",
+              "visibility": "public"
+            },
+            "authentication": "urlscanApiKey"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait for Scan",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "30s"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Fetch Scan Results",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://urlscan.io/api/v1/result/{{ $json.uuid }}/",
+            "authentication": "urlscanApiKey"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#alerts",
+            "text": "Suspicious domain detected: {{ $json.name }}\nScan results: {{ $json.resultUrl }}\nScreenshot: {{ $json.screenshotUrl }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8490,
+    "completion_tokens": 1315,
+    "total_tokens": 9805
+  },
+  "description_optimization": null,
+  "original_description": "## Phishing Lookout (Typosquatting) and Brand Domain Monitor\nThis workflow monitors SSL certificate logs to find and scan new domains that might be impersonating your brand.\n\n## Background\nIn modern cybersecurity, Brand Impersonation (or \"Typosquatting\") is quite common in phishing attacks. Attackers register domains that look nearly identical to a trusted brand\u2014such as .input-n8n.io, n8n.i0, etc. instead of the legitimate\u2014 to deceive users into revealing sensitive credentials or downloading malware.\n\n## How it works\nMonitor: Checks crt.sh every hour for new SSL certificates matching your brand keywords.\n\nProcess: Uses a Split Out node to handle multi-domain certificates and a Filter node to ignore your own legitimate domains bringing only most recent certificates.\n\nScan: Automatically sends suspicious domains to Urlscan.io for a headless browser scan and screenshot.\n\nLoop & Triage: Implements a 30-second Wait to allow the scan in loop to finish before fetching results.\n\nAlert: Sends a Slack message with the domain name, report link, and an image of the supposedly suspicious site trying to mimic your site login page, etc. alerting potentially a phishing case.\n\n## Setup Steps\nCredentials: Connect your Urlscan.io API key and Slack bot token.\n\nConfiguration: Update the \"Poll crt.sh\" node. \nIn URL https://crt.sh/?q=%.testdomain.com&output=json, use your specific brand name (e.g., %.yourbrand.com or .yourdomain.com instead of .testdomain.com).\n\nWhitelist: Add your real domains to the myDomains list in the Filter & Deduplicate code node to prevent false alerts. Alternatively, you may also NOT opt to include your own domain for testing purposes to check how the Workflow behaves and outputs. In such case, obviously, your domain and sub-domains also are highlighted as Suspicious (as received in Slack Alerts)\n\nLooping: Ensure the Alert Slack node output is connected back to the Split In Batches input to process all found domains.\n\n![Phishing alert workflow image.png](fileId:3844)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:19:28.092908",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.6666666666666666,
+    "node_type_f1": 0.7058823529411765,
+    "tp": 6,
+    "fp": 2,
+    "fn": 3,
+    "gt_node_count": 9,
+    "llm_node_count": 8,
+    "connection_precision": 0.25,
+    "connection_recall": 0.2222222222222222,
+    "connection_f1": 0.23529411764705882,
+    "correct_connections": 2,
+    "gt_connection_count": 9,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.023809523809523808,
+    "usage": {
+      "prompt_tokens": 8490,
+      "completion_tokens": 1315,
+      "total_tokens": 9805
+    },
+    "total_cost": 0.034375
+  },
+  "is_ai_workflow": false
+}

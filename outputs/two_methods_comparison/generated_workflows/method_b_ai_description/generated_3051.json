@@ -1,0 +1,159 @@
+{
+  "template_id": 3051,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to process a resume from Google Drive, analyze it with OpenAI, find matching job offers, and upload them to Google Sheets.",
+    "workflowPlan": {
+      "name": "Resume Analysis and Job Matching",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Resume from Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "YOUR_FILE_ID",
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Read PDF",
+          "nodeType": "n8n-nodes-base.pdfRead",
+          "typeVersion": 1,
+          "params": {
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze with OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the following resume content and provide insights on job suitability: {{$json[\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Find Job Offers",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/find-jobs",
+            "method": "POST",
+            "body": {
+              "resumeInsights": "={{$json[\"choices\"][0][\"text\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "values": "={{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 620,
+    "completion_tokens": 765,
+    "total_tokens": 1385
+  },
+  "error": null,
+  "generated_at": "2026-01-13T07:34:44.529034",
+  "generated_description": "This n8n workflow is manually triggered by the user clicking 'execute'. It begins by downloading a PDF file, specifically a resume, from Google Drive. The workflow then reads the contents of the PDF to extract relevant information. This extracted data is analyzed using OpenAI to gain insights into the resume's content and suitability for various job roles.\n\nSubsequently, the workflow sends a request to an external API to find suitable job offers that match the qualifications and experience detailed in the resume. The job offers retrieved are then organized into a structured format.\n\nFinally, the organized job posts are uploaded to Google Sheets, creating a spreadsheet that compiles the job opportunities aligned with the resume's profile. This results in a streamlined process for matching resumes with potential job openings and documenting them in a structured manner.",
+  "description_generation_usage": {
+    "prompt_tokens": 211,
+    "completion_tokens": 158,
+    "total_tokens": 369
+  },
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.625,
+    "node_type_f1": 0.7142857142857143,
+    "tp": 5,
+    "fp": 1,
+    "fn": 3,
+    "gt_node_count": 8,
+    "llm_node_count": 6,
+    "connection_precision": 0.4,
+    "connection_recall": 0.2857142857142857,
+    "connection_f1": 0.3333333333333333,
+    "correct_connections": 2,
+    "gt_connection_count": 7,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.2,
+    "usage": {
+      "prompt_tokens": 620,
+      "completion_tokens": 765,
+      "total_tokens": 1385
+    },
+    "total_cost": 0.0113075,
+    "description_generation_cost": 0.0021075,
+    "workflow_generation_cost": 0.0092
+  },
+  "original_description": "# Find Job Postings from LinkedIn, Indeed, and Glassdoor and Save Them to Google Sheets Using AI\n\n## Overview\nEffortlessly discover and apply to jobs tailored to your profile\u2014AI handles the search, you handle the interviews.\n\nSay goodbye to endless job board scrolling. This automation leverages AI to analyze your resume, identify your skills, experience, and more, to match you with the most relevant job opportunities. It sources job postings from LinkedIn, Indeed, Glassdoor, ZipRecruiter, Monster, and other public job sites on the web. With seamless integration and automatic organization of results, you can focus on applying rather than searching.\n\n## Key Features\n\n### **Intelligent Resume Parsing**\n- Extracts key information from your PDF resume using AI.\n- Identifies skills, experience, education, and job preferences.\n\n### **Targeted Job Matching**\n- Uses the parsed resume data to search for jobs that align with your profile.\n- Ensures relevance by analyzing job descriptions for matching criteria.\n\n### **Automated Data Organization**\n- Compiles job listings into a structured Google Spreadsheet.\n- Eliminates the need for manual data entry, saving valuable time.\n\n### **Easy Access and Review**\n- Stores results in a familiar Google Sheets format for easy tracking.\n- Allows for filtering and sorting to prioritize applications.\n\n## **Setup Instructions**\n\n### **Prerequisites**\n- A free API key for the job search service.\n- Google Drive and Google Sheets accounts.\n- An updated resume in PDF format.\n\n### **Step 1: Connect Your Resume Parsing AI**\n1. Upload your PDF resume to Google Drive.\n2. Configure the AI parser node in n8n to extract relevant information.\n3. Map the extracted fields (e.g., skills, job title, experience) for job searching.\n\n### **Step 2: Automate the Job Search**\n1. Use the extracted data to perform a job search on LinkedIn, Indeed, Glassdoor, and other supported job sites.\n2. Retrieve job postings based on relevant keywords and location preferences.\n\n### **Step 3: Save Job Listings to Google Sheets**\n1. Create a new Google Sheet to store job listings.\n2. Set up the automation to write job details (e.g., title, company, location, link) into the sheet.\n3. Format the sheet for better readability and tracking.\n\n### **Step 4: Review and Apply to Jobs**\n1. Open your Google Sheet to view job matches.\n2. Click on the links to apply directly on the respective job sites.\n3. Update the status of each job application as you progress.\n\n## **Why Use This Automation?**\n- **Saves Time**: Automates job searching and listing compilation.\n- **Enhances Efficiency**: Eliminates manual scrolling and data entry.\n- **Improves Organization**: Keeps all job opportunities in a structured format.\n- **Optimizes Your Job Hunt**: Increases chances of landing the perfect role.\n\nDesigned specifically for job seekers aiming to optimize their search process, this automation integrates with Google Drive and Sheets, streamlining your job hunt and enhancing your chances of finding the right opportunity. Get started today and accelerate your career growth!"
+}

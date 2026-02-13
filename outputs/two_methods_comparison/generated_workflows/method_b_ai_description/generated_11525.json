@@ -1,0 +1,180 @@
+{
+  "template_id": 11525,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow to automate document summarization from Google Drive.",
+    "workflowPlan": {
+      "name": "Google Drive Document Summarization",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Search Documents",
+          "nodeType": "qdrant.search",
+          "params": {
+            "query": "document criteria"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Document",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "params": {
+            "operation": "get",
+            "fileId": "={{$node[\"Search Documents\"].json[\"fileId\"]}}"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Content",
+          "nodeType": "n8n-nodes-base.extractText",
+          "params": {
+            "source": "={{$node[\"Get Document\"].json[\"content\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Convert to Markdown",
+          "nodeType": "n8n-nodes-base.convertToMarkdown",
+          "params": {
+            "text": "={{$node[\"Extract Content\"].json[\"text\"]}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Process Request",
+          "nodeType": "n8n-nodes-base.function",
+          "params": {
+            "functionCode": "return items;"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Summary",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Summarize the following content: {{$node[\"Convert to Markdown\"].json[\"markdown\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Format Summary Output",
+          "nodeType": "n8n-nodes-base.format",
+          "params": {
+            "template": "Summary: {{$node[\"Generate Summary\"].json[\"summary\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Embeddings",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "text-embedding-ada-002",
+            "input": "={{$node[\"Convert to Markdown\"].json[\"markdown\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "4",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 763,
+    "completion_tokens": 876,
+    "total_tokens": 1639
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:49:32.787856",
+  "generated_description": "This n8n workflow is designed to automate the process of summarizing documents stored in Google Drive. The workflow is triggered by a request to receive a document summary. Upon activation, it performs the following operations:\n\n1. **Document Retrieval**: The workflow begins by searching for the relevant document using the \"Search Documents\" node connected to a vector store, Qdrant, to identify the document based on specific criteria.\n   \n2. **Document Access**: Once identified, the \"Get Document\" node retrieves the document from Google Drive.\n\n3. **Content Extraction and Conversion**: The \"Extract Content\" node extracts the text content from the document, which is then converted into Markdown format using the \"Convert to Markdown\" node for easier processing.\n\n4. **Summary Generation**: The workflow processes the request through the \"Process Request\" node, which likely involves some logical operations or checks. The \"Generate Summary\" node utilizes OpenAI's language model to create a concise summary of the document's content.\n\n5. **Summary Formatting**: The generated summary is formatted for output using the \"Format Summary Output\" node, ensuring it meets any specified requirements or formats.\n\n6. **Embeddings Generation**: Additionally, the \"Generate Embeddings\" node uses OpenAI's services to create embeddings of the document, which can be used for further analysis or storage in a vector database.\n\nThe final output of this workflow is a well-formatted summary of the document, ready to be delivered to the requester",
+  "description_generation_usage": {
+    "prompt_tokens": 228,
+    "completion_tokens": 300,
+    "total_tokens": 528
+  },
+  "metrics": {
+    "node_type_precision": 0.125,
+    "node_type_recall": 0.043478260869565216,
+    "node_type_f1": 0.06451612903225806,
+    "tp": 1,
+    "fp": 7,
+    "fn": 22,
+    "gt_node_count": 23,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 6,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 763,
+      "completion_tokens": 876,
+      "total_tokens": 1639
+    },
+    "total_cost": 0.0142375,
+    "description_generation_cost": 0.0035700000000000003,
+    "workflow_generation_cost": 0.0106675
+  },
+  "original_description": "This template presents a multi-agent system in which a coordinating agent manages specialized sub-agents: **an AI agent for RAG** and document summarization, and **an email agent**. Each agent effectively operates in its own domain, working collaboratively under the management of the primary agent.\n\nIn addition to the two sub-agents, the coordinator agent queries the latest news by calling the [HTTPS Request Tool]( https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolhttprequest/).\n\n\ud83d\udca1 This template is an extended version of the initial workflow on how to [Build a RAG Agent with n8n, Qdrant & OpenAI]( https://creators.n8n.io/workflows/11468). \n\nThe RAG sub-agent can use the [same Qdrant collection](https://drive.google.com/drive/u/2/folders/1BevhU5qdgNDFbK4D9oAYGeK0Dt5sEaxQ). You can import this example collection (n8n-rag-2437367325990310-2025-11-04-10-41-54.snapshot) of 3 documents into the free Qdrant cloud or self-hosted account, rather than creating it from scratch.\n\n## \ud83d\udd17Example files for RAG \n\nThe template uses the following **example files** in the Google Docs format:\n1. German Data Protection law: Bundesdatenschutzgesetz (BDSG)\n2. Computer Security Incident Handling Guide (NIST.SP.800-61r2)\n3. Berkshire Hathaway letter to shareholders from 2024 \n\n## \ud83d\ude80How to Get Started\n\n1. Copy or import the template to your n8n instance.\n2. Create your **Google Drive credentials** via the Google Cloud Console and add them to the \"Get Document\" node. A detailed walk-through can be found in the n8n [docs](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/).\n3. Create your **Gmail credentials** via the Google Cloud Console and add them to the Gmail nodes. \n4. Create a [Qdrant API](https://qdrant.tech/) key and add it to the \"Search Documents\" node credentials. The API key will be displayed after you have logged into Qdrant and created a Cluster.\n5. Create or activate your [OpenAI API]( https://platform.openai.com/api-keys) key.\n6. Create or activate your [OpenRouter API]( https://openrouter.ai/docs/api/reference/authentication) key. \n7. Create or activate your [News API]( https://newsapi.org/) key.\n\n## \ud83d\udcacChat with the main Agent to query document data, search latest news or perform Email actions\n\n1\ufe0f\u20e3 Ask the agent about specific information, facts, quotes, or details that are stored in the uploaded documents. \n\n*E.g. What should be documented during incident response?*\n\n2\ufe0f\u20e3 Ask the agent about recent news and current information from web sources. \n\n*E.g. What does BDSG say about data breaches and are there any recent cases?*\n\n3\ufe0f\u20e3 Ask the agent to summarize the document or information related to the documents and email it to you. \n\n*E.g.I need a short summary of the Berkshire Hathaway letter, please send it to my email [user@example.com].*\n\n4\ufe0f\u20e3 Aks the agent to update you on your recent emails.\n\n*E.g. I\u2019d like to know the content of the latest email from [username].*\n\n5\ufe0f\u20e3 Ask the agent to create a draft of the email.\n\n*E.g. Please create an email draft of the [document] summary.*\n\n## \ud83c\udf1fAdapt this template for your own use case\n\n- **Enterprise workflows** - Google Docs processing with automated communications \n- **Research teams** - Document analysis with automatic report distribution \n- **Customer success** - Intelligent document search with follow-up email automation \n- **Content operations** - Document summarization with stakeholder notifications \n- **Compliance workflows** - Policy queries with automated alert systems\n\n**\u26a0\ufe0f The current multi-agent architecture comes with certain trade-offs: the sequential nature of agent hand-offs can increase latency compared to single calls, and the full conversation history is not shared between all sub-agents.**\n\n\ud83d\udcbb \ud83d\udcde[Get in touch](https://www.linkedin.com/in/yulia-dmitrievna-1112361b5/) if you want to customise this workflow or have any questions."
+}

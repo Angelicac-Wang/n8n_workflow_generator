@@ -1,0 +1,254 @@
+{
+  "template_id": "10980",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'chatbot', 'RAG', 'vector store', 'embeddings', 'Q&A'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Google Drive for PDFs, Pinecone for vector storage, OpenAI/Gemini for embeddings, WhatsApp for user interaction.",
+      "operations": "1. Monitor Google Drive for new PDFs, 2. Extract and split text, 3. Generate embeddings, 4. Store embeddings in Pinecone, 5. Receive questions via WhatsApp, 6. Retrieve relevant info using vector search, 7. Generate response using AI, 8. Send response back to WhatsApp.",
+      "output_actions": "Send an intelligent response back to the user on WhatsApp.",
+      "nodes_plan": "googleDriveTrigger (new file), readFile (download PDF), textSplitterRecursiveCharacterTextSplitter (split text), embeddingsOpenAi (generate embeddings), vectorStorePinecone (store embeddings), chatTrigger (WhatsApp input), agent (orchestrator), lmChatOpenAi (AI reasoning), memoryBufferWindow (context), respondToWhatsApp (send response).",
+      "connections_plan": "googleDriveTrigger -> readFile -> textSplitter -> embeddingsOpenAi -> vectorStorePinecone; chatTrigger -> agent -> [lmChatOpenAi, memoryBufferWindow, vectorStorePinecone] -> respondToWhatsApp."
+    },
+    "workflowPlan": {
+      "name": "WhatsApp PDF Chatbot with RAG",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFor": "newFile",
+            "folderId": "your-folder-id"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read PDF File",
+          "nodeType": "n8n-nodes-base.readFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{ $json['path'] }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Text",
+          "nodeType": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+          "typeVersion": 1,
+          "params": {
+            "chunkSize": 500
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Embeddings",
+          "nodeType": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-embedding-ada-002"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store in Pinecone",
+          "nodeType": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "your-pinecone-api-key",
+            "indexName": "your-index-name"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "WhatsApp Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are a helpful assistant. Answer user questions using the information from the PDFs.",
+            "options": {}
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 700,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Respond to WhatsApp",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.whatsapp.com/send",
+            "body": {
+              "to": "={{ $json['from'] }}",
+              "message": "={{ $json['response'] }}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8594,
+    "completion_tokens": 1587,
+    "total_tokens": 10181
+  },
+  "description_optimization": null,
+  "original_description": "### Good to know:\n\nThis workflow creates a WhatsApp chatbot that answers questions using your own PDFs through RAG (Retrieval-Augmented Generation). Every time you upload a document to Google Drive, it is processed into embeddings and stored in Pinecone\u2014allowing the bot to respond with accurate, context-aware answers directly on WhatsApp.\n\n### Who is this for?\n\n- Anyone building a custom WhatsApp chatbot.\n \n- Businesses wanting a private knowledge based assistant\n\n- Teams that want their documents to be searchable via chat\n\n- Creators/coaches who want automated Q&A from their PDFs\n\n- Developers who want a no-code RAG pipeline using n8n\n\n### What problem is this workflow solving?\n\n```This workflow eliminates the need to manually search through documents or upload data every time someone asks a question. It turns your PDFs into a smart, searchable knowledge base and delivers instant, accurate answers to WhatsApp users\u2014without hallucinations or manual work.```\n\n### What this workflow does:\n\n\u2705 Monitors a Google Drive folder for new PDFs\n\u2705 Extracts and splits text into chunks\n\u2705 Generates embeddings using OpenAI/Gemini\n\u2705 Stores embeddings in a Pinecone vector index\n\u2705 Receives user questions via WhatsApp\n\u2705 Retrieves the most relevant info using vector search\n\u2705 Generates a natural response using an AI Agent\n\u2705 Sends the answer back to the user on WhatsApp\n\n### How it works:\n\n1\ufe0f\u20e3 Google Drive Trigger detects a new or updated PDF\n2\ufe0f\u20e3 File is downloaded and its text is split into chunks\n3\ufe0f\u20e3 Embeddings are generated and stored in Pinecone\n4\ufe0f\u20e3 WhatsApp Trigger receives a user\u2019s question\n5\ufe0f\u20e3 The question is embedded and matched with Pinecone\n6\ufe0f\u20e3 AI Agent uses retrieved context to generate a response\n7\ufe0f\u20e3 The message is delivered back to the user on WhatsApp\n\n### How to use:\n\n- Connect your Google Drive account\n\n- Add your Pinecone API key and index name\n\n- Add your OpenAI/Gemini API key\n\n- Connect your WhatsApp trigger + sender nodes\n\n- Upload a sample PDF to your Drive folder\n\n- Send a test WhatsApp message to see the bot reply\n\n### Requirements:\n\n\u2705 n8n cloud or self-hosted\n\u2705 Google Drive account\n\u2705 Pinecone vector database\n\u2705 OpenAI or Gemini API key\n\u2705 WhatsApp integration (Cloud API or provider)\n\n### Customizing this workflow:\n\n\ud83d\udfe2 Change the Drive folder or add file-type filters\n\ud83d\udfe2 Adjust chunk size or embedding model\n\ud83d\udfe2 Modify the AI prompt for tone, style, or restrictions\n\ud83d\udfe2 Add memory, logging, or analytics\n\ud83d\udfe2 Add multiple documents or delete old vector entries\n\ud83d\udfe2 Swap the AI model (OpenAI \u2194 Gemini \u2194 Groq, etc.)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:20:06.881572",
+  "metrics": {
+    "node_type_precision": 0.7,
+    "node_type_recall": 0.5,
+    "node_type_f1": 0.5833333333333334,
+    "tp": 7,
+    "fp": 3,
+    "fn": 7,
+    "gt_node_count": 14,
+    "llm_node_count": 10,
+    "connection_precision": 0.1111111111111111,
+    "connection_recall": 0.2,
+    "connection_f1": 0.14285714285714285,
+    "correct_connections": 1,
+    "gt_connection_count": 5,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.047619047619047616,
+    "usage": {
+      "prompt_tokens": 8594,
+      "completion_tokens": 1587,
+      "total_tokens": 10181
+    },
+    "total_cost": 0.037355
+  },
+  "is_ai_workflow": true
+}

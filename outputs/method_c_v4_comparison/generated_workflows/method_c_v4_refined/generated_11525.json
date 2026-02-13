@@ -1,0 +1,216 @@
+{
+  "template_id": "11525",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'chat with', 'RAG', 'document summarization', 'email agent'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Google Drive for documents, Qdrant for vector storage, OpenAI for language model, News API for latest news, Gmail for email actions.",
+      "operations": "1. Receive chat input via chatTrigger, 2. Agent orchestrates with LLM reasoning, 3. Search documents in Qdrant, 4. Summarize documents, 5. Query latest news, 6. Perform email actions.",
+      "output_actions": "Respond with intelligent chat response, send emails, and provide document summaries or news updates.",
+      "nodes_plan": "chatTrigger (chat input), agent (orchestrator - REQUIRED), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context), qdrantTool (document search), googleDriveTool (document access), newsApiTool (latest news), gmailTool (email actions)",
+      "connections_plan": "chatTrigger \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow, qdrantTool, googleDriveTool, newsApiTool, gmailTool as sub-nodes"
+    },
+    "workflowPlan": {
+      "name": "Multi-Agent System for Document and Email Management",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are a multi-agent system that manages document queries, news updates, and email actions. Respond to user queries by orchestrating the appropriate sub-agents.",
+            "options": {}
+          },
+          "position": {
+            "x": 320,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 180
+          }
+        },
+        {
+          "id": "4",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 540,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Qdrant Document Search",
+          "nodeType": "n8n-nodes-base.qdrantTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "searchDocuments",
+            "collection": "n8n-rag-2437367325990310",
+            "query": "={{ $json.query }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 420
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Drive Document Access",
+          "nodeType": "n8n-nodes-base.googleDriveTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getDocument",
+            "documentId": "={{ $json.documentId }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 540
+          }
+        },
+        {
+          "id": "7",
+          "label": "News API Tool",
+          "nodeType": "n8n-nodes-base.newsApiTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getLatestNews",
+            "query": "={{ $json.newsQuery }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 660
+          }
+        },
+        {
+          "id": "8",
+          "label": "Gmail Tool",
+          "nodeType": "n8n-nodes-base.gmailTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendEmail",
+            "to": "={{ $json.emailTo }}",
+            "subject": "={{ $json.emailSubject }}",
+            "body": "={{ $json.emailBody }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 780
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9636,
+    "completion_tokens": 1350,
+    "total_tokens": 10986
+  },
+  "description_optimization": null,
+  "original_description": "This template presents a multi-agent system in which a coordinating agent manages specialized sub-agents: **an AI agent for RAG** and document summarization, and **an email agent**. Each agent effectively operates in its own domain, working collaboratively under the management of the primary agent.\n\nIn addition to the two sub-agents, the coordinator agent queries the latest news by calling the [HTTPS Request Tool]( https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolhttprequest/).\n\n\ud83d\udca1 This template is an extended version of the initial workflow on how to [Build a RAG Agent with n8n, Qdrant & OpenAI]( https://creators.n8n.io/workflows/11468). \n\nThe RAG sub-agent can use the [same Qdrant collection](https://drive.google.com/drive/u/2/folders/1BevhU5qdgNDFbK4D9oAYGeK0Dt5sEaxQ). You can import this example collection (n8n-rag-2437367325990310-2025-11-04-10-41-54.snapshot) of 3 documents into the free Qdrant cloud or self-hosted account, rather than creating it from scratch.\n\n## \ud83d\udd17Example files for RAG \n\nThe template uses the following **example files** in the Google Docs format:\n1. German Data Protection law: Bundesdatenschutzgesetz (BDSG)\n2. Computer Security Incident Handling Guide (NIST.SP.800-61r2)\n3. Berkshire Hathaway letter to shareholders from 2024 \n\n## \ud83d\ude80How to Get Started\n\n1. Copy or import the template to your n8n instance.\n2. Create your **Google Drive credentials** via the Google Cloud Console and add them to the \"Get Document\" node. A detailed walk-through can be found in the n8n [docs](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/).\n3. Create your **Gmail credentials** via the Google Cloud Console and add them to the Gmail nodes. \n4. Create a [Qdrant API](https://qdrant.tech/) key and add it to the \"Search Documents\" node credentials. The API key will be displayed after you have logged into Qdrant and created a Cluster.\n5. Create or activate your [OpenAI API]( https://platform.openai.com/api-keys) key.\n6. Create or activate your [OpenRouter API]( https://openrouter.ai/docs/api/reference/authentication) key. \n7. Create or activate your [News API]( https://newsapi.org/) key.\n\n## \ud83d\udcacChat with the main Agent to query document data, search latest news or perform Email actions\n\n1\ufe0f\u20e3 Ask the agent about specific information, facts, quotes, or details that are stored in the uploaded documents. \n\n*E.g. What should be documented during incident response?*\n\n2\ufe0f\u20e3 Ask the agent about recent news and current information from web sources. \n\n*E.g. What does BDSG say about data breaches and are there any recent cases?*\n\n3\ufe0f\u20e3 Ask the agent to summarize the document or information related to the documents and email it to you. \n\n*E.g.I need a short summary of the Berkshire Hathaway letter, please send it to my email [user@example.com].*\n\n4\ufe0f\u20e3 Aks the agent to update you on your recent emails.\n\n*E.g. I\u2019d like to know the content of the latest email from [username].*\n\n5\ufe0f\u20e3 Ask the agent to create a draft of the email.\n\n*E.g. Please create an email draft of the [document] summary.*\n\n## \ud83c\udf1fAdapt this template for your own use case\n\n- **Enterprise workflows** - Google Docs processing with automated communications \n- **Research teams** - Document analysis with automatic report distribution \n- **Customer success** - Intelligent document search with follow-up email automation \n- **Content operations** - Document summarization with stakeholder notifications \n- **Compliance workflows** - Policy queries with automated alert systems\n\n**\u26a0\ufe0f The current multi-agent architecture comes with certain trade-offs: the sequential nature of agent hand-offs can increase latency compared to single calls, and the full conversation history is not shared between all sub-agents.**\n\n\ud83d\udcbb \ud83d\udcde[Get in touch](https://www.linkedin.com/in/yulia-dmitrievna-1112361b5/) if you want to customise this workflow or have any questions.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T15:19:11.348892",
+  "metrics": {
+    "node_type_precision": 0.625,
+    "node_type_recall": 0.21739130434782608,
+    "node_type_f1": 0.3225806451612903,
+    "tp": 5,
+    "fp": 3,
+    "fn": 18,
+    "gt_node_count": 23,
+    "llm_node_count": 8,
+    "connection_precision": 0.14285714285714285,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.15384615384615383,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.05,
+    "usage": {
+      "prompt_tokens": 9636,
+      "completion_tokens": 1350,
+      "total_tokens": 10986
+    },
+    "total_cost": 0.03759
+  },
+  "is_ai_workflow": true
+}

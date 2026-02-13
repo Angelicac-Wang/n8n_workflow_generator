@@ -1,0 +1,301 @@
+{
+  "template_id": "10980",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "Google Drive trigger to detect new or updated PDF files in a specified folder.",
+      "data_sources": "Google Drive for PDFs, Pinecone for vector storage, OpenAI or Gemini for embeddings, WhatsApp API for communication.",
+      "operations": "1. Trigger on new/updated PDF in Google Drive, 2. Download PDF, 3. Extract and chunk text, 4. Generate embeddings, 5. Store embeddings in Pinecone, 6. Trigger on WhatsApp message, 7. Process question, 8. Retrieve context from Pinecone, 9. Generate response, 10. Send response via WhatsApp.",
+      "output_actions": "Deliver AI-generated response to user via WhatsApp based on PDF content.",
+      "nodes_plan": "googleDriveTrigger, downloadFile, extractText, chunkText, generateEmbeddings, storeInPinecone, whatsappTrigger, processQuestion, retrieveFromPinecone, generateResponse, sendWhatsAppMessage",
+      "connections_plan": "googleDriveTrigger -> downloadFile -> extractText -> chunkText -> generateEmbeddings -> storeInPinecone; whatsappTrigger -> processQuestion -> retrieveFromPinecone -> generateResponse -> sendWhatsAppMessage"
+    },
+    "workflowPlan": {
+      "name": "WhatsApp PDF Chatbot with RAG",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "your-folder-id",
+            "watchFor": [
+              "fileCreated",
+              "fileUpdated"
+            ],
+            "fileTypes": [
+              "application/pdf"
+            ]
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download File",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "download",
+            "fileId": "={{ $json.fileId }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Text",
+          "nodeType": "n8n-nodes-base.extractText",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{ $json.filePath }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Chunk Text",
+          "nodeType": "n8n-nodes-base.chunkText",
+          "typeVersion": 1,
+          "params": {
+            "chunkSize": 500
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Embeddings",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "embedding",
+            "text": "={{ $json.chunk }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store in Pinecone",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upsert",
+            "indexName": "your-index-name",
+            "vectors": "={{ $json.embeddings }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.whatsappTrigger",
+          "typeVersion": 1,
+          "params": {
+            "phoneNumber": "your-phone-number"
+          },
+          "position": {
+            "x": 100,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Process Question",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "embedding",
+            "text": "={{ $json.message }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Retrieve from Pinecone",
+          "nodeType": "n8n-nodes-base.pinecone",
+          "typeVersion": 1,
+          "params": {
+            "operation": "query",
+            "indexName": "your-index-name",
+            "queryVector": "={{ $json.embeddings }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Generate Response",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.retrievedContext }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 400
+          }
+        },
+        {
+          "id": "11",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.whatsappSend",
+          "typeVersion": 1,
+          "params": {
+            "phoneNumber": "={{ $json.from }}",
+            "message": "={{ $json.response }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4468,
+      "completion_tokens": 1517,
+      "total_tokens": 5985
+    },
+    "description_optimization": {
+      "prompt_tokens": 777,
+      "completion_tokens": 707,
+      "total_tokens": 1484
+    },
+    "total_tokens": 7469,
+    "total_prompt_tokens": 5245,
+    "total_completion_tokens": 2224
+  },
+  "description_optimization": {
+    "template_id": "10980",
+    "optimized_description": "This workflow creates a WhatsApp chatbot that utilizes Retrieval-Augmented Generation (RAG) to answer questions based on your own PDFs. The workflow is designed to process new documents uploaded to Google Drive, converting them into searchable embeddings stored in Pinecone, which allows the chatbot to provide accurate and context-aware responses directly on WhatsApp.\n\nTrigger:\nThe workflow is initiated by a Google Drive trigger that detects when a new PDF document is uploaded or an existing PDF is updated in a specified folder.\n\nData Sources and APIs Needed:\n1. Google Drive account to store and manage PDF documents.\n2. Pinecone vector database for storing and retrieving document embeddings.\n3. OpenAI or Gemini API for generating embeddings and crafting natural language responses.\n4. WhatsApp integration (via Cloud API or a third-party provider) to facilitate communication with users.\n\nOperations and Processing Steps:\n1. **Google Drive Trigger**: The workflow starts when a new or updated PDF file is detected in the designated Google Drive folder.\n2. **File Download**: The PDF file is downloaded for processing.\n3. **Text Extraction and Chunking**: The text content of the PDF is extracted and split into manageable chunks for embedding generation.\n4. **Embedding Generation**: Using the OpenAI or Gemini API, embeddings are generated from the text chunks.\n5. **Storage in Pinecone**: The generated embeddings are stored in a Pinecone vector index for efficient retrieval.\n6. **WhatsApp Trigger**: The workflow listens for incoming user questions via WhatsApp.\n7. **Question Processing**: When a question is received, it is embedded and matched against the stored embeddings in Pinecone to find the most relevant information.\n8. **Response Generation**: An AI Agent utilizes the retrieved context to generate a natural language response to the user's question.\n9. **Response Delivery**: The generated response is sent back to the user via WhatsApp.\n\nFinal Output or Action:\nThe final output of this workflow is a seamless interaction where users can ask questions on WhatsApp and receive instant, accurate answers based on the content of the PDFs stored in Google Drive.\n\nHow to Use:\n1. Connect your Google Drive account to n8n.\n2. Input your Pinecone API key and specify the index name.\n3. Add your OpenAI or Gemini API key for embedding generation.\n4. Set up the WhatsApp trigger and configure the sender nodes.\n5. Upload a sample PDF document to the designated Google Drive folder.\n6. Send a test message via WhatsApp to verify that the bot responds correctly.\n\nRequirements:\n- An n8n cloud or self-hosted instance.\n- A Google Drive account for document storage.\n- Access to a Pinecone vector database for embedding management.\n- An OpenAI or Gemini API key for AI functionalities.\n- WhatsApp integration through Cloud API or a third-party provider.\n\nCustomization Options:\n- Change the monitored Google Drive folder or apply file-type filters.\n- Adjust the chunk size for text processing or select a different embedding model.\n- Modify the AI prompt to customize the tone, style, or content restrictions of the responses.\n- Incorporate memory, logging, or analytics features for enhanced functionality.\n- Manage multiple documents or delete outdated vector entries as needed.\n- Swap the AI model being used (e.g., between OpenAI, Gemini, or Groq) for different performance characteristics. \n\nThis comprehensive workflow provides a powerful solution for businesses, teams, and creators looking to automate Q&A processes using their PDF documents in a user-friendly manner on WhatsApp.",
+    "original_description": "### Good to know:\n\nThis workflow creates a WhatsApp chatbot that answers questions using your own PDFs through RAG (Retrieval-Augmented Generation). Every time you upload a document to Google Drive, it is processed into embeddings and stored in Pinecone\u2014allowing the bot to respond with accurate, context-aware answers directly on WhatsApp.\n\n### Who is this for?\n\n- Anyone building a custom WhatsApp chatbot.\n \n- Businesses wanting a private knowledge based assistant\n\n- Teams that want their documents to be searchable via chat\n\n- Creators/coaches who want automated Q&A from their PDFs\n\n- Developers who want a no-code RAG pipeline using n8n\n\n### What problem is this workflow solving?\n\n```This workflow eliminates the need to manually search through documents or upload data every time someone asks a question. It turns your PDFs into a smart, searchable knowledge base and delivers instant, accurate answers to WhatsApp users\u2014without hallucinations or manual work.```\n\n### What this workflow does:\n\n\u2705 Monitors a Google Drive folder for new PDFs\n\u2705 Extracts and splits text into chunks\n\u2705 Generates embeddings using OpenAI/Gemini\n\u2705 Stores embeddings in a Pinecone vector index\n\u2705 Receives user questions via WhatsApp\n\u2705 Retrieves the most relevant info using vector search\n\u2705 Generates a natural response using an AI Agent\n\u2705 Sends the answer back to the user on WhatsApp\n\n### How it works:\n\n1\ufe0f\u20e3 Google Drive Trigger detects a new or updated PDF\n2\ufe0f\u20e3 File is downloaded and its text is split into chunks\n3\ufe0f\u20e3 Embeddings are generated and stored in Pinecone\n4\ufe0f\u20e3 WhatsApp Trigger receives a user\u2019s question\n5\ufe0f\u20e3 The question is embedded and matched with Pinecone\n6\ufe0f\u20e3 AI Agent uses retrieved context to generate a response\n7\ufe0f\u20e3 The message is delivered back to the user on WhatsApp\n\n### How to use:\n\n- Connect your Google Drive account\n\n- Add your Pinecone API key and index name\n\n- Add your OpenAI/Gemini API key\n\n- Connect your WhatsApp trigger + sender nodes\n\n- Upload a sample PDF to your Drive folder\n\n- Send a test WhatsApp message to see the bot reply\n\n### Requirements:\n\n\u2705 n8n cloud or self-hosted\n\u2705 Google Drive account\n\u2705 Pinecone vector database\n\u2705 OpenAI or Gemini API key\n\u2705 WhatsApp integration (Cloud API or provider)\n\n### Customizing this workflow:\n\n\ud83d\udfe2 Change the Drive folder or add file-type filters\n\ud83d\udfe2 Adjust chunk size or embedding model\n\ud83d\udfe2 Modify the AI prompt for tone, style, or restrictions\n\ud83d\udfe2 Add memory, logging, or analytics\n\ud83d\udfe2 Add multiple documents or delete old vector entries\n\ud83d\udfe2 Swap the AI model (OpenAI \u2194 Gemini \u2194 Groq, etc.)",
+    "description_length": 3602,
+    "usage": {
+      "prompt_tokens": 777,
+      "completion_tokens": 707,
+      "total_tokens": 1484
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:21:20.213760"
+  },
+  "original_description": "### Good to know:\n\nThis workflow creates a WhatsApp chatbot that answers questions using your own PDFs through RAG (Retrieval-Augmented Generation). Every time you upload a document to Google Drive, it is processed into embeddings and stored in Pinecone\u2014allowing the bot to respond with accurate, context-aware answers directly on WhatsApp.\n\n### Who is this for?\n\n- Anyone building a custom WhatsApp chatbot.\n \n- Businesses wanting a private knowledge based assistant\n\n- Teams that want their documents to be searchable via chat\n\n- Creators/coaches who want automated Q&A from their PDFs\n\n- Developers who want a no-code RAG pipeline using n8n\n\n### What problem is this workflow solving?\n\n```This workflow eliminates the need to manually search through documents or upload data every time someone asks a question. It turns your PDFs into a smart, searchable knowledge base and delivers instant, accurate answers to WhatsApp users\u2014without hallucinations or manual work.```\n\n### What this workflow does:\n\n\u2705 Monitors a Google Drive folder for new PDFs\n\u2705 Extracts and splits text into chunks\n\u2705 Generates embeddings using OpenAI/Gemini\n\u2705 Stores embeddings in a Pinecone vector index\n\u2705 Receives user questions via WhatsApp\n\u2705 Retrieves the most relevant info using vector search\n\u2705 Generates a natural response using an AI Agent\n\u2705 Sends the answer back to the user on WhatsApp\n\n### How it works:\n\n1\ufe0f\u20e3 Google Drive Trigger detects a new or updated PDF\n2\ufe0f\u20e3 File is downloaded and its text is split into chunks\n3\ufe0f\u20e3 Embeddings are generated and stored in Pinecone\n4\ufe0f\u20e3 WhatsApp Trigger receives a user\u2019s question\n5\ufe0f\u20e3 The question is embedded and matched with Pinecone\n6\ufe0f\u20e3 AI Agent uses retrieved context to generate a response\n7\ufe0f\u20e3 The message is delivered back to the user on WhatsApp\n\n### How to use:\n\n- Connect your Google Drive account\n\n- Add your Pinecone API key and index name\n\n- Add your OpenAI/Gemini API key\n\n- Connect your WhatsApp trigger + sender nodes\n\n- Upload a sample PDF to your Drive folder\n\n- Send a test WhatsApp message to see the bot reply\n\n### Requirements:\n\n\u2705 n8n cloud or self-hosted\n\u2705 Google Drive account\n\u2705 Pinecone vector database\n\u2705 OpenAI or Gemini API key\n\u2705 WhatsApp integration (Cloud API or provider)\n\n### Customizing this workflow:\n\n\ud83d\udfe2 Change the Drive folder or add file-type filters\n\ud83d\udfe2 Adjust chunk size or embedding model\n\ud83d\udfe2 Modify the AI prompt for tone, style, or restrictions\n\ud83d\udfe2 Add memory, logging, or analytics\n\ud83d\udfe2 Add multiple documents or delete old vector entries\n\ud83d\udfe2 Swap the AI model (OpenAI \u2194 Gemini \u2194 Groq, etc.)",
+  "optimized_description": "This workflow creates a WhatsApp chatbot that utilizes Retrieval-Augmented Generation (RAG) to answer questions based on your own PDFs. The workflow is designed to process new documents uploaded to Google Drive, converting them into searchable embeddings stored in Pinecone, which allows the chatbot to provide accurate and context-aware responses directly on WhatsApp.\n\nTrigger:\nThe workflow is initiated by a Google Drive trigger that detects when a new PDF document is uploaded or an existing PDF is updated in a specified folder.\n\nData Sources and APIs Needed:\n1. Google Drive account to store and manage PDF documents.\n2. Pinecone vector database for storing and retrieving document embeddings.\n3. OpenAI or Gemini API for generating embeddings and crafting natural language responses.\n4. WhatsApp integration (via Cloud API or a third-party provider) to facilitate communication with users.\n\nOperations and Processing Steps:\n1. **Google Drive Trigger**: The workflow starts when a new or updated PDF file is detected in the designated Google Drive folder.\n2. **File Download**: The PDF file is downloaded for processing.\n3. **Text Extraction and Chunking**: The text content of the PDF is extracted and split into manageable chunks for embedding generation.\n4. **Embedding Generation**: Using the OpenAI or Gemini API, embeddings are generated from the text chunks.\n5. **Storage in Pinecone**: The generated embeddings are stored in a Pinecone vector index for efficient retrieval.\n6. **WhatsApp Trigger**: The workflow listens for incoming user questions via WhatsApp.\n7. **Question Processing**: When a question is received, it is embedded and matched against the stored embeddings in Pinecone to find the most relevant information.\n8. **Response Generation**: An AI Agent utilizes the retrieved context to generate a natural language response to the user's question.\n9. **Response Delivery**: The generated response is sent back to the user via WhatsApp.\n\nFinal Output or Action:\nThe final output of this workflow is a seamless interaction where users can ask questions on WhatsApp and receive instant, accurate answers based on the content of the PDFs stored in Google Drive.\n\nHow to Use:\n1. Connect your Google Drive account to n8n.\n2. Input your Pinecone API key and specify the index name.\n3. Add your OpenAI or Gemini API key for embedding generation.\n4. Set up the WhatsApp trigger and configure the sender nodes.\n5. Upload a sample PDF document to the designated Google Drive folder.\n6. Send a test message via WhatsApp to verify that the bot responds correctly.\n\nRequirements:\n- An n8n cloud or self-hosted instance.\n- A Google Drive account for document storage.\n- Access to a Pinecone vector database for embedding management.\n- An OpenAI or Gemini API key for AI functionalities.\n- WhatsApp integration through Cloud API or a third-party provider.\n\nCustomization Options:\n- Change the monitored Google Drive folder or apply file-type filters.\n- Adjust the chunk size for text processing or select a different embedding model.\n- Modify the AI prompt to customize the tone, style, or content restrictions of the responses.\n- Incorporate memory, logging, or analytics features for enhanced functionality.\n- Manage multiple documents or delete outdated vector entries as needed.\n- Swap the AI model being used (e.g., between OpenAI, Gemini, or Groq) for different performance characteristics. \n\nThis comprehensive workflow provides a powerful solution for businesses, teams, and creators looking to automate Q&A processes using their PDF documents in a user-friendly manner on WhatsApp.",
+  "error": null,
+  "generated_at": "2026-01-25T23:21:36.987496",
+  "metrics": {
+    "node_type_precision": 0.2727272727272727,
+    "node_type_recall": 0.21428571428571427,
+    "node_type_f1": 0.23999999999999996,
+    "tp": 3,
+    "fp": 8,
+    "fn": 11,
+    "gt_node_count": 14,
+    "llm_node_count": 11,
+    "connection_precision": 0.125,
+    "connection_recall": 0.2,
+    "connection_f1": 0.15384615384615385,
+    "correct_connections": 1,
+    "gt_connection_count": 5,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.16666666666666666,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4468,
+        "completion_tokens": 1517,
+        "total_tokens": 5985
+      },
+      "description_optimization": {
+        "prompt_tokens": 777,
+        "completion_tokens": 707,
+        "total_tokens": 1484
+      },
+      "total_tokens": 7469,
+      "total_prompt_tokens": 5245,
+      "total_completion_tokens": 2224
+    },
+    "total_cost": 0.0353525,
+    "description_optimization_cost": 0.009012500000000001,
+    "workflow_generation_cost": 0.026340000000000002
+  }
+}

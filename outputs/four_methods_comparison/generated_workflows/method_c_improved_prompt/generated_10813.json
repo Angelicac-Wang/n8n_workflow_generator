@@ -1,0 +1,189 @@
+{
+  "template_id": "10813",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "Manual trigger to start the workflow when the user inputs a topic.",
+      "data_sources": "OpenAI API for AI-based text generation.",
+      "operations": "1. Receive topic input, 2. Generate outline using AI, 3. Loop through outline to expand each subtopic, 4. Combine expanded content into JSON and Markdown formats.",
+      "output_actions": "Produce a JSON object and a Markdown document containing the full article.",
+      "nodes_plan": "manualTrigger (trigger), set (input topic), openAi (generate outline), splitInBatches (iterate subtopics), openAi (expand subtopics), function (combine results), writeFile (output JSON and Markdown)",
+      "connections_plan": "manualTrigger -> set -> openAi (outline) -> splitInBatches -> openAi (expand) -> function (combine) -> writeFile"
+    },
+    "workflowPlan": {
+      "name": "Blog Article Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Topic",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "topic",
+                  "value": "Enter your topic here"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Outline",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a detailed outline for a blog article on the topic: {{ $json.topic }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Split Outline",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Expand Subtopic",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Expand the following subtopic into a detailed paragraph: {{ $json.subtopic }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Combine Results",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { json: { title: $json.topic, content: $items.map(item => item.json.expandedText).join('\\n\\n') } };"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Output Article",
+          "nodeType": "n8n-nodes-base.writeFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "article.json",
+            "data": "={{ JSON.stringify($json) }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4301,
+    "completion_tokens": 1024,
+    "total_tokens": 5325
+  },
+  "description_optimization": null,
+  "original_description": "## Overview  \nThis workflow converts a single topic into a full blog article through a structured multi-step process. Instead of generating everything in one pass, it breaks the task into clear stages to produce cleaner structure, better SEO consistency, and more predictable output quality.\n\n## How this workflow differs from asking ChatGPT directly  \n- It does not produce an article in one step.  \n- It separates the process into two focused stages: outline generation and paragraph expansion.  \n- This approach gives you more control over tone, SEO, structure, and keyword placement.\n\n## How it works  \n### 1. Generate outline  \n- The workflow sends your topic to an AI Agent.  \n- It returns a structured outline based on the topic, desired depth, language, and keyword focus.\n\n### 2. Expand each subtopic  \n- The workflow loops through each outline item.  \n- Every subtopic is expanded into a detailed, SEO-friendly paragraph.  \n- Output is consistent and optimized for readability.\n\n### 3. Produce final outputs  \n- Combines all expanded sections into:  \n  - A clean JSON object  \n  - A Markdown version ready for blogs or CMS  \n- The JSON includes:  \n  - Title  \n  - HTML content  \n  - Markdown content  \n- You can send this directly to REST APIs such as WordPress, Notion, or documentation platforms.  \n- Content is validated for readability and typically scores well in tools like Yoast SEO.  \n- Uses GPT-4o Mini by default, with average token usage between 2000 and 3000 depending on outline size.\n\n## Use cases  \n- Auto-generate long-form articles for blogs or content marketing.  \n- Turn Instagram or short-form scripts into complete SEO articles.  \n- Create documentation or educational content using consistent templates.  \n\n## Setup steps  \n### 1. Prepare credentials  \n- Add your OpenAI API Key inside n8n\u2019s credential manager.\n\n### 2. Adjust input parameters  \n- Topic or main idea  \n- Number of outline items  \n- Language  \n- Primary keyword  \n- Tone or writing style (optional)\n\n### 3. Customize the workflow  \n- Switch the model if you want higher quality or lower token usage.  \n- Modify the prompt for the outline or paragraph generator to match your writing style.  \n- Add additional nodes if you want to auto-upload the final article to WordPress, Notion, or any API.\n\n### 4. Run the workflow  \n- Enter your topic  \n- Execute the workflow  \n- Retrieve both JSON and Markdown outputs for immediate publishing\n\nIf you need help expanding this into a full content pipeline or want to integrate it with other automation systems, feel free to customize further.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:30:48.764690",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.3076923076923077,
+    "node_type_f1": 0.4,
+    "tp": 4,
+    "fp": 3,
+    "fn": 9,
+    "gt_node_count": 13,
+    "llm_node_count": 7,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.14285714285714285,
+    "connection_f1": 0.15384615384615383,
+    "correct_connections": 1,
+    "gt_connection_count": 7,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.5,
+    "usage": {
+      "prompt_tokens": 4301,
+      "completion_tokens": 1024,
+      "total_tokens": 5325
+    },
+    "total_cost": 0.020992500000000004
+  }
+}

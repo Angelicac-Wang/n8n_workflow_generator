@@ -1,0 +1,182 @@
+{
+  "template_id": "11368",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'AI-powered Telegram bot', 'chat interface', 'natural language', 'multilingual'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Telegram API, OpenRouter API for AI processing, Ainoflow API for OCR and storage.",
+      "operations": "1. Receive messages via Telegram chatTrigger, 2. Process messages with AI for OCR and transcription, 3. Categorize and store expenses, 4. Respond with processed information.",
+      "output_actions": "Send processed expense data back to the user via Telegram.",
+      "nodes_plan": "chatTrigger (chat input), agent (orchestrator - REQUIRED), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context), httpRequestTool (API calls for OCR and storage), telegramTool (send messages back to Telegram).",
+      "connections_plan": "chatTrigger \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow, httpRequestTool, telegramTool as sub-nodes."
+    },
+    "workflowPlan": {
+      "name": "Personal Expense Tracker Bot",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {
+              "telegramApiToken": "YOUR_TELEGRAM_API_TOKEN"
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are an expense tracking assistant. Process user messages to extract and categorize expenses. Respond with organized data.",
+            "options": {}
+          },
+          "position": {
+            "x": 320,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 180
+          }
+        },
+        {
+          "id": "4",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 540,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "OCR and Storage API",
+          "nodeType": "n8n-nodes-base.httpRequestTool",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.ainoflow.io/ocr",
+            "headers": {
+              "Authorization": "Bearer YOUR_AINOFLOW_API_KEY"
+            },
+            "body": {
+              "file": "={{ $json.file }}"
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 420
+          }
+        },
+        {
+          "id": "6",
+          "label": "Telegram Response",
+          "nodeType": "n8n-nodes-base.telegramTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.chatId }}",
+            "text": "={{ $json.processedData }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 540
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9246,
+    "completion_tokens": 1087,
+    "total_tokens": 10333
+  },
+  "description_optimization": null,
+  "original_description": "# Personal Expense Tracker Bot \ud83d\udcb0\n\nAI-powered Telegram bot for effortless expense tracking. Send receipts, voice messages, or text - the bot automatically extracts and categorizes your expenses.\n\n## \u2728 Key Features\n\n- **\ud83d\udcf8 Receipt & Invoice OCR** - Send photos of receipts or PDF invoices, AI extracts expense data automatically\n- **\ud83c\udfa4 Voice Messages** - Speak your expenses naturally, audio is transcribed and processed\n- **\ud83d\udcac Natural Language** - Just type \"spent 50 on groceries\" or any text format\n- **\ud83c\udf0d Multilingual** - Processes documents in any language (EN, DE, PT, etc.)\n- **\ud83d\udcca Smart Statistics** - Get monthly totals, category breakdowns, multi-month comparisons\n- **\ud83d\udd12 Private & Secure** - Single-user authorization, only you can access your data\n- **\u26a1 Zero Confirmation** - Expenses are added instantly, no annoying \"confirm?\" prompts\n\n## \ud83c\udfaf How It Works\n\n1. **Send expense data** via Telegram:\n   - Photo of receipt\n   - PDF invoice\n   - Voice message\n   - Text message\n\n2. **AI processes automatically**:\n   - Extracts amount, date, vendor\n   - Categorizes expense\n   - Stores in organized format\n\n3. **Query your expenses**:\n   - \"Show my expenses for November\"\n   - \"How much did I spend on groceries?\"\n   - \"Compare last 3 months\"\n\n## \ud83d\udccb Expense Categories\n\nGroceries, Transportation, Housing, Utilities, Healthcare, Entertainment, Dining Out, Clothing, Education, Subscriptions, Personal Care, Gifts, Travel, Sports, Other\n\n## \ud83d\udd27 Setup Requirements\n\n### 1. Telegram Bot\nCreate a Telegram bot via [@BotFather](https://t.me/botfather) and get your API token.\n\nConfigure credentials for nodes:\n- Input, WelcomeMessage, \n- GetAudioFile, GetAttachedFile, GetAttachedPhoto\n- ReplyText, NotAuthorizedMessage, DeleteProcessing\n\n### 2. OpenRouter API\nGet API key from [OpenRouter](https://openrouter.ai/) for AI processing.\n\nConfigure credentials for:\n- Gpt4o (main processing)\n- Sonnet45 (expense assistant)\n\n### 3. Ainoflow API\nGet API key from [Ainoflow](https://www.ainoflow.io/signup) for storage and OCR.\n\nConfigure Bearer credentials for:\n- GetConfig, SaveConfig\n- ExtractFileText, ExtractImageText\n- TranscribeRecording\n- JsonStorageMcp (MCP tool)\n\n## \ud83c\udfd7\ufe0f Workflow Architecture\n\n| Section | Description |\n|---------|-------------|\n| **Message Trigger** | Receives all Telegram messages |\n| **Bot Privacy** | Locks bot to first user, rejects unauthorized access |\n| **Chat Message / Audio** | Routes text and voice messages to AI |\n| **Document / Photo** | Extracts text from files via OCR and forwards to AI |\n| **Root Agent** | Routes messages to Expense Assistant, validates responses |\n| **Expense Assistant** | Core logic: stores expenses, calculates statistics |\n| **Result / Reply** | Sends formatted response back to Telegram |\n| **Cleanup / Reset** | Manual trigger to delete all data (\u26a0\ufe0f use with caution) |\n\n## \ud83d\udcac Usage Examples\n\n### Adding Expenses\n```\n\ud83d\udcf8 [Send receipt photo]\n\u2192 Added: 45.50 EUR - Groceries (Lidl)\n\n\ud83c\udfa4 \"Bought coffee for five euros\"  \n\u2192 Added: 5.00 EUR - Dining Out (coffee)\n\n\ud83d\udcac \"50 uber\"\n\u2192 Added: 50.00 EUR - Transportation (uber)\n```\n\n### Querying Expenses\n```\n\"Show my expenses\"\n\u2192 November 2025: 1,250.50 EUR (23 expenses)\n   Top: Groceries 450\u20ac, Transportation 280\u20ac, Dining 220\u20ac\n\n\"How much on entertainment this month?\"\n\u2192 Entertainment: 85.00 EUR (3 expenses)\n\n\"Compare October and November\"  \n\u2192 Oct: 980\u20ac | Nov: 1,250\u20ac (+27%)\n```\n\n## \ud83d\udce6 Data Storage\n\nExpenses are stored in JSON format organized by month (YYYY-MM):\n```json\n{\n  \"id\": \"uuid\",\n  \"amount\": 45.50,\n  \"currency\": \"EUR\",\n  \"category\": \"Groceries\",\n  \"description\": \"Store name\",\n  \"date\": \"2025-11-10T14:30:00Z\",\n  \"created_at\": \"2025-11-10T14:35:22Z\"\n}\n```\n\n## \u26a0\ufe0f Important Notes\n\n- **First user locks the bot** - Run `/start` to claim ownership\n- **Default currency is EUR** - AI auto-detects other currencies\n- **Cleanup deletes ALL data** - Use manual trigger with caution\n- **No confirmation for adding** - Only delete operations ask for confirmation\n\n## \ud83d\udee0\ufe0f Customization\n\n- Change default currency in agent prompts\n- Add/modify expense categories in ExpenseAssistant\n- Extend Root Agent with additional assistants\n- Adjust AI models (swap GPT-4o/Sonnet as needed)\n\n## \ud83d\udcda Related Resources\n\n- [Create Telegram Bot](https://blog.n8n.io/create-telegram-bot/)\n- [OpenRouter Credentials](https://docs.n8n.io/integrations/builtin/credentials/openrouter/)\n- [Ainoflow Platform](https://www.ainoflow.io/)\n\n## \ud83d\udcbc Need Customization?\n\nWant to adapt this template for your specific needs? Custom integrations, additional features, or enterprise deployment?\n\n**Contact us at [Ainova Systems](https://ainovasystems.com/)** - We build AI automation solutions for businesses.\n\n---\n\n**Tags:** `telegram`, `expense-tracker`, `ai-agent`, `ocr`, `voice-to-text`, `openrouter`, `mcp-tools`, `personal-finance`",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:04:33.077049",
+  "metrics": {
+    "node_type_precision": 0.3333333333333333,
+    "node_type_recall": 0.05,
+    "node_type_f1": 0.08695652173913045,
+    "tp": 2,
+    "fp": 4,
+    "fn": 38,
+    "gt_node_count": 40,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 15,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.16666666666666666,
+    "usage": {
+      "prompt_tokens": 9246,
+      "completion_tokens": 1087,
+      "total_tokens": 10333
+    },
+    "total_cost": 0.033985
+  },
+  "is_ai_workflow": true
+}

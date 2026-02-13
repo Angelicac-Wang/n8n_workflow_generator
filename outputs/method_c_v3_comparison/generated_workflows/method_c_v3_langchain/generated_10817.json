@@ -1,0 +1,369 @@
+{
+  "template_id": "10817",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a simple automation with AI content generation and social media posting. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered by a new product creation event in Shopify.",
+      "data_sources": "Shopify API for product data, AI model for caption and hashtag generation, Facebook Graph API for posting, Google Sheets for logging, Discord for notifications.",
+      "operations": "1. Trigger on new Shopify product, 2. Extract product data, 3. Generate captions and hashtags using AI, 4. Configure posting parameters, 5. Publish to Instagram, 6. Publish to Facebook, 7. Merge results, 8. Log to Google Sheets, 9. Notify via Discord.",
+      "output_actions": "Post product to Instagram and Facebook, log details to Google Sheets, and send a notification to Discord.",
+      "nodes_plan": "shopifyTrigger (trigger), set (extract product data), openAi (generate captions and hashtags), set (configure posting parameters), httpRequest (Instagram media container), wait (wait for processing), httpRequest (publish Instagram media), httpRequest (download image for Facebook), httpRequest (post to Facebook), merge (merge results), googleSheets (log data), discord (send notification)",
+      "connections_plan": "shopifyTrigger -> set (extract data) -> openAi (generate captions) -> set (configure) -> httpRequest (Instagram container) -> wait -> httpRequest (publish Instagram) -> httpRequest (download image) -> httpRequest (post Facebook) -> merge -> googleSheets -> discord"
+    },
+    "workflowPlan": {
+      "name": "Shopify Product Social Media Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Shopify Trigger",
+          "nodeType": "n8n-nodes-base.shopifyTrigger",
+          "typeVersion": 1,
+          "params": {
+            "event": "productCreate"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Product Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "productName",
+                  "value": "={{ $json.name }}"
+                },
+                {
+                  "name": "price",
+                  "value": "={{ $json.price }}"
+                },
+                {
+                  "name": "description",
+                  "value": "={{ $json.description }}"
+                },
+                {
+                  "name": "url",
+                  "value": "={{ $json.url }}"
+                },
+                {
+                  "name": "image",
+                  "value": "={{ $json.image }}"
+                },
+                {
+                  "name": "timestamp",
+                  "value": "={{ $json.createdAt }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Captions and Hashtags",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a social media caption and 10 hashtags for the following product: {{ $json.productName }} - {{ $json.description }}",
+            "model": "gpt-3.5-turbo"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Configure Posting Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "accessToken",
+                  "value": "YOUR_ACCESS_TOKEN"
+                },
+                {
+                  "name": "instagramId",
+                  "value": "YOUR_INSTAGRAM_ID"
+                },
+                {
+                  "name": "facebookPageId",
+                  "value": "YOUR_FACEBOOK_PAGE_ID"
+                },
+                {
+                  "name": "caption",
+                  "value": "={{ $json.message.content }}"
+                },
+                {
+                  "name": "imageUrl",
+                  "value": "={{ $json.image }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Instagram Media Container",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v12.0/{{ $json.instagramId }}/media",
+            "body": {
+              "image_url": "={{ $json.imageUrl }}",
+              "caption": "={{ $json.caption }}",
+              "access_token": "={{ $json.accessToken }}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait for Processing",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 3000
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Publish Instagram Media",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v12.0/{{ $json.instagramId }}/media_publish",
+            "body": {
+              "creation_id": "={{ $json.id }}",
+              "access_token": "={{ $json.accessToken }}"
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Download Image for Facebook",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.imageUrl }}",
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Post to Facebook Page",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v12.0/{{ $json.facebookPageId }}/photos",
+            "body": {
+              "caption": "={{ $json.caption }}",
+              "access_token": "={{ $json.accessToken }}"
+            },
+            "attachments": {
+              "binary": [
+                {
+                  "property": "file",
+                  "value": "={{ $binary.data }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Merge Publishing Results",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "passThrough"
+          },
+          "position": {
+            "x": 1900,
+            "y": 200
+          }
+        },
+        {
+          "id": "11",
+          "label": "Log Product Post Data",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:E",
+            "data": [
+              [
+                "={{ $json.productName }}",
+                "={{ $json.price }}",
+                "={{ $json.caption }}",
+                "={{ $json.url }}",
+                "={{ $json.timestamp }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 2100,
+            "y": 200
+          }
+        },
+        {
+          "id": "12",
+          "label": "Notify Discord About Post",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "channel": "YOUR_DISCORD_CHANNEL_ID",
+            "text": "New product posted: {{ $json.productName }} - {{ $json.url }}"
+          },
+          "position": {
+            "x": 2300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "11",
+          "to": "12",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8537,
+    "completion_tokens": 2202,
+    "total_tokens": 10739
+  },
+  "description_optimization": null,
+  "original_description": "## How it works\nThis workflow listens for new products in Shopify and transforms the product data into polished social media content. It generates captions and hashtags using an AI model, then posts the product to Instagram and Facebook using the Facebook Graph API. It logs every post to Google Sheets and sends a confirmation message to Discord. The flow ensures consistent publishing across all platforms with automated formatting and tracking.\n\n## Step-by-step\n\n- **Trigger on Shopify product creation**  \n  - **Shopify Trigger** \u2013 Activates when a new product is added to the store.\n\n- **Prepare product data**  \n  - **parse product data** \u2013 Extracts product name, price, description, URL, image, and timestamp.\n\n- **Generate caption and hashtags**  \n  - **Generate caption and hashtags** \u2013 Uses an AI model to craft a caption and produce 10 relevant hashtags.\n\n- **Configure posting parameters**  \n  - **Set Configuration** \u2013 Stores access tokens, platform IDs, caption text, hashtags, and image URL.\n\n- **Publish to Instagram**  \n  - **Create Instagram Media Container** \u2013 Sends the image and caption to create a media container.  \n  - **Wait for Processing** \u2013 Waits for the container to finish processing.  \n  - **Publish Instagram Media** \u2013 Publishes the processed container to the Instagram feed.\n\n- **Publish to Facebook**  \n  - **Download Image for Facebook** \u2013 Downloads the product image from Shopify.  \n  - **Post to Facebook Page** \u2013 Uploads the image with the caption and hashtags to the Facebook Page.\n\n- **Merge publishing results**  \n  - **Merge** \u2013 Combines responses from Instagram and Facebook for unified logging.\n\n- **Log post to Google Sheets**  \n  - **Log Product Post Data** \u2013 Appends product info, caption, and hashtags to a spreadsheet.\n\n- **Notify via Discord**  \n  - **Notify Discord About Post** \u2013 Sends a message summarizing the published product.\n\n## Why use this?\n- Ensures every new Shopify product is promoted instantly across major social platforms.  \n- Eliminates manual posting and caption creation with reliable automation.  \n- Maintains centralized logging for auditing, tracking, or analytics.  \n- Provides real-time team notifications to confirm successful posts.  \n- Reduces errors and keeps brand messaging consistent across channels.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:29:15.721881",
+  "metrics": {
+    "node_type_precision": 0.9166666666666666,
+    "node_type_recall": 0.9166666666666666,
+    "node_type_f1": 0.9166666666666666,
+    "tp": 11,
+    "fp": 1,
+    "fn": 1,
+    "gt_node_count": 12,
+    "llm_node_count": 12,
+    "connection_precision": 0.8,
+    "connection_recall": 0.8,
+    "connection_f1": 0.8000000000000002,
+    "correct_connections": 8,
+    "gt_connection_count": 10,
+    "llm_connection_count": 10,
+    "avg_parameter_accuracy": 0.28465171192443917,
+    "usage": {
+      "prompt_tokens": 8537,
+      "completion_tokens": 2202,
+      "total_tokens": 10739
+    },
+    "total_cost": 0.0433625
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,207 @@
+{
+  "template_id": 12326,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow based on your request.",
+    "workflowPlan": {
+      "name": "Telegram Message Response Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "telegramTrigger",
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Switch",
+          "nodeType": "switch",
+          "params": {
+            "property": "={{$json[\"message\"][\"text\"]}}",
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "/start"
+              },
+              {
+                "operation": "equal",
+                "value": "/help"
+              },
+              {
+                "operation": "equal",
+                "value": "/info"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send a text message1",
+          "nodeType": "telegramSendMessage",
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Welcome to the bot! How can I assist you today?"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send a text message2",
+          "nodeType": "telegramSendMessage",
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Here are some commands you can use: /start, /help, /info."
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send a text message3",
+          "nodeType": "telegramSendMessage",
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "This bot provides information and assistance."
+          },
+          "position": {
+            "x": 600,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Edit Fields",
+          "nodeType": "set",
+          "params": {
+            "fields": [
+              {
+                "name": "formattedMessage",
+                "value": "={{$json[\"message\"][\"text\"]}} - processed"
+              }
+            ]
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "HTTP Request",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://api.example.com/data",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send a text message4",
+          "nodeType": "telegramSendMessage",
+          "params": {
+            "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+            "text": "Data retrieved successfully."
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 2
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 3
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 693,
+    "completion_tokens": 975,
+    "total_tokens": 1668
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:49:19.622767",
+  "generated_description": "This n8n workflow is initiated by a trigger from Telegram, which likely involves receiving a specific message or command in a Telegram chat. Upon activation, the workflow utilizes a series of conditional logic nodes, such as \"Switch\" and multiple \"If\" nodes, to assess the content or context of the incoming message.\n\nBased on these conditions, the workflow sends various text messages back to the Telegram chat, using nodes labeled \"Send a text message1,\" \"Send a text message2,\" \"Send a text message3,\" and \"Send a text message4.\" These messages are likely tailored responses depending on the outcome of the conditional checks.\n\nAdditionally, the workflow includes an \"Edit Fields\" node, which suggests that some data manipulation or formatting occurs, possibly to prepare data for further processing or to structure the responses appropriately. An \"HTTP Request\" node is also present, indicating that the workflow interacts with an external API or web service, potentially to retrieve additional data or to perform an action based on the Telegram message content.\n\nOverall, the workflow automates the process of responding to Telegram messages with conditional logic and external data integration, providing dynamic and context-sensitive interactions.",
+  "description_generation_usage": {
+    "prompt_tokens": 216,
+    "completion_tokens": 231,
+    "total_tokens": 447
+  },
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.04597701149425287,
+    "node_type_f1": 0.08421052631578949,
+    "tp": 4,
+    "fp": 4,
+    "fn": 83,
+    "gt_node_count": 87,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 33,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.5,
+    "usage": {
+      "prompt_tokens": 693,
+      "completion_tokens": 975,
+      "total_tokens": 1668
+    },
+    "total_cost": 0.0143325,
+    "description_generation_cost": 0.00285,
+    "workflow_generation_cost": 0.0114825
+  },
+  "original_description": "**How it Works?**\n\n1. User Answers Questions Prompted by the Telegram Bot\n2. Data Tables are updated to with relevant step of the process and a chat id\n3. Upon Approval, the Title, Description and Slug are created and then Product is created on WooCommerce via API request.\n4. Data Tables are reset and user is prompted to create another product.\n\n**Setup Steps:** (25 Minutes)\n1. Create a Telegram bot via @botfather on telegram\n2. Setup 2 Data Tables with names WooCommerce Product Manager & User_Images\n3. Add your  Preffered LLM Credentials and set credentials in telegram node \n4. In TelegramGroupMedia node and EditFields 1 node, add your bot token to replace {{your bot token}}\n5. Voila! Your Workflow is now configured."
+}

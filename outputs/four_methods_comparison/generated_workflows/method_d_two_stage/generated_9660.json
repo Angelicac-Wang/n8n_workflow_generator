@@ -1,0 +1,327 @@
+{
+  "template_id": "9660",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by webhook endpoints for each authentication operation: register, login, verify token, and refresh token.",
+      "data_sources": "n8n instance with Data Tables feature enabled, JWT for token generation, and secure hashing for passwords.",
+      "operations": "1. User registration with password hashing and uniqueness check. 2. User login with credential validation and token generation. 3. Token verification for access control. 4. Token refresh for session maintenance.",
+      "output_actions": "Provide secure access and refresh tokens for authenticated users, allowing access to protected resources.",
+      "nodes_plan": "webhook (trigger), set (data processing), httpRequest (JWT generation), postgres (database operations), if (conditional checks), crypto (hashing)",
+      "connections_plan": "webhook -> set -> crypto -> postgres -> [httpRequest (JWT generation) | if (conditional checks)]"
+    },
+    "workflowPlan": {
+      "name": "Comprehensive Authentication System",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Register Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "register-user"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Hash Password",
+          "nodeType": "n8n-nodes-base.crypto",
+          "typeVersion": 1,
+          "params": {
+            "operation": "hash",
+            "algorithm": "sha512",
+            "value": "={{ $json.password }}",
+            "salt": "={{ $json.email }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check User Uniqueness",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT * FROM users WHERE email = $1 OR username = $2",
+            "values": [
+              {
+                "name": "email",
+                "value": "={{ $json.email }}"
+              },
+              {
+                "name": "username",
+                "value": "={{ $json.username }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Insert User",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "users",
+            "columns": "email, username, password_hash",
+            "values": [
+              {
+                "name": "email",
+                "value": "={{ $json.email }}"
+              },
+              {
+                "name": "username",
+                "value": "={{ $json.username }}"
+              },
+              {
+                "name": "password_hash",
+                "value": "={{ $node[\"Hash Password\"].json[\"data\"] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Login Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "login"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Validate Credentials",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "SELECT * FROM users WHERE email = $1",
+            "values": [
+              {
+                "name": "email",
+                "value": "={{ $json.email }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Tokens",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://jwt-provider.com/generate",
+            "body": {
+              "userId": "={{ $node[\"Validate Credentials\"].json[\"id\"] }}",
+              "email": "={{ $json.email }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Verify Token Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "verify-token"
+          },
+          "position": {
+            "x": 100,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Validate Access Token",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://jwt-provider.com/verify",
+            "body": {
+              "token": "={{ $json.access_token }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Refresh Token Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "refresh"
+          },
+          "position": {
+            "x": 100,
+            "y": 700
+          }
+        },
+        {
+          "id": "11",
+          "label": "Issue New Access Token",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://jwt-provider.com/refresh",
+            "body": {
+              "refresh_token": "={{ $json.refresh_token }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 700
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4479,
+      "completion_tokens": 1626,
+      "total_tokens": 6105
+    },
+    "description_optimization": {
+      "prompt_tokens": 1417,
+      "completion_tokens": 718,
+      "total_tokens": 2135
+    },
+    "total_tokens": 8240,
+    "total_prompt_tokens": 5896,
+    "total_completion_tokens": 2344
+  },
+  "description_optimization": {
+    "template_id": "9660",
+    "optimized_description": "This n8n workflow provides a comprehensive and production-ready authentication system that includes secure user registration, login, token verification, and refresh token mechanisms. It is designed to integrate seamlessly into any application without the need for a separate authentication service.\n\nTrigger: The workflow is initiated through specific API endpoints that handle user registration, login, token verification, and refresh token requests.\n\nData Sources and APIs Needed:\n1. n8n instance (cloud or self-hosted)\n2. n8n Data Tables feature enabled\n3. Two Data Tables:\n   - Users Table: Contains fields for id, email, username, password_hash, and refresh_token.\n   - Refresh Tokens Table: Contains fields for id, user_id, token_hash, and expires_at.\n\nOperations and Processing Steps:\n1. User Registration:\n   - Endpoint: POST /webhook/register-user\n   - Request Body: { \"email\": \"user@example.com\", \"username\": \"username\", \"password\": \"password123\" }\n   - Process: Hash the password using SHA-512 with a unique salt, store user details in the Users Table, and ensure username and email uniqueness.\n\n2. Login System:\n   - Endpoint: POST /webhook/login\n   - Request Body: { \"email\": \"user@example.com\", \"password\": \"password123\" }\n   - Process: Validate credentials, generate access token (15 min) and refresh token (7 days) using JWT, and return tokens along with user details.\n\n3. Token Verification:\n   - Endpoint: POST /webhook/verify-token\n   - Request Body: { \"access_token\": \"your_access_token\" }\n   - Process: Validate the access token for protected endpoints.\n\n4. Token Refresh:\n   - Endpoint: POST /webhook/refresh\n   - Request Body: { \"refresh_token\": \"your_refresh_token\" }\n   - Process: Issue a new access token without requiring user re-login.\n\n5. Security Features:\n   - Implement HMAC-SHA256 signatures, store hashed refresh tokens in the database, and protect against rainbow table attacks.\n\nFinal Output or Action:\nThe workflow provides secure access tokens and refresh tokens for authenticated users, enabling them to access protected resources and maintain their session without frequent re-logins. The system is designed to be customizable, allowing adjustments to token lifespans, user fields, and password validation rules.\n\nSetup Instructions:\n1. Create the required Data Tables in n8n.\n2. Generate and configure secret keys for access and refresh tokens.\n3. Connect the Data Tables to the respective nodes in the workflow.\n4. Activate the workflow and note the webhook URLs for integration.\n\nKey Features:\n- Secure password storage with hashing.\n- Two-token system for enhanced security and convenience.\n- Database token revocation for logout-all-devices functionality.\n- Extensive documentation with inline notes explaining security decisions and implementation details.\n\nCustomization Options:\n- Modify token expiration times in the JWT payload.\n- Add custom fields to user registration and profiles.\n- Update password validation rules as needed.\n- Implement refresh token rotation for added security.\n\nSecurity Considerations:\n- Change default secret keys before production use.\n- Use HTTPS for all webhook endpoints.\n- Store secrets securely in n8n Variables.\n- Regularly rotate secret keys and consider rate limiting for login endpoints.\n\nThis workflow is ideal for developers looking to implement a robust authentication system without relying on third-party services, making it suitable for SaaS applications, mobile app backends, and internal tools requiring access control. It serves as a valuable resource for learning about JWT and authentication system architecture.",
+    "original_description": "## Description\nA production-ready authentication workflow implementing secure user registration, login, token verification, and refresh token mechanisms. Perfect for adding authentication to any application without needing a separate auth service.\n\nGet started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n## What it does\nThis template provides a complete authentication backend using n8n workflows and Data Tables:\n- **User Registration**: Creates accounts with secure password hashing (SHA-512 + unique salts)\n- **Login System**: Generates access tokens (15 min) and refresh tokens (7 days) using JWT\n- **Token Verification**: Validates access tokens for protected endpoints\n- **Token Refresh**: Issues new access tokens without requiring re-login\n- **Security Features**: HMAC-SHA256 signatures, hashed refresh tokens in database, protection against rainbow table attacks\n## Why use this template\n- **No external services**: Everything runs in n8n - no Auth0, Firebase, or third-party dependencies\n- **Production-ready security**: Industry-standard JWT implementation with proper token lifecycle management\n- **Easy integration**: Simple REST API endpoints that work with any frontend framework\n- **Fully customizable**: Adjust token lifespans, add custom user fields, implement your own business logic\n- **Well-documented**: Extensive inline notes explain every security decision and implementation detail\n## How to set up\n### Prerequisites\n- n8n instance (cloud or self-hosted)\n- n8n Data Tables feature enabled\n### Setup Steps\n1. **Create Data Tables**:\n  - users table: id, email, username, password_hash, refresh_token\n  - refresh_tokens table: id, user_id, token_hash, expires_at\n2. **Generate Secret Keys**:\n  Run this command to generate a random secret:\n```\n  node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"\n```\n  Generate two different secrets for ACCESS_SECRET and REFRESH_SECRET\n3. **Configure Secrets**:\n  - Update the three \"SET ACCESS AND REFRESH SECRET\" nodes with your generated keys\n  - Or migrate to n8n Variables for better security (instructions in workflow notes)\n4. **Connect Data Tables**:\n  - Open each Data Table node\n  - Select your created tables from the dropdown\n5. **Activate Workflow**:\n  - Save and activate the workflow\n  - Note your webhook URLs\n### API Endpoints\n**Register**: POST /webhook/register-user\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"username\": \"username\",\n \"password\": \"password123\"\n}\n```\n**Login**: POST /webhook/login\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"password\": \"password123\"\n}\n```\nReturns:\n```\n{\n \"accessToken\": \"...\",\n \"refreshToken\": \"...\",\n \"user\": {...}\n}\n```\n**Verify Token**: POST /webhook/verify-token\nRequest body:\n```\n{\n \"access_token\": \"your_access_token\"\n}\n```\n**Refresh**: POST /webhook/refresh\nRequest body:\n```\n{\n \"refresh_token\": \"your_refresh_token\"\n}\n```\n### Frontend Integration Example (Vue.js/React)\nLogin flow:\n```\nconst response = await fetch('https://your-n8n.app/webhook/login', {\n method: 'POST',\n headers: { 'Content-Type': 'application/json' },\n body: JSON.stringify({ email, password })\n});\nconst { accessToken, refreshToken } = await response.json();\nlocalStorage.setItem('accessToken', accessToken);\n```\nMake authenticated requests:\n```\nconst data = await fetch('https://your-api.com/protected', {\n headers: { 'Authorization': Bearer ${accessToken} }\n});\n```\n## Key Features\n- **Secure Password Storage**: Never stores plain text passwords; uses SHA-512 with unique salts\n- **Two-Token System**: Short-lived access tokens (security) + long-lived refresh tokens (convenience)\n- **Database Token Revocation**: Refresh tokens can be revoked for logout-all-devices functionality\n- **Duplicate Prevention**: Checks username and email availability before account creation\n- **Error Handling**: Generic error messages prevent information leakage\n- **Extensive Documentation**: 30+ sticky notes explain every security decision\n## Use Cases\n- SaaS applications needing user authentication\n- Mobile app backends\n- Internal tools requiring access control\n- MVP/prototype authentication without third-party costs\n- Learning JWT and auth system architecture\n## Customization\n- **Token Lifespan**: Modify expiration times in \"Create JWT Payload\" nodes\n- **User Fields**: Add custom fields to registration and user profile\n- **Password Rules**: Update validation in \"Validate Registration Request\" node\n- **Token Rotation**: Implement refresh token rotation for enhanced security (notes included)\n## Security Notes\n:warning: **Important**:\n- Change the default secret keys before production use\n- Use HTTPS for all webhook endpoints\n- Store secrets in n8n Variables (not hardcoded)\n- Regularly rotate secret keys in production\n- Consider rate limiting for login endpoints\n## Support & Documentation\nThe workflow includes comprehensive documentation:\n- Complete authentication flow overview\n- Security explanations for every decision\n- Troubleshooting guide\n- Setup instructions\n- FAQ section with common issues\nPerfect for developers who want full control over their authentication system without the complexity of managing separate auth infrastructure.\n\n## Get Started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n**Tags**: authentication, jwt, login, security, user-management, tokens, password-hashing, api, backend",
+    "description_length": 3609,
+    "usage": {
+      "prompt_tokens": 1417,
+      "completion_tokens": 718,
+      "total_tokens": 2135
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:45:13.507363"
+  },
+  "original_description": "## Description\nA production-ready authentication workflow implementing secure user registration, login, token verification, and refresh token mechanisms. Perfect for adding authentication to any application without needing a separate auth service.\n\nGet started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n## What it does\nThis template provides a complete authentication backend using n8n workflows and Data Tables:\n- **User Registration**: Creates accounts with secure password hashing (SHA-512 + unique salts)\n- **Login System**: Generates access tokens (15 min) and refresh tokens (7 days) using JWT\n- **Token Verification**: Validates access tokens for protected endpoints\n- **Token Refresh**: Issues new access tokens without requiring re-login\n- **Security Features**: HMAC-SHA256 signatures, hashed refresh tokens in database, protection against rainbow table attacks\n## Why use this template\n- **No external services**: Everything runs in n8n - no Auth0, Firebase, or third-party dependencies\n- **Production-ready security**: Industry-standard JWT implementation with proper token lifecycle management\n- **Easy integration**: Simple REST API endpoints that work with any frontend framework\n- **Fully customizable**: Adjust token lifespans, add custom user fields, implement your own business logic\n- **Well-documented**: Extensive inline notes explain every security decision and implementation detail\n## How to set up\n### Prerequisites\n- n8n instance (cloud or self-hosted)\n- n8n Data Tables feature enabled\n### Setup Steps\n1. **Create Data Tables**:\n  - users table: id, email, username, password_hash, refresh_token\n  - refresh_tokens table: id, user_id, token_hash, expires_at\n2. **Generate Secret Keys**:\n  Run this command to generate a random secret:\n```\n  node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"\n```\n  Generate two different secrets for ACCESS_SECRET and REFRESH_SECRET\n3. **Configure Secrets**:\n  - Update the three \"SET ACCESS AND REFRESH SECRET\" nodes with your generated keys\n  - Or migrate to n8n Variables for better security (instructions in workflow notes)\n4. **Connect Data Tables**:\n  - Open each Data Table node\n  - Select your created tables from the dropdown\n5. **Activate Workflow**:\n  - Save and activate the workflow\n  - Note your webhook URLs\n### API Endpoints\n**Register**: POST /webhook/register-user\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"username\": \"username\",\n \"password\": \"password123\"\n}\n```\n**Login**: POST /webhook/login\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"password\": \"password123\"\n}\n```\nReturns:\n```\n{\n \"accessToken\": \"...\",\n \"refreshToken\": \"...\",\n \"user\": {...}\n}\n```\n**Verify Token**: POST /webhook/verify-token\nRequest body:\n```\n{\n \"access_token\": \"your_access_token\"\n}\n```\n**Refresh**: POST /webhook/refresh\nRequest body:\n```\n{\n \"refresh_token\": \"your_refresh_token\"\n}\n```\n### Frontend Integration Example (Vue.js/React)\nLogin flow:\n```\nconst response = await fetch('https://your-n8n.app/webhook/login', {\n method: 'POST',\n headers: { 'Content-Type': 'application/json' },\n body: JSON.stringify({ email, password })\n});\nconst { accessToken, refreshToken } = await response.json();\nlocalStorage.setItem('accessToken', accessToken);\n```\nMake authenticated requests:\n```\nconst data = await fetch('https://your-api.com/protected', {\n headers: { 'Authorization': Bearer ${accessToken} }\n});\n```\n## Key Features\n- **Secure Password Storage**: Never stores plain text passwords; uses SHA-512 with unique salts\n- **Two-Token System**: Short-lived access tokens (security) + long-lived refresh tokens (convenience)\n- **Database Token Revocation**: Refresh tokens can be revoked for logout-all-devices functionality\n- **Duplicate Prevention**: Checks username and email availability before account creation\n- **Error Handling**: Generic error messages prevent information leakage\n- **Extensive Documentation**: 30+ sticky notes explain every security decision\n## Use Cases\n- SaaS applications needing user authentication\n- Mobile app backends\n- Internal tools requiring access control\n- MVP/prototype authentication without third-party costs\n- Learning JWT and auth system architecture\n## Customization\n- **Token Lifespan**: Modify expiration times in \"Create JWT Payload\" nodes\n- **User Fields**: Add custom fields to registration and user profile\n- **Password Rules**: Update validation in \"Validate Registration Request\" node\n- **Token Rotation**: Implement refresh token rotation for enhanced security (notes included)\n## Security Notes\n:warning: **Important**:\n- Change the default secret keys before production use\n- Use HTTPS for all webhook endpoints\n- Store secrets in n8n Variables (not hardcoded)\n- Regularly rotate secret keys in production\n- Consider rate limiting for login endpoints\n## Support & Documentation\nThe workflow includes comprehensive documentation:\n- Complete authentication flow overview\n- Security explanations for every decision\n- Troubleshooting guide\n- Setup instructions\n- FAQ section with common issues\nPerfect for developers who want full control over their authentication system without the complexity of managing separate auth infrastructure.\n\n## Get Started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n**Tags**: authentication, jwt, login, security, user-management, tokens, password-hashing, api, backend",
+  "optimized_description": "This n8n workflow provides a comprehensive and production-ready authentication system that includes secure user registration, login, token verification, and refresh token mechanisms. It is designed to integrate seamlessly into any application without the need for a separate authentication service.\n\nTrigger: The workflow is initiated through specific API endpoints that handle user registration, login, token verification, and refresh token requests.\n\nData Sources and APIs Needed:\n1. n8n instance (cloud or self-hosted)\n2. n8n Data Tables feature enabled\n3. Two Data Tables:\n   - Users Table: Contains fields for id, email, username, password_hash, and refresh_token.\n   - Refresh Tokens Table: Contains fields for id, user_id, token_hash, and expires_at.\n\nOperations and Processing Steps:\n1. User Registration:\n   - Endpoint: POST /webhook/register-user\n   - Request Body: { \"email\": \"user@example.com\", \"username\": \"username\", \"password\": \"password123\" }\n   - Process: Hash the password using SHA-512 with a unique salt, store user details in the Users Table, and ensure username and email uniqueness.\n\n2. Login System:\n   - Endpoint: POST /webhook/login\n   - Request Body: { \"email\": \"user@example.com\", \"password\": \"password123\" }\n   - Process: Validate credentials, generate access token (15 min) and refresh token (7 days) using JWT, and return tokens along with user details.\n\n3. Token Verification:\n   - Endpoint: POST /webhook/verify-token\n   - Request Body: { \"access_token\": \"your_access_token\" }\n   - Process: Validate the access token for protected endpoints.\n\n4. Token Refresh:\n   - Endpoint: POST /webhook/refresh\n   - Request Body: { \"refresh_token\": \"your_refresh_token\" }\n   - Process: Issue a new access token without requiring user re-login.\n\n5. Security Features:\n   - Implement HMAC-SHA256 signatures, store hashed refresh tokens in the database, and protect against rainbow table attacks.\n\nFinal Output or Action:\nThe workflow provides secure access tokens and refresh tokens for authenticated users, enabling them to access protected resources and maintain their session without frequent re-logins. The system is designed to be customizable, allowing adjustments to token lifespans, user fields, and password validation rules.\n\nSetup Instructions:\n1. Create the required Data Tables in n8n.\n2. Generate and configure secret keys for access and refresh tokens.\n3. Connect the Data Tables to the respective nodes in the workflow.\n4. Activate the workflow and note the webhook URLs for integration.\n\nKey Features:\n- Secure password storage with hashing.\n- Two-token system for enhanced security and convenience.\n- Database token revocation for logout-all-devices functionality.\n- Extensive documentation with inline notes explaining security decisions and implementation details.\n\nCustomization Options:\n- Modify token expiration times in the JWT payload.\n- Add custom fields to user registration and profiles.\n- Update password validation rules as needed.\n- Implement refresh token rotation for added security.\n\nSecurity Considerations:\n- Change default secret keys before production use.\n- Use HTTPS for all webhook endpoints.\n- Store secrets securely in n8n Variables.\n- Regularly rotate secret keys and consider rate limiting for login endpoints.\n\nThis workflow is ideal for developers looking to implement a robust authentication system without relying on third-party services, making it suitable for SaaS applications, mobile app backends, and internal tools requiring access control. It serves as a valuable resource for learning about JWT and authentication system architecture.",
+  "error": null,
+  "generated_at": "2026-01-25T23:45:33.446428",
+  "metrics": {
+    "node_type_precision": 0.45454545454545453,
+    "node_type_recall": 0.07936507936507936,
+    "node_type_f1": 0.13513513513513514,
+    "tp": 5,
+    "fp": 6,
+    "fn": 58,
+    "gt_node_count": 63,
+    "llm_node_count": 11,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 22,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4479,
+        "completion_tokens": 1626,
+        "total_tokens": 6105
+      },
+      "description_optimization": {
+        "prompt_tokens": 1417,
+        "completion_tokens": 718,
+        "total_tokens": 2135
+      },
+      "total_tokens": 8240,
+      "total_prompt_tokens": 5896,
+      "total_completion_tokens": 2344
+    },
+    "total_cost": 0.038180000000000006,
+    "description_optimization_cost": 0.010722500000000001,
+    "workflow_generation_cost": 0.027457500000000003
+  }
+}

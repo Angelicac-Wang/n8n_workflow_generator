@@ -1,0 +1,290 @@
+{
+  "template_id": "4105",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a linear automation workflow for invoice processing. Use base nodes.",
+      "trigger_analysis": "Webhook trigger to receive form submissions with order details.",
+      "data_sources": "Google Sheets for logging, RapidAPI for HTML to PDF conversion, Google Drive/Dropbox for storage, Email service for sending invoices.",
+      "operations": "1. Receive form submission, 2. Generate unique order ID, 3. Check for duplicate ID in Google Sheets, 4. Prepare invoice data, 5. Convert HTML to PDF, 6. Upload PDF to cloud storage, 7. Send invoice email, 8. Log invoice details.",
+      "output_actions": "Email the PDF invoice to the customer and log the invoice details in Google Sheets.",
+      "nodes_plan": "webhook (trigger), function (generate ID), googleSheets (lookup), if (check duplicate), set (prepare data), httpRequest (convert to PDF), googleDrive (upload), emailSend (send email), googleSheets (append log)",
+      "connections_plan": "webhook -> function -> googleSheets (lookup) -> if -> set -> httpRequest -> googleDrive -> emailSend -> googleSheets (append)"
+    },
+    "workflowPlan": {
+      "name": "Automated Invoice Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "order-form"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Order ID",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { order_id: 'INV-' + Math.random().toString(36).substr(2, 5).toUpperCase() };"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Duplicate Order ID",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "lookup",
+            "sheetId": "your-google-sheet-id",
+            "range": "Invoices!A:A",
+            "lookupColumn": "order_id",
+            "lookupValue": "={{ $json.order_id }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check ID Existence",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.exists }}",
+                  "operation": "isEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Prepare Invoice Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "customerName",
+                  "value": "={{ $json.body.name }}"
+                },
+                {
+                  "name": "email",
+                  "value": "={{ $json.body.email }}"
+                },
+                {
+                  "name": "items",
+                  "value": "={{ $json.body.items }}"
+                },
+                {
+                  "name": "total",
+                  "value": "={{ $json.body.total }}"
+                },
+                {
+                  "name": "order_id",
+                  "value": "={{ $json.order_id }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Convert HTML to PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.rapidapi.com/html-to-pdf",
+            "body": {
+              "html": "<html><body><h1>Invoice</h1><p>Order ID: {{$json.order_id}}</p><p>Customer: {{$json.customerName}}</p><p>Total: {{$json.total}}</p></body></html>"
+            },
+            "options": {
+              "headers": {
+                "x-rapidapi-key": "your-rapidapi-key"
+              }
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload PDF to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "Invoice-{{$json.order_id}}.pdf",
+            "fileContent": "={{ $json.data }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Invoice Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "={{ $json.email }}",
+            "subject": "Your Invoice INV-{{$json.order_id}}",
+            "text": "Please find your invoice attached.",
+            "attachments": [
+              {
+                "content": "={{ $json.data }}",
+                "fileName": "Invoice-{{$json.order_id}}.pdf"
+              }
+            ]
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Log Invoice Details",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Invoices!A:E",
+            "data": [
+              "={{ $json.order_id }}",
+              "={{ $json.customerName }}",
+              "={{ $json.email }}",
+              "={{ $json.total }}",
+              "={{ $json.url }}"
+            ]
+          },
+          "position": {
+            "x": 1700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8899,
+    "completion_tokens": 1717,
+    "total_tokens": 10616
+  },
+  "description_optimization": null,
+  "original_description": "This workflow automates invoice generation from form submissions, ensuring unique order IDs, creating PDF invoices, storing files, emailing customers, and logging invoice data \u2014 all seamlessly integrated.\n\n---\n\n## \ud83d\udd39 Workflow Overview\n\n1. **Trigger (Webhook)**\n   Starts when an order form is submitted, capturing customer and order details.\n\n2. **Generate Random Order ID**\n   A Function node creates a unique alphanumeric invoice ID (e.g., `INV-X92B7D`).\n\n3. **Check for Duplicate Order ID**\n   Google Sheets looks up the generated order ID in your invoice log sheet to prevent duplicates.\n\n4. **Conditional Check (IF Node)**\n\n   * If the ID already exists \u2192 regenerates a new ID (loops back)\n   * If unique \u2192 proceeds to invoice creation\n\n5. **Prepare Invoice Data**\n   A Set node formats customer info, date, order items, and the unique order ID to fit your invoice template.\n\n6. **Convert HTML to PDF**\n   HTTP Request node sends your invoice HTML to the RapidAPI HTML-to-PDF service and receives the PDF file.\n\n7. **Upload PDF to Cloud Storage**\n   Save the PDF in Google Drive or Dropbox with a clear file name like `Invoice-INV-X92B7D.pdf`.\n\n8. **Send Invoice Email to Customer**\n   Email node attaches the PDF and includes the order ID in the email subject/body.\n\n9. **Log Invoice Details**\n   Append invoice data (customer info, order ID, total, PDF link) to your Google Sheet for tracking.\n\n---\n\n## \u2699\ufe0f Node Details & Setup\n\n### 1. Webhook Trigger\n\n* Configure to receive form submissions (order details like name, email, items, total).\n\n### 2. Function: Generate Random Order ID\n\n* Sample JS code generates unique IDs prefixed by `INV-`.\n\n### 3. Google Sheets: Lookup Row\n\n* Set up connection to your invoice log sheet.\n* Search for existing order ID to avoid duplicates.\n\n### 4. IF Node: Check Order ID Existence\n\n* Condition: If order ID found \u2192 loop to regenerate.\n* Else \u2192 continue workflow.\n\n### 5. Set Node: Prepare Invoice HTML\n\n* Define variables like customer name, date, items, and order ID.\n* This data populates your HTML invoice template.\n\n### 6. HTTP Request: Convert HTML to PDF\n\n* [API URL to get your key](https://rapidapi.com/rhodium/api/html2pdf2/playground/apiendpoint_9b1017c6-2f56-4b7e-80d5-0fe24937d398)\n* Send invoice HTML in the request body.\n* Receive PDF file blob or download URL.\n\n### 7. Google Drive (or Dropbox) Upload\n\n* Upload the PDF file.\n* Use file name format: `Invoice-{{$json[\"order_id\"]}}.pdf`\n\n### 8. Email Node\n\n* Recipient: customer email from the form data.\n* Attach generated PDF.\n* Include order ID in email subject or body for reference.\n\n### 9. Google Sheets: Append Row\n\n* Log invoice metadata to keep records updated.\n\n---\n\n## \ud83d\udcc1 Google Sheets Template\n\nYou can make a copy of the invoice log template [here](https://docs.google.com/spreadsheets/d/1QW_Lg1aoEBku8GaxwPbZfBY5ITAuSdvoAXRyNdCEujM/edit?gid=0)\n\n`This sheet includes columns for order\\_id, customer name, email, total, and invoice PDF link. Customize it as needed.`\n\n---\n\n## \ud83d\udccc Additional Notes\n\n* Customize the invoice HTML template inside the Set node to match your branding.\n* Ensure API credentials for RapidAPI, Google Drive/Dropbox, and email are properly set up in your n8n credentials.\n* You can expand this workflow by adding payment processing or SMS notifications.\n\n---\n\n## Need help or want a custom workflow?\n\nReach out via email at [joseph@uppfy.com](mailto:joseph@uppfy.com).",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:27:17.489609",
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.8181818181818182,
+    "node_type_f1": 0.9,
+    "tp": 9,
+    "fp": 0,
+    "fn": 2,
+    "gt_node_count": 11,
+    "llm_node_count": 9,
+    "connection_precision": 0.8888888888888888,
+    "connection_recall": 0.7272727272727273,
+    "connection_f1": 0.7999999999999999,
+    "correct_connections": 8,
+    "gt_connection_count": 11,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.1888888888888889,
+    "usage": {
+      "prompt_tokens": 8899,
+      "completion_tokens": 1717,
+      "total_tokens": 10616
+    },
+    "total_cost": 0.03941750000000001
+  },
+  "is_ai_workflow": true
+}

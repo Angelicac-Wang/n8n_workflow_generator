@@ -1,0 +1,154 @@
+{
+  "template_id": "2405",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'voice-based chat applications', 'conversational memory', 'AI-powered voice conversations'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Audio input via webhook, OpenAI for transcription, Google Gemini or OpenAI Chat Model for conversation processing, ElevenLabs for text-to-speech conversion.",
+      "operations": "1. Receive audio input via webhook, 2. Transcribe audio to text using OpenAI, 3. Process conversation with AI model, 4. Convert response to speech using ElevenLabs, 5. Maintain conversational context.",
+      "output_actions": "Respond with synthesized speech based on AI model's response.",
+      "nodes_plan": "webhook (audio input), openAi (transcription), lmChatOpenAi (conversation processing), memoryBufferWindow (context), elevenLabs (text-to-speech).",
+      "connections_plan": "webhook -> openAi -> lmChatOpenAi -> memoryBufferWindow -> elevenLabs (linear flow with context maintenance)"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Voice Chat Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Audio Input Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "voice_message",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Transcribe Audio",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "transcribe",
+            "audioFile": "={{ $json['body']['voice_message'] }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Conversation",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "text": "={{ $json['text'] }}",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 150
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Maintain Context",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 5
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Convert to Speech",
+          "nodeType": "n8n-nodes-base.elevenLabs",
+          "typeVersion": 1,
+          "params": {
+            "text": "={{ $json['response'] }}",
+            "voice": "default"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8279,
+    "completion_tokens": 903,
+    "total_tokens": 9182
+  },
+  "description_optimization": null,
+  "original_description": "## Who is this for?\nThis workflow is designed for businesses or developers looking to integrate voice-based chat applications with dynamic responses and conversational memory.\n\n## What problem does this solve?\nIt automates AI-powered voice conversations, maintaining context between sessions and converting speech-to-text and text-to-speech.\n\n## What this workflow does:\nThe workflow receives audio input, transcribes it using OpenAI, and processes the conversation using Google Gemini Chat Model (you can use OpenAI Chat Model). Responses are converted back to speech using ElevenLabs.\n\n## Prerequisites:\nYou'll need API keys for:\n* OpenAI (you can obtain it from OpenAI website)\n* ElevenLabs (you can obtain it from their website)\n* Google Gemini (You can obtain it from `Google AI Studio`)\n\n## Setup:\n* Configure you API keys\n* Ensure that the value `(voice_message)` in the `\"Path\"` parameter  in the Webhook node is used as the name of the parameter that will contain the voice message you are sending via the HTTP Post request.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:23:39.834017",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 0.2727272727272727,
+    "node_type_f1": 0.37499999999999994,
+    "tp": 3,
+    "fp": 2,
+    "fn": 8,
+    "gt_node_count": 11,
+    "llm_node_count": 5,
+    "connection_precision": 0.25,
+    "connection_recall": 0.125,
+    "connection_f1": 0.16666666666666666,
+    "correct_connections": 1,
+    "gt_connection_count": 8,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "prompt_tokens": 8279,
+      "completion_tokens": 903,
+      "total_tokens": 9182
+    },
+    "total_cost": 0.029727500000000004
+  },
+  "is_ai_workflow": true
+}

@@ -1,0 +1,159 @@
+{
+  "template_id": "5011",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "Manual trigger to start the workflow when the user is ready to upload the PDF.",
+      "data_sources": "PDF document for custom knowledge, vector store for storing and retrieving knowledge.",
+      "operations": "1. Upload PDF, 2. Extract text from PDF, 3. Store extracted text in vector store, 4. Set up Q&A tool with vector store data.",
+      "output_actions": "Enable a Q&A tool that uses the vector store for retrieving answers.",
+      "nodes_plan": "manualTrigger (trigger), readPDF (readFile), extractText (set), storeInVector (simpleVectorStore), setupQnA (set)",
+      "connections_plan": "manualTrigger -> readPDF -> extractText -> storeInVector -> setupQnA"
+    },
+    "workflowPlan": {
+      "name": "PDF to Q&A Setup",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read PDF",
+          "nodeType": "n8n-nodes-base.readFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{ $json.filePath }}",
+            "options": {
+              "encoding": "utf8"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Text",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "text",
+                  "value": "={{ $json.data }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store in Vector",
+          "nodeType": "n8n-nodes-base.simpleVectorStore",
+          "typeVersion": 1,
+          "params": {
+            "operation": "store",
+            "text": "={{ $json.text }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Setup Q&A",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "QnAReady",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 3982,
+    "completion_tokens": 772,
+    "total_tokens": 4754
+  },
+  "description_optimization": null,
+  "original_description": "This template shows how to use the Question and Answer tool to save costs in RAG use cases.\n\n## Who is this for?\nThis template is for everyone who wants to start giving knowledge to their Agents through RAG.\n\n## Requirements\nHave a PDF with custom knowledge that you want to provide to your agent.\n\n## Setup\nNo setup required. Just hit `Execute Workflow`, upload your knowledge document and then start chatting.\n\n## How to customize this to your needs\n1. Add custom instructions to your Agent by changing the prompts in it.\n2. Add a different way to load in knowledge to your vector store, e.g. by looking at some Google Drive files or loading knowledge from a table.\n3. Describe your data properly in the Q&A tool\n4. Exchange the `Simple Vector Store` nodes with your own vector store tools ready for production.\n5. Add a more sophisticated way to rank files found in the vector store.\n\nFor more information read our [docs on RAG in n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/).",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:12:56.588088",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 5,
+    "fn": 10,
+    "gt_node_count": 10,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 2,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 3982,
+      "completion_tokens": 772,
+      "total_tokens": 4754
+    },
+    "total_cost": 0.017675
+  }
+}

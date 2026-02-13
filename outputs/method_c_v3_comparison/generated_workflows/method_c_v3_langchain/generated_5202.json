@@ -1,0 +1,151 @@
+{
+  "template_id": "5202",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a content automation workflow using AI tools for research and writing. Use base nodes.",
+      "trigger_analysis": "Schedule trigger to automate the workflow daily.",
+      "data_sources": "Perplexity API for AI news, Anthropic API for Claude AI, Google Docs for saving the output.",
+      "operations": "1. Trigger workflow daily, 2. Fetch AI news using Perplexity API, 3. Generate blog post using Claude AI, 4. Optionally enhance responses with Memory & Perplexity Tool, 5. Save blog post to Google Docs.",
+      "output_actions": "Save the generated blog post to Google Docs.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (Perplexity API), httpRequest (Claude AI), googleDocs (save document)",
+      "connections_plan": "scheduleTrigger -> httpRequest (Perplexity) -> httpRequest (Claude AI) -> googleDocs"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Blog Post Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch AI News",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.perplexity.ai/news",
+            "headers": {
+              "Authorization": "Bearer YOUR_PERPLEXITY_API_KEY"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Blog Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.anthropic.com/claude",
+            "headers": {
+              "Authorization": "Bearer YOUR_ANTHROPIC_API_KEY"
+            },
+            "body": {
+              "prompt": "Generate a blog post based on the following news: {{ $json.news }}",
+              "structure": {
+                "title": "AI News Update",
+                "intro": "Introduction to the latest AI trends.",
+                "sections": [
+                  "Section 1",
+                  "Section 2",
+                  "Section 3"
+                ],
+                "takeaway": "Key takeaway from the news.",
+                "metaDescription": "SEO optimized meta description."
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Docs",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "title": "AI Blog Post - {{ $now.format('YYYY-MM-DD') }}",
+            "content": "={{ $json.blogPost }}",
+            "documentId": "YOUR_GOOGLE_DOC_ID"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8432,
+    "completion_tokens": 863,
+    "total_tokens": 9295
+  },
+  "description_optimization": null,
+  "original_description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.* \n\n\ud83e\udde0 AI-Powered Blog Post Generator\nCategory: Content Automation / AI Writing / Marketing\n\nDescription:\nThis automated workflow helps you generate fresh, SEO-optimized blog posts daily using AI tools\u2014perfect for solo creators, marketers, and content teams looking to stay on top of the latest AI trends without manual research or writing.\n\nFor more of such builds and step-by-step Tutorial Guides, check out:\nhttps://www.youtube.com/@Automatewithmarc\n\nHere\u2019s how it works:\n\nSchedule Trigger kicks off the workflow daily (or at your preferred interval).\n\nPerplexity AI Node researches the most interesting recent AI news tailored for a non-technical audience.\n\nAI Agent (Claude via Anthropic) turns that news into a full-length blog post based on a structured prompt that includes title, intro, 3+ section headers, takeaway, and meta description\u2014designed for clarity, engagement, and SEO.\n\nOptional Memory & Perplexity Tool Nodes enhance the agent's responses by allowing it to clarify facts or fetch more context.\n\nGoogle Docs Node automatically saves the final blog post to your selected document\u2014ready for review, scheduling, or publishing.\n\nKey Features:\n\nCombines Perplexity AI + Claude AI (Anthropic) for research + writing\n\nBuilt-in memory and retrieval logic for deeper contextual accuracy\n\nNon-technical, friendly writing style ideal for general audiences\n\nOutput saved directly to Google Docs\n\nFully no-code, customizable, and extendable\n\nUse Cases:\n\nAutomate weekly blog content for your newsletter or site\n\nRepurpose content into social posts or scripts\n\nKeep your brand relevant in the fast-moving AI landscape\n\nSetup Requirements:\n\nPerplexity API Key\n\nAnthropic API Key\n\nGoogle Docs (OAuth2 connected)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:28:31.803049",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.2857142857142857,
+    "node_type_f1": 0.36363636363636365,
+    "tp": 2,
+    "fp": 2,
+    "fn": 5,
+    "gt_node_count": 7,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 3,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 8432,
+      "completion_tokens": 863,
+      "total_tokens": 9295
+    },
+    "total_cost": 0.02971
+  },
+  "is_ai_workflow": false
+}

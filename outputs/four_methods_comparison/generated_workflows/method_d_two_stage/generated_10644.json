@@ -1,0 +1,203 @@
+{
+  "template_id": "10644",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a new file being added to a specific Google Drive folder.",
+      "data_sources": "Google Drive for file monitoring, Google Gemini for AI video analysis, fal.ai for thumbnail generation, Upload-Post for YouTube publishing.",
+      "operations": "1. Monitor Google Drive folder, 2. Analyze video with Google Gemini, 3. Generate concepts, 4. User selects concept, 5. Generate thumbnails with fal.ai, 6. User selects thumbnail, 7. Publish video to YouTube.",
+      "output_actions": "The video is published to YouTube with selected title, description, tags, and thumbnail.",
+      "nodes_plan": "googleDriveTrigger, googleGeminiAnalysis, userInputConcept, falAiThumbnail, userInputThumbnail, uploadPost",
+      "connections_plan": "googleDriveTrigger -> googleGeminiAnalysis -> userInputConcept -> falAiThumbnail -> userInputThumbnail -> uploadPost"
+    },
+    "workflowPlan": {
+      "name": "Video to YouTube Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFolder": "DesignatedFolderID"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Gemini Analysis",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyzeVideo",
+            "videoFile": "={{ $json['file'] }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "User Input Concept",
+          "nodeType": "n8n-nodes-base.userInput",
+          "typeVersion": 1,
+          "params": {
+            "options": "={{ $json['concepts'] }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "fal.ai Thumbnail",
+          "nodeType": "n8n-nodes-base.falAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateThumbnail",
+            "concept": "={{ $json['selectedConcept'] }}",
+            "faceImageUrl": "UserFaceImageURL"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "User Input Thumbnail",
+          "nodeType": "n8n-nodes-base.userInput",
+          "typeVersion": 1,
+          "params": {
+            "options": "={{ $json['thumbnails'] }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.uploadPost",
+          "typeVersion": 1,
+          "params": {
+            "title": "={{ $json['selectedConcept'].title }}",
+            "description": "={{ $json['selectedConcept'].description }}",
+            "tags": "={{ $json['selectedConcept'].tags }}",
+            "thumbnail": "={{ $json['selectedThumbnail'] }}",
+            "videoFile": "={{ $json['file'] }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4538,
+      "completion_tokens": 964,
+      "total_tokens": 5502
+    },
+    "description_optimization": {
+      "prompt_tokens": 929,
+      "completion_tokens": 777,
+      "total_tokens": 1706
+    },
+    "total_tokens": 7208,
+    "total_prompt_tokens": 5467,
+    "total_completion_tokens": 1741
+  },
+  "description_optimization": {
+    "template_id": "10644",
+    "optimized_description": "This workflow automates the process of transforming any video dropped into a designated Google Drive folder into a ready-to-publish YouTube upload. It utilizes AI to analyze the video and generate three high-click-through rate (CTR) title ideas, three long SEO-friendly descriptions complete with timestamps, and 10 to 15 optimized tags. Additionally, it creates four thumbnail options featuring your face, allowing you to select your preferred option before automatically publishing the video to YouTube via the Upload-Post service.\n\nTrigger: The workflow begins when a new video file is added to a specified Google Drive folder.\n\nData Sources and APIs Required:\n1. Google Drive (for monitoring the folder and downloading video files)\n2. Google Gemini (for AI video analysis to generate descriptions and timestamps)\n3. fal.ai (for generating thumbnails using your face)\n4. Upload-Post (for publishing the video to YouTube)\n\nOperations and Processing Steps:\n1. **Google Drive Trigger:** The workflow continuously monitors a designated Google Drive folder for the addition of new video files.\n2. **AI Video Analysis (via Google Gemini):** Upon detecting a new video, the workflow sends the video to Google Gemini for analysis, which produces an in-depth description in Spanish and generates timestamps.\n3. **Concept Generation:** The workflow receives three JSON concepts from Google Gemini, each containing a title, thumbnail prompt, description, and tags.\n4. **User Review #1:** A user interface is presented to allow the user to select their favorite concept from the three options provided.\n5. **Thumbnail Generation (via fal.ai):** The selected concept is then processed by fal.ai, which generates four thumbnail options that incorporate the user's face (provided via a URL).\n6. **User Review #2:** The user is prompted to review the four thumbnail options and choose their preferred thumbnail.\n7. **Upload to YouTube (via Upload-Post):** Finally, the workflow uses the Upload-Post service to publish the video on YouTube, incorporating the chosen title, description, tags, and thumbnail.\n\nFinal Output or Action: The completed video is automatically published to YouTube with the selected title, description, tags, and thumbnail, streamlining the publishing process for YouTube creators, agencies, and solo makers.\n\nSetup Requirements:\n1. **Credentials Needed:** \n   - Google Drive OAuth (for folder monitoring and file downloads)\n   - Google Gemini API key (for video analysis)\n   - fal.ai API key (for thumbnail generation)\n   - Upload-Post API key (for YouTube publishing)\n2. **Face Image URL(s):** Users must provide a URL to at least one clear image of their face, which will be used in the thumbnail generation process.\n3. **Designated Google Drive Folder:** Users must select the specific folder in Google Drive where videos will be uploaded for processing.\n4. **User Interaction:** Users will utilize built-in forms to select their preferred concept and thumbnail before final publication.\n\nRequirements:\n- Accounts with Google (for Drive and Gemini), fal.ai, Upload-Post, and n8n.\n- API keys for Google Gemini, fal.ai, and Upload-Post.\n- At least one clear face image for thumbnail integration.\n\nFeatures:\n- Generates three distinct SEO angles for titles and descriptions to test different viewer intents.\n- Provides rich descriptions with timestamps for enhanced viewer navigation and SEO.\n- Creates face-integrated thumbnails, ensuring alignment with the selected title.\n- Incorporates human-in-the-loop controls, allowing users to approve concepts and thumbnails before publishing.\n- Facilitates auto-publishing through Upload-Post with a single click to go live on YouTube.\n- All API calls can be executed on free trials, requiring no credit card for initial setup.\n\nThis workflow is ideal for YouTube creators, agencies, media teams, and solo makers looking to streamline their video publishing process while ensuring high-quality output.",
+    "original_description": "![image.png](fileId:3296)\n\nThis workflow transforms any video you drop into a Google Drive folder into a ready-to-publish YouTube upload. It analyzes the video with AI to craft 3 high-CTR title ideas, 3 long SEO-friendly descriptions (with timestamps), and 10\u201315 optimized tags. It then generates 4 thumbnail options using your face and lets you pick your favorite before auto-publishing to YouTube via Upload-Post.\n\n\n### Who Is This For?\n- **YouTube Creators & Editors:** Ship videos with winning titles, thumbnails, and SEO in minutes.\n- **Agencies & Media Teams:** Standardize output and speed across channels and clients.\n- **Founders & Solo Makers:** Maintain consistent publishing with minimal manual work.\n\n### What Problem Does It Solve?\nProducing SEO metadata and high-performing thumbnails is slow and inconsistent. This flow:\n- **Generates High-CTR Options:** 3 distinct angles for title/description/tags.\n- **Creates Thumbnails with Your Face:** 4 options ready for review in one pass.\n- **Auto-Publishes Safely:** Human selection gates reduce risk before going live.\n\n### How It Works\n1. **Google Drive Trigger:** Watches a folder for new video files.\n2. **AI Video Analysis (Gemini):** Produces an in-depth Spanish description and timestamps.\n3. **Concept Generation:** Returns 3 JSON concepts (title, thumbnail prompt, description, tags).\n4. **User Review #1:** Pick your favorite concept in a simple form.\n5. **Thumbnail Generation (fal.ai):** Creates 4 thumbnails using your face (provided image URL).\n6. **User Review #2:** Choose the best thumbnail.\n7. **Upload to YouTube (Upload-Post):** Publishes the video with your chosen title, description, tags, and thumbnail.\n\n### Setup\n1. **Credentials (all offer free trials, no credit card required):**\n   - Google Gemini (chat/vision for analysis)\n   - fal.ai API (thumbnail generation)\n   - [Upload-Post](https://www.upload-post.com) ( [Connect your Youtube channel](https://app.upload-post.com/manage-users) and [generate api keys](https://app.upload-post.com/api-keys))\n   - Google Drive OAuth (folder watch + file download)\n2. **Provide Your Face Image URL(s):** Used by fal.ai to integrate your face into thumbnails.\n3. **Select the Google Drive Folder:** Where you\u2019ll drop videos to process.\n4. **Pick & Publish:** Use the built-in forms to choose concept and thumbnail.\n\n### Requirements\n- **Accounts:** Google (Drive + Gemini), fal.ai, Upload-Post, n8n.\n- **API Keys:** Gemini, fal.ai; Upload-Post credentials; Google Drive OAuth.\n- **Assets:** At least one clear face image for thumbnails.\n\n### Features\n- **Three SEO Angles:** Distinct title/description sets to test different intents.\n- **Rich Descriptions with Timestamps:** Ready for YouTube SEO and viewer navigation.\n- **Face-Integrated Thumbnails:** 4 options aligned with the selected title.\n- **Human-in-the-Loop Controls:** Approve concepts and thumbnails before publishing.\n- **Auto-Publish via Upload-Post:** One click to push live to YouTube.\n- **Start Free:** All API calls can run on free trials, no credit card required.\n\n### Video demo \n\nhttps://www.youtube.com/watch?v=EOOgFveae-U",
+    "description_length": 3957,
+    "usage": {
+      "prompt_tokens": 929,
+      "completion_tokens": 777,
+      "total_tokens": 1706
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:39:16.741128"
+  },
+  "original_description": "![image.png](fileId:3296)\n\nThis workflow transforms any video you drop into a Google Drive folder into a ready-to-publish YouTube upload. It analyzes the video with AI to craft 3 high-CTR title ideas, 3 long SEO-friendly descriptions (with timestamps), and 10\u201315 optimized tags. It then generates 4 thumbnail options using your face and lets you pick your favorite before auto-publishing to YouTube via Upload-Post.\n\n\n### Who Is This For?\n- **YouTube Creators & Editors:** Ship videos with winning titles, thumbnails, and SEO in minutes.\n- **Agencies & Media Teams:** Standardize output and speed across channels and clients.\n- **Founders & Solo Makers:** Maintain consistent publishing with minimal manual work.\n\n### What Problem Does It Solve?\nProducing SEO metadata and high-performing thumbnails is slow and inconsistent. This flow:\n- **Generates High-CTR Options:** 3 distinct angles for title/description/tags.\n- **Creates Thumbnails with Your Face:** 4 options ready for review in one pass.\n- **Auto-Publishes Safely:** Human selection gates reduce risk before going live.\n\n### How It Works\n1. **Google Drive Trigger:** Watches a folder for new video files.\n2. **AI Video Analysis (Gemini):** Produces an in-depth Spanish description and timestamps.\n3. **Concept Generation:** Returns 3 JSON concepts (title, thumbnail prompt, description, tags).\n4. **User Review #1:** Pick your favorite concept in a simple form.\n5. **Thumbnail Generation (fal.ai):** Creates 4 thumbnails using your face (provided image URL).\n6. **User Review #2:** Choose the best thumbnail.\n7. **Upload to YouTube (Upload-Post):** Publishes the video with your chosen title, description, tags, and thumbnail.\n\n### Setup\n1. **Credentials (all offer free trials, no credit card required):**\n   - Google Gemini (chat/vision for analysis)\n   - fal.ai API (thumbnail generation)\n   - [Upload-Post](https://www.upload-post.com) ( [Connect your Youtube channel](https://app.upload-post.com/manage-users) and [generate api keys](https://app.upload-post.com/api-keys))\n   - Google Drive OAuth (folder watch + file download)\n2. **Provide Your Face Image URL(s):** Used by fal.ai to integrate your face into thumbnails.\n3. **Select the Google Drive Folder:** Where you\u2019ll drop videos to process.\n4. **Pick & Publish:** Use the built-in forms to choose concept and thumbnail.\n\n### Requirements\n- **Accounts:** Google (Drive + Gemini), fal.ai, Upload-Post, n8n.\n- **API Keys:** Gemini, fal.ai; Upload-Post credentials; Google Drive OAuth.\n- **Assets:** At least one clear face image for thumbnails.\n\n### Features\n- **Three SEO Angles:** Distinct title/description sets to test different intents.\n- **Rich Descriptions with Timestamps:** Ready for YouTube SEO and viewer navigation.\n- **Face-Integrated Thumbnails:** 4 options aligned with the selected title.\n- **Human-in-the-Loop Controls:** Approve concepts and thumbnails before publishing.\n- **Auto-Publish via Upload-Post:** One click to push live to YouTube.\n- **Start Free:** All API calls can run on free trials, no credit card required.\n\n### Video demo \n\nhttps://www.youtube.com/watch?v=EOOgFveae-U",
+  "optimized_description": "This workflow automates the process of transforming any video dropped into a designated Google Drive folder into a ready-to-publish YouTube upload. It utilizes AI to analyze the video and generate three high-click-through rate (CTR) title ideas, three long SEO-friendly descriptions complete with timestamps, and 10 to 15 optimized tags. Additionally, it creates four thumbnail options featuring your face, allowing you to select your preferred option before automatically publishing the video to YouTube via the Upload-Post service.\n\nTrigger: The workflow begins when a new video file is added to a specified Google Drive folder.\n\nData Sources and APIs Required:\n1. Google Drive (for monitoring the folder and downloading video files)\n2. Google Gemini (for AI video analysis to generate descriptions and timestamps)\n3. fal.ai (for generating thumbnails using your face)\n4. Upload-Post (for publishing the video to YouTube)\n\nOperations and Processing Steps:\n1. **Google Drive Trigger:** The workflow continuously monitors a designated Google Drive folder for the addition of new video files.\n2. **AI Video Analysis (via Google Gemini):** Upon detecting a new video, the workflow sends the video to Google Gemini for analysis, which produces an in-depth description in Spanish and generates timestamps.\n3. **Concept Generation:** The workflow receives three JSON concepts from Google Gemini, each containing a title, thumbnail prompt, description, and tags.\n4. **User Review #1:** A user interface is presented to allow the user to select their favorite concept from the three options provided.\n5. **Thumbnail Generation (via fal.ai):** The selected concept is then processed by fal.ai, which generates four thumbnail options that incorporate the user's face (provided via a URL).\n6. **User Review #2:** The user is prompted to review the four thumbnail options and choose their preferred thumbnail.\n7. **Upload to YouTube (via Upload-Post):** Finally, the workflow uses the Upload-Post service to publish the video on YouTube, incorporating the chosen title, description, tags, and thumbnail.\n\nFinal Output or Action: The completed video is automatically published to YouTube with the selected title, description, tags, and thumbnail, streamlining the publishing process for YouTube creators, agencies, and solo makers.\n\nSetup Requirements:\n1. **Credentials Needed:** \n   - Google Drive OAuth (for folder monitoring and file downloads)\n   - Google Gemini API key (for video analysis)\n   - fal.ai API key (for thumbnail generation)\n   - Upload-Post API key (for YouTube publishing)\n2. **Face Image URL(s):** Users must provide a URL to at least one clear image of their face, which will be used in the thumbnail generation process.\n3. **Designated Google Drive Folder:** Users must select the specific folder in Google Drive where videos will be uploaded for processing.\n4. **User Interaction:** Users will utilize built-in forms to select their preferred concept and thumbnail before final publication.\n\nRequirements:\n- Accounts with Google (for Drive and Gemini), fal.ai, Upload-Post, and n8n.\n- API keys for Google Gemini, fal.ai, and Upload-Post.\n- At least one clear face image for thumbnail integration.\n\nFeatures:\n- Generates three distinct SEO angles for titles and descriptions to test different viewer intents.\n- Provides rich descriptions with timestamps for enhanced viewer navigation and SEO.\n- Creates face-integrated thumbnails, ensuring alignment with the selected title.\n- Incorporates human-in-the-loop controls, allowing users to approve concepts and thumbnails before publishing.\n- Facilitates auto-publishing through Upload-Post with a single click to go live on YouTube.\n- All API calls can be executed on free trials, requiring no credit card for initial setup.\n\nThis workflow is ideal for YouTube creators, agencies, media teams, and solo makers looking to streamline their video publishing process while ensuring high-quality output.",
+  "error": null,
+  "generated_at": "2026-01-25T23:39:27.318891",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.16666666666666666,
+    "node_type_f1": 0.25,
+    "tp": 3,
+    "fp": 3,
+    "fn": 15,
+    "gt_node_count": 18,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 11,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4538,
+        "completion_tokens": 964,
+        "total_tokens": 5502
+      },
+      "description_optimization": {
+        "prompt_tokens": 929,
+        "completion_tokens": 777,
+        "total_tokens": 1706
+      },
+      "total_tokens": 7208,
+      "total_prompt_tokens": 5467,
+      "total_completion_tokens": 1741
+    },
+    "total_cost": 0.031077500000000004,
+    "description_optimization_cost": 0.0100925,
+    "workflow_generation_cost": 0.020985000000000004
+  }
+}

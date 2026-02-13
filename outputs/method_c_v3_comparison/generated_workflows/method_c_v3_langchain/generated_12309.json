@@ -1,0 +1,195 @@
+{
+  "template_id": "12309",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a data automation workflow integrating LinkedIn, Apify, and HubSpot. Use base nodes.",
+      "trigger_analysis": "Scheduled trigger to run the workflow weekly or manually.",
+      "data_sources": "ConnectSafely.ai API for LinkedIn profile visitors, Apify for LinkedIn profile enrichment, HubSpot CRM for contact management.",
+      "operations": "1. Scheduled trigger to start the workflow, 2. Fetch LinkedIn profile visitors from ConnectSafely.ai, 3. Split visitors for individual processing, 4. Enrich profile data using Apify, 5. Validate email addresses, 6. Create or update contacts in HubSpot.",
+      "output_actions": "Create or update contacts in HubSpot with enriched LinkedIn data.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (fetch visitors), splitInBatches (split visitors), apify (enrich profiles), if (validate emails), hubspot (create/update contacts)",
+      "connections_plan": "scheduleTrigger -> httpRequest -> splitInBatches -> apify -> if (valid email) -> hubspot"
+    },
+    "workflowPlan": {
+      "name": "Sync LinkedIn Profile Visitors to HubSpot CRM",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Run Weekly",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * 0"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Profile Visitors",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.connectsafely.ai/profile-visitors",
+            "authentication": "headerAuth",
+            "responseFormat": "json",
+            "options": {
+              "headers": {
+                "Authorization": "Bearer {{ $credentials.connectSafelyApiKey }}"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Visitors",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Enrich LinkedIn Profile",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "UMdANQyqx3b2JVuxg",
+            "input": {
+              "profileUrl": "={{ $json['profileUrl'] }}"
+            },
+            "authentication": "apifyApiKey"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Validate Email",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json['email'] }}",
+                  "operation": "isEmail"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Create HubSpot Contact",
+          "nodeType": "n8n-nodes-base.hubspot",
+          "typeVersion": 1,
+          "params": {
+            "resource": "contact",
+            "operation": "upsert",
+            "email": "={{ $json['email'] }}",
+            "properties": {
+              "firstname": "={{ $json['firstName'] }}",
+              "lastname": "={{ $json['lastName'] }}",
+              "jobtitle": "={{ $json['jobTitle'] }}",
+              "company": "={{ $json['company'] }}",
+              "city": "={{ $json['city'] }}",
+              "country": "={{ $json['country'] }}",
+              "linkedinurl": "={{ $json['profileUrl'] }}"
+            },
+            "authentication": "hubspotApiKey"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 10120,
+    "completion_tokens": 1168,
+    "total_tokens": 11288
+  },
+  "description_optimization": null,
+  "original_description": "# Sync LinkedIn Profile Visitors to HubSpot CRM\n\n## Who's it for\n\nThis workflow is built for sales professionals, recruiters, founders, and marketers who want to automatically capture LinkedIn profile visitors and convert them into actionable CRM leads. Perfect for anyone tired of manually checking who viewed their profile, copying data one by one, and losing warm leads because they never made it into your pipeline.\n\nIf you're running outbound sales, recruiting talent, building partnerships, or simply want to know who's checking you out on LinkedIn, this automation captures every visitor and enriches them with full professional data before syncing to your CRM.\n\n## How it works\n\nThe workflow automatically syncs your LinkedIn profile visitors to HubSpot CRM with enriched professional data.\n\n**The process flow:**\n1. Scheduled trigger runs weekly (or manually) to fetch recent visitors\n2. ConnectSafely.ai API retrieves all profile visitors from the past 7 days\n3. Splits visitors into individual records for processing\n4. Apify actor enriches each visitor with complete LinkedIn profile data (email, company, title, location)\n5. Email validation filters contacts - only those with valid emails proceed\n6. HubSpot integration creates or updates contacts with full enriched information\n7. Loop continues until all visitors are processed\n\n---\n\n## Setup steps\n\n### Step 1: Configure ConnectSafely.ai API Credentials\n\n#### Obtain API Key\n\n1. Log into [ConnectSafely.ai Dashboard](https://connectsafely.ai/dashboard)\n2. Navigate to **Settings** \u2192 **API Keys**\n3. Generate a new API key\n\n#### Add Bearer Auth Credential in n8n\n\n1. Go to **Credentials** in n8n\n2. Click **Add Credential** \u2192 **Header Auth** or **HTTP Bearer Auth**\n3. Name it \"ConnectSafely.ai API\"\n4. Paste your ConnectSafely.ai API key\n5. Save the credential\n\nThis credential is used by the \"Fetch Profile Visitors\" HTTP Request node.\n\n\n### Step 2: Configure Apify Integration\n\n#### Get Apify API Key\n\n1. Sign up at [Apify.com](https://apify.com)\n2. Go to **Settings** \u2192 **Integrations** \u2192 **API**\n3. Copy your API token\n\n#### Find the LinkedIn Enrichment Actor\n\n1. Go to [Apify Store](https://apify.com/store)\n2. Search for \"LinkedIn Profile Scraper\" or use actor ID: `UMdANQyqx3b2JVuxg`\n3. Copy the actor URL\n\n#### Add Apify Credential in n8n\n\n1. Go to **Credentials** \u2192 **Add Credential** \u2192 **Apify API**\n2. Paste your Apify API token\n3. Save the credential\n\n#### Configure the Apify Node\n\n1. Open the **Enrich LinkedIn Profile** node\n2. Select your Apify credential\n3. Update the Actor ID URL with your chosen LinkedIn scraper actor\n\n\n### Step 3: Configure HubSpot Integration\n\n#### Create HubSpot App Token\n\n1. Go to HubSpot **Settings** \u2192 **Integrations** \u2192 **Private Apps**\n2. Click **Create a private app**\n3. Name it \"n8n LinkedIn Sync\"\n4. Under **Scopes**, enable:\n   - `crm.objects.contacts.read`\n   - `crm.objects.contacts.write`\n5. Click **Create app** and copy the access token\n\n#### Add HubSpot Credential in n8n\n\n1. Go to **Credentials** \u2192 **Add Credential** \u2192 **HubSpot App Token**\n2. Paste your access token\n3. Save the credential\n\n#### Connect to HubSpot Node\n\n1. Open the **Create HubSpot Contact** node\n2. Select your HubSpot App Token credential\n\n\n### Step 4: Configure the Schedule\n\n1. Open the **Run Weekly** node\n2. Adjust the schedule based on your needs:\n   - Default: Every week\n   - High traffic profiles: Every day\n   - Low traffic: Every 2 weeks\n\n### Step 5: Test the Workflow\n\n1. Click the **Test Manually** node\n2. Click **Test Workflow**\n3. Verify:\n   - Profile visitors are fetched correctly\n   - Enrichment returns full profile data\n   - Contacts with emails are created in HubSpot\n   - Contacts without emails are skipped gracefully\n\n---\n\n## Customization\n\n### Time Range Adjustment\n\nEdit the JSON body in the **Fetch Profile Visitors** node to change the lookback period:\n\n```json\n{\"timeRange\":\"past_7_days\",\"start\":0,\"fetchAll\":true}\n```\n\nOptions:\n- `past_7_days` - Last week's visitors (default)\n- `past_30_days` - Last month's visitors\n- `past_90_days` - Last quarter's visitors\n\n### Additional HubSpot Fields\n\nThe **Create HubSpot Contact** node maps these fields by default:\n- First Name\n- Last Name\n- Email\n- Job Title\n- Company Name\n- City\n- Country\n- Street Address\n- LinkedIn URL\n- Lead Status (set to \"NEW\")\n\nTo add more fields:\n1. Open the **Create HubSpot Contact** node\n2. Click **Add Field** under Additional Fields\n3. Map Apify output fields to HubSpot properties\n\n### Different CRM Integration\n\nTo use a different CRM instead of HubSpot:\n1. Delete the **Create HubSpot Contact** node\n2. Add your CRM node (Salesforce, Pipedrive, Zoho, etc.)\n3. Map the enriched fields to your CRM's contact properties\n4. Connect it to the \"Has Valid Email\" true output\n\n### Add Slack Notifications\n\nWant to get notified when high-value visitors are captured?\n1. Add a Slack node after **Create HubSpot Contact**\n2. Filter for specific job titles or companies\n3. Send a message to your sales channel\n\n---\n\n## Use Cases\n\n- **Sales Prospecting**: Automatically capture decision-makers who are researching you before outreach\n- **Recruiting**: Build a passive candidate pipeline from people checking out your profile\n- **Founder Networking**: Know when investors, partners, or potential hires are interested\n- **Account-Based Marketing**: Track when target account contacts view your profile\n- **Event Follow-up**: Capture visitors who checked you out after conferences or webinars\n\n---\n\n## Troubleshooting\n\n### Common Issues & Solutions\n\n**Issue**: No visitors returned from API\n- **Solution**: Ensure your LinkedIn account is connected in ConnectSafely.ai dashboard and has had recent profile views\n\n**Issue**: Apify enrichment returning empty results\n- **Solution**: Verify the LinkedIn URL format is correct (should be full URL like `https://www.linkedin.com/in/username`). Check your Apify actor is running properly.\n\n**Issue**: \"Profile not found\" errors\n- **Solution**: Some LinkedIn profiles may be private or have restricted visibility. These will be skipped automatically.\n\n**Issue**: HubSpot contact not created\n- **Solution**: Check that your HubSpot App Token has `crm.objects.contacts.write` scope enabled\n\n**Issue**: Duplicate contacts in HubSpot\n- **Solution**: HubSpot uses email as the unique identifier. The node is configured to \"Create or Update\" so duplicates should be updated, not created. Verify the email field is mapping correctly.\n\n**Issue**: Rate limit errors from Apify\n- **Solution**: Add a Wait node after the loop with 2-5 second delays between enrichment calls\n\n**Issue**: Missing email addresses for most visitors\n- **Solution**: This is normal - enrichment typically finds emails for 60-70% of profiles. Consider adding LinkedIn URL as a fallback identifier in your CRM.\n\n---\n\n## Costs & Considerations\n\n| Service | Cost |\n|---------|------|\n| ConnectSafely.ai | Free trial available, then subscription |\n| Apify Enrichment | ~$1 per 1,000 records |\n| HubSpot | Free tier works, or existing subscription |\n| n8n | Free (self-hosted) or cloud pricing |\n\n**Estimated monthly cost for 200 visitors/month**: ~$0.20 for Apify enrichment\n\n---\n\n## Documentation & Resources\n\n### Official Documentation\n- **ConnectSafely.ai Docs**: [https://connectsafely.ai/docs](https://connectsafely.ai/docs)\n- **Apify LinkedIn Actors**: [https://apify.com/store](https://apify.com/store)\n- **HubSpot API**: [https://developers.hubspot.com](https://developers.hubspot.com)\n\n### Support Channels\n- **Email Support**: [support@connectsafely.ai](mailto:support@connectsafely.ai)\n- **Documentation**: [https://connectsafely.ai/docs](https://connectsafely.ai/docs)\n\n---\n\n## Connect With Us\n\nStay updated with the latest automation tips and LinkedIn strategies:\n\n- **LinkedIn**: [linkedin.com/company/connectsafelyai](https://www.linkedin.com/company/connectsafelyai)\n- **YouTube**: [youtube.com/@ConnectSafelyAI-v2x](https://www.youtube.com/@ConnectSafelyAI-v2x)\n- **Instagram**: [instagram.com/connectsafely.ai](https://www.instagram.com/connectsafely.ai/)\n- **X (Twitter)**: [x.com/AiConnectsafely](https://x.com/AiConnectsafely)\n\n---\n\n## Need Custom Workflows?\n\nLooking to build sophisticated LinkedIn automation workflows tailored to your business needs?\n\n**[Contact our team](https://connectsafely.ai/contact)** for custom automation development, strategy consulting, and enterprise solutions.\n\nWe specialize in:\n- Multi-channel engagement workflows\n- AI-powered personalization at scale\n- Lead scoring and qualification automation\n- CRM integration and data synchronization\n- Custom reporting and analytics pipelines",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:20:50.405937",
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.6666666666666666,
+    "node_type_f1": 0.8,
+    "tp": 6,
+    "fp": 0,
+    "fn": 3,
+    "gt_node_count": 9,
+    "llm_node_count": 6,
+    "connection_precision": 0.8,
+    "connection_recall": 0.4,
+    "connection_f1": 0.5333333333333333,
+    "correct_connections": 4,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.06628787878787878,
+    "usage": {
+      "prompt_tokens": 10120,
+      "completion_tokens": 1168,
+      "total_tokens": 11288
+    },
+    "total_cost": 0.036980000000000006
+  },
+  "is_ai_workflow": false
+}

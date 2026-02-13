@@ -1,0 +1,199 @@
+{
+  "template_id": "10813",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow is initiated manually by entering a topic or main idea into an input field.",
+      "data_sources": "OpenAI API for generating outlines and expanding paragraphs, optional REST APIs for content publishing like WordPress or Notion.",
+      "operations": "1. Generate an outline using OpenAI API, 2. Expand each subtopic into detailed paragraphs using OpenAI API, 3. Combine sections into JSON and Markdown formats, 4. Optionally publish content using REST APIs.",
+      "output_actions": "Produce a structured JSON object and a Markdown version of the article, ready for publishing.",
+      "nodes_plan": "manualTrigger (trigger), openAi (generate outline), splitInBatches (iterate subtopics), openAi (expand paragraphs), function (combine content), httpRequest (optional publish)",
+      "connections_plan": "manualTrigger -> openAi (outline) -> splitInBatches -> openAi (expand) -> function (combine) -> httpRequest (optional publish)"
+    },
+    "workflowPlan": {
+      "name": "Blog Article Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Outline",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a detailed outline for the topic: {{ $json.topic }} with depth: {{ $json.depth }}, language: {{ $json.language }}, and keyword: {{ $json.keyword }}."
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Split Outline",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "fieldToSplit": "outline",
+            "batchSize": 1
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Expand Paragraph",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Expand the subtopic: {{ $json.subtopic }} into a detailed, SEO-friendly paragraph."
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Combine Content",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { json: { title: $json.topic, contentHtml: generateHtml($items), contentMarkdown: generateMarkdown($items) } };"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Publish Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.yourcms.com/publish",
+            "body": "={{ $json }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4407,
+      "completion_tokens": 959,
+      "total_tokens": 5366
+    },
+    "description_optimization": {
+      "prompt_tokens": 751,
+      "completion_tokens": 647,
+      "total_tokens": 1398
+    },
+    "total_tokens": 6764,
+    "total_prompt_tokens": 5158,
+    "total_completion_tokens": 1606
+  },
+  "description_optimization": {
+    "template_id": "10813",
+    "optimized_description": "**Workflow Description: Blog Article Generation**\n\n**Overview**  \nThis workflow is designed to convert a single topic into a comprehensive blog article through a structured, multi-step process. It enhances output quality, SEO consistency, and overall structure by breaking the task into two focused stages: outline generation and paragraph expansion.\n\n**Trigger**  \nThe workflow is initiated by manually entering a topic or main idea into the input field.\n\n**Data Sources and APIs Needed**  \n- OpenAI API (for AI-driven outline generation and paragraph expansion)\n- Optional REST APIs for content publishing (e.g., WordPress, Notion)\n\n**Operations and Processing Steps**  \n\n1. **Generate Outline**  \n   - The workflow sends the provided topic to the OpenAI API using the GPT-4o Mini model.\n   - The API returns a structured outline based on the following parameters:\n     - Topic\n     - Desired depth of content\n     - Language\n     - Primary keyword focus\n\n2. **Expand Each Subtopic**  \n   - The workflow iterates through each item in the generated outline.\n   - For each subtopic, the workflow sends a request to the OpenAI API to expand it into a detailed, SEO-friendly paragraph.\n   - The output for each paragraph is optimized for readability and SEO, ensuring consistency across the article.\n\n3. **Produce Final Outputs**  \n   - Once all subtopics are expanded, the workflow combines the sections into:\n     - A clean JSON object that includes:\n       - Title\n       - HTML content\n       - Markdown content\n     - A Markdown version formatted for blogs or content management systems (CMS).\n   - The JSON object and Markdown output can be sent directly to REST APIs such as WordPress or Notion for publishing.\n   - The content is validated for readability, typically scoring well in SEO tools like Yoast SEO.\n\n**Final Output or Action**  \nThe final outputs consist of both a structured JSON object and a Markdown version of the article, ready for immediate publishing. Users can retrieve these outputs after executing the workflow.\n\n**Setup Steps**  \n1. **Prepare Credentials**  \n   - Add your OpenAI API Key to n8n\u2019s credential manager.\n\n2. **Adjust Input Parameters**  \n   - Specify the topic or main idea.\n   - Define the number of outline items.\n   - Choose the language.\n   - Set the primary keyword.\n   - Optionally, select the tone or writing style.\n\n3. **Customize the Workflow**  \n   - Optionally switch the model for higher quality or lower token usage.\n   - Modify the prompt for the outline or paragraph generator to align with your writing style.\n   - Add additional nodes to automate the upload of the final article to WordPress, Notion, or other APIs.\n\n4. **Run the Workflow**  \n   - Enter your topic in the input field.\n   - Execute the workflow to generate the article.\n   - Retrieve both JSON and Markdown outputs for immediate publishing.\n\nThis workflow provides a systematic approach to auto-generating long-form articles, transforming short-form scripts into SEO-friendly content, and creating documentation with consistent templates. Users are encouraged to customize the workflow further to integrate it with other automation systems or expand it into a full content pipeline.",
+    "original_description": "## Overview  \nThis workflow converts a single topic into a full blog article through a structured multi-step process. Instead of generating everything in one pass, it breaks the task into clear stages to produce cleaner structure, better SEO consistency, and more predictable output quality.\n\n## How this workflow differs from asking ChatGPT directly  \n- It does not produce an article in one step.  \n- It separates the process into two focused stages: outline generation and paragraph expansion.  \n- This approach gives you more control over tone, SEO, structure, and keyword placement.\n\n## How it works  \n### 1. Generate outline  \n- The workflow sends your topic to an AI Agent.  \n- It returns a structured outline based on the topic, desired depth, language, and keyword focus.\n\n### 2. Expand each subtopic  \n- The workflow loops through each outline item.  \n- Every subtopic is expanded into a detailed, SEO-friendly paragraph.  \n- Output is consistent and optimized for readability.\n\n### 3. Produce final outputs  \n- Combines all expanded sections into:  \n  - A clean JSON object  \n  - A Markdown version ready for blogs or CMS  \n- The JSON includes:  \n  - Title  \n  - HTML content  \n  - Markdown content  \n- You can send this directly to REST APIs such as WordPress, Notion, or documentation platforms.  \n- Content is validated for readability and typically scores well in tools like Yoast SEO.  \n- Uses GPT-4o Mini by default, with average token usage between 2000 and 3000 depending on outline size.\n\n## Use cases  \n- Auto-generate long-form articles for blogs or content marketing.  \n- Turn Instagram or short-form scripts into complete SEO articles.  \n- Create documentation or educational content using consistent templates.  \n\n## Setup steps  \n### 1. Prepare credentials  \n- Add your OpenAI API Key inside n8n\u2019s credential manager.\n\n### 2. Adjust input parameters  \n- Topic or main idea  \n- Number of outline items  \n- Language  \n- Primary keyword  \n- Tone or writing style (optional)\n\n### 3. Customize the workflow  \n- Switch the model if you want higher quality or lower token usage.  \n- Modify the prompt for the outline or paragraph generator to match your writing style.  \n- Add additional nodes if you want to auto-upload the final article to WordPress, Notion, or any API.\n\n### 4. Run the workflow  \n- Enter your topic  \n- Execute the workflow  \n- Retrieve both JSON and Markdown outputs for immediate publishing\n\nIf you need help expanding this into a full content pipeline or want to integrate it with other automation systems, feel free to customize further.",
+    "description_length": 3205,
+    "usage": {
+      "prompt_tokens": 751,
+      "completion_tokens": 647,
+      "total_tokens": 1398
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:30:59.146412"
+  },
+  "original_description": "## Overview  \nThis workflow converts a single topic into a full blog article through a structured multi-step process. Instead of generating everything in one pass, it breaks the task into clear stages to produce cleaner structure, better SEO consistency, and more predictable output quality.\n\n## How this workflow differs from asking ChatGPT directly  \n- It does not produce an article in one step.  \n- It separates the process into two focused stages: outline generation and paragraph expansion.  \n- This approach gives you more control over tone, SEO, structure, and keyword placement.\n\n## How it works  \n### 1. Generate outline  \n- The workflow sends your topic to an AI Agent.  \n- It returns a structured outline based on the topic, desired depth, language, and keyword focus.\n\n### 2. Expand each subtopic  \n- The workflow loops through each outline item.  \n- Every subtopic is expanded into a detailed, SEO-friendly paragraph.  \n- Output is consistent and optimized for readability.\n\n### 3. Produce final outputs  \n- Combines all expanded sections into:  \n  - A clean JSON object  \n  - A Markdown version ready for blogs or CMS  \n- The JSON includes:  \n  - Title  \n  - HTML content  \n  - Markdown content  \n- You can send this directly to REST APIs such as WordPress, Notion, or documentation platforms.  \n- Content is validated for readability and typically scores well in tools like Yoast SEO.  \n- Uses GPT-4o Mini by default, with average token usage between 2000 and 3000 depending on outline size.\n\n## Use cases  \n- Auto-generate long-form articles for blogs or content marketing.  \n- Turn Instagram or short-form scripts into complete SEO articles.  \n- Create documentation or educational content using consistent templates.  \n\n## Setup steps  \n### 1. Prepare credentials  \n- Add your OpenAI API Key inside n8n\u2019s credential manager.\n\n### 2. Adjust input parameters  \n- Topic or main idea  \n- Number of outline items  \n- Language  \n- Primary keyword  \n- Tone or writing style (optional)\n\n### 3. Customize the workflow  \n- Switch the model if you want higher quality or lower token usage.  \n- Modify the prompt for the outline or paragraph generator to match your writing style.  \n- Add additional nodes if you want to auto-upload the final article to WordPress, Notion, or any API.\n\n### 4. Run the workflow  \n- Enter your topic  \n- Execute the workflow  \n- Retrieve both JSON and Markdown outputs for immediate publishing\n\nIf you need help expanding this into a full content pipeline or want to integrate it with other automation systems, feel free to customize further.",
+  "optimized_description": "**Workflow Description: Blog Article Generation**\n\n**Overview**  \nThis workflow is designed to convert a single topic into a comprehensive blog article through a structured, multi-step process. It enhances output quality, SEO consistency, and overall structure by breaking the task into two focused stages: outline generation and paragraph expansion.\n\n**Trigger**  \nThe workflow is initiated by manually entering a topic or main idea into the input field.\n\n**Data Sources and APIs Needed**  \n- OpenAI API (for AI-driven outline generation and paragraph expansion)\n- Optional REST APIs for content publishing (e.g., WordPress, Notion)\n\n**Operations and Processing Steps**  \n\n1. **Generate Outline**  \n   - The workflow sends the provided topic to the OpenAI API using the GPT-4o Mini model.\n   - The API returns a structured outline based on the following parameters:\n     - Topic\n     - Desired depth of content\n     - Language\n     - Primary keyword focus\n\n2. **Expand Each Subtopic**  \n   - The workflow iterates through each item in the generated outline.\n   - For each subtopic, the workflow sends a request to the OpenAI API to expand it into a detailed, SEO-friendly paragraph.\n   - The output for each paragraph is optimized for readability and SEO, ensuring consistency across the article.\n\n3. **Produce Final Outputs**  \n   - Once all subtopics are expanded, the workflow combines the sections into:\n     - A clean JSON object that includes:\n       - Title\n       - HTML content\n       - Markdown content\n     - A Markdown version formatted for blogs or content management systems (CMS).\n   - The JSON object and Markdown output can be sent directly to REST APIs such as WordPress or Notion for publishing.\n   - The content is validated for readability, typically scoring well in SEO tools like Yoast SEO.\n\n**Final Output or Action**  \nThe final outputs consist of both a structured JSON object and a Markdown version of the article, ready for immediate publishing. Users can retrieve these outputs after executing the workflow.\n\n**Setup Steps**  \n1. **Prepare Credentials**  \n   - Add your OpenAI API Key to n8ns credential manager.\n\n2. **Adjust Input Parameters**  \n   - Specify the topic or main idea.\n   - Define the number of outline items.\n   - Choose the language.\n   - Set the primary keyword.\n   - Optionally, select the tone or writing style.\n\n3. **Customize the Workflow**  \n   - Optionally switch the model for higher quality or lower token usage.\n   - Modify the prompt for the outline or paragraph generator to align with your writing style.\n   - Add additional nodes to automate the upload of the final article to WordPress, Notion, or other APIs.\n\n4. **Run the Workflow**  \n   - Enter your topic in the input field.\n   - Execute the workflow to generate the article.\n   - Retrieve both JSON and Markdown outputs for immediate publishing.\n\nThis workflow provides a systematic approach to auto-generating long-form articles, transforming short-form scripts into SEO-friendly content, and creating documentation with consistent templates. Users are encouraged to customize the workflow further to integrate it with other automation systems or expand it into a full content pipeline.",
+  "error": null,
+  "generated_at": "2026-01-25T23:31:10.438507",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.23076923076923078,
+    "node_type_f1": 0.3157894736842105,
+    "tp": 3,
+    "fp": 3,
+    "fn": 10,
+    "gt_node_count": 13,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 7,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4407,
+        "completion_tokens": 959,
+        "total_tokens": 5366
+      },
+      "description_optimization": {
+        "prompt_tokens": 751,
+        "completion_tokens": 647,
+        "total_tokens": 1398
+      },
+      "total_tokens": 6764,
+      "total_prompt_tokens": 5158,
+      "total_completion_tokens": 1606
+    },
+    "total_cost": 0.028955,
+    "description_optimization_cost": 0.0083475,
+    "workflow_generation_cost": 0.0206075
+  }
+}

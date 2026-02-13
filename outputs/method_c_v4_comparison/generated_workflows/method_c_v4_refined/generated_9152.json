@@ -1,0 +1,201 @@
+{
+  "template_id": "9152",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation workflow with AI analysis and generation using specific APIs. Use base nodes for API interactions.",
+      "trigger_analysis": "The workflow should be triggered manually or via a web form submission, which acts as a manual trigger.",
+      "data_sources": "Airtable API, Google Gemini API, Google Veo 3 API",
+      "operations": "1. Receive creative brief and image via form, 2. Upload data to Airtable, 3. Analyze with Google Gemini, 4. Generate video with Google Veo 3, 5. Retrieve and provide video for download",
+      "output_actions": "Final video file available for download",
+      "nodes_plan": "manualTrigger (form submission), airtable (create and update record), httpRequest (Google Gemini and Veo 3 API calls), wait (polling for video completion), writeBinaryFile (save video)",
+      "connections_plan": "manualTrigger -> airtable (create record) -> httpRequest (Gemini analysis) -> httpRequest (Veo 3 video generation) -> wait -> httpRequest (retrieve video) -> writeBinaryFile"
+    },
+    "workflowPlan": {
+      "name": "AI Video Ad Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Airtable Record",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "yourBaseId",
+            "tableId": "yourTableId",
+            "fields": {
+              "Image Prompt": "={{ $json['creativeIdea'] }}",
+              "Image": "={{ $json['imageUrl'] }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze with Google Gemini",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://gemini.googleapis.com/v1/projects/[Project ID]/locations/[Location]/analyze",
+            "authentication": "oAuth2Api",
+            "body": {
+              "prompt": "={{ $json['creativeIdea'] }}",
+              "image": "={{ $json['imageUrl'] }}"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Video with Veo 3",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://veo3.googleapis.com/v1/projects/[Project ID]/locations/[Location]/generateVideo",
+            "authentication": "oAuth2Api",
+            "body": {
+              "creativeBrief": "={{ $json['detailedBrief'] }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait for Video Completion",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitTime": 300
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Retrieve Final Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://veo3.googleapis.com/v1/projects/[Project ID]/locations/[Location]/videos/{{ $json['videoId'] }}",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Video File",
+          "nodeType": "n8n-nodes-base.writeBinaryFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "finalVideo.mp4",
+            "data": "={{ $json['videoData'] }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9633,
+    "completion_tokens": 1228,
+    "total_tokens": 10861
+  },
+  "description_optimization": null,
+  "original_description": "## This n8n template from [Intuz](https://www.intuz.com/) provides a complete and automated solution for transforming a static product image and a creative idea into a dynamic, AI-generated video ad. \n\nUsing Google's state-of-the-art Veo 3 model, this workflow manages the entire creative process from concept to a final, downloadable video file.\n\n## Who's this workflow for?\n- E-commerce Brands & Marketers\n- Advertising Agencies\n- Social Media Content Creators\n- Product Managers\n\n## How it works\n**1. Submit a Creative Brief:** The workflow starts when a user submits a creative idea via a simple web form (e.g., \"A Pepsi can exploding into a vibrant disco party\").\n\n**2. Upload a Product Image:** The user is then prompted to upload a corresponding image (e.g., a high-quality photo of the Pepsi can).\n\n**3. Log the Project in Airtable:** The idea and the uploaded image are saved to an Airtable base, which acts as the central tracking system for all video generation projects.\n\n**4. AI Creative Analysis:** Google Gemini analyzes both the user's text prompt and the uploaded image. It acts as an \"AI Creative Director,\" generating a detailed video brief that reinterprets the static image according to the user's creative vision.\n\n**5. Generate Video with Veo 3:** The detailed creative brief is sent to Google's Veo 3 AI video generation model. The workflow initiates a long-running task to create the video.\n\n**6. Retrieve the Final Video:** After a brief waiting period, the workflow polls the Veo 3 API to retrieve the finished video, converts it into a binary file, and makes it available for download directly from the n8n execution log.\n\n## Key Requirements to Use This Template\n**n8n Instance & Required Nodes:**\n- An active n8n account (Cloud or self-hosted).\nThis workflow uses the official n8n LangChain integration (@n8n/n8n-nodes-langchain). \n- If you are using a self-hosted version of n8n, please ensure this package is installed.\n\n**Google Cloud Account:**\n- A Google Cloud Project with the Vertex AI API enabled.\n- You must have access to both the Gemini and Veo 3 models within your project.\n- You will need a Gemini API Key and a Google OAuth2 Credential configured for the Vertex AI scope.\n\n**Airtable Account:**\n- An Airtable base with a table set up to track the video projects. It should have columns for Image Prompt, Image (Attachment), Video (Attachment/URL), and Status.\n\n## Setup Instructions\n**1. Airtable Configuration (Crucial):**\n- In the Create a record, Get a record, and Update record nodes, connect your Airtable credentials and update the Base ID and Table ID to match your setup.\n- In the Uploading Image in Airtable (HTTP Request) node, you must edit the URL and the \"Authorization\" header to include your Base ID, Table ID, and Personal Access Token.\n\n**2. Google AI Configuration (Gemini & Veo):**\n- In the Analyze image (Google Gemini) node, select your Gemini API credentials.\n- In both the Generate Video Veo 3 and Get the the Video (HTTP Request) nodes: \n\n- You must replace [Project ID] and [Location] in the URLs with your own Google Cloud Project ID and region (e.g., us-central1).\n- Select your Google OAuth2 credentials for authentication.\n\n**3. Customize Video Parameters (Optional):**\n- In the Parse Request (Code) node, you can modify the JavaScript code to change video generation settings like aspectRatio, durationSeconds, and resolution.\n\n**4. Execute the Workflow:**\n- Activate the workflow. Open the Form URL from the Prompt your Idea node to start the process.\n\n## [Sample Videos](https://drive.google.com/drive/folders/1brGvAKJB4PY_CClqqRVh31Kr8fY6cTLs?usp=sharing)\n\n## Connect with us\n- Website: https://www.intuz.com/services\n- Email: getstarted@intuz.com\n- LinkedIn: https://www.linkedin.com/company/intuz\n- Get Started: https://n8n.partnerlinks.io/intuz\n\n## For Custom Workflow Automation\nClick here- [Get Started](https://www.intuz.com/get-started)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T15:17:09.877614",
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.38461538461538464,
+    "node_type_f1": 0.5,
+    "tp": 5,
+    "fp": 2,
+    "fn": 8,
+    "gt_node_count": 13,
+    "llm_node_count": 7,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.18181818181818182,
+    "connection_f1": 0.23529411764705885,
+    "correct_connections": 2,
+    "gt_connection_count": 11,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.0875,
+    "usage": {
+      "prompt_tokens": 9633,
+      "completion_tokens": 1228,
+      "total_tokens": 10861
+    },
+    "total_cost": 0.036362500000000006
+  },
+  "is_ai_workflow": false
+}

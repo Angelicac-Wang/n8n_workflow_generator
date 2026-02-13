@@ -1,0 +1,173 @@
+{
+  "template_id": 5842,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Reddit Data Processing and AI Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Reddit Data Retrieval",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "params": {
+            "url": "https://www.reddit.com/r/{subreddit}/new.json",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Process Data",
+          "nodeType": "n8n-nodes-base.code",
+          "params": {
+            "language": "JavaScript",
+            "code": "return items.map(item => { /* transformation logic */ return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets Interaction",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the following data: {{input}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store in Memory",
+          "nodeType": "n8n-nodes-base.set",
+          "params": {
+            "keepOnlySet": true,
+            "values": {
+              "string": [
+                {
+                  "name": "analysisResult",
+                  "value": "={{$json[\"choices\"][0][\"text\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Output to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!B1"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 700,
+    "completion_tokens": 786,
+    "total_tokens": 1486
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:49:02.292020",
+  "generated_description": "This n8n workflow is initiated manually when the user clicks 'Test workflow'. It involves multiple data sources and operations to achieve its objectives. Initially, it retrieves data from Reddit, likely extracting specific posts or comments. The workflow then processes this data using a Code node, which may involve data transformation or filtering.\n\nSubsequently, the workflow interacts with Google Sheets to either input or retrieve data, suggesting a need for data storage or further processing. An AI Agent is employed, possibly to analyze or make decisions based on the data collected. The OpenAI Chat Model is utilized, indicating that the workflow might involve generating responses or insights using AI-driven natural language processing.\n\nMemory nodes are used to store and manage data temporarily, ensuring that information is retained throughout the workflow's execution. The process likely involves multiple iterations or interactions with Google Sheets and the OpenAI Chat Model, as indicated by the presence of multiple nodes for these services.\n\nUltimately, the workflow combines data extraction, processing, and AI analysis to produce a refined output or actionable insight, which is likely stored or displayed in Google Sheets or communicated through another platform. The detailed operations and interactions suggest a comprehensive approach to data handling and AI-driven analysis.",
+  "description_generation_usage": {
+    "prompt_tokens": 226,
+    "completion_tokens": 238,
+    "total_tokens": 464
+  },
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.18518518518518517,
+    "node_type_f1": 0.2941176470588235,
+    "tp": 5,
+    "fp": 2,
+    "fn": 22,
+    "gt_node_count": 27,
+    "llm_node_count": 7,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.25,
+    "connection_f1": 0.28571428571428575,
+    "correct_connections": 2,
+    "gt_connection_count": 8,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.22583333333333333,
+    "usage": {
+      "prompt_tokens": 700,
+      "completion_tokens": 786,
+      "total_tokens": 1486
+    },
+    "total_cost": 0.012555,
+    "description_generation_cost": 0.002945,
+    "workflow_generation_cost": 0.00961
+  },
+  "original_description": "## Turn Reddit Questions into SEO Articles Automatically\n\nThis workflow takes real user questions from Reddit and transforms them into fully structured blog posts \u2014 title, intro, steps, and conclusion \u2014 using AI.\n\n---\n\n### How it works\n\n- Manually triggered when you want to run it\n- Scrapes the latest posts from a specific subreddit (e.g. `r/n8n`)\n- Filters only posts that are real questions (based on keywords like \u201chow,\u201d \u201cwhat,\u201d \u201cwhy\u201d)\n- Logs relevant questions into a Google Sheet as raw input\n- Enhances each question using AI (rephrases, creates a clean title and slug)\n- Generates full-length blog content:\n  - \u270f\ufe0f Intro paragraph\n  - \u2705 Step-by-step guide\n  - \ud83e\udde0 Clear conclusion\n- Saves the final blog content to a second Google Sheet for publishing\n\n---\n\n### Set up steps\n\n- You\u2019ll need access to:\n  - Reddit API (OAuth)\n  - OpenAI API\n  - Google Sheets\n- Takes around **15\u201320 minutes** to connect all the credentials and tweak prompts\n- Customize the subreddit or topic focus by changing the Reddit node config\n\n---\n\nPerfect for content teams who want to scale content output using real community pain points \u2014 without ever starting from a blank page."
+}

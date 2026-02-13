@@ -1,0 +1,143 @@
+{
+  "template_id": "2819",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a chat message, which can be simulated using a webhook trigger.",
+      "data_sources": "The data source is the incoming chat message, which will be parsed by an AI service to extract structured data.",
+      "operations": "1. Receive chat message via webhook, 2. Use AI to parse message into JSON, 3. Save parsed data into Google Sheets, 4. Send confirmation message back.",
+      "output_actions": "The final output is a confirmation message sent back to the chat and a new row added to Google Sheets.",
+      "nodes_plan": "webhook (trigger), openAi (parse message), googleSheets (insert row), respondToWebhook (send confirmation)",
+      "connections_plan": "webhook -> openAi -> googleSheets -> respondToWebhook (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Chat Expense Logger",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-expense"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Message with AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.message }}",
+            "prompt": "Parse the following message into JSON with fields: cost, descr, date. Message: {{ $json.body.message }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Save to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "1D0r3tun7LF7Ypb21CmbTKEtn76WE-kaHvBCM5NdgiPU",
+            "range": "Sheet1!A:C",
+            "data": [
+              {
+                "values": [
+                  "={{ $json.descr }}",
+                  "={{ $json.cost }}",
+                  "={{ $json.date }}"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Confirmation",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": {
+              "json": {
+                "message": "Your expense saved, here is the output of save sub-workflow: {{ $json }}"
+              }
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5423,
+    "completion_tokens": 782,
+    "total_tokens": 6205
+  },
+  "description_optimization": null,
+  "original_description": "## Use Case\nIt is very convenient to add expenses via simple chat message. This workflow attempts to do exactly this using AI-powered n8n magic!\n\n![20250129 at 17.37.png](fileId:921)\nSend message to a chat, something like **\"car wash; 59.3 usd; 25 jan 2024\"**\n\nAnd get a response:\n**Your expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}**\n\n\nLLM will smartly parse your message to structured JSON and save the expense as a new row into Google Sheet!\n\n\n\n## Installation\n### 1. Set up Google Sheets:\nClone this Sheet:\nhttps://docs.google.com/spreadsheets/d/1D0r3tun7LF7Ypb21CmbTKEtn76WE-kaHvBCM5NdgiPU/edit?gid=0#gid=0\n\n(File -&gt; Make a copy)\n\nChoose this sheet into \"Save expense into Google Sheets\" node.\n\n\n### 2. Fix sub-workflow dropdown: \nopen \"Parse msg and save to Sheets\" node (which is an n8n sub-workflow executor tool) and make sure the SAME workflow is chosen in the dropdown. it will allow n8n to locate and call \"Workflow Input Trigger\" properly when needed.\n\n\n### 3. Activate the workflow to make chat work properly.\nSent message to chat, something like \"car wash; 59.3 usd; 25 jan 2024\"\n\nyou should get a response:\nYour expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}\n\nand new row in Google sheets should be inserted!",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:53:18.583277",
+  "metrics": {
+    "node_type_precision": 0.25,
+    "node_type_recall": 0.1111111111111111,
+    "node_type_f1": 0.15384615384615383,
+    "tp": 1,
+    "fp": 3,
+    "fn": 8,
+    "gt_node_count": 9,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 3,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.08333333333333333,
+    "usage": {
+      "prompt_tokens": 5423,
+      "completion_tokens": 782,
+      "total_tokens": 6205
+    },
+    "total_cost": 0.0213775
+  }
+}

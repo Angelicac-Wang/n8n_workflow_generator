@@ -1,0 +1,224 @@
+{
+  "template_id": 11645,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Video Content Management and Metadata Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "folderId": "YOUR_FOLDER_ID",
+            "watchFor": "file",
+            "events": [
+              "add"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Create Airtable Record",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "baseId": "YOUR_BASE_ID",
+            "tableId": "YOUR_TABLE_ID",
+            "fields": {
+              "Video Name": "={{$json[\"name\"]}}",
+              "Video ID": "={{$json[\"id\"]}}"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Titles with OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Generate three potential titles for the video: {{$json[\"name\"]}}",
+            "maxTokens": 50
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Update Airtable with Titles",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "baseId": "YOUR_BASE_ID",
+            "tableId": "YOUR_TABLE_ID",
+            "recordId": "={{$node[\"Create Airtable Record\"].json[\"id\"]}}",
+            "fields": {
+              "Generated Titles": "={{$json[\"choices\"][0][\"text\"]}}"
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Webhook for External Data",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "external-data"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Retrieve Airtable Records",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "baseId": "YOUR_BASE_ID",
+            "tableId": "YOUR_TABLE_ID"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "HTTP Request for Images",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/get-image",
+            "method": "GET"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "File Extraction",
+          "nodeType": "n8n-nodes-base.file",
+          "typeVersion": 1,
+          "params": {
+            "operation": "extract",
+            "filePath": "={{$json[\"path\"]}}"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Wait Node",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1h"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 698,
+    "completion_tokens": 1142,
+    "total_tokens": 1840
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:43:59.476226",
+  "generated_description": "This n8n workflow is designed to automate the process of managing video content and generating related metadata. It is triggered when a new video is added to a specific Google Drive folder. Upon detection of a new video, the workflow initiates several operations to process and manage the content.\n\nInitially, the workflow creates a new record in an Airtable database to log the event. It then uses OpenAI's API to generate three potential titles for the video, which are subsequently added to the Airtable record. The workflow also includes a mechanism to handle incoming data through webhooks, allowing for external interactions and data inputs.\n\nAdditionally, the workflow retrieves specific records from Airtable and performs HTTP requests to obtain images or other necessary data. It includes a file extraction process to analyze or manipulate the video file as needed. A wait node is incorporated to manage the timing of operations, ensuring that each step is executed in sequence.\n\nOverall, the final output of the workflow is a well-documented and organized record in Airtable, complete with generated titles and any additional metadata or assets related to the newly added video. This structured approach facilitates efficient content management and metadata generation for video files stored in Google Drive.",
+  "description_generation_usage": {
+    "prompt_tokens": 231,
+    "completion_tokens": 236,
+    "total_tokens": 467
+  },
+  "metrics": {
+    "node_type_precision": 0.8888888888888888,
+    "node_type_recall": 0.22857142857142856,
+    "node_type_f1": 0.3636363636363636,
+    "tp": 8,
+    "fp": 1,
+    "fn": 27,
+    "gt_node_count": 35,
+    "llm_node_count": 9,
+    "connection_precision": 0.5,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.25,
+    "correct_connections": 4,
+    "gt_connection_count": 24,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.014756944444444444,
+    "usage": {
+      "prompt_tokens": 698,
+      "completion_tokens": 1142,
+      "total_tokens": 1840
+    },
+    "total_cost": 0.016102500000000002,
+    "description_generation_cost": 0.0029375,
+    "workflow_generation_cost": 0.013165000000000001
+  },
+  "original_description": "This n8n template demonstrates how to automate YouTube content repurposing using AI. Upload a video to Google Drive and automatically generate transcriptions, A/B testable titles, AI thumbnails, short-form clips with captions, and YouTube descriptions with chapter timestamps.\n\nUse cases include: Content creators who publish 1-2 long-form videos per week and need to extract 5-10 short-form clips, YouTube agencies managing multiple channels, or automation consultants building content systems for clients.\n\n## Good to know\n\n* Processing time is approximately 10-15 minutes per video depending on length\n* Cost per video is roughly $1.00 (transcription $0.65, AI generation $0.35)\n* YouTube captions take 10-60 minutes to generate after upload - the workflow includes automatic polling to check when captions are ready\n* Manual steps still required: video clipping (using provided timestamps), social media posting, and YouTube A/B test setup\n\n## How it works\n\n* When a video is uploaded to Google Drive, the workflow automatically triggers and creates an Airtable record\n* The video URL is sent to AssemblyAI (via Apify) for transcription with H:MM:SS.mmm timestamps\n* GPT-4o-mini analyzes the transcript and generates 3 title variations optimized for A/B testing\n* When you click \"Generate thumbnail\" in Airtable, your prompt is optimized and sent to Kie.ai's Nano Banana Pro model with 2 reference images for consistent branding\n* After uploading to YouTube, the workflow polls YouTube's API every 5 minutes to check if auto-generated captions are ready\n* Once captions are available, click \"Generate clips\" and Grok 4.1 Fast analyzes the transcript to identify 3-8 elite clips (45+ seconds each) with proper start/end boundaries and action-oriented captions\n* GPT-4o-mini generates a YouTube description with chapter timestamps based on the transcript\n* All outputs are saved to Airtable: titles, thumbnail, clip timestamps with captions, and description\n\n## How to use\n\n* Duplicate the provided Airtable base template and connect it to your n8n instance\n* Create a Google Drive folder for uploading edited videos\n* After activating the workflow, copy webhook URLs and paste them into Airtable button formulas and automations\n* Upload your edited video to the designated Google Drive folder to trigger the system\n* The workflow automatically generates titles and begins transcription\n* Add your thumbnail prompt and 2 reference images to Airtable, then click \"Generate thumbnail\"\n* Upload the video to YouTube as unlisted, paste the video ID into Airtable, and check the box to trigger clip generation\n* Use the provided timestamps to manually clip videos in your editor\n* Copy titles, thumbnail, clips, and description from Airtable to publish across platforms\n\n## Requirements\n\n* Airtable account (Pro plan recommended for automations)\n* Google Drive for video upload monitoring\n* Apify account for video transcription via AssemblyAI actor\n* OpenAI API key for title and description generation (GPT-4o-mini)\n* OpenRouter API key for clip identification (Grok 4.1 Fast)\n* Kie.ai account for AI thumbnail generation (Nano Banana Pro model)\n* YouTube Data API credentials for caption polling\n\n## Customising this workflow\n\n* Tailor the system prompts to your content niche by asking Claude to adjust them without changing the core structure\n* Modify the clip identification criteria (length, caption style, number of clips) in the Grok prompt\n* Adjust thumbnail generation style by updating the image prompt optimizer\n* Add custom fields to Airtable for tracking performance metrics or additional metadata\n* Integrate with additional platforms like TikTok or Instagram APIs for automated posting"
+}

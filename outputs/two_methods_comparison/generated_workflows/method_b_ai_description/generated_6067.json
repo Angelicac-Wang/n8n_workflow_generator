@@ -1,0 +1,271 @@
+{
+  "template_id": 6067,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automate Blog Post Creation and Publication",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 9,
+                  "minute": 0,
+                  "weekday": [
+                    "Monday"
+                  ]
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Research Topic - Perplexity",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.perplexity.ai/research",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Crear Post en Wordpress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "authentication": "wordpressApi",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "title": "={{$json[\"title\"]}}",
+                "content": "={{$json[\"content\"]}}",
+                "status": "draft"
+              }
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Message a model",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/engines/davinci-codex/completions",
+            "method": "POST",
+            "authentication": "openaiApi",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "prompt": "={{$json[\"content\"]}}",
+                "max_tokens": 150
+              }
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload Image to Wordpress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/media",
+            "method": "POST",
+            "authentication": "wordpressApi",
+            "jsonParameters": true,
+            "options": {
+              "body": {
+                "file": "={{$binary.data}}",
+                "title": "Blog Image"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "If",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"content\"]}}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "={{$json[\"waitTime\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Get Leonardo Image Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.leonardo.ai/image/status",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Get Leonardo Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.leonardo.ai/image",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Agregar ALT a la Imagen",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { altText: 'Descriptive alt text for SEO and accessibility' } }];"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 752,
+    "completion_tokens": 1333,
+    "total_tokens": 2085
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:46:43.609845",
+  "generated_description": "This n8n workflow is designed to automate the creation and publication of blog posts on a WordPress site. It is triggered by a Schedule Trigger, which initiates the workflow at predetermined times.\n\nThe process begins with the \"Research Topic- Perplexity\" node, which likely uses an API to gather information or generate ideas for a blog post topic. Following this, the \"Crear Post en Wordpress\" node creates a draft post on WordPress using the information gathered.\n\nTo enhance the content, the \"Message a model\" node utilizes OpenAI's API to generate additional text or refine the blog post content. Concurrently, the workflow handles image processing: the \"Upload Image to Wordpress\" node uploads an image to accompany the post.\n\nAn \"If\" node checks certain conditions, possibly to ensure all necessary content is ready before proceeding. If conditions are met, the workflow waits for a specified duration using the \"Wait\" node, allowing time for external processes to complete.\n\nThe \"Get Leonardo Image Status\" and \"Get Leonardo Image\" nodes are involved in retrieving and confirming the status of an image from an external source, ensuring it is ready for use. Once the image is confirmed, the \"Agregar ALT a la Imagen\" node adds alt text to the image for accessibility and SEO purposes.\n\nThe workflow concludes with the publication of a fully prepared and visually enhanced blog post on WordPress, ensuring that both the textual and visual content meet the desired standards.",
+  "description_generation_usage": {
+    "prompt_tokens": 226,
+    "completion_tokens": 290,
+    "total_tokens": 516
+  },
+  "metrics": {
+    "node_type_precision": 0.9,
+    "node_type_recall": 0.6923076923076923,
+    "node_type_f1": 0.7826086956521738,
+    "tp": 9,
+    "fp": 1,
+    "fn": 4,
+    "gt_node_count": 13,
+    "llm_node_count": 10,
+    "connection_precision": 0.8333333333333334,
+    "connection_recall": 0.5,
+    "connection_f1": 0.625,
+    "correct_connections": 5,
+    "gt_connection_count": 10,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.05753968253968253,
+    "usage": {
+      "prompt_tokens": 752,
+      "completion_tokens": 1333,
+      "total_tokens": 2085
+    },
+    "total_cost": 0.018675,
+    "description_generation_cost": 0.003465,
+    "workflow_generation_cost": 0.015210000000000001
+  },
+  "original_description": "## \u2728 SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress\n\nThis workflow automates the creation and publishing of weekly SEO-optimized blog posts using AI and publishes them directly to WordPress \u2014 with featured images and tracking in Google Sheets.\n\n---\n\n## \ud83e\udde0 Who is this for\n\nThis automation is ideal for:\n\n- Startup platforms and tech blogs  \n- Content creators and marketers  \n- Solopreneurs who want consistent blog output  \n- Spanish-speaking audiences focused on startup trends  \n\n---\n\n## \u2699\ufe0f What it does\n\n- \u23f0 Runs every Monday at 6:00 AM via CRON  \n- \ud83d\udce1 Uses Perplexity AI to research trending startup topics  \n- \ud83d\udcdd Generates a 1000\u20131500 word article with GPT in structured HTML  \n- \ud83c\udfa8 Creates a cinematic blog image using Leonardo AI  \n- \ud83d\uddbc\ufe0f Uploads the image to WordPress with alt text and SEO-friendly filename  \n- \ud83d\udcf0 Publishes the post in a pre-defined category  \n- \ud83d\udcca Logs the post in Google Sheets for tracking  \n\n---\n\n## \ud83d\ude80 How to set it up\n\n1. **Connect your credentials**:\n   - Perplexity API  \n   - OpenAI (GPT-4.1 Mini or similar)  \n   - Leonardo AI (Bearer token)  \n   - WordPress (Basic Auth)  \n   - Google Sheets (OAuth2)\n\n2. **Customize your content**:\n   - Adjust the prompt inside the HTTP node to fit your tone or focus  \n   - Change the WordPress category ID  \n   - Update scheduling if you want a different publishing day  \n\n3. **Test the workflow manually** to ensure all steps function correctly\n\n---\n\n## \ud83d\udca1 Pro tips\n\n- Add Slack or email nodes to get notified when a post goes live  \n- Use multiple categories or RSS feeds for content diversification  \n- Adjust GPT prompt to support different languages or tones  \n- Add post-validation rules if needed before publishing  \n\n---\n\n## \ud83c\udfaf Why this matters\n\nThis workflow gives you a full editorial process on autopilot: research, writing, design, publishing, and tracking \u2014 all powered by AI. No more blank pages or manual posting.\n\n**Use it to scale your content strategy, boost your SEO, and stay relevant \u2014 100% hands-free.**"
+}

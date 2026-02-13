@@ -1,0 +1,244 @@
+{
+  "template_id": "12326",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by user interaction with a Telegram bot, which requires a Telegram Trigger node.",
+      "data_sources": "Telegram Bot API for user interaction, WooCommerce API for product creation, and two data tables for storing product information and images.",
+      "operations": "1. Interact with the user via Telegram, 2. Store user responses in data tables, 3. Await user approval, 4. Create product in WooCommerce, 5. Reset data tables, 6. Prompt user for new product creation.",
+      "output_actions": "The final action is creating a product on WooCommerce and preparing the workflow for the next user interaction.",
+      "nodes_plan": "telegramTrigger (trigger), set (store responses), if (approval check), httpRequest (WooCommerce API), set (reset data), telegram (prompt user)",
+      "connections_plan": "telegramTrigger -> set (store responses) -> if (approval check) -> httpRequest (WooCommerce API) -> set (reset data) -> telegram (prompt user)"
+    },
+    "workflowPlan": {
+      "name": "Telegram Bot Product Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message",
+            "botToken": "{{your bot token}}"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Store Responses",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "productTitle",
+                  "value": "={{ $json.message.text }}"
+                },
+                {
+                  "name": "chatId",
+                  "value": "={{ $json.message.chat.id }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Approval Check",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.message.text }}",
+                  "operation": "isEmpty",
+                  "value2": false
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create WooCommerce Product",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://your-woocommerce-site.com/wp-json/wc/v3/products",
+            "authentication": "oAuth2Api",
+            "body": {
+              "name": "={{ $json.productTitle }}",
+              "description": "={{ $json.productDescription }}",
+              "images": [
+                {
+                  "src": "={{ $json.productImage }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Reset Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "productTitle",
+                  "value": ""
+                },
+                {
+                  "name": "productDescription",
+                  "value": ""
+                },
+                {
+                  "name": "productImage",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Prompt User",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.chatId }}",
+            "text": "Product created successfully! Would you like to create another product?"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4324,
+      "completion_tokens": 1109,
+      "total_tokens": 5433
+    },
+    "description_optimization": {
+      "prompt_tokens": 380,
+      "completion_tokens": 563,
+      "total_tokens": 943
+    },
+    "total_tokens": 6376,
+    "total_prompt_tokens": 4704,
+    "total_completion_tokens": 1672
+  },
+  "description_optimization": {
+    "template_id": "12326",
+    "optimized_description": "Workflow Description for Telegram Bot Product Creation Process\n\nTrigger:\nThe workflow is initiated when a user interacts with a Telegram bot designed to prompt questions related to product creation.\n\nData Sources and APIs Needed:\n1. Telegram Bot API - to facilitate communication with users.\n2. Two Data Tables:\n   - WooCommerce Product Manager - to store product-related data.\n   - User_Images - to manage images associated with products.\n3. WooCommerce API - to create products on the WooCommerce platform.\n\nOperations and Processing Steps:\n1. User Interaction:\n   - The user answers a series of questions prompted by the Telegram bot. These questions will gather necessary information for product creation, such as title, description, images, and other relevant details.\n\n2. Data Storage:\n   - As the user provides answers, the workflow updates the WooCommerce Product Manager Data Table with the current step of the process and the user's chat ID. This ensures that the user's progress can be tracked and managed effectively.\n\n3. Approval Process:\n   - Once the user has completed answering all questions, the workflow awaits approval from the user. This can be facilitated through a confirmation message sent via the Telegram bot.\n\n4. Product Creation:\n   - Upon receiving approval from the user, the workflow proceeds to create a product on WooCommerce. This involves:\n     - Generating a title, description, and slug based on the user's input.\n     - Making an API request to WooCommerce to create the product using the gathered information.\n\n5. Data Reset:\n   - After the product has been successfully created, the workflow resets the Data Tables to prepare for the next user interaction. This includes clearing any previous data related to the completed product.\n\n6. User Prompt:\n   - The user is then prompted to create another product. This can be done through a message from the Telegram bot, encouraging the user to start the process again.\n\nFinal Output or Action:\nThe final output of this workflow is the successful creation of a product on WooCommerce based on user input collected via the Telegram bot. Additionally, the workflow ensures that the user is engaged throughout the process and is ready to create additional products seamlessly.\n\nSetup Steps (Estimated Time: 25 Minutes):\n1. Create a Telegram bot using @botfather on Telegram to facilitate user interactions.\n2. Set up two Data Tables:\n   - Name the first table \"WooCommerce Product Manager\" for storing product data.\n   - Name the second table \"User_Images\" for managing product images.\n3. Add your preferred LLM (Language Model) credentials and configure these credentials in the Telegram node.\n4. In the TelegramGroupMedia node and EditFields 1 node, insert your bot token to replace the placeholder {{your bot token}}.\n5. Once these steps are completed, your workflow is fully configured and ready for use.",
+    "original_description": "**How it Works?**\n\n1. User Answers Questions Prompted by the Telegram Bot\n2. Data Tables are updated to with relevant step of the process and a chat id\n3. Upon Approval, the Title, Description and Slug are created and then Product is created on WooCommerce via API request.\n4. Data Tables are reset and user is prompted to create another product.\n\n**Setup Steps:** (25 Minutes)\n1. Create a Telegram bot via @botfather on telegram\n2. Setup 2 Data Tables with names WooCommerce Product Manager & User_Images\n3. Add your  Preffered LLM Credentials and set credentials in telegram node \n4. In TelegramGroupMedia node and EditFields 1 node, add your bot token to replace {{your bot token}}\n5. Voila! Your Workflow is now configured.",
+    "description_length": 2889,
+    "usage": {
+      "prompt_tokens": 380,
+      "completion_tokens": 563,
+      "total_tokens": 943
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:50:25.129106"
+  },
+  "original_description": "**How it Works?**\n\n1. User Answers Questions Prompted by the Telegram Bot\n2. Data Tables are updated to with relevant step of the process and a chat id\n3. Upon Approval, the Title, Description and Slug are created and then Product is created on WooCommerce via API request.\n4. Data Tables are reset and user is prompted to create another product.\n\n**Setup Steps:** (25 Minutes)\n1. Create a Telegram bot via @botfather on telegram\n2. Setup 2 Data Tables with names WooCommerce Product Manager & User_Images\n3. Add your  Preffered LLM Credentials and set credentials in telegram node \n4. In TelegramGroupMedia node and EditFields 1 node, add your bot token to replace {{your bot token}}\n5. Voila! Your Workflow is now configured.",
+  "optimized_description": "Workflow Description for Telegram Bot Product Creation Process\n\nTrigger:\nThe workflow is initiated when a user interacts with a Telegram bot designed to prompt questions related to product creation.\n\nData Sources and APIs Needed:\n1. Telegram Bot API - to facilitate communication with users.\n2. Two Data Tables:\n   - WooCommerce Product Manager - to store product-related data.\n   - User_Images - to manage images associated with products.\n3. WooCommerce API - to create products on the WooCommerce platform.\n\nOperations and Processing Steps:\n1. User Interaction:\n   - The user answers a series of questions prompted by the Telegram bot. These questions will gather necessary information for product creation, such as title, description, images, and other relevant details.\n\n2. Data Storage:\n   - As the user provides answers, the workflow updates the WooCommerce Product Manager Data Table with the current step of the process and the user's chat ID. This ensures that the user's progress can be tracked and managed effectively.\n\n3. Approval Process:\n   - Once the user has completed answering all questions, the workflow awaits approval from the user. This can be facilitated through a confirmation message sent via the Telegram bot.\n\n4. Product Creation:\n   - Upon receiving approval from the user, the workflow proceeds to create a product on WooCommerce. This involves:\n     - Generating a title, description, and slug based on the user's input.\n     - Making an API request to WooCommerce to create the product using the gathered information.\n\n5. Data Reset:\n   - After the product has been successfully created, the workflow resets the Data Tables to prepare for the next user interaction. This includes clearing any previous data related to the completed product.\n\n6. User Prompt:\n   - The user is then prompted to create another product. This can be done through a message from the Telegram bot, encouraging the user to start the process again.\n\nFinal Output or Action:\nThe final output of this workflow is the successful creation of a product on WooCommerce based on user input collected via the Telegram bot. Additionally, the workflow ensures that the user is engaged throughout the process and is ready to create additional products seamlessly.\n\nSetup Steps (Estimated Time: 25 Minutes):\n1. Create a Telegram bot using @botfather on Telegram to facilitate user interactions.\n2. Set up two Data Tables:\n   - Name the first table \"WooCommerce Product Manager\" for storing product data.\n   - Name the second table \"User_Images\" for managing product images.\n3. Add your preferred LLM (Language Model) credentials and configure these credentials in the Telegram node.\n4. In the TelegramGroupMedia node and EditFields 1 node, insert your bot token to replace the placeholder {{your bot token}}.\n5. Once these steps are completed, your workflow is fully configured and ready for use.",
+  "error": null,
+  "generated_at": "2026-01-25T23:50:32.598252",
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.06896551724137931,
+    "node_type_f1": 0.12903225806451613,
+    "tp": 6,
+    "fp": 0,
+    "fn": 81,
+    "gt_node_count": 87,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.030303030303030304,
+    "connection_f1": 0.052631578947368425,
+    "correct_connections": 1,
+    "gt_connection_count": 33,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4324,
+        "completion_tokens": 1109,
+        "total_tokens": 5433
+      },
+      "description_optimization": {
+        "prompt_tokens": 380,
+        "completion_tokens": 563,
+        "total_tokens": 943
+      },
+      "total_tokens": 6376,
+      "total_prompt_tokens": 4704,
+      "total_completion_tokens": 1672
+    },
+    "total_cost": 0.028480000000000005,
+    "description_optimization_cost": 0.006580000000000001,
+    "workflow_generation_cost": 0.021900000000000003
+  }
+}

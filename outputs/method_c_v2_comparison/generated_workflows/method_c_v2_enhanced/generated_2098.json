@@ -1,0 +1,162 @@
+{
+  "template_id": "2098",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "Webhook trigger to receive incoming chat messages",
+      "data_sources": "OpenAI API for chat processing",
+      "operations": "1. Receive chat message, 2. Retrieve chat history, 3. Send message and history to OpenAI, 4. Process response, 5. Update chat history",
+      "output_actions": "Respond to chat with OpenAI's response and update chat history",
+      "nodes_plan": "webhook (trigger), getChatHistory (database), sendToOpenAI (openAi), updateChatHistory (database), respondToChat (respondToWebhook)",
+      "connections_plan": "webhook -> getChatHistory -> sendToOpenAI -> updateChatHistory -> respondToChat"
+    },
+    "workflowPlan": {
+      "name": "Chatbot with Memory",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chatbot"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get Chat History",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "chat_history",
+            "columns": "*",
+            "where": "user_id = '={{ $json.body.user_id }}'"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send to OpenAI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.message }}\n\nHistory:\n{{ $json.chat_history }}",
+            "model": "gpt-3.5-turbo"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Update Chat History",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "chat_history",
+            "columns": "user_id, message",
+            "values": [
+              {
+                "column": "user_id",
+                "value": "={{ $json.body.user_id }}"
+              },
+              {
+                "column": "message",
+                "value": "={{ $json.body.message }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond to Chat",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseMode": "lastNode",
+            "responseData": "={{ $json.message.content }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5099,
+    "completion_tokens": 849,
+    "total_tokens": 5948
+  },
+  "description_optimization": null,
+  "original_description": "OpenAI Assistant is a powerful tool, but at the time of writing it doesn't automatically remember past messages from a conversation.\n\nThis workflow demonstrates how to get around this, by managing the chat history in n8n and passing it to the assistant when required.\n\nThis makes it possible to use OpenAI Assistant for chatbot use cases.\n\nNote that to use this template, you need to be on n8n version 1.28.0 or later.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:41:24.959234",
+  "metrics": {
+    "node_type_precision": 0.2,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.22222222222222224,
+    "tp": 1,
+    "fp": 4,
+    "fn": 3,
+    "gt_node_count": 4,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 5099,
+      "completion_tokens": 849,
+      "total_tokens": 5948
+    },
+    "total_cost": 0.021237500000000003
+  }
+}

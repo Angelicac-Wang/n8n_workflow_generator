@@ -1,0 +1,273 @@
+{
+  "template_id": "11821",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an event management automation with registration and check-in flows. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered by a webhook for participant registration and QR code scanning for check-in.",
+      "data_sources": "Google Sheets for participant database, Gmail for sending confirmation emails, Slack for VIP notifications.",
+      "operations": "1. Receive registration via webhook, 2. Generate ticket ID, 3. Store in Google Sheets, 4. Create QR code, 5. Send confirmation email, 6. Scan QR code for check-in, 7. Validate ticket, 8. Send Slack notification for VIPs, 9. Return attendance stats.",
+      "output_actions": "Confirmation email with QR code, Slack notification for VIPs, real-time attendance statistics.",
+      "nodes_plan": "webhook (trigger), set (generate ticket ID), googleSheets (store data), qrCode (generate QR), gmail (send email), qrCodeScanner (scan QR), googleSheets (validate ticket), if (check VIP), slack (notify VIP), set (attendance stats)",
+      "connections_plan": "webhook -> set -> googleSheets -> qrCode -> gmail; qrCodeScanner -> googleSheets -> if -> [slack (VIP) | set (stats)]"
+    },
+    "workflowPlan": {
+      "name": "Event Management Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Registration Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "register"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Ticket ID",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "ticketId",
+                  "value": "={{ $json.name }}-{{ Date.now() }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Store in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "data": "={{ [{\"Ticket ID\": $json.ticketId, \"Event ID\": $json.eventId, \"Name\": $json.name, \"Email\": $json.email, \"Ticket Type\": $json.ticketType, \"Registered At\": new Date().toISOString()}] }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate QR Code",
+          "nodeType": "n8n-nodes-base.qrCode",
+          "typeVersion": 1,
+          "params": {
+            "data": "={{ $json.ticketId }}",
+            "size": 200
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Confirmation Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{ $json.email }}",
+            "subject": "Event Registration Confirmation",
+            "text": "Thank you for registering. Your ticket ID is {{ $json.ticketId }}.",
+            "attachments": "={{ [{\"content\": $json.qrCode, \"type\": \"image/png\", \"filename\": \"ticket.png\"}] }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "QR Code Scanner",
+          "nodeType": "n8n-nodes-base.qrCodeScanner",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Validate Ticket",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "lookup",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:G",
+            "lookupColumn": "Ticket ID",
+            "lookupValue": "={{ $json.qrCodeData }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Check VIP",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.ticketType }}",
+                  "operation": "equal",
+                  "value2": "VIP"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send VIP Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#vip-arrivals",
+            "text": "VIP {{ $json.name }} has arrived."
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Update Attendance Stats",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "checkedIn",
+                  "value": "true"
+                },
+                {
+                  "name": "checkInTime",
+                  "value": "={{ new Date().toISOString() }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 1,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9016,
+    "completion_tokens": 1654,
+    "total_tokens": 10670
+  },
+  "description_optimization": null,
+  "original_description": "Who is this for?\nThis template is ideal for event organizers, conference managers, and community teams who need an automated participant management system. Perfect for workshops, conferences, meetups, or any event requiring registration and check-in tracking.\nWhat this workflow does\nThis workflow provides end-to-end event management with two main flows:\nRegistration Flow:\n\u2981\tReceives participant registration via webhook\n\u2981\tGenerates unique ticket ID and stores in Google Sheets\n\u2981\tCreates QR code using the QR Code node\n\u2981\tSends confirmation email with QR code attached\nCheck-in Flow:\n\u2981\tScans and decodes QR code at venue entrance\n\u2981\tValidates ticket against participant database\n\u2981\tBlocks duplicate check-ins with clear error messages\n\u2981\tSends Slack notification for VIP arrivals\n\u2981\tReturns real-time attendance statistics\nSetup\n1.\tCreate a Google Sheet with columns: Ticket ID, Event ID, Name, Email, Ticket Type, Registered At, Checked In, Check-in Time\n2.\tConnect your Google Sheets and Gmail credentials\n3.\tConfigure Slack for VIP notifications\n4.\tSet up the webhook URLs in your registration form\nRequirements\n\u2981\tGoogle Sheets (participant database)\n\u2981\tGmail account (confirmation emails)\n\u2981\tSlack workspace (VIP notifications)\nHow to customize\n\u2981\tAdd capacity limits by checking row count before registration\n\u2981\tModify QR code size and format in the QR Code node\n\u2981\tAdd additional ticket types beyond VIP/standard\n\u2981\tIntegrate with payment systems for paid events",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:53:45.104825",
+  "metrics": {
+    "node_type_precision": 0.7,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.45161290322580644,
+    "tp": 7,
+    "fp": 3,
+    "fn": 14,
+    "gt_node_count": 21,
+    "llm_node_count": 10,
+    "connection_precision": 0.5,
+    "connection_recall": 0.25,
+    "connection_f1": 0.3333333333333333,
+    "correct_connections": 4,
+    "gt_connection_count": 16,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.1994047619047619,
+    "usage": {
+      "prompt_tokens": 9016,
+      "completion_tokens": 1654,
+      "total_tokens": 10670
+    },
+    "total_cost": 0.039080000000000004
+  },
+  "is_ai_workflow": false
+}

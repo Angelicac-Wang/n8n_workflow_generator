@@ -1,0 +1,209 @@
+{
+  "template_id": "12384",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It involves translation and text-to-speech processing using fixed API calls. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered manually or by a schedule to process batches of content.",
+      "data_sources": "OpenAI API for translation, ElevenLabs API for text-to-speech.",
+      "operations": "1. Analyze content to determine translation strategy, 2. Translate text using OpenAI, 3. Convert translated text to speech using ElevenLabs, 4. Validate audio quality, 5. Handle errors and format output.",
+      "output_actions": "Produce high-quality multilingual audio files and handle errors with diagnostic reporting.",
+      "nodes_plan": "manualTrigger (trigger), openAi (translation), httpRequest (text-to-speech), code (quality validation), if (error handling), writeFile (output audio)",
+      "connections_plan": "manualTrigger -> openAi -> httpRequest -> code (quality check) -> if (error handling) -> writeFile (output)"
+    },
+    "workflowPlan": {
+      "name": "Multilingual Audio Content Production",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Translation Orchestrator",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "prompt": "={{ $json.content }}",
+            "temperature": 0.7,
+            "maxTokens": 1000
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Text-to-Speech",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.elevenlabs.io/v1/text-to-speech",
+            "method": "POST",
+            "body": {
+              "text": "={{ $json.translatedText }}",
+              "voice": "default"
+            },
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_ELEVENLABS_API_KEY"
+              }
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Audio Quality Validation",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const audioQuality = validateAudio(item.json.audio);\n  return { json: { ...item.json, audioQuality } };\n});\n\nfunction validateAudio(audio) {\n  // Perform quality checks\n  return audio.includes('quality check passed');\n}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Error Handling",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.audioQuality }}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Output Audio",
+          "nodeType": "n8n-nodes-base.writeFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "output.mp3",
+            "data": "={{ $json.audio }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Diagnostic Reporting",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "errorReport",
+                  "value": "Audio quality check failed."
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 1,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8350,
+    "completion_tokens": 1191,
+    "total_tokens": 9541
+  },
+  "description_optimization": null,
+  "original_description": "## How It Works\nThis workflow provides enterprise-grade translation and text-to-speech automation for international communication teams, content publishers, and localization services. It addresses producing high-quality multilingual audio content with consistent accuracy and natural delivery at scale. An AI orchestrator analyzes source content to determine optimal translation strategy, selecting specialized agents based on content type, complexity, and target languages. The translation agent processes text with contextual awareness, generating structured output that feeds into ElevenLabs' neural text-to-speech engine. Each audio file undergoes automated quality validation checking pronunciation accuracy, natural flow, and technical specifications. High-quality outputs proceed to standardized formatting for delivery, while failures trigger dedicated error handling with diagnostic reporting, ensuring reliable production of professional multilingual audio assets.\n\n## Setup Steps\n1. Configure OpenAI API key in \"Translation Orchestrator\" \n2. Set up ElevenLabs credentials in \"Text-to-Speech\" \n3. Define source and target languages in \"Workflow Configuration\" \n4. Customize orchestration logic based on content types and complexity\n5. Set quality thresholds in \"Audio Quality Validation\" matching output \n\n## Prerequisites\nOpenAI API access with GPT-4 capabilities, active ElevenLabs subscription.\n## Use Cases\nEnterprise content localization, multilingual customer communications\n## Customization\nAdd language-specific translation agents, modify orchestration routing logic\n## Benefits\nDelivers consistent translation quality through intelligent routing",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:20:19.995862",
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.35714285714285715,
+    "node_type_f1": 0.4761904761904762,
+    "tp": 5,
+    "fp": 2,
+    "fn": 9,
+    "gt_node_count": 14,
+    "llm_node_count": 7,
+    "connection_precision": 0.5,
+    "connection_recall": 0.42857142857142855,
+    "connection_f1": 0.4615384615384615,
+    "correct_connections": 3,
+    "gt_connection_count": 7,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.25,
+    "usage": {
+      "prompt_tokens": 8350,
+      "completion_tokens": 1191,
+      "total_tokens": 9541
+    },
+    "total_cost": 0.032785
+  },
+  "is_ai_workflow": false
+}

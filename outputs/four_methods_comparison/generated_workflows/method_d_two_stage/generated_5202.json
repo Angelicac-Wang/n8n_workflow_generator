@@ -1,0 +1,173 @@
+{
+  "template_id": "5202",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Schedule Trigger to run daily or at a user-defined interval.",
+      "data_sources": "Perplexity API for AI news, Anthropic API for content generation, Google Docs for saving the blog post.",
+      "operations": "1. Trigger the workflow daily, 2. Fetch recent AI news, 3. Generate blog content from news, 4. Optionally enhance content with memory and additional context, 5. Save the blog post to Google Docs.",
+      "output_actions": "A fully generated blog post saved to Google Docs.",
+      "nodes_plan": "scheduleTrigger, httpRequest (Perplexity API), httpRequest (Anthropic API), googleDocs (save document)",
+      "connections_plan": "scheduleTrigger -> httpRequest (Perplexity) -> httpRequest (Anthropic) -> googleDocs"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Blog Post Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch AI News",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.perplexity.ai/news",
+            "headers": {
+              "Authorization": "Bearer YOUR_PERPLEXITY_API_KEY"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Blog Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.anthropic.com/v1/claude",
+            "headers": {
+              "Authorization": "Bearer YOUR_ANTHROPIC_API_KEY",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "prompt": "Generate a blog post based on the following AI news: {{ $json }}",
+              "max_tokens": 1500
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Save to Google Docs",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "title": "AI Blog Post - {{ $now.format('YYYY-MM-DD') }}",
+            "content": "={{ $json }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4330,
+      "completion_tokens": 770,
+      "total_tokens": 5100
+    },
+    "description_optimization": {
+      "prompt_tokens": 578,
+      "completion_tokens": 569,
+      "total_tokens": 1147
+    },
+    "total_tokens": 6247,
+    "total_prompt_tokens": 4908,
+    "total_completion_tokens": 1339
+  },
+  "description_optimization": {
+    "template_id": "5202",
+    "optimized_description": "**Workflow Title:** AI-Powered Blog Post Generator\n\n**Category:** Content Automation / AI Writing / Marketing\n\n**Description:**  \nThis automated workflow generates fresh, SEO-optimized blog posts daily using AI tools, catering to solo creators, marketers, and content teams. It eliminates the need for manual research or writing, ensuring users stay updated with the latest AI trends effortlessly.\n\n**Trigger:**  \nThe workflow is initiated by a Schedule Trigger, which activates daily or at a user-defined interval.\n\n**Data Sources and APIs Needed:**  \n1. **Perplexity API Key** - for researching recent AI news.\n2. **Anthropic API Key** - for generating blog content using Claude AI.\n3. **Google Docs (OAuth2 connected)** - for saving the generated blog posts.\n\n**Operations and Processing Steps:**  \n1. **Schedule Trigger**: This node starts the workflow at the specified time interval.\n2. **Perplexity AI Node**: This node queries the Perplexity API to gather the most interesting recent AI news, specifically tailored for a non-technical audience.\n3. **AI Agent (Claude via Anthropic)**: This node takes the researched news and transforms it into a structured blog post. The output includes:\n   - Title\n   - Introduction\n   - Three or more section headers\n   - Key takeaways\n   - Meta description  \n   The content is crafted for clarity, engagement, and SEO optimization.\n4. **Optional Memory & Perplexity Tool Nodes**: These nodes enhance the AI agent's responses by providing capabilities to clarify facts or fetch additional context, improving the depth and accuracy of the generated content.\n5. **Google Docs Node**: This node automatically saves the final blog post to a designated Google Document, making it ready for review, scheduling, or publishing.\n\n**Final Output or Action:**  \nThe workflow outputs a fully generated blog post, saved directly to Google Docs, allowing for easy access and further editing. This automation streamlines content creation, making it suitable for various use cases, including:\n- Automating weekly blog content for newsletters or websites.\n- Repurposing content into social media posts or scripts.\n- Keeping brands relevant in the rapidly evolving AI landscape.\n\n**Key Features:**  \n- Integration of Perplexity AI and Claude AI (Anthropic) for comprehensive research and writing.\n- Built-in memory and retrieval logic for enhanced contextual accuracy.\n- Non-technical, friendly writing style ideal for general audiences.\n- Fully no-code, customizable, and extendable workflow.\n\n**Setup Requirements:**  \n- Obtain a Perplexity API Key.\n- Obtain an Anthropic API Key.\n- Connect Google Docs using OAuth2 for document saving capabilities. \n\nThis structured workflow description provides a clear overview of the AI-Powered Blog Post Generator, detailing each component necessary for successful implementation and operation.",
+    "original_description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.* \n\n\ud83e\udde0 AI-Powered Blog Post Generator\nCategory: Content Automation / AI Writing / Marketing\n\nDescription:\nThis automated workflow helps you generate fresh, SEO-optimized blog posts daily using AI tools\u2014perfect for solo creators, marketers, and content teams looking to stay on top of the latest AI trends without manual research or writing.\n\nFor more of such builds and step-by-step Tutorial Guides, check out:\nhttps://www.youtube.com/@Automatewithmarc\n\nHere\u2019s how it works:\n\nSchedule Trigger kicks off the workflow daily (or at your preferred interval).\n\nPerplexity AI Node researches the most interesting recent AI news tailored for a non-technical audience.\n\nAI Agent (Claude via Anthropic) turns that news into a full-length blog post based on a structured prompt that includes title, intro, 3+ section headers, takeaway, and meta description\u2014designed for clarity, engagement, and SEO.\n\nOptional Memory & Perplexity Tool Nodes enhance the agent's responses by allowing it to clarify facts or fetch more context.\n\nGoogle Docs Node automatically saves the final blog post to your selected document\u2014ready for review, scheduling, or publishing.\n\nKey Features:\n\nCombines Perplexity AI + Claude AI (Anthropic) for research + writing\n\nBuilt-in memory and retrieval logic for deeper contextual accuracy\n\nNon-technical, friendly writing style ideal for general audiences\n\nOutput saved directly to Google Docs\n\nFully no-code, customizable, and extendable\n\nUse Cases:\n\nAutomate weekly blog content for your newsletter or site\n\nRepurpose content into social posts or scripts\n\nKeep your brand relevant in the fast-moving AI landscape\n\nSetup Requirements:\n\nPerplexity API Key\n\nAnthropic API Key\n\nGoogle Docs (OAuth2 connected)",
+    "description_length": 2860,
+    "usage": {
+      "prompt_tokens": 578,
+      "completion_tokens": 569,
+      "total_tokens": 1147
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:41:57.543240"
+  },
+  "original_description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.* \n\n\ud83e\udde0 AI-Powered Blog Post Generator\nCategory: Content Automation / AI Writing / Marketing\n\nDescription:\nThis automated workflow helps you generate fresh, SEO-optimized blog posts daily using AI tools\u2014perfect for solo creators, marketers, and content teams looking to stay on top of the latest AI trends without manual research or writing.\n\nFor more of such builds and step-by-step Tutorial Guides, check out:\nhttps://www.youtube.com/@Automatewithmarc\n\nHere\u2019s how it works:\n\nSchedule Trigger kicks off the workflow daily (or at your preferred interval).\n\nPerplexity AI Node researches the most interesting recent AI news tailored for a non-technical audience.\n\nAI Agent (Claude via Anthropic) turns that news into a full-length blog post based on a structured prompt that includes title, intro, 3+ section headers, takeaway, and meta description\u2014designed for clarity, engagement, and SEO.\n\nOptional Memory & Perplexity Tool Nodes enhance the agent's responses by allowing it to clarify facts or fetch more context.\n\nGoogle Docs Node automatically saves the final blog post to your selected document\u2014ready for review, scheduling, or publishing.\n\nKey Features:\n\nCombines Perplexity AI + Claude AI (Anthropic) for research + writing\n\nBuilt-in memory and retrieval logic for deeper contextual accuracy\n\nNon-technical, friendly writing style ideal for general audiences\n\nOutput saved directly to Google Docs\n\nFully no-code, customizable, and extendable\n\nUse Cases:\n\nAutomate weekly blog content for your newsletter or site\n\nRepurpose content into social posts or scripts\n\nKeep your brand relevant in the fast-moving AI landscape\n\nSetup Requirements:\n\nPerplexity API Key\n\nAnthropic API Key\n\nGoogle Docs (OAuth2 connected)",
+  "optimized_description": "**Workflow Title:** AI-Powered Blog Post Generator\n\n**Category:** Content Automation / AI Writing / Marketing\n\n**Description:**  \nThis automated workflow generates fresh, SEO-optimized blog posts daily using AI tools, catering to solo creators, marketers, and content teams. It eliminates the need for manual research or writing, ensuring users stay updated with the latest AI trends effortlessly.\n\n**Trigger:**  \nThe workflow is initiated by a Schedule Trigger, which activates daily or at a user-defined interval.\n\n**Data Sources and APIs Needed:**  \n1. **Perplexity API Key** - for researching recent AI news.\n2. **Anthropic API Key** - for generating blog content using Claude AI.\n3. **Google Docs (OAuth2 connected)** - for saving the generated blog posts.\n\n**Operations and Processing Steps:**  \n1. **Schedule Trigger**: This node starts the workflow at the specified time interval.\n2. **Perplexity AI Node**: This node queries the Perplexity API to gather the most interesting recent AI news, specifically tailored for a non-technical audience.\n3. **AI Agent (Claude via Anthropic)**: This node takes the researched news and transforms it into a structured blog post. The output includes:\n   - Title\n   - Introduction\n   - Three or more section headers\n   - Key takeaways\n   - Meta description  \n   The content is crafted for clarity, engagement, and SEO optimization.\n4. **Optional Memory & Perplexity Tool Nodes**: These nodes enhance the AI agent's responses by providing capabilities to clarify facts or fetch additional context, improving the depth and accuracy of the generated content.\n5. **Google Docs Node**: This node automatically saves the final blog post to a designated Google Document, making it ready for review, scheduling, or publishing.\n\n**Final Output or Action:**  \nThe workflow outputs a fully generated blog post, saved directly to Google Docs, allowing for easy access and further editing. This automation streamlines content creation, making it suitable for various use cases, including:\n- Automating weekly blog content for newsletters or websites.\n- Repurposing content into social media posts or scripts.\n- Keeping brands relevant in the rapidly evolving AI landscape.\n\n**Key Features:**  \n- Integration of Perplexity AI and Claude AI (Anthropic) for comprehensive research and writing.\n- Built-in memory and retrieval logic for enhanced contextual accuracy.\n- Non-technical, friendly writing style ideal for general audiences.\n- Fully no-code, customizable, and extendable workflow.\n\n**Setup Requirements:**  \n- Obtain a Perplexity API Key.\n- Obtain an Anthropic API Key.\n- Connect Google Docs using OAuth2 for document saving capabilities. \n\nThis structured workflow description provides a clear overview of the AI-Powered Blog Post Generator, detailing each component necessary for successful implementation and operation.",
+  "error": null,
+  "generated_at": "2026-01-25T23:42:11.035752",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.2857142857142857,
+    "node_type_f1": 0.36363636363636365,
+    "tp": 2,
+    "fp": 2,
+    "fn": 5,
+    "gt_node_count": 7,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 3,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4330,
+        "completion_tokens": 770,
+        "total_tokens": 5100
+      },
+      "description_optimization": {
+        "prompt_tokens": 578,
+        "completion_tokens": 569,
+        "total_tokens": 1147
+      },
+      "total_tokens": 6247,
+      "total_prompt_tokens": 4908,
+      "total_completion_tokens": 1339
+    },
+    "total_cost": 0.025660000000000002,
+    "description_optimization_cost": 0.007135000000000001,
+    "workflow_generation_cost": 0.018525
+  }
+}

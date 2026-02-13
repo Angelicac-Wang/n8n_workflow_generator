@@ -1,0 +1,261 @@
+{
+  "template_id": "9810",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation for video generation using external APIs. Use base nodes.",
+      "trigger_analysis": "Webhook trigger to receive video generation requests from a web form.",
+      "data_sources": "Kie.AI API for video generation, ImgBB API for image hosting, Telegram API for notifications.",
+      "operations": "1. Receive video request via webhook, 2. Check if image is uploaded, 3. Upload image to ImgBB if applicable, 4. Send request to Kie.AI API, 5. Poll for video status, 6. Download video, 7. Send video via Telegram (optional).",
+      "output_actions": "Download video and optionally send via Telegram.",
+      "nodes_plan": "webhook (trigger), if (check image), httpRequest (ImgBB upload), httpRequest (Kie.AI request), wait (polling), httpRequest (Kie.AI status), httpRequest (download video), telegram (send video).",
+      "connections_plan": "webhook -> if (image check) -> [httpRequest (ImgBB) -> httpRequest (Kie.AI) | httpRequest (Kie.AI)] -> wait -> httpRequest (status) -> [repeat wait/status | download video] -> telegram (optional)"
+    },
+    "workflowPlan": {
+      "name": "Sora 2 Video Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "video-request"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Image Upload",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.body.image }}",
+                  "operation": "isNotEmpty"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload to ImgBB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.imgbb.com/1/upload",
+            "body": {
+              "key": "YOUR_ImgBB_API_KEY",
+              "image": "={{ $json.body.image }}"
+            },
+            "options": {
+              "json": true
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Request Video Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.kie.ai/sora2/generate",
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "body": {
+              "prompt": "={{ $json.body.description }}",
+              "quality": "={{ $json.body.quality }}",
+              "aspect_ratio": "={{ $json.body.aspect_ratio }}",
+              "image_url": "={{ $json.image_url }}"
+            },
+            "options": {
+              "json": true
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait 30 Seconds",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "interval": 30
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.kie.ai/sora2/status",
+            "headers": {
+              "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "qs": {
+              "video_id": "={{ $json.video_id }}"
+            },
+            "options": {
+              "json": true
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.video_url }}",
+            "options": {
+              "json": false
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send via Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "YOUR_CHAT_ID",
+            "text": "Your video is ready: {{ $json.video_url }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0,
+          "condition": "notReady"
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0,
+          "condition": "ready"
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9396,
+    "completion_tokens": 1514,
+    "total_tokens": 10910
+  },
+  "description_optimization": null,
+  "original_description": "## Sora 2 Video Generator - No Watermark (Minimal Setup)\n\n### This n8n workflow enables you to generate professional AI videos using OpenAI's Sora 2 without watermarks. Create videos from text descriptions or animate your images with a simple web form interface - ready to use in just 5 minutes!\n\nGenerate cinematic AI videos for social media, marketing campaigns, product demos, or creative projects. The workflow handles both text-to-video and image-to-video generation with automatic status polling until your video is ready.\n\n**Good to know:**\n\n\u2022 Kie.AI charges per video generation. Check their pricing page for current rates\n\u2022 Videos typically take 30-60 seconds for standard quality, 60-120 seconds for HD\n\u2022 The workflow automatically retries status checks every 30 seconds until completion\n\u2022 No watermarks on output videos \n\n---\n\n### How it works\n\n\u2022 Users submit video requests via a beautiful web form with description, aspect ratio, and quality options\n\u2022 The workflow detects if an image was uploaded and routes to either text-to-video or image-to-video \n\u2022 For image uploads, the file is automatically uploaded to ImgBB to generate a public URL\n\u2022 The request is sent to Sora 2 API via Kie.AI with your specifications (prompt, quality, aspect ratio)\n\u2022 The workflow waits 30 seconds, then checks if video generation is complete\n\u2022 If not ready, it automatically loops back and checks again every 30 seconds\n\u2022 Once complete, the video is downloaded and optionally sent via Telegram notification\n\u2022 Clean, watermark-free MP4 video output ready for use\n\n---\n\n### Set up steps\n\n**Step 1: Get Kie.AI API Key**\n\u2022 Sign up at kie.ai and navigate to your dashboard\n\u2022 Go to API Keys section and generate a new key\n\u2022 Copy the API key for the next step\n\n**Step 2: Configure n8n Credentials**\n\u2022 In n8n, go to Credentials \u2192 New Credential\n\u2022 Select \"HTTP Header Auth\"\n\u2022 Name: `Kie Ai(Veo and more)` (exact name required)\n\u2022 Header Name: `Authorization`\n\u2022 Header Value: `Bearer YOUR_API_KEY`\n\u2022 Save the credential\n\n**Step 3: ImgBB Setup (for Image-to-Video)**\n\u2022 Get a free API key from api.imgbb.com\n\u2022 Open the \"Upload to ImgBB\" node in the workflow\n\u2022 Replace the `YOUR_ImgBB_API_KEY` parameter with your ImgBB API key\n\n**Step 4: (Optional) Telegram Notifications**\n\u2022 Create a bot with @BotFather on Telegram\n\u2022 Get your Chat ID from @get_id_bot\n\u2022 Update YOUR_CHAT_ID in both Telegram nodes\n\u2022 Or delete Telegram nodes entirely if not needed\n\n### Requirements\n\n\u2022 Kie.AI account with API access for Sora 2\n\u2022 ImgBB account for image hosting (free tier available)\n\u2022 (Optional) Telegram bot for video delivery notifications\n\n---\n\n### Customising this workflow\n\n\u2022 Adjust wait times in the Wait nodes if generation takes longer in your region\n\u2022 Add email notifications instead of/in addition to Telegram\n\u2022 Modify the form to collect additional metadata (user info, project names, etc.)\n\u2022 Add error handling nodes for production deployments\n\u2022 Connect to cloud storage (Google Drive, Dropbox) instead of Telegram for video delivery\n\u2022 Integrate with your existing CMS or content management system\n\n**For assistance and support:** contact@bilsimaging.com",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:59:53.764827",
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.4666666666666667,
+    "node_type_f1": 0.608695652173913,
+    "tp": 7,
+    "fp": 1,
+    "fn": 8,
+    "gt_node_count": 15,
+    "llm_node_count": 8,
+    "connection_precision": 0.8333333333333334,
+    "connection_recall": 0.5555555555555556,
+    "connection_f1": 0.6666666666666667,
+    "correct_connections": 5,
+    "gt_connection_count": 9,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.05714285714285715,
+    "usage": {
+      "prompt_tokens": 9396,
+      "completion_tokens": 1514,
+      "total_tokens": 10910
+    },
+    "total_cost": 0.03863
+  },
+  "is_ai_workflow": false
+}

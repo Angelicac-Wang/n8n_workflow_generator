@@ -18,6 +18,7 @@ from .prompt_builder import PromptBuilder
 class LLMWorkflowGenerator:
     """
     Generate n8n workflows using GPT-4o
+    Supports both single-stage (baseline) and two-stage (improved) generation
     """
 
     def __init__(
@@ -27,7 +28,8 @@ class LLMWorkflowGenerator:
         model: str = "gpt-4o",
         temperature: float = 0.3,
         max_retries: int = 3,
-        retry_delay: float = 2.0
+        retry_delay: float = 2.0,
+        description_optimizer: Optional[object] = None
     ):
         """
         Initialize LLM workflow generator
@@ -39,6 +41,7 @@ class LLMWorkflowGenerator:
             temperature: Temperature for generation (default: 0.3)
             max_retries: Maximum number of retries for API calls
             retry_delay: Initial retry delay in seconds (exponential backoff)
+            description_optimizer: Optional DescriptionOptimizer instance for two-stage generation
         """
         self.client = OpenAI(api_key=openai_api_key)
         self.prompt_builder = prompt_builder
@@ -46,48 +49,79 @@ class LLMWorkflowGenerator:
         self.temperature = temperature
         self.max_retries = max_retries
         self.retry_delay = retry_delay
+        self.description_optimizer = description_optimizer
 
-    def generate_workflow(self, description: str, template_id: str) -> Dict:
+    def generate_workflow(self, description: str, template_id: str, use_two_stage: bool = False) -> Dict:
         """
         Generate workflow from description using GPT-4o
+        
+        Supports two modes:
+        - Single-stage (baseline): Directly generate workflow from description
+        - Two-stage (improved): First optimize description, then generate workflow
 
         Args:
-            description: Workflow description
+            description: Workflow description or user query
             template_id: Template ID for tracking
+            use_two_stage: Whether to use two-stage generation (default: False)
 
         Returns:
             Dictionary containing:
             - template_id: Template ID
             - llm_response: Raw LLM JSON response
-            - usage: Token usage statistics
+            - usage: Token usage statistics (combined if two-stage)
+            - description_optimization: Description optimization result (if two-stage)
             - error: Error message (if any)
             - generated_at: ISO timestamp
         """
+        # Stage 1: Optimize description if two-stage mode is enabled
+        optimized_description = description
+        description_optimization_result = None
+        optimization_usage = None
+        
+        if use_two_stage and self.description_optimizer:
+            try:
+                optimization_result = self.description_optimizer.optimize_description(description, template_id)
+                description_optimization_result = optimization_result
+                
+                if optimization_result.get('error'):
+                    # If optimization fails, fall back to original description
+                    print(f"  Warning: Description optimization failed for {template_id}: {optimization_result['error']}")
+                    print(f"  Falling back to original description")
+                else:
+                    optimized_description = optimization_result.get('optimized_description', description)
+                    optimization_usage = optimization_result.get('usage')
+                    print(f"  Description optimized: {len(description)} -> {len(optimized_description)} chars")
+            except Exception as e:
+                print(f"  Warning: Description optimization error for {template_id}: {str(e)}")
+                print(f"  Falling back to original description")
+        
         # Check for empty description
-        if not description or description.strip() == "":
+        if not optimized_description or optimized_description.strip() == "":
             return {
                 "template_id": template_id,
                 "llm_response": None,
-                "usage": None,
+                "usage": optimization_usage,
+                "description_optimization": description_optimization_result,
                 "error": "Empty description",
                 "generated_at": datetime.now().isoformat()
             }
 
         # Remove non-ASCII characters from description
-        description = description.encode('ascii', errors='ignore').decode('ascii')
+        optimized_description = optimized_description.encode('ascii', errors='ignore').decode('ascii')
 
         # Check again if description is empty after removing non-ASCII
-        if not description or description.strip() == "":
+        if not optimized_description or optimized_description.strip() == "":
             return {
                 "template_id": template_id,
                 "llm_response": None,
-                "usage": None,
+                "usage": optimization_usage,
+                "description_optimization": description_optimization_result,
                 "error": "Empty description after removing non-ASCII characters",
                 "generated_at": datetime.now().isoformat()
             }
 
-        # Build prompt
-        prompt = self.prompt_builder.build_prompt(description)
+        # Build prompt using optimized description
+        prompt = self.prompt_builder.build_prompt(optimized_description)
         system_message = self.prompt_builder.build_system_message()
 
         # Try with retries
@@ -107,11 +141,23 @@ class LLMWorkflowGenerator:
                 )
 
                 # Extract token usage
-                usage = {
+                workflow_usage = {
                     "prompt_tokens": response.usage.prompt_tokens,
                     "completion_tokens": response.usage.completion_tokens,
                     "total_tokens": response.usage.total_tokens
                 }
+                
+                # Combine usage if two-stage
+                if optimization_usage:
+                    usage = {
+                        "workflow_generation": workflow_usage,
+                        "description_optimization": optimization_usage,
+                        "total_tokens": workflow_usage["total_tokens"] + optimization_usage["total_tokens"],
+                        "total_prompt_tokens": workflow_usage["prompt_tokens"] + optimization_usage["prompt_tokens"],
+                        "total_completion_tokens": workflow_usage["completion_tokens"] + optimization_usage["completion_tokens"]
+                    }
+                else:
+                    usage = workflow_usage
 
                 # Parse LLM response
                 response_content = response.choices[0].message.content
@@ -121,7 +167,8 @@ class LLMWorkflowGenerator:
                     return {
                         "template_id": template_id,
                         "llm_response": None,
-                        "usage": usage,
+                        "usage": usage if 'usage' in locals() else optimization_usage,
+                        "description_optimization": description_optimization_result,
                         "error": f"Failed to parse JSON response: {response_content[:200]}",
                         "generated_at": datetime.now().isoformat()
                     }
@@ -131,7 +178,8 @@ class LLMWorkflowGenerator:
                     return {
                         "template_id": template_id,
                         "llm_response": llm_json,
-                        "usage": usage,
+                        "usage": usage if 'usage' in locals() else optimization_usage,
+                        "description_optimization": description_optimization_result,
                         "error": "Invalid response structure (missing 'mode' field)",
                         "generated_at": datetime.now().isoformat()
                     }
@@ -141,6 +189,9 @@ class LLMWorkflowGenerator:
                     "template_id": template_id,
                     "llm_response": llm_json,
                     "usage": usage,
+                    "description_optimization": description_optimization_result,
+                    "original_description": description,
+                    "optimized_description": optimized_description if use_two_stage else None,
                     "error": None,
                     "generated_at": datetime.now().isoformat()
                 }
@@ -158,7 +209,8 @@ class LLMWorkflowGenerator:
                     return {
                         "template_id": template_id,
                         "llm_response": None,
-                        "usage": None,
+                        "usage": optimization_usage,
+                        "description_optimization": description_optimization_result,
                         "error": f"Rate limit exceeded after {self.max_retries} retries: {error_msg}",
                         "generated_at": datetime.now().isoformat()
                     }
@@ -176,7 +228,8 @@ class LLMWorkflowGenerator:
                     return {
                         "template_id": template_id,
                         "llm_response": None,
-                        "usage": None,
+                        "usage": optimization_usage,
+                        "description_optimization": description_optimization_result,
                         "error": f"API error after {self.max_retries} retries: {error_msg}",
                         "generated_at": datetime.now().isoformat()
                     }
@@ -185,7 +238,8 @@ class LLMWorkflowGenerator:
         return {
             "template_id": template_id,
             "llm_response": None,
-            "usage": None,
+            "usage": optimization_usage,
+            "description_optimization": description_optimization_result,
             "error": "Unknown error",
             "generated_at": datetime.now().isoformat()
         }

@@ -1,0 +1,319 @@
+{
+  "template_id": "9660",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by webhooks for user registration, login, token verification, and token refresh.",
+      "data_sources": "n8n Data Tables for storing user and token information, JWT for token generation and verification.",
+      "operations": "1. User registration with password hashing, 2. User login with JWT token generation, 3. Token verification, 4. Token refresh for new access tokens.",
+      "output_actions": "Provide responses for each endpoint: registration success, login tokens, token verification result, and refreshed tokens.",
+      "nodes_plan": "webhook (trigger), set (data transformation), httpRequest (JWT operations), if (conditional logic), postgres (data storage), respondToWebhook (output response)",
+      "connections_plan": "Each webhook triggers a sequence of operations: data transformation, database interaction, JWT handling, and response generation."
+    },
+    "workflowPlan": {
+      "name": "Authentication Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Register User Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "register-user"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Hash Password",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const crypto = require('crypto');\nconst salt = crypto.randomBytes(16).toString('hex');\nconst hash = crypto.pbkdf2Sync($json.password, salt, 1000, 64, 'sha512').toString('hex');\nreturn [{ password_hash: hash, salt }];"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Insert User",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "users",
+            "columns": "email, username, password_hash, salt",
+            "values": "={{ [$json.email, $json.username, $json.password_hash, $json.salt] }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Respond Registration",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "User registered successfully."
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Login Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "login"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Verify Password",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const crypto = require('crypto');\nconst hash = crypto.pbkdf2Sync($json.password, $json.salt, 1000, 64, 'sha512').toString('hex');\nif (hash === $json.password_hash) {\n  return [{ verified: true }];\n} else {\n  return [{ verified: false }];\n}"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Tokens",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://jwt-provider.com/generate",
+            "body": {
+              "userId": "={{ $json.id }}",
+              "accessSecret": "ACCESS_SECRET",
+              "refreshSecret": "REFRESH_SECRET"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Respond Login",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{ JSON.stringify({ accessToken: $json.accessToken, refreshToken: $json.refreshToken }) }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Verify Token Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "verify-token"
+          },
+          "position": {
+            "x": 100,
+            "y": 500
+          }
+        },
+        {
+          "id": "10",
+          "label": "Verify JWT",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://jwt-provider.com/verify",
+            "body": {
+              "token": "={{ $json.access_token }}",
+              "secret": "ACCESS_SECRET"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 500
+          }
+        },
+        {
+          "id": "11",
+          "label": "Respond Verification",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{ $json.valid ? 'Token is valid' : 'Token is invalid' }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "12",
+          "label": "Refresh Token Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "refresh"
+          },
+          "position": {
+            "x": 100,
+            "y": 700
+          }
+        },
+        {
+          "id": "13",
+          "label": "Refresh JWT",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://jwt-provider.com/refresh",
+            "body": {
+              "refreshToken": "={{ $json.refresh_token }}",
+              "secret": "REFRESH_SECRET"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 700
+          }
+        },
+        {
+          "id": "14",
+          "label": "Respond Refresh",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "responseText": "={{ JSON.stringify({ accessToken: $json.newAccessToken }) }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 700
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "12",
+          "to": "13",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "13",
+          "to": "14",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 6216,
+    "completion_tokens": 1956,
+    "total_tokens": 8172
+  },
+  "description_optimization": null,
+  "original_description": "## Description\nA production-ready authentication workflow implementing secure user registration, login, token verification, and refresh token mechanisms. Perfect for adding authentication to any application without needing a separate auth service.\n\nGet started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n## What it does\nThis template provides a complete authentication backend using n8n workflows and Data Tables:\n- **User Registration**: Creates accounts with secure password hashing (SHA-512 + unique salts)\n- **Login System**: Generates access tokens (15 min) and refresh tokens (7 days) using JWT\n- **Token Verification**: Validates access tokens for protected endpoints\n- **Token Refresh**: Issues new access tokens without requiring re-login\n- **Security Features**: HMAC-SHA256 signatures, hashed refresh tokens in database, protection against rainbow table attacks\n## Why use this template\n- **No external services**: Everything runs in n8n - no Auth0, Firebase, or third-party dependencies\n- **Production-ready security**: Industry-standard JWT implementation with proper token lifecycle management\n- **Easy integration**: Simple REST API endpoints that work with any frontend framework\n- **Fully customizable**: Adjust token lifespans, add custom user fields, implement your own business logic\n- **Well-documented**: Extensive inline notes explain every security decision and implementation detail\n## How to set up\n### Prerequisites\n- n8n instance (cloud or self-hosted)\n- n8n Data Tables feature enabled\n### Setup Steps\n1. **Create Data Tables**:\n  - users table: id, email, username, password_hash, refresh_token\n  - refresh_tokens table: id, user_id, token_hash, expires_at\n2. **Generate Secret Keys**:\n  Run this command to generate a random secret:\n```\n  node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"\n```\n  Generate two different secrets for ACCESS_SECRET and REFRESH_SECRET\n3. **Configure Secrets**:\n  - Update the three \"SET ACCESS AND REFRESH SECRET\" nodes with your generated keys\n  - Or migrate to n8n Variables for better security (instructions in workflow notes)\n4. **Connect Data Tables**:\n  - Open each Data Table node\n  - Select your created tables from the dropdown\n5. **Activate Workflow**:\n  - Save and activate the workflow\n  - Note your webhook URLs\n### API Endpoints\n**Register**: POST /webhook/register-user\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"username\": \"username\",\n \"password\": \"password123\"\n}\n```\n**Login**: POST /webhook/login\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"password\": \"password123\"\n}\n```\nReturns:\n```\n{\n \"accessToken\": \"...\",\n \"refreshToken\": \"...\",\n \"user\": {...}\n}\n```\n**Verify Token**: POST /webhook/verify-token\nRequest body:\n```\n{\n \"access_token\": \"your_access_token\"\n}\n```\n**Refresh**: POST /webhook/refresh\nRequest body:\n```\n{\n \"refresh_token\": \"your_refresh_token\"\n}\n```\n### Frontend Integration Example (Vue.js/React)\nLogin flow:\n```\nconst response = await fetch('https://your-n8n.app/webhook/login', {\n method: 'POST',\n headers: { 'Content-Type': 'application/json' },\n body: JSON.stringify({ email, password })\n});\nconst { accessToken, refreshToken } = await response.json();\nlocalStorage.setItem('accessToken', accessToken);\n```\nMake authenticated requests:\n```\nconst data = await fetch('https://your-api.com/protected', {\n headers: { 'Authorization': Bearer ${accessToken} }\n});\n```\n## Key Features\n- **Secure Password Storage**: Never stores plain text passwords; uses SHA-512 with unique salts\n- **Two-Token System**: Short-lived access tokens (security) + long-lived refresh tokens (convenience)\n- **Database Token Revocation**: Refresh tokens can be revoked for logout-all-devices functionality\n- **Duplicate Prevention**: Checks username and email availability before account creation\n- **Error Handling**: Generic error messages prevent information leakage\n- **Extensive Documentation**: 30+ sticky notes explain every security decision\n## Use Cases\n- SaaS applications needing user authentication\n- Mobile app backends\n- Internal tools requiring access control\n- MVP/prototype authentication without third-party costs\n- Learning JWT and auth system architecture\n## Customization\n- **Token Lifespan**: Modify expiration times in \"Create JWT Payload\" nodes\n- **User Fields**: Add custom fields to registration and user profile\n- **Password Rules**: Update validation in \"Validate Registration Request\" node\n- **Token Rotation**: Implement refresh token rotation for enhanced security (notes included)\n## Security Notes\n:warning: **Important**:\n- Change the default secret keys before production use\n- Use HTTPS for all webhook endpoints\n- Store secrets in n8n Variables (not hardcoded)\n- Regularly rotate secret keys in production\n- Consider rate limiting for login endpoints\n## Support & Documentation\nThe workflow includes comprehensive documentation:\n- Complete authentication flow overview\n- Security explanations for every decision\n- Troubleshooting guide\n- Setup instructions\n- FAQ section with common issues\nPerfect for developers who want full control over their authentication system without the complexity of managing separate auth infrastructure.\n\n## Get Started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n**Tags**: authentication, jwt, login, security, user-management, tokens, password-hashing, api, backend",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T03:00:30.181162",
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.15873015873015872,
+    "node_type_f1": 0.2597402597402597,
+    "tp": 10,
+    "fp": 4,
+    "fn": 53,
+    "gt_node_count": 63,
+    "llm_node_count": 14,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 22,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.16666666666666666,
+    "usage": {
+      "prompt_tokens": 6216,
+      "completion_tokens": 1956,
+      "total_tokens": 8172
+    },
+    "total_cost": 0.035100000000000006
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "template_id": 9660,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow handles a secure user login process using a webhook trigger and generates JWT tokens upon successful authentication.",
+    "workflowPlan": {
+      "name": "Secure User Login Process",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "user-login",
+            "httpMethod": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Get User Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/api/getUser",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "username",
+                "value": "={{$json[\"body\"][\"username\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Hash Password",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const bcrypt = require('bcryptjs');\n\nconst inputPassword = $json[\"body\"][\"password\"];\nconst storedSalt = $json[\"salt\"];\nconst storedHash = $json[\"hash\"];\n\nconst hashInputPassword = bcrypt.hashSync(inputPassword, storedSalt);\n\nreturn [{ match: hashInputPassword === storedHash }];"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Credentials",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"match\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate JWT Tokens",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "const jwt = require('jsonwebtoken');\n\nconst accessToken = jwt.sign({ username: $json[\"body\"][\"username\"] }, 'accessSecret', { expiresIn: '15m' });\nconst refreshToken = jwt.sign({ username: $json[\"body\"][\"username\"] }, 'refreshSecret', { expiresIn: '7d' });\n\nreturn [{ accessToken, refreshToken }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Respond with Tokens",
+          "nodeType": "n8n-nodes-base.respondText",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{JSON.stringify({ accessToken: $json[\"accessToken\"], refreshToken: $json[\"refreshToken\"] })}}",
+            "responseCode": 200
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 616,
+    "completion_tokens": 936,
+    "total_tokens": 1552
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:47:02.172247",
+  "generated_description": "This n8n workflow is designed to handle a secure user login process. It is triggered by a login request received through a webhook. The workflow begins by generating a salt and hashing the user's password for secure storage. Upon receiving a login request, it retrieves the user's information from a data table, extracting the stored salt and hash.\n\nThe workflow then hashes the input password provided during login using the extracted salt to verify the user's credentials. If the credentials are valid, it proceeds to generate cryptographic access and refresh tokens. These tokens are formatted into JSON Web Tokens (JWTs) and merged for delivery.\n\nThe final output of this workflow is the provision of secure JWT tokens that can be used for authenticated access to the system, ensuring both security and efficiency in the login process.",
+  "description_generation_usage": {
+    "prompt_tokens": 213,
+    "completion_tokens": 154,
+    "total_tokens": 367
+  },
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.06349206349206349,
+    "node_type_f1": 0.11594202898550725,
+    "tp": 4,
+    "fp": 2,
+    "fn": 59,
+    "gt_node_count": 63,
+    "llm_node_count": 6,
+    "connection_precision": 0.2,
+    "connection_recall": 0.045454545454545456,
+    "connection_f1": 0.07407407407407407,
+    "correct_connections": 1,
+    "gt_connection_count": 22,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.08333333333333333,
+    "usage": {
+      "prompt_tokens": 616,
+      "completion_tokens": 936,
+      "total_tokens": 1552
+    },
+    "total_cost": 0.0129725,
+    "description_generation_cost": 0.0020725,
+    "workflow_generation_cost": 0.0109
+  },
+  "original_description": "## Description\nA production-ready authentication workflow implementing secure user registration, login, token verification, and refresh token mechanisms. Perfect for adding authentication to any application without needing a separate auth service.\n\nGet started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n## What it does\nThis template provides a complete authentication backend using n8n workflows and Data Tables:\n- **User Registration**: Creates accounts with secure password hashing (SHA-512 + unique salts)\n- **Login System**: Generates access tokens (15 min) and refresh tokens (7 days) using JWT\n- **Token Verification**: Validates access tokens for protected endpoints\n- **Token Refresh**: Issues new access tokens without requiring re-login\n- **Security Features**: HMAC-SHA256 signatures, hashed refresh tokens in database, protection against rainbow table attacks\n## Why use this template\n- **No external services**: Everything runs in n8n - no Auth0, Firebase, or third-party dependencies\n- **Production-ready security**: Industry-standard JWT implementation with proper token lifecycle management\n- **Easy integration**: Simple REST API endpoints that work with any frontend framework\n- **Fully customizable**: Adjust token lifespans, add custom user fields, implement your own business logic\n- **Well-documented**: Extensive inline notes explain every security decision and implementation detail\n## How to set up\n### Prerequisites\n- n8n instance (cloud or self-hosted)\n- n8n Data Tables feature enabled\n### Setup Steps\n1. **Create Data Tables**:\n  - users table: id, email, username, password_hash, refresh_token\n  - refresh_tokens table: id, user_id, token_hash, expires_at\n2. **Generate Secret Keys**:\n  Run this command to generate a random secret:\n```\n  node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"\n```\n  Generate two different secrets for ACCESS_SECRET and REFRESH_SECRET\n3. **Configure Secrets**:\n  - Update the three \"SET ACCESS AND REFRESH SECRET\" nodes with your generated keys\n  - Or migrate to n8n Variables for better security (instructions in workflow notes)\n4. **Connect Data Tables**:\n  - Open each Data Table node\n  - Select your created tables from the dropdown\n5. **Activate Workflow**:\n  - Save and activate the workflow\n  - Note your webhook URLs\n### API Endpoints\n**Register**: POST /webhook/register-user\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"username\": \"username\",\n \"password\": \"password123\"\n}\n```\n**Login**: POST /webhook/login\nRequest body:\n```\n{\n \"email\": \"user@example.com\",\n \"password\": \"password123\"\n}\n```\nReturns:\n```\n{\n \"accessToken\": \"...\",\n \"refreshToken\": \"...\",\n \"user\": {...}\n}\n```\n**Verify Token**: POST /webhook/verify-token\nRequest body:\n```\n{\n \"access_token\": \"your_access_token\"\n}\n```\n**Refresh**: POST /webhook/refresh\nRequest body:\n```\n{\n \"refresh_token\": \"your_refresh_token\"\n}\n```\n### Frontend Integration Example (Vue.js/React)\nLogin flow:\n```\nconst response = await fetch('https://your-n8n.app/webhook/login', {\n method: 'POST',\n headers: { 'Content-Type': 'application/json' },\n body: JSON.stringify({ email, password })\n});\nconst { accessToken, refreshToken } = await response.json();\nlocalStorage.setItem('accessToken', accessToken);\n```\nMake authenticated requests:\n```\nconst data = await fetch('https://your-api.com/protected', {\n headers: { 'Authorization': Bearer ${accessToken} }\n});\n```\n## Key Features\n- **Secure Password Storage**: Never stores plain text passwords; uses SHA-512 with unique salts\n- **Two-Token System**: Short-lived access tokens (security) + long-lived refresh tokens (convenience)\n- **Database Token Revocation**: Refresh tokens can be revoked for logout-all-devices functionality\n- **Duplicate Prevention**: Checks username and email availability before account creation\n- **Error Handling**: Generic error messages prevent information leakage\n- **Extensive Documentation**: 30+ sticky notes explain every security decision\n## Use Cases\n- SaaS applications needing user authentication\n- Mobile app backends\n- Internal tools requiring access control\n- MVP/prototype authentication without third-party costs\n- Learning JWT and auth system architecture\n## Customization\n- **Token Lifespan**: Modify expiration times in \"Create JWT Payload\" nodes\n- **User Fields**: Add custom fields to registration and user profile\n- **Password Rules**: Update validation in \"Validate Registration Request\" node\n- **Token Rotation**: Implement refresh token rotation for enhanced security (notes included)\n## Security Notes\n:warning: **Important**:\n- Change the default secret keys before production use\n- Use HTTPS for all webhook endpoints\n- Store secrets in n8n Variables (not hardcoded)\n- Regularly rotate secret keys in production\n- Consider rate limiting for login endpoints\n## Support & Documentation\nThe workflow includes comprehensive documentation:\n- Complete authentication flow overview\n- Security explanations for every decision\n- Troubleshooting guide\n- Setup instructions\n- FAQ section with common issues\nPerfect for developers who want full control over their authentication system without the complexity of managing separate auth infrastructure.\n\n## Get Started with [n8n](https://n8n.partnerlinks.io/ds9podzjls6d) now!\n\n**Tags**: authentication, jwt, login, security, user-management, tokens, password-hashing, api, backend"
+}

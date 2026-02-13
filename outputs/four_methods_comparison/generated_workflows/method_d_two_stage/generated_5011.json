@@ -1,0 +1,259 @@
+{
+  "template_id": "5011",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be manually triggered when the user uploads a PDF document.",
+      "data_sources": "The primary data source is the uploaded PDF document. Optional sources include Google Drive for additional files and a database for loading knowledge.",
+      "operations": "1. User uploads a PDF document. 2. Extract information from the PDF. 3. Store extracted knowledge in a vector store. 4. Configure Q&A tool to use the vector store. 5. Allow customization of agent prompts. 6. Optionally load additional knowledge from Google Drive or a database. 7. Enhance data description in the Q&A tool. 8. Optionally replace vector store nodes with production-ready solutions. 9. Implement ranking algorithms for file retrieval.",
+      "output_actions": "The workflow enables interaction with an agent through a chat interface, using knowledge from the vector store to respond to queries.",
+      "nodes_plan": "manualTrigger (trigger), readPDF (file), vectorStore (custom), qATool (custom), googleDrive (optional), database (optional), set (for customization), switch (for ranking algorithms)",
+      "connections_plan": "manualTrigger -> readPDF -> vectorStore -> qATool; optional: googleDrive/database -> vectorStore"
+    },
+    "workflowPlan": {
+      "name": "PDF Knowledge Extraction and Q&A",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Read PDF",
+          "nodeType": "n8n-nodes-base.readPDF",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "={{ $json.filePath }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Vector Store",
+          "nodeType": "custom.vectorStore",
+          "typeVersion": 1,
+          "params": {
+            "operation": "store",
+            "data": "={{ $json.extractedData }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Q&A Tool",
+          "nodeType": "custom.qATool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "configure",
+            "vectorStore": "={{ $json.vectorStoreId }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "listFiles",
+            "query": "type='application/pdf'"
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Database",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "knowledge",
+            "columns": "*"
+          },
+          "position": {
+            "x": 300,
+            "y": 600
+          }
+        },
+        {
+          "id": "7",
+          "label": "Set Customization",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "prompt",
+                  "value": "Customize your agent's prompt here"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Switch for Ranking",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "mode": "rules",
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "string": [
+                      {
+                        "value1": "={{ $json.relevanceScore }}",
+                        "operation": "greaterThan",
+                        "value2": "0.8"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4167,
+      "completion_tokens": 1229,
+      "total_tokens": 5396
+    },
+    "description_optimization": {
+      "prompt_tokens": 431,
+      "completion_tokens": 406,
+      "total_tokens": 837
+    },
+    "total_tokens": 6233,
+    "total_prompt_tokens": 4598,
+    "total_completion_tokens": 1635
+  },
+  "description_optimization": {
+    "template_id": "5011",
+    "optimized_description": "This workflow template demonstrates the use of the Question and Answer (Q&A) tool to optimize costs in Retrieval-Augmented Generation (RAG) use cases. It is designed for users who wish to empower their agents with knowledge derived from custom documents.\n\nTrigger: The workflow is initiated when the user executes the workflow and uploads a PDF document containing the custom knowledge intended for the agent.\n\nData Sources and APIs Needed:\n1. A PDF document that contains the custom knowledge.\n2. Optional: Access to Google Drive for additional knowledge files.\n3. Optional: A database or table for loading knowledge.\n\nOperations and Processing Steps:\n1. User executes the workflow and uploads the PDF document.\n2. The workflow processes the uploaded PDF to extract relevant information.\n3. The extracted knowledge is stored in a vector store for easy retrieval.\n4. The Q&A tool is configured to utilize the knowledge from the vector store.\n5. Users can customize the agent's behavior by modifying the prompts used in the Q&A tool.\n6. Users have the option to load knowledge from alternative sources, such as Google Drive files or a database table, by integrating additional nodes into the workflow.\n7. Users can enhance the description of their data within the Q&A tool to ensure clarity and relevance.\n8. Users can replace the default \"Simple Vector Store\" nodes with their own production-ready vector store solutions.\n9. Users can implement advanced ranking algorithms to improve the relevance of files retrieved from the vector store.\n\nFinal Output or Action: The workflow enables users to interact with their agents through a chat interface, utilizing the knowledge extracted from the uploaded PDF and any additional sources configured in the workflow. The agent responds to user queries based on the information stored in the vector store, providing accurate and contextually relevant answers.\n\nFor further details and guidance, users are encouraged to refer to the documentation on RAG in n8n available at the provided link. This workflow serves as a foundational template that can be customized to meet specific needs and enhance the capabilities of agents in RAG scenarios.",
+    "original_description": "This template shows how to use the Question and Answer tool to save costs in RAG use cases.\n\n## Who is this for?\nThis template is for everyone who wants to start giving knowledge to their Agents through RAG.\n\n## Requirements\nHave a PDF with custom knowledge that you want to provide to your agent.\n\n## Setup\nNo setup required. Just hit `Execute Workflow`, upload your knowledge document and then start chatting.\n\n## How to customize this to your needs\n1. Add custom instructions to your Agent by changing the prompts in it.\n2. Add a different way to load in knowledge to your vector store, e.g. by looking at some Google Drive files or loading knowledge from a table.\n3. Describe your data properly in the Q&A tool\n4. Exchange the `Simple Vector Store` nodes with your own vector store tools ready for production.\n5. Add a more sophisticated way to rank files found in the vector store.\n\nFor more information read our [docs on RAG in n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/).",
+    "description_length": 2183,
+    "usage": {
+      "prompt_tokens": 431,
+      "completion_tokens": 406,
+      "total_tokens": 837
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:13:02.624134"
+  },
+  "original_description": "This template shows how to use the Question and Answer tool to save costs in RAG use cases.\n\n## Who is this for?\nThis template is for everyone who wants to start giving knowledge to their Agents through RAG.\n\n## Requirements\nHave a PDF with custom knowledge that you want to provide to your agent.\n\n## Setup\nNo setup required. Just hit `Execute Workflow`, upload your knowledge document and then start chatting.\n\n## How to customize this to your needs\n1. Add custom instructions to your Agent by changing the prompts in it.\n2. Add a different way to load in knowledge to your vector store, e.g. by looking at some Google Drive files or loading knowledge from a table.\n3. Describe your data properly in the Q&A tool\n4. Exchange the `Simple Vector Store` nodes with your own vector store tools ready for production.\n5. Add a more sophisticated way to rank files found in the vector store.\n\nFor more information read our [docs on RAG in n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/).",
+  "optimized_description": "This workflow template demonstrates the use of the Question and Answer (Q&A) tool to optimize costs in Retrieval-Augmented Generation (RAG) use cases. It is designed for users who wish to empower their agents with knowledge derived from custom documents.\n\nTrigger: The workflow is initiated when the user executes the workflow and uploads a PDF document containing the custom knowledge intended for the agent.\n\nData Sources and APIs Needed:\n1. A PDF document that contains the custom knowledge.\n2. Optional: Access to Google Drive for additional knowledge files.\n3. Optional: A database or table for loading knowledge.\n\nOperations and Processing Steps:\n1. User executes the workflow and uploads the PDF document.\n2. The workflow processes the uploaded PDF to extract relevant information.\n3. The extracted knowledge is stored in a vector store for easy retrieval.\n4. The Q&A tool is configured to utilize the knowledge from the vector store.\n5. Users can customize the agent's behavior by modifying the prompts used in the Q&A tool.\n6. Users have the option to load knowledge from alternative sources, such as Google Drive files or a database table, by integrating additional nodes into the workflow.\n7. Users can enhance the description of their data within the Q&A tool to ensure clarity and relevance.\n8. Users can replace the default \"Simple Vector Store\" nodes with their own production-ready vector store solutions.\n9. Users can implement advanced ranking algorithms to improve the relevance of files retrieved from the vector store.\n\nFinal Output or Action: The workflow enables users to interact with their agents through a chat interface, utilizing the knowledge extracted from the uploaded PDF and any additional sources configured in the workflow. The agent responds to user queries based on the information stored in the vector store, providing accurate and contextually relevant answers.\n\nFor further details and guidance, users are encouraged to refer to the documentation on RAG in n8n available at the provided link. This workflow serves as a foundational template that can be customized to meet specific needs and enhance the capabilities of agents in RAG scenarios.",
+  "error": null,
+  "generated_at": "2026-01-25T23:13:15.182037",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 8,
+    "fn": 10,
+    "gt_node_count": 10,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 2,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4167,
+        "completion_tokens": 1229,
+        "total_tokens": 5396
+      },
+      "description_optimization": {
+        "prompt_tokens": 431,
+        "completion_tokens": 406,
+        "total_tokens": 837
+      },
+      "total_tokens": 6233,
+      "total_prompt_tokens": 4598,
+      "total_completion_tokens": 1635
+    },
+    "total_cost": 0.027845,
+    "description_optimization_cost": 0.005137500000000001,
+    "workflow_generation_cost": 0.022707500000000002
+  }
+}

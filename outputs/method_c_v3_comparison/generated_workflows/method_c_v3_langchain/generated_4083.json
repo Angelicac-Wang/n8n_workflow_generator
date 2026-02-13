@@ -1,0 +1,233 @@
+{
+  "template_id": "4083",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'chat interface', 'conversational AI', 'AI-driven sales engagement'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "WhatsApp, Facebook Messenger, Instagram DM, n8n Chat, Airtable, Supabase, OpenAI, PostgreSQL.",
+      "operations": "1. Trigger on new messages from multiple channels, 2. Pre-process messages, 3. Engage AI Agent for conversation, 4. Use tools for CRM updates and knowledge retrieval, 5. Deliver responses back to the original channel.",
+      "output_actions": "Intelligent chat response back to user with lead qualification, service information, and consultation booking.",
+      "nodes_plan": "chatTrigger (chat input), agent (orchestrator - REQUIRED), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context), postgresTool (chat memory), httpRequestTool (media handling), airtableTool (CRM operations), supabaseTool (knowledge retrieval), calendarTool (appointment booking).",
+      "connections_plan": "chatTrigger \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow, postgresTool, httpRequestTool, airtableTool, supabaseTool, calendarTool as sub-nodes."
+    },
+    "workflowPlan": {
+      "name": "AI-Driven Multi-Channel Sales Engagement",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are a sales assistant. Engage users to qualify leads, provide service information, and book consultations.",
+            "options": {}
+          },
+          "position": {
+            "x": 320,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 180
+          }
+        },
+        {
+          "id": "4",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 540,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Postgres Chat Memory",
+          "nodeType": "n8n-nodes-base.postgresTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "description": "Store and retrieve conversation history"
+          },
+          "position": {
+            "x": 540,
+            "y": 420
+          }
+        },
+        {
+          "id": "6",
+          "label": "WhatsApp Media Handler",
+          "nodeType": "n8n-nodes-base.httpRequestTool",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.mediaUrl }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 540
+          }
+        },
+        {
+          "id": "7",
+          "label": "Airtable CRM Operations",
+          "nodeType": "n8n-nodes-base.airtableTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "description": "Update CRM records with lead information"
+          },
+          "position": {
+            "x": 540,
+            "y": 660
+          }
+        },
+        {
+          "id": "8",
+          "label": "Supabase Knowledge Retrieval",
+          "nodeType": "n8n-nodes-base.supabaseTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "query",
+            "description": "Retrieve service information from knowledge base"
+          },
+          "position": {
+            "x": 540,
+            "y": 780
+          }
+        },
+        {
+          "id": "9",
+          "label": "Calendar Booking",
+          "nodeType": "n8n-nodes-base.calendarTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEvent",
+            "description": "Book consultation appointments"
+          },
+          "position": {
+            "x": 540,
+            "y": 900
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9094,
+    "completion_tokens": 1410,
+    "total_tokens": 10504
+  },
+  "description_optimization": null,
+  "original_description": "**This workflow automates multi-channel AI-driven sales engagement for lead qualification, service information delivery, and consultation booking. It integrates WhatsApp, Facebook Messenger, Instagram DM, and an n8n chat interface with a backend CRM (Airtable), a knowledge base (Supabase), and conversational AI (OpenAI), all orchestrated by n8n.**\n\n# Tools & Services Used\n\nMessaging Platforms: WhatsApp, Facebook Messenger, Instagram DM, n8n Built-in Chat\n\nAI Core & Processing: OpenAI (GPT-4o for main agent logic, Whisper for audio transcription)\n\nCRM & Data Management: Airtable (for initial WhatsApp lead lookup, lead form submissions, and as the backend for the crmAgent sub-workflow operations)\n\nKnowledge Base: Supabase (Vector Store for technical_and_sales_knowledge tool)\n\nChat Memory: PostgreSQL (for the main AI Agent's conversation history)\n\nOrchestration & Automation: n8n (Self-hosted, utilizing Langchain community nodes)\n\nCalendar Service: Integrated via the calendarAgent sub-workflow\n\nCRM Service: Integrated via the crmAgent sub-workflow (interacting with Airtable)\n\n# Workflow Overview\n\n## This automation performs the following steps:\n\nTrigger: A new interaction is initiated through one of the following channels:\n\nA new message is received via the WhatsApp Trigger.\n\nA new message is received via the Facebook Trigger (Webhook).\n\nA new message is received via the Instagram Trigger (Webhook).\n\nA new message is received via the n8n Chat Trigger.\n\nAlternatively, a new lead is submitted via the Airtable Form Submitted Webhook.\n\nChannel-Specific Ingestion & Pre-processing:\n\n## For WhatsApp:\n\nThe system attempts to find an existing lead in Airtable using the sender's phone number.\n\nIncoming messages are routed by the Handle Message Types switch:\n\nText messages are passed to the Edit Fields - chat1 node to prepare input for the AI Agent, including any found lead information.\n\nAudio messages are processed: the WhatsApp Business Cloud node gets the media URL, the HTTP Request node downloads the audio, OpenAI transcribes it to text, and Edit Fields - chat2 prepares this transcribed text and lead information for the AI Agent.\n\nUnsupported message types trigger the Reply To User1 node to send a notification that the message type cannot be processed.\n\n## For Facebook Messenger:\n\nThe system responds to webhook verification (Respond to Webhook - facebook get) and acknowledges new messages (Respond to Webhook - facebook post).\n\nThe If is not echo - facebook node filters out messages sent by the page.\n\nThe Sales Agent Demo - typing_on node sends a typing indicator.\n\nThe Edit Fields - facebook node prepares the message text, sender ID, and Facebook-specific context for the AI Agent.\n\n## For Instagram DM:\n\nThe system responds to webhook verification (Respond to Webhook - instagram get) and acknowledges new messages (Respond to Webhook - instagram post).\n\nThe If is not echo - instagram node filters out messages sent by the business account.\n\nThe Edit Fields - instagram node prepares the message text, sender ID, and Instagram-specific context for the AI Agent.\n\n## For n8n Chat:\n\nThe Edit Fields - chat node prepares the user's input and session information for the AI Agent.\n\n## Input Aggregation for AI Agent:\n\nProcessed data from all active messaging channels (WhatsApp text/audio, Facebook, Instagram, n8n Chat) is funneled through the No Operation, do nothing node to the main AI Agent.\n\n## AI Sales Conversation & Tool Utilization:\n\nThe AI Agent (using OpenAI Chat Model - GPT-4o, and Postgres Chat Memory) engages the user according to its system prompt, aiming to qualify them for Paint Protection Film (PPF), Ceramic Coating, or Window Tint.\n\nThe AI Agent uses the technical_and_sales_knowledge tool (which queries the Demo Supabase vector store via Embeddings OpenAI and OpenAI Chat Model1) to provide service details and answer questions.\n\nThe AI Agent uses the crmAgent tool (a sub-workflow) to log contact details (Name, Email, service interest) and update opportunity statuses in Airtable.\n\nThe AI Agent uses the calendarAgent tool (a sub-workflow) to book consultation appointments once preferred dates/times are provided. This occurs after contact details are logged in the CRM.\n\n## Response Delivery:\n\nThe AI Agent's final textual response is passed to the Switch node.\n\nThe Switch node routes the response to the appropriate node for delivery on the original channel:\n\nReply To User for WhatsApp.\n\nFacebook Graph API - Sales Agent Demo for Facebook Messenger.\n\nInstagram Graph API - smb.sales.agent.demo for Instagram DM.\n\nOutput - chat for the n8n Chat interface.\n\n## Airtable Form Submission Processing (Separate Branch):\n\nWhen the Airtable Form Submitted webhook receives data, the Airtable node fetches the full record.\n\nThe Create Contact node creates a new contact in the Airtable 'Contacts' table.\n\nThe Edit Fields - form node prepares data for a notification.\n\nThe WhatsApp Business Cloud2 node sends a templated WhatsApp message to the lead, confirming their form submission.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:13:49.371318",
+  "metrics": {
+    "node_type_precision": 0.3333333333333333,
+    "node_type_recall": 0.06,
+    "node_type_f1": 0.10169491525423728,
+    "tp": 3,
+    "fp": 6,
+    "fn": 47,
+    "gt_node_count": 50,
+    "llm_node_count": 9,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 21,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 9094,
+      "completion_tokens": 1410,
+      "total_tokens": 10504
+    },
+    "total_cost": 0.03683500000000001
+  },
+  "is_ai_workflow": true
+}

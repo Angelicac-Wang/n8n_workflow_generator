@@ -1,0 +1,236 @@
+{
+  "template_id": 4105,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Invoice Generation Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "generate-invoice"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Generate Invoice ID",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "return { json: { invoiceId: 'INV-' + Math.floor(Math.random() * 1000000) } };"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Invoice ID",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "lookup",
+            "sheetId": "your-google-sheet-id",
+            "range": "Invoices!A:A",
+            "lookupColumn": "A",
+            "lookupValue": "={{$json[\"invoiceId\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Set Invoice Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "invoiceDate": "={{new Date().toISOString().split('T')[0]}}",
+              "customerEmail": "customer@example.com",
+              "amount": 100
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate HTML Invoice",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "return { json: { html: `<html><body><h1>Invoice #${$json[\"invoiceId\"]}</h1><p>Amount: $${$json[\"amount\"]}</p></body></html>` } };"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Convert HTML to PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.html2pdf.com/v1/generate",
+            "method": "POST",
+            "body": {
+              "html": "={{$json[\"html\"]}}"
+            },
+            "responseFormat": "file"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload PDF to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "={{$json[\"invoiceId\"]}}.pdf",
+            "binaryData": true,
+            "binaryPropertyName": "data"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Email with Invoice",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "toEmail": "={{$json[\"customerEmail\"]}}",
+            "subject": "Your Invoice",
+            "text": "Please find your invoice attached.",
+            "attachments": [
+              {
+                "binaryPropertyName": "data"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Append Invoice to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Invoices!A:D",
+            "data": [
+              "={{$json[\"invoiceId\"]}}",
+              "={{$json[\"invoiceDate\"]}}",
+              "={{$json[\"customerEmail\"]}}",
+              "={{$json[\"amount\"]}}"
+            ]
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 633,
+    "completion_tokens": 1286,
+    "total_tokens": 1919
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:44:23.760368",
+  "generated_description": "This n8n workflow is initiated by a webhook, which simulates the receipt of a request to generate an invoice. Upon activation, the workflow first generates a unique invoice ID using a custom code node. It then checks whether this ID already exists in a Google Sheets document to ensure uniqueness. If the ID does not exist, the workflow proceeds to set various fields required for the invoice.\n\nSubsequently, the workflow creates an HTML version of the invoice using another code node. This HTML is then converted into a PDF document via an HTTP request. The generated PDF is uploaded to Google Drive for storage. Following the upload, the workflow sends an email to the customer with the invoice attached.\n\nFinally, the workflow appends the invoice details to a Google Sheets document to maintain a record of all generated invoices. This ensures that all invoices are tracked and stored systematically.",
+  "description_generation_usage": {
+    "prompt_tokens": 228,
+    "completion_tokens": 171,
+    "total_tokens": 399
+  },
+  "metrics": {
+    "node_type_precision": 1.0,
+    "node_type_recall": 0.8181818181818182,
+    "node_type_f1": 0.9,
+    "tp": 9,
+    "fp": 0,
+    "fn": 2,
+    "gt_node_count": 11,
+    "llm_node_count": 9,
+    "connection_precision": 0.875,
+    "connection_recall": 0.6363636363636364,
+    "connection_f1": 0.7368421052631579,
+    "correct_connections": 7,
+    "gt_connection_count": 11,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.05555555555555555,
+    "usage": {
+      "prompt_tokens": 633,
+      "completion_tokens": 1286,
+      "total_tokens": 1919
+    },
+    "total_cost": 0.0167225,
+    "description_generation_cost": 0.0022800000000000003,
+    "workflow_generation_cost": 0.014442500000000002
+  },
+  "original_description": "This workflow automates invoice generation from form submissions, ensuring unique order IDs, creating PDF invoices, storing files, emailing customers, and logging invoice data \u2014 all seamlessly integrated.\n\n---\n\n## \ud83d\udd39 Workflow Overview\n\n1. **Trigger (Webhook)**\n   Starts when an order form is submitted, capturing customer and order details.\n\n2. **Generate Random Order ID**\n   A Function node creates a unique alphanumeric invoice ID (e.g., `INV-X92B7D`).\n\n3. **Check for Duplicate Order ID**\n   Google Sheets looks up the generated order ID in your invoice log sheet to prevent duplicates.\n\n4. **Conditional Check (IF Node)**\n\n   * If the ID already exists \u2192 regenerates a new ID (loops back)\n   * If unique \u2192 proceeds to invoice creation\n\n5. **Prepare Invoice Data**\n   A Set node formats customer info, date, order items, and the unique order ID to fit your invoice template.\n\n6. **Convert HTML to PDF**\n   HTTP Request node sends your invoice HTML to the RapidAPI HTML-to-PDF service and receives the PDF file.\n\n7. **Upload PDF to Cloud Storage**\n   Save the PDF in Google Drive or Dropbox with a clear file name like `Invoice-INV-X92B7D.pdf`.\n\n8. **Send Invoice Email to Customer**\n   Email node attaches the PDF and includes the order ID in the email subject/body.\n\n9. **Log Invoice Details**\n   Append invoice data (customer info, order ID, total, PDF link) to your Google Sheet for tracking.\n\n---\n\n## \u2699\ufe0f Node Details & Setup\n\n### 1. Webhook Trigger\n\n* Configure to receive form submissions (order details like name, email, items, total).\n\n### 2. Function: Generate Random Order ID\n\n* Sample JS code generates unique IDs prefixed by `INV-`.\n\n### 3. Google Sheets: Lookup Row\n\n* Set up connection to your invoice log sheet.\n* Search for existing order ID to avoid duplicates.\n\n### 4. IF Node: Check Order ID Existence\n\n* Condition: If order ID found \u2192 loop to regenerate.\n* Else \u2192 continue workflow.\n\n### 5. Set Node: Prepare Invoice HTML\n\n* Define variables like customer name, date, items, and order ID.\n* This data populates your HTML invoice template.\n\n### 6. HTTP Request: Convert HTML to PDF\n\n* [API URL to get your key](https://rapidapi.com/rhodium/api/html2pdf2/playground/apiendpoint_9b1017c6-2f56-4b7e-80d5-0fe24937d398)\n* Send invoice HTML in the request body.\n* Receive PDF file blob or download URL.\n\n### 7. Google Drive (or Dropbox) Upload\n\n* Upload the PDF file.\n* Use file name format: `Invoice-{{$json[\"order_id\"]}}.pdf`\n\n### 8. Email Node\n\n* Recipient: customer email from the form data.\n* Attach generated PDF.\n* Include order ID in email subject or body for reference.\n\n### 9. Google Sheets: Append Row\n\n* Log invoice metadata to keep records updated.\n\n---\n\n## \ud83d\udcc1 Google Sheets Template\n\nYou can make a copy of the invoice log template [here](https://docs.google.com/spreadsheets/d/1QW_Lg1aoEBku8GaxwPbZfBY5ITAuSdvoAXRyNdCEujM/edit?gid=0)\n\n`This sheet includes columns for order\\_id, customer name, email, total, and invoice PDF link. Customize it as needed.`\n\n---\n\n## \ud83d\udccc Additional Notes\n\n* Customize the invoice HTML template inside the Set node to match your branding.\n* Ensure API credentials for RapidAPI, Google Drive/Dropbox, and email are properly set up in your n8n credentials.\n* You can expand this workflow by adding payment processing or SMS notifications.\n\n---\n\n## Need help or want a custom workflow?\n\nReach out via email at [joseph@uppfy.com](mailto:joseph@uppfy.com)."
+}

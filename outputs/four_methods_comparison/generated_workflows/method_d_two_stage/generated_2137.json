@@ -1,0 +1,234 @@
+{
+  "template_id": "2137",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered when a new entry is added to a Google Sheet, which can be achieved using a schedule trigger to check for new entries periodically.",
+      "data_sources": "Google Sheets API to retrieve email addresses and Gmail API to send and monitor emails.",
+      "operations": "1. Retrieve email list from Google Sheets, 2. Define email sequence with delays, 3. Send initial email, 4. Monitor email threads for replies, 5. Send follow-up emails if no reply, 6. Skip sending on weekends.",
+      "output_actions": "Send a sequence of emails to recipients and manage follow-ups based on engagement.",
+      "nodes_plan": "googleSheets (read), function (set delays), gmail (send email), wait (delay), gmail (check replies), if (check conditions), gmail (send follow-up)",
+      "connections_plan": "googleSheets -> function -> gmail (send initial) -> wait -> gmail (check replies) -> if (no reply) -> gmail (send follow-up)"
+    },
+    "workflowPlan": {
+      "name": "Email Campaign Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your_sheet_id",
+            "range": "Sheet1!A:C"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Email Sequence",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.emailSequence = [ { day: 0, message: `Hi, ${item.json.name}, nice to meet you at the conference. Was wondering whether ${item.json.company} would be interested in a quick call about X?` }, { day: 3, message: `Hi, ${item.json.name}, just wanted to check in on this. Let me know if there's any interest!` }, { day: 7, message: `${item.json.name}, just wanted to give this one last try.` } ]; return item; });"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send Initial Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{ $json.email }}",
+            "subject": "Introduction",
+            "message": "={{ $json.emailSequence[0].message }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait 3 Days",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "={{ new Date(new Date().getTime() + 3*24*60*60*1000) }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Replies",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getAll",
+            "filters": {
+              "q": "from:{{ $json.email }} subject:Introduction"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "If No Reply",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.total }}",
+                  "operation": "equal",
+                  "value2": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Follow-Up Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "={{ $json.email }}",
+            "subject": "Follow-Up",
+            "message": "={{ $json.emailSequence[1].message }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4340,
+      "completion_tokens": 1238,
+      "total_tokens": 5578
+    },
+    "description_optimization": {
+      "prompt_tokens": 593,
+      "completion_tokens": 583,
+      "total_tokens": 1176
+    },
+    "total_tokens": 6754,
+    "total_prompt_tokens": 4933,
+    "total_completion_tokens": 1821
+  },
+  "description_optimization": {
+    "template_id": "2137",
+    "optimized_description": "This workflow is designed to facilitate multi-step email campaigns using n8n, Gmail, and Google Sheets. The primary objective is to send a sequence of emails to a defined list of recipients while ensuring that follow-up emails are only sent if no replies have been received. This approach allows the user to focus on engaging with those who respond, rather than chasing after those who do not.\n\nTrigger:\nThe workflow is initiated when a new entry is added to a designated Google Sheet that contains a list of email addresses along with additional information such as names and companies.\n\nData Sources and APIs Needed:\n1. Google Sheets API: To retrieve the list of email addresses and associated data from the specified Google Sheet.\n2. Gmail API: To send emails and manage email threads.\n\nOperations and Processing Steps:\n1. **Retrieve Email List**: The workflow begins by accessing the Google Sheet to pull the list of email addresses along with any extra information (e.g., name, company) necessary for personalizing the email templates.\n2. **Define Email Sequence**: The user defines a sequence of emails to be sent, including the content of each email and the delay (in days) before sending the next email. For example:\n   - On day 0: \u201cHi, {name} \u2014 nice to meet you at the conference. Was wondering whether {company} would be interested in a quick call about X?\u201d\n   - On day 3: \u201cHi, {name}, just wanted to check in on this. Let me know if there\u2019s any interest!\u201d\n   - On day 7: \u201c{name}, just wanted to give this one last try.\u201d\n3. **Send Initial Email**: The workflow sends the first email to all recipients in the list. Each email is tagged with a hidden attribute indicating it is part of the email campaign.\n4. **Monitor Email Threads**: The workflow regularly checks the email threads tagged with the campaign identifier to determine if:\n   - No replies have been received.\n   - It is time to send the next email in the sequence based on the defined delays.\n5. **Send Follow-Up Emails**: If the conditions are met (no replies and the scheduled time has arrived), the workflow sends the next email in the sequence to the recipients who have not yet replied.\n6. **Skip Weekends**: The workflow is configured to avoid sending emails on weekends, ensuring that all communications are sent during weekdays.\n\nFinal Output or Action:\nThe workflow concludes by sending the defined sequence of emails to the recipients, ensuring that follow-ups are only sent to those who have not engaged with the initial email. This structured approach allows for efficient management of email campaigns while maintaining a focus on recipient engagement.\n\nNotes:\n- This workflow is intended for responsible use and should not be utilized for spam.\n- Users can create multiple campaigns by duplicating the workflow and modifying the email sequence and Google Sheet as needed.",
+    "original_description": "This workflow allows you to send multi-step email campaigns using n8n, Gmail and Google Sheets.\n\nYou define a sequence of emails, and a list of email addresses to send them to. The first email is sent to everyone, but the later emails in the sequence are only sent if no-one has replied to the thread yet.\n\nThis means you only need to worry about replying to people who respond to your email, not chasing people who don\u2019t.\n\n### Requirements\n\n1. A list of emails in a Google sheet. You can define extra info that will be available to your email templates (e.g. name, company, etc.)\n\n![table.png](fileId:750)\n\n2. A sequence of emails to send, plus how long to wait to send each one, e.g.\n\n- **On day 0:** \u201cHi, {name} \u2014 nice to meet you at the conference. Was wondering whether {company} would be interested in a quick call about X?\u201d\n- **On day 3:** \u201cHi, {name}, just wanted to check in on this. Let me know if there\u2019s any interest!\u201d\n- **On day 7:** \u201c{name}, just wanted to give this one last try\u201d\n\n3. A Gmail account (although you could also swap out that part for any other email service)\n\n### How it works\n\nWhen sending the emails, n8n inserts a hidden attribute in each one that tags it as being part of the email campaign. It then regularly looks through the email threads with that tag and checks whether:\n\n1. No-one has replied yet\n2. It\u2019s time to send the next message\n\nThe workflow doesn\u2019t send emails on weekends.\n\n### Notes\n\n- This workflow is not intended for spam! Please use responsibly\n- You can use this workflow for multiple different campaigns by making copies of the workflow and changing the sequence / Google Sheet that it uses",
+    "description_length": 2857,
+    "usage": {
+      "prompt_tokens": 593,
+      "completion_tokens": 583,
+      "total_tokens": 1176
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:57:24.942566"
+  },
+  "original_description": "This workflow allows you to send multi-step email campaigns using n8n, Gmail and Google Sheets.\n\nYou define a sequence of emails, and a list of email addresses to send them to. The first email is sent to everyone, but the later emails in the sequence are only sent if no-one has replied to the thread yet.\n\nThis means you only need to worry about replying to people who respond to your email, not chasing people who don\u2019t.\n\n### Requirements\n\n1. A list of emails in a Google sheet. You can define extra info that will be available to your email templates (e.g. name, company, etc.)\n\n![table.png](fileId:750)\n\n2. A sequence of emails to send, plus how long to wait to send each one, e.g.\n\n- **On day 0:** \u201cHi, {name} \u2014 nice to meet you at the conference. Was wondering whether {company} would be interested in a quick call about X?\u201d\n- **On day 3:** \u201cHi, {name}, just wanted to check in on this. Let me know if there\u2019s any interest!\u201d\n- **On day 7:** \u201c{name}, just wanted to give this one last try\u201d\n\n3. A Gmail account (although you could also swap out that part for any other email service)\n\n### How it works\n\nWhen sending the emails, n8n inserts a hidden attribute in each one that tags it as being part of the email campaign. It then regularly looks through the email threads with that tag and checks whether:\n\n1. No-one has replied yet\n2. It\u2019s time to send the next message\n\nThe workflow doesn\u2019t send emails on weekends.\n\n### Notes\n\n- This workflow is not intended for spam! Please use responsibly\n- You can use this workflow for multiple different campaigns by making copies of the workflow and changing the sequence / Google Sheet that it uses",
+  "optimized_description": "This workflow is designed to facilitate multi-step email campaigns using n8n, Gmail, and Google Sheets. The primary objective is to send a sequence of emails to a defined list of recipients while ensuring that follow-up emails are only sent if no replies have been received. This approach allows the user to focus on engaging with those who respond, rather than chasing after those who do not.\n\nTrigger:\nThe workflow is initiated when a new entry is added to a designated Google Sheet that contains a list of email addresses along with additional information such as names and companies.\n\nData Sources and APIs Needed:\n1. Google Sheets API: To retrieve the list of email addresses and associated data from the specified Google Sheet.\n2. Gmail API: To send emails and manage email threads.\n\nOperations and Processing Steps:\n1. **Retrieve Email List**: The workflow begins by accessing the Google Sheet to pull the list of email addresses along with any extra information (e.g., name, company) necessary for personalizing the email templates.\n2. **Define Email Sequence**: The user defines a sequence of emails to be sent, including the content of each email and the delay (in days) before sending the next email. For example:\n   - On day 0: Hi, {name}  nice to meet you at the conference. Was wondering whether {company} would be interested in a quick call about X?\n   - On day 3: Hi, {name}, just wanted to check in on this. Let me know if theres any interest!\n   - On day 7: {name}, just wanted to give this one last try.\n3. **Send Initial Email**: The workflow sends the first email to all recipients in the list. Each email is tagged with a hidden attribute indicating it is part of the email campaign.\n4. **Monitor Email Threads**: The workflow regularly checks the email threads tagged with the campaign identifier to determine if:\n   - No replies have been received.\n   - It is time to send the next email in the sequence based on the defined delays.\n5. **Send Follow-Up Emails**: If the conditions are met (no replies and the scheduled time has arrived), the workflow sends the next email in the sequence to the recipients who have not yet replied.\n6. **Skip Weekends**: The workflow is configured to avoid sending emails on weekends, ensuring that all communications are sent during weekdays.\n\nFinal Output or Action:\nThe workflow concludes by sending the defined sequence of emails to the recipients, ensuring that follow-ups are only sent to those who have not engaged with the initial email. This structured approach allows for efficient management of email campaigns while maintaining a focus on recipient engagement.\n\nNotes:\n- This workflow is intended for responsible use and should not be utilized for spam.\n- Users can create multiple campaigns by duplicating the workflow and modifying the email sequence and Google Sheet as needed.",
+  "error": null,
+  "generated_at": "2026-01-25T22:57:37.825110",
+  "metrics": {
+    "node_type_precision": 0.8571428571428571,
+    "node_type_recall": 0.24,
+    "node_type_f1": 0.375,
+    "tp": 6,
+    "fp": 1,
+    "fn": 19,
+    "gt_node_count": 25,
+    "llm_node_count": 7,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.058823529411764705,
+    "connection_f1": 0.08695652173913045,
+    "correct_connections": 1,
+    "gt_connection_count": 17,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.03333333333333333,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4340,
+        "completion_tokens": 1238,
+        "total_tokens": 5578
+      },
+      "description_optimization": {
+        "prompt_tokens": 593,
+        "completion_tokens": 583,
+        "total_tokens": 1176
+      },
+      "total_tokens": 6754,
+      "total_prompt_tokens": 4933,
+      "total_completion_tokens": 1821
+    },
+    "total_cost": 0.0305425,
+    "description_optimization_cost": 0.0073125,
+    "workflow_generation_cost": 0.02323
+  }
+}

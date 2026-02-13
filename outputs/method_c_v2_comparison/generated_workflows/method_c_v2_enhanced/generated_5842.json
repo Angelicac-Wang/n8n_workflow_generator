@@ -1,0 +1,235 @@
+{
+  "template_id": "5842",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be manually triggered to allow the user to run it when desired.",
+      "data_sources": "Reddit API for fetching posts, OpenAI API for content generation, Google Sheets for storing data.",
+      "operations": "1. Fetch latest posts from subreddit, 2. Filter questions, 3. Log questions to Google Sheets, 4. Enhance questions using AI, 5. Generate blog content, 6. Save blog content to Google Sheets.",
+      "output_actions": "Final blog content is saved to a Google Sheet for publishing.",
+      "nodes_plan": "manualTrigger (trigger), httpRequest (Reddit API), if (filter questions), googleSheets (log questions), openAi (enhance questions), set (prepare content), googleSheets (save content)",
+      "connections_plan": "manualTrigger -> httpRequest -> if -> [googleSheets (true branch) -> openAi -> set -> googleSheets (final content)]"
+    },
+    "workflowPlan": {
+      "name": "Reddit Questions to SEO Articles",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Reddit Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://www.reddit.com/r/n8n/new.json",
+            "headers": {
+              "User-Agent": "n8n-workflow-bot"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Questions",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.data.title }}",
+                  "operation": "contains",
+                  "value2": "how"
+                },
+                {
+                  "value1": "={{ $json.data.title }}",
+                  "operation": "contains",
+                  "value2": "what"
+                },
+                {
+                  "value1": "={{ $json.data.title }}",
+                  "operation": "contains",
+                  "value2": "why"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Log Questions to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "RawQuestions!A:C",
+            "data": [
+              {
+                "title": "={{ $json.data.title }}",
+                "url": "={{ $json.data.url }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Enhance Questions with AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Rephrase the question and create a clean title and slug for SEO: {{ $json.data.title }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Blog Content",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "intro",
+                  "value": "={{ 'Introduction for: ' + $json.title }}"
+                },
+                {
+                  "name": "steps",
+                  "value": "={{ 'Steps for: ' + $json.title }}"
+                },
+                {
+                  "name": "conclusion",
+                  "value": "={{ 'Conclusion for: ' + $json.title }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Blog Content to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "BlogContent!A:D",
+            "data": [
+              {
+                "title": "={{ $json.title }}",
+                "intro": "={{ $json.intro }}",
+                "steps": "={{ $json.steps }}",
+                "conclusion": "={{ $json.conclusion }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5262,
+    "completion_tokens": 1326,
+    "total_tokens": 6588
+  },
+  "description_optimization": null,
+  "original_description": "## Turn Reddit Questions into SEO Articles Automatically\n\nThis workflow takes real user questions from Reddit and transforms them into fully structured blog posts \u2014 title, intro, steps, and conclusion \u2014 using AI.\n\n---\n\n### How it works\n\n- Manually triggered when you want to run it\n- Scrapes the latest posts from a specific subreddit (e.g. `r/n8n`)\n- Filters only posts that are real questions (based on keywords like \u201chow,\u201d \u201cwhat,\u201d \u201cwhy\u201d)\n- Logs relevant questions into a Google Sheet as raw input\n- Enhances each question using AI (rephrases, creates a clean title and slug)\n- Generates full-length blog content:\n  - \u270f\ufe0f Intro paragraph\n  - \u2705 Step-by-step guide\n  - \ud83e\udde0 Clear conclusion\n- Saves the final blog content to a second Google Sheet for publishing\n\n---\n\n### Set up steps\n\n- You\u2019ll need access to:\n  - Reddit API (OAuth)\n  - OpenAI API\n  - Google Sheets\n- Takes around **15\u201320 minutes** to connect all the credentials and tweak prompts\n- Customize the subreddit or topic focus by changing the Reddit node config\n\n---\n\nPerfect for content teams who want to scale content output using real community pain points \u2014 without ever starting from a blank page.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T03:02:53.465212",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.14814814814814814,
+    "node_type_f1": 0.23529411764705882,
+    "tp": 4,
+    "fp": 3,
+    "fn": 23,
+    "gt_node_count": 27,
+    "llm_node_count": 7,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.125,
+    "connection_f1": 0.14285714285714288,
+    "correct_connections": 1,
+    "gt_connection_count": 8,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.5322916666666667,
+    "usage": {
+      "prompt_tokens": 5262,
+      "completion_tokens": 1326,
+      "total_tokens": 6588
+    },
+    "total_cost": 0.026415
+  }
+}

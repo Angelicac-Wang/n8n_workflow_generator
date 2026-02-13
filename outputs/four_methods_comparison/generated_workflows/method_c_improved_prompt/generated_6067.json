@@ -1,0 +1,216 @@
+{
+  "template_id": "6067",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule, specifically every Monday at 6:00 AM, using a CRON trigger.",
+      "data_sources": "The workflow requires APIs for Perplexity AI, OpenAI (GPT), Leonardo AI, WordPress, and Google Sheets.",
+      "operations": "1. Trigger on schedule, 2. Research topics with Perplexity AI, 3. Generate article with GPT, 4. Create image with Leonardo AI, 5. Upload image and publish post on WordPress, 6. Log post details in Google Sheets.",
+      "output_actions": "The final output is a published blog post on WordPress with a featured image and a log entry in Google Sheets.",
+      "nodes_plan": "schedule (trigger), httpRequest (Perplexity AI), httpRequest (OpenAI GPT), httpRequest (Leonardo AI), httpRequest (WordPress), googleSheets (log entry)",
+      "connections_plan": "schedule -> httpRequest (Perplexity) -> httpRequest (OpenAI) -> httpRequest (Leonardo) -> httpRequest (WordPress) -> googleSheets (log entry)"
+    },
+    "workflowPlan": {
+      "name": "SEO Blog Post Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 6 * * 1"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Research Topics",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.perplexity.ai/research",
+            "queryParameters": [
+              {
+                "name": "language",
+                "value": "es"
+              },
+              {
+                "name": "category",
+                "value": "startup trends"
+              }
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Article",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/engines/gpt-4.1/completions",
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+            },
+            "body": {
+              "prompt": "Write a 1000-1500 word article in Spanish about {{ $json.trending_topic }}",
+              "max_tokens": 1500,
+              "n": 1,
+              "stop": null,
+              "temperature": 0.7
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Blog Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.leonardo.ai/v1/images",
+            "headers": {
+              "Authorization": "Bearer YOUR_LEONARDO_API_KEY"
+            },
+            "body": {
+              "prompt": "Create a cinematic image for a blog post about {{ $json.trending_topic }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Publish to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "auth": {
+              "type": "basicAuth",
+              "user": "YOUR_WORDPRESS_USER",
+              "password": "YOUR_WORDPRESS_PASSWORD"
+            },
+            "body": {
+              "title": "{{ $json.trending_topic }}",
+              "content": "{{ $json.article_content }}",
+              "status": "publish",
+              "categories": [
+                1
+              ],
+              "featured_media": "{{ $json.image_id }}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Log in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "{{ $json.trending_topic }}",
+                "{{ $json.article_url }}",
+                "{{ $json.publish_date }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4208,
+    "completion_tokens": 1293,
+    "total_tokens": 5501
+  },
+  "description_optimization": null,
+  "original_description": "## \u2728 SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress\n\nThis workflow automates the creation and publishing of weekly SEO-optimized blog posts using AI and publishes them directly to WordPress \u2014 with featured images and tracking in Google Sheets.\n\n---\n\n## \ud83e\udde0 Who is this for\n\nThis automation is ideal for:\n\n- Startup platforms and tech blogs  \n- Content creators and marketers  \n- Solopreneurs who want consistent blog output  \n- Spanish-speaking audiences focused on startup trends  \n\n---\n\n## \u2699\ufe0f What it does\n\n- \u23f0 Runs every Monday at 6:00 AM via CRON  \n- \ud83d\udce1 Uses Perplexity AI to research trending startup topics  \n- \ud83d\udcdd Generates a 1000\u20131500 word article with GPT in structured HTML  \n- \ud83c\udfa8 Creates a cinematic blog image using Leonardo AI  \n- \ud83d\uddbc\ufe0f Uploads the image to WordPress with alt text and SEO-friendly filename  \n- \ud83d\udcf0 Publishes the post in a pre-defined category  \n- \ud83d\udcca Logs the post in Google Sheets for tracking  \n\n---\n\n## \ud83d\ude80 How to set it up\n\n1. **Connect your credentials**:\n   - Perplexity API  \n   - OpenAI (GPT-4.1 Mini or similar)  \n   - Leonardo AI (Bearer token)  \n   - WordPress (Basic Auth)  \n   - Google Sheets (OAuth2)\n\n2. **Customize your content**:\n   - Adjust the prompt inside the HTTP node to fit your tone or focus  \n   - Change the WordPress category ID  \n   - Update scheduling if you want a different publishing day  \n\n3. **Test the workflow manually** to ensure all steps function correctly\n\n---\n\n## \ud83d\udca1 Pro tips\n\n- Add Slack or email nodes to get notified when a post goes live  \n- Use multiple categories or RSS feeds for content diversification  \n- Adjust GPT prompt to support different languages or tones  \n- Add post-validation rules if needed before publishing  \n\n---\n\n## \ud83c\udfaf Why this matters\n\nThis workflow gives you a full editorial process on autopilot: research, writing, design, publishing, and tracking \u2014 all powered by AI. No more blank pages or manual posting.\n\n**Use it to scale your content strategy, boost your SEO, and stay relevant \u2014 100% hands-free.**",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:43:52.276960",
+  "metrics": {
+    "node_type_precision": 0.8333333333333334,
+    "node_type_recall": 0.38461538461538464,
+    "node_type_f1": 0.5263157894736842,
+    "tp": 5,
+    "fp": 1,
+    "fn": 8,
+    "gt_node_count": 13,
+    "llm_node_count": 6,
+    "connection_precision": 0.6666666666666666,
+    "connection_recall": 0.2,
+    "connection_f1": 0.30769230769230765,
+    "correct_connections": 2,
+    "gt_connection_count": 10,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.08809523809523809,
+    "usage": {
+      "prompt_tokens": 4208,
+      "completion_tokens": 1293,
+      "total_tokens": 5501
+    },
+    "total_cost": 0.023450000000000002
+  }
+}

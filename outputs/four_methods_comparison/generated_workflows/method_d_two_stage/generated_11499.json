@@ -1,0 +1,346 @@
+{
+  "template_id": "11499",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a daily schedule at 05:00 for daily updates and manually for historical backfills.",
+      "data_sources": "Meta Ads Insights API for campaign performance data and Google Sheets API for appending data.",
+      "operations": "1. Trigger workflow, 2. Set parameters, 3. Fetch data from Meta Ads API, 4. Process and calculate KPIs, 5. Append data to Google Sheets.",
+      "output_actions": "The final output is a Google Sheet with daily and historical campaign performance data.",
+      "nodes_plan": "scheduleTrigger (daily), set (config), metaInsights (API call), code (process data), googleSheets (append data), manualTrigger (backfill), set (backfill config), metaInsights (backfill API call), code (process backfill data), googleSheets (append backfill data)",
+      "connections_plan": "scheduleTrigger -> set -> metaInsights -> code -> googleSheets; manualTrigger -> set (backfill) -> metaInsights (backfill) -> code (backfill) -> googleSheets (backfill)"
+    },
+    "workflowPlan": {
+      "name": "Meta Ads to Google Sheets",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 5 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Config",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "adAccountId",
+                  "value": "act_123456789012345"
+                },
+                {
+                  "name": "datePreset",
+                  "value": "yesterday"
+                },
+                {
+                  "name": "sheetId",
+                  "value": "your_google_sheet_id"
+                },
+                {
+                  "name": "sheetName",
+                  "value": "Meta_Daily_Data"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Meta Insights",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v12.0/{{ $json.adAccountId }}/insights",
+            "queryParameters": [
+              {
+                "name": "date_preset",
+                "value": "={{ $json.datePreset }}"
+              },
+              {
+                "name": "level",
+                "value": "campaign"
+              },
+              {
+                "name": "fields",
+                "value": "campaign_name,impressions,clicks,spend"
+              }
+            ],
+            "authentication": "facebookGraphApi"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const data = item.json;\n  data.CPL = data.spend / data.actions.find(a => a.action_type === 'lead').value;\n  data.CPA = data.spend / data.actions.find(a => a.action_type === 'purchase').value;\n  data.ROAS = data.actions.find(a => a.action_type === 'purchase').value / data.spend;\n  data.CTR = data.clicks / data.impressions;\n  data.CPC = data.spend / data.clicks;\n  data.CPM = (data.spend / data.impressions) * 1000;\n  data.frequency = data.impressions / data.reach;\n  return { json: data };\n});"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Append to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{ $json.sheetId }}",
+            "range": "={{ $json.sheetName }}",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{ $json }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Set Backfill Config",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "adAccountId",
+                  "value": "act_123456789012345"
+                },
+                {
+                  "name": "backfillSince",
+                  "value": "2023-01-01"
+                },
+                {
+                  "name": "backfillUntil",
+                  "value": "2023-03-31"
+                },
+                {
+                  "name": "sheetId",
+                  "value": "your_google_sheet_id"
+                },
+                {
+                  "name": "sheetName",
+                  "value": "Meta_Daily_Data"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Meta Insights Backfill",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v12.0/{{ $json.adAccountId }}/insights",
+            "queryParameters": [
+              {
+                "name": "time_range",
+                "value": "{\"since\":\"{{ $json.backfillSince }}\",\"until\":\"{{ $json.backfillUntil }}\"}"
+              },
+              {
+                "name": "level",
+                "value": "campaign"
+              },
+              {
+                "name": "fields",
+                "value": "campaign_name,impressions,clicks,spend"
+              }
+            ],
+            "authentication": "facebookGraphApi"
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Process Backfill Data",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const data = item.json;\n  data.CPL = data.spend / data.actions.find(a => a.action_type === 'lead').value;\n  data.CPA = data.spend / data.actions.find(a => a.action_type === 'purchase').value;\n  data.ROAS = data.actions.find(a => a.action_type === 'purchase').value / data.spend;\n  data.CTR = data.clicks / data.impressions;\n  data.CPC = data.spend / data.clicks;\n  data.CPM = (data.spend / data.impressions) * 1000;\n  data.frequency = data.impressions / data.reach;\n  return { json: data };\n});"
+          },
+          "position": {
+            "x": 700,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Append Backfill to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "={{ $json.sheetId }}",
+            "range": "={{ $json.sheetName }}",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{ $json }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4565,
+      "completion_tokens": 2063,
+      "total_tokens": 6628
+    },
+    "description_optimization": {
+      "prompt_tokens": 1104,
+      "completion_tokens": 804,
+      "total_tokens": 1908
+    },
+    "total_tokens": 8536,
+    "total_prompt_tokens": 5669,
+    "total_completion_tokens": 2867
+  },
+  "description_optimization": {
+    "template_id": "11499",
+    "optimized_description": "This workflow automates the export of Meta (Facebook) Ads campaign performance data into Google Sheets, providing both daily updates and options for historical backfills. It is designed for performance marketers, agencies, and analytics teams seeking a reliable data pipeline from Meta Ads to their reporting systems.\n\nTrigger:\n- The workflow is initiated by a daily cron job using a Schedule Trigger that runs every day at 05:00.\n\nData Sources and APIs:\n- Meta Ads Insights API (Facebook Graph API) for campaign performance data.\n- Google Sheets API for appending data to a specified Google Sheet.\n\nOperations and Processing Steps:\n1. Daily Incremental Flow:\n   - A Schedule Trigger activates the workflow daily at 05:00.\n   - A Set config node is utilized to define necessary parameters including ad account ID, date preset (set to 'yesterday'), and Google Sheet details.\n   - The Meta Insights node calls the Facebook Graph API to retrieve campaign-level performance data using the insights edge at the campaign level.\n   - A Code node processes the API response, flattening the data structure and calculating key performance indicators (KPIs) such as Cost Per Lead (CPL), Cost Per Acquisition (CPA), Return on Ad Spend (ROAS), Click-Through Rate (CTR), Cost Per Click (CPC), Cost Per Mille (CPM), and frequency.\n   - The Google Sheets node appends the processed data as a new row for each campaign per day into the designated Google Sheet named 'Meta_Daily_Data'.\n\n2. Manual Backfill Flow:\n   - A Manual Trigger allows users to run this section on demand.\n   - A Set backfill config node is used to define the historical range for backfilling data, specifying parameters for 'backfillSince' and 'backfillUntil'.\n   - The Meta Insights (time_range) node fetches performance data for the defined historical range.\n   - The same transformation logic applied in the daily flow is executed, and the resulting rows are appended to the same Google Sheet.\n\nFinal Output or Action:\n- The final output of this workflow is a Google Sheet populated with daily campaign performance data from Meta Ads, including historical data when the backfill is executed. This data can be utilized for building dashboards in Looker Studio or Power BI, tracking trends over time, and integrating with CRM or e-commerce data.\n\nPrerequisites:\n- A Meta Business account with a system user and a long-lived access token that has permissions for 'ads_read' and 'read_insights'.\n- A Google Sheet with a header row that matches the expected column names for the data.\n- n8n credentials configured for both the Facebook Graph API and Google Sheets OAuth2.\n\nSetup Steps:\n1. Import the workflow template into your n8n instance.\n2. Configure the Set config and Set backfill config nodes by entering your adAccountId (e.g., 'act_123456789012345') and Google Sheet ID along with the sheet name (e.g., 'Meta_Daily_Data').\n3. Ensure that your Facebook Graph API and Google Sheets credentials are correctly set up in n8n.\n4. Optionally, run the Manual Backfill section to import historical data for specified ranges (e.g., quarterly).\n5. Enable the workflow to allow the Daily Incremental section to run automatically.\n\nCustomization Options:\n- Adjust the 'level' parameter from 'campaign' to 'adset' or 'ad' for more detailed reporting.\n- Include additional breakdowns (e.g., 'publisher_platform', 'platform_position') to analyze performance by platform and placement.\n- Enhance the transformation code to calculate additional KPIs or dimensions that suit your reporting requirements.\n- Consider using a separate sheet for raw data and create dashboards based on a cleaned or pivoted view.\n\nFor assistance with e-commerce strategy, growth and performance marketing, or data and analytics setups, please contact Serendipity Technologies at https://www.serendipity.at for tailored support in developing a comprehensive analytics stack and reporting system.",
+    "original_description": "## Overview\n\nThis template automatically exports **Meta (Facebook) Ads campaign performance** into **Google Sheets** \u2014 both **daily** and for **historical backfills**. It\u2019s ideal for performance marketers, agencies, and analytics teams who want a reliable data pipeline from Meta Ads into their reporting stack.\n\n## What this workflow does\n\n- Runs a **daily cron job** to pull *yesterday\u2019s* campaign-level performance from the Meta Ads Insights API.\n- Flattens the API response and calculates key KPIs like **CPL, CPA, ROAS, CTR, CPC, CPM, frequency** and more.\n- Appends one row per **campaign per day** to a Google Sheet (for dashboards and further analysis).\n- Provides a separate **Manual Backfill** section to import historical data using a `time_range` parameter (e.g. last 12\u201324 months).\n\n## Use cases\n\n- Build Looker Studio / Power BI dashboards on top of a clean, daily Meta Ads dataset.\n- Track ROAS, CPL, CPA, CTR, and frequency trends over time.\n- Combine campaign data with CRM or ecommerce data in the same spreadsheet.\n- Quickly backfill past performance when onboarding a new Meta Ads account.\n\n## How it works\n\n1. **Daily Incremental Flow**\n   - A `Schedule Trigger` runs every day at 05:00.\n   - The `Set config` node defines ad account, date preset (`yesterday`), and Google Sheet details.\n   - The `Meta Insights` node calls the Facebook Graph `insights` edge at `level=campaign`.\n   - The `Code` node flattens the data and derives CPL, CPA, ROAS, and other KPIs.\n   - The `Google Sheets` node appends the rows to your `Meta_Daily_Data` sheet.\n\n2. **Manual Backfill Flow**\n   - A `Manual Trigger` lets you run the flow on demand.\n   - The `Set backfill config` node defines `backfillSince` and `backfillUntil`.\n   - The `Meta Insights (time_range)` node fetches performance for that historical range.\n   - The same transform logic is applied, and rows are appended to the same sheet.\n\n## Prerequisites\n\n- A Meta Business account with:\n  - A **system user** and a **long-lived access token** with `ads_read` / `read_insights`.\n- A **Google Sheet** with a header row that matches the mapped column names.\n- n8n credentials for:\n  - **Facebook Graph API**\n  - **Google Sheets OAuth2**\n\n## Setup steps\n\n1. Import this template into your n8n instance.\n2. Open the `Set config` and `Set backfill config` nodes:\n   - Set your `adAccountId` (e.g. `act_123456789012345`).\n   - Set your `sheetId` (Google Sheet ID) and sheet name (e.g. `Meta_Daily_Data`).\n3. Configure your **Facebook Graph API** and **Google Sheets** credentials in n8n.\n4. (Optional) Run the **Manual Backfill** section for your desired historical ranges (e.g. per quarter).\n5. Enable the workflow so the **Daily Incremental** section runs automatically.\n\n## Customization\n\n- Change `level` from `campaign` to `adset` or `ad` if you need more granular reporting.\n- Add **breakdowns** (e.g. `publisher_platform`, `platform_position`) to split by platform and placement.\n- Extend the transform code with additional KPIs or dimensions that match your reporting needs.\n- Use a separate sheet for raw data and build dashboards on top of a cleaned or pivoted view.\n\n## Consulting & support\n\nIf you need help with:\n\n- **E-Commerce Strategy & Development**\n(Shopify, Shopware 6, Magento 2, SAP Commerce Cloud, etc.)\n- **Growth & Performance Marketing**\n(Google / Meta / Microsoft Ads, etc.)\n- **Data & Analytics Setups**\n(tracking, dashboards, attribution, gdpr, etc.)\n\nplease reach out to **Serendipity Technologies**:\n\n\ud83d\udc49 [https://www.serendipity.at](https://www.serendipity.at)\n\nWe can help you turn this workflow into a full analytics stack and reporting system tailored to your business.",
+    "description_length": 3916,
+    "usage": {
+      "prompt_tokens": 1104,
+      "completion_tokens": 804,
+      "total_tokens": 1908
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:14:28.808459"
+  },
+  "original_description": "## Overview\n\nThis template automatically exports **Meta (Facebook) Ads campaign performance** into **Google Sheets** \u2014 both **daily** and for **historical backfills**. It\u2019s ideal for performance marketers, agencies, and analytics teams who want a reliable data pipeline from Meta Ads into their reporting stack.\n\n## What this workflow does\n\n- Runs a **daily cron job** to pull *yesterday\u2019s* campaign-level performance from the Meta Ads Insights API.\n- Flattens the API response and calculates key KPIs like **CPL, CPA, ROAS, CTR, CPC, CPM, frequency** and more.\n- Appends one row per **campaign per day** to a Google Sheet (for dashboards and further analysis).\n- Provides a separate **Manual Backfill** section to import historical data using a `time_range` parameter (e.g. last 12\u201324 months).\n\n## Use cases\n\n- Build Looker Studio / Power BI dashboards on top of a clean, daily Meta Ads dataset.\n- Track ROAS, CPL, CPA, CTR, and frequency trends over time.\n- Combine campaign data with CRM or ecommerce data in the same spreadsheet.\n- Quickly backfill past performance when onboarding a new Meta Ads account.\n\n## How it works\n\n1. **Daily Incremental Flow**\n   - A `Schedule Trigger` runs every day at 05:00.\n   - The `Set config` node defines ad account, date preset (`yesterday`), and Google Sheet details.\n   - The `Meta Insights` node calls the Facebook Graph `insights` edge at `level=campaign`.\n   - The `Code` node flattens the data and derives CPL, CPA, ROAS, and other KPIs.\n   - The `Google Sheets` node appends the rows to your `Meta_Daily_Data` sheet.\n\n2. **Manual Backfill Flow**\n   - A `Manual Trigger` lets you run the flow on demand.\n   - The `Set backfill config` node defines `backfillSince` and `backfillUntil`.\n   - The `Meta Insights (time_range)` node fetches performance for that historical range.\n   - The same transform logic is applied, and rows are appended to the same sheet.\n\n## Prerequisites\n\n- A Meta Business account with:\n  - A **system user** and a **long-lived access token** with `ads_read` / `read_insights`.\n- A **Google Sheet** with a header row that matches the mapped column names.\n- n8n credentials for:\n  - **Facebook Graph API**\n  - **Google Sheets OAuth2**\n\n## Setup steps\n\n1. Import this template into your n8n instance.\n2. Open the `Set config` and `Set backfill config` nodes:\n   - Set your `adAccountId` (e.g. `act_123456789012345`).\n   - Set your `sheetId` (Google Sheet ID) and sheet name (e.g. `Meta_Daily_Data`).\n3. Configure your **Facebook Graph API** and **Google Sheets** credentials in n8n.\n4. (Optional) Run the **Manual Backfill** section for your desired historical ranges (e.g. per quarter).\n5. Enable the workflow so the **Daily Incremental** section runs automatically.\n\n## Customization\n\n- Change `level` from `campaign` to `adset` or `ad` if you need more granular reporting.\n- Add **breakdowns** (e.g. `publisher_platform`, `platform_position`) to split by platform and placement.\n- Extend the transform code with additional KPIs or dimensions that match your reporting needs.\n- Use a separate sheet for raw data and build dashboards on top of a cleaned or pivoted view.\n\n## Consulting & support\n\nIf you need help with:\n\n- **E-Commerce Strategy & Development**\n(Shopify, Shopware 6, Magento 2, SAP Commerce Cloud, etc.)\n- **Growth & Performance Marketing**\n(Google / Meta / Microsoft Ads, etc.)\n- **Data & Analytics Setups**\n(tracking, dashboards, attribution, gdpr, etc.)\n\nplease reach out to **Serendipity Technologies**:\n\n\ud83d\udc49 [https://www.serendipity.at](https://www.serendipity.at)\n\nWe can help you turn this workflow into a full analytics stack and reporting system tailored to your business.",
+  "optimized_description": "This workflow automates the export of Meta (Facebook) Ads campaign performance data into Google Sheets, providing both daily updates and options for historical backfills. It is designed for performance marketers, agencies, and analytics teams seeking a reliable data pipeline from Meta Ads to their reporting systems.\n\nTrigger:\n- The workflow is initiated by a daily cron job using a Schedule Trigger that runs every day at 05:00.\n\nData Sources and APIs:\n- Meta Ads Insights API (Facebook Graph API) for campaign performance data.\n- Google Sheets API for appending data to a specified Google Sheet.\n\nOperations and Processing Steps:\n1. Daily Incremental Flow:\n   - A Schedule Trigger activates the workflow daily at 05:00.\n   - A Set config node is utilized to define necessary parameters including ad account ID, date preset (set to 'yesterday'), and Google Sheet details.\n   - The Meta Insights node calls the Facebook Graph API to retrieve campaign-level performance data using the insights edge at the campaign level.\n   - A Code node processes the API response, flattening the data structure and calculating key performance indicators (KPIs) such as Cost Per Lead (CPL), Cost Per Acquisition (CPA), Return on Ad Spend (ROAS), Click-Through Rate (CTR), Cost Per Click (CPC), Cost Per Mille (CPM), and frequency.\n   - The Google Sheets node appends the processed data as a new row for each campaign per day into the designated Google Sheet named 'Meta_Daily_Data'.\n\n2. Manual Backfill Flow:\n   - A Manual Trigger allows users to run this section on demand.\n   - A Set backfill config node is used to define the historical range for backfilling data, specifying parameters for 'backfillSince' and 'backfillUntil'.\n   - The Meta Insights (time_range) node fetches performance data for the defined historical range.\n   - The same transformation logic applied in the daily flow is executed, and the resulting rows are appended to the same Google Sheet.\n\nFinal Output or Action:\n- The final output of this workflow is a Google Sheet populated with daily campaign performance data from Meta Ads, including historical data when the backfill is executed. This data can be utilized for building dashboards in Looker Studio or Power BI, tracking trends over time, and integrating with CRM or e-commerce data.\n\nPrerequisites:\n- A Meta Business account with a system user and a long-lived access token that has permissions for 'ads_read' and 'read_insights'.\n- A Google Sheet with a header row that matches the expected column names for the data.\n- n8n credentials configured for both the Facebook Graph API and Google Sheets OAuth2.\n\nSetup Steps:\n1. Import the workflow template into your n8n instance.\n2. Configure the Set config and Set backfill config nodes by entering your adAccountId (e.g., 'act_123456789012345') and Google Sheet ID along with the sheet name (e.g., 'Meta_Daily_Data').\n3. Ensure that your Facebook Graph API and Google Sheets credentials are correctly set up in n8n.\n4. Optionally, run the Manual Backfill section to import historical data for specified ranges (e.g., quarterly).\n5. Enable the workflow to allow the Daily Incremental section to run automatically.\n\nCustomization Options:\n- Adjust the 'level' parameter from 'campaign' to 'adset' or 'ad' for more detailed reporting.\n- Include additional breakdowns (e.g., 'publisher_platform', 'platform_position') to analyze performance by platform and placement.\n- Enhance the transformation code to calculate additional KPIs or dimensions that suit your reporting requirements.\n- Consider using a separate sheet for raw data and create dashboards based on a cleaned or pivoted view.\n\nFor assistance with e-commerce strategy, growth and performance marketing, or data and analytics setups, please contact Serendipity Technologies at https://www.serendipity.at for tailored support in developing a comprehensive analytics stack and reporting system.",
+  "error": null,
+  "generated_at": "2026-01-25T23:14:51.766834",
+  "metrics": {
+    "node_type_precision": 0.7,
+    "node_type_recall": 0.7,
+    "node_type_f1": 0.7,
+    "tp": 7,
+    "fp": 3,
+    "fn": 3,
+    "gt_node_count": 10,
+    "llm_node_count": 10,
+    "connection_precision": 0.4,
+    "connection_recall": 0.4,
+    "connection_f1": 0.4000000000000001,
+    "correct_connections": 2,
+    "gt_connection_count": 5,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.4571428571428572,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4565,
+        "completion_tokens": 2063,
+        "total_tokens": 6628
+      },
+      "description_optimization": {
+        "prompt_tokens": 1104,
+        "completion_tokens": 804,
+        "total_tokens": 1908
+      },
+      "total_tokens": 8536,
+      "total_prompt_tokens": 5669,
+      "total_completion_tokens": 2867
+    },
+    "total_cost": 0.042842500000000006,
+    "description_optimization_cost": 0.0108,
+    "workflow_generation_cost": 0.0320425
+  }
+}

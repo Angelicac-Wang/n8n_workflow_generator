@@ -1,0 +1,334 @@
+{
+  "template_id": "5614",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a complex automation with multiple AI calls. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered by a webhook to receive the URL input from a form submission.",
+      "data_sources": "OpenAI API for GPT-4o and GPT-4o mini, SerpAPI for domain and search engine analysis.",
+      "operations": "1. Receive URL via webhook, 2. Analyze domain and technical details, 3. Analyze search engine signals, 4. Analyze product and pricing patterns, 5. Analyze on-site content, 6. Aggregate findings, 7. Calculate scam likelihood score, 8. Return structured summary.",
+      "output_actions": "Return a structured summary with a scam likelihood score to the user.",
+      "nodes_plan": "webhook (trigger), httpRequest (SerpAPI calls), openAi (GPT-4o for analysis), set (aggregate results), openAi (GPT-4o mini for final analysis), respondToWebhook (return results)",
+      "connections_plan": "webhook -> [httpRequest (SerpAPI) -> openAi (GPT-4o)] x4 -> set -> openAi (GPT-4o mini) -> respondToWebhook"
+    },
+    "workflowPlan": {
+      "name": "Website Legitimacy Analyzer",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "website-analysis"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Domain Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://serpapi.com/search?url={{ $json.url }}&api_key=your_serpapi_key",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "Domain AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Analyze domain details: {{ $json }}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Search Engine Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://serpapi.com/search?query={{ $json.url }}&api_key=your_serpapi_key",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Search Engine AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Analyze search engine signals: {{ $json }}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Pricing Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://serpapi.com/search?url={{ $json.url }}&api_key=your_serpapi_key",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Pricing AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Analyze product pricing patterns: {{ $json }}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Content Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://serpapi.com/search?url={{ $json.url }}&api_key=your_serpapi_key",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Content AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "prompt": "Analyze on-site content: {{ $json }}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Aggregate Findings",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "domainAnalysis",
+                  "value": "={{ $node[\"Domain AI Analysis\"].json }}"
+                },
+                {
+                  "name": "searchEngineAnalysis",
+                  "value": "={{ $node[\"Search Engine AI Analysis\"].json }}"
+                },
+                {
+                  "name": "pricingAnalysis",
+                  "value": "={{ $node[\"Pricing AI Analysis\"].json }}"
+                },
+                {
+                  "name": "contentAnalysis",
+                  "value": "={{ $node[\"Content AI Analysis\"].json }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 250
+          }
+        },
+        {
+          "id": "11",
+          "label": "Final Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o mini",
+            "prompt": "Consolidate and score scam likelihood: {{ $json }}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 900,
+            "y": 250
+          }
+        },
+        {
+          "id": "12",
+          "label": "Respond to Webhook",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{ $json }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 250
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "11",
+          "to": "12",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8883,
+    "completion_tokens": 2013,
+    "total_tokens": 10896
+  },
+  "description_optimization": null,
+  "original_description": "# What It Does\nThis intelligent workflow simplifies the complex task of determining whether a website is legitimate or potentially a scam. By simply submitting a URL through a form, the system initiates a multi-agent evaluation process. Four dedicated AI agents\u2014each powered by GPT-4o and connected to SerpAPI\u2014analyze different dimensions of the website: domain and technical details, search engine signals, product and pricing patterns, and on-site content analysis. Their findings are then passed to a fifth AI agent, the Analyzer, powered by GPT-4o mini, which consolidates the data, scores the site on a scale of 1\u201310 for scam likelihood, and presents the findings in a clear, structured format for the user.\n\n# Who It's For\nThis workflow is ideal for anyone who needs to quickly and reliably assess the trustworthiness of a website. Whether you're a consumer double-checking a store before making a purchase, a small business owner validating supplier sites, a cybersecurity analyst conducting threat assessments, or a developer building fraud detection into your platform \u2014 this tool offers fast, AI-powered insights without the need for manual research or technical expertise. It's designed for both individuals and teams who value accurate, scalable scam detection.\n\n# How It Works\nThe process begins with a simple form submission where the user enters the URL of the website they want to investigate. Once submitted, the workflow activates four specialized AI agents\u2014each powered by GPT-4o and connected to SerpAPI\u2014to independently analyze the site from different angles:\n\nAgent 1 examines domain age, SSL certificates, and TLD trustworthiness.\n\nAgent 2 reviews search engine results, forum mentions, and public scam reports.\n\nAgent 3 analyzes product pricing patterns and brand authenticity.\n\nAgent 4 assesses on-site content quality, grammar, legitimacy of claims, and presence of business info.\n\nEach agent returns its findings, which are then aggregated and passed to a fifth AI agent\u2014the Analyzer. This final agent, powered by GPT-4o mini, evaluates all the input, assigns a scam likelihood score from 1 to 10, and compiles a neatly formatted summary with organized insights and a disclaimer for context.\n\n# Set UP\nYou will need to obtain an Open AI API key from platform.openai.com/api-keys\nAfter you obtain this Open AI API key you will need to connect it to the Open AI Chat Model for all of the Tools agents (Analyzer, Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools Agents).\nYou will now need to fund your Open AI account. GPT 4o costs ~$0.01 to run the workflow.\nNext you will need to create a SerpAPI account at https://serpapi.com/users/sign_up\nAfter you create an account you will need to obtain a SerpAPI key.\nYou will then need to use this key to connect to the SerpAPI tool for each of the tools agents (Domain & Technical Details, Search Engine Signals, Product & Pricing Patterns, and Content Analysis Tools Agents)\nTip: SerpAPI will allow you to run 100 free searches each month. This workflow uses ~5-15 SerpAPI searches per run. If you would like to utilize the workflow more than that each month, create multiple SerpAPI accounts and have an API key for each account. When you utilize all 100 free searches for an account, switch to the API key for another account within the workflow.\n\n## Disclaimer\nThis tool is designed to assist in evaluating the potential risk of websites using AI-generated insights. The scam likelihood score and analysis provided are based on publicly available information and should not be considered a definitive or authoritative assessment. This tool does not guarantee the accuracy, safety, or legitimacy of any website. Users should perform their own due diligence and use independent judgment before engaging with any site.\n\nN8N, OpenAI, its affiliates, and the creators of this workflow are not responsible for any loss, damages, or consequences arising from the use of this tool or the actions taken based on its results.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:22:56.239530",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 12,
+    "fn": 17,
+    "gt_node_count": 17,
+    "llm_node_count": 12,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 4,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 8883,
+      "completion_tokens": 2013,
+      "total_tokens": 10896
+    },
+    "total_cost": 0.0423375
+  },
+  "is_ai_workflow": false
+}

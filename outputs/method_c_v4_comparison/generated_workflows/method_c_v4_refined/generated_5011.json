@@ -1,0 +1,190 @@
+{
+  "template_id": "5011",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'Q&A about documents', 'RAG'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "PDF document for custom knowledge, vector store for document embeddings.",
+      "operations": "1. Receive chat input via chatTrigger, 2. Load and process PDF document, 3. Generate embeddings, 4. Store embeddings in vector store, 5. Agent orchestrates with LLM reasoning, 6. Memory maintains context, 7. Return formatted response",
+      "output_actions": "Intelligent chat response back to user with answers from the document",
+      "nodes_plan": "chatTrigger (chat input), documentDefaultDataLoader (load PDF), embeddingsOpenAi (generate embeddings), vectorStoreQdrant (store embeddings), agent (orchestrator - REQUIRED), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context)",
+      "connections_plan": "chatTrigger \u2192 documentDefaultDataLoader \u2192 embeddingsOpenAi \u2192 vectorStoreQdrant \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow"
+    },
+    "workflowPlan": {
+      "name": "AI Document Q&A Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Load PDF Document",
+          "nodeType": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+          "typeVersion": 1,
+          "params": {
+            "documentType": "pdf"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Embeddings",
+          "nodeType": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-embedding-ada-002"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store in Vector Store",
+          "nodeType": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+          "typeVersion": 1,
+          "params": {
+            "operation": "store"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are a helpful assistant that answers questions based on the provided document.",
+            "options": {}
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 1100,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8946,
+    "completion_tokens": 1128,
+    "total_tokens": 10074
+  },
+  "description_optimization": null,
+  "original_description": "This template shows how to use the Question and Answer tool to save costs in RAG use cases.\n\n## Who is this for?\nThis template is for everyone who wants to start giving knowledge to their Agents through RAG.\n\n## Requirements\nHave a PDF with custom knowledge that you want to provide to your agent.\n\n## Setup\nNo setup required. Just hit `Execute Workflow`, upload your knowledge document and then start chatting.\n\n## How to customize this to your needs\n1. Add custom instructions to your Agent by changing the prompts in it.\n2. Add a different way to load in knowledge to your vector store, e.g. by looking at some Google Drive files or loading knowledge from a table.\n3. Describe your data properly in the Q&A tool\n4. Exchange the `Simple Vector Store` nodes with your own vector store tools ready for production.\n5. Add a more sophisticated way to rank files found in the vector store.\n\nFor more information read our [docs on RAG in n8n](https://docs.n8n.io/advanced-ai/rag-in-n8n/).",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:58:40.507968",
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.5,
+    "node_type_f1": 0.588235294117647,
+    "tp": 5,
+    "fp": 2,
+    "fn": 5,
+    "gt_node_count": 10,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 2,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.05,
+    "usage": {
+      "prompt_tokens": 8946,
+      "completion_tokens": 1128,
+      "total_tokens": 10074
+    },
+    "total_cost": 0.033645
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,332 @@
+{
+  "template_id": "10898",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow is triggered manually when the user inputs a target URL and endpoint.",
+      "data_sources": "User input for target URL and endpoint, HTTP requests for security tests, JavaScript for analysis, Markdown for report generation, Gmail API for optional email sending.",
+      "operations": "1. Receive user input, 2. Perform parallel HTTP tests, 3. Analyze results with JavaScript, 4. Compile results into Markdown, 5. Optionally send email with report.",
+      "output_actions": "Generate a downloadable Markdown report and optionally send it via email.",
+      "nodes_plan": "manualTrigger, httpRequest (5 instances for different tests), code (JavaScript analysis), markdown (report generation), writeFile (save report), emailSend (optional email).",
+      "connections_plan": "manualTrigger -> [httpRequest1, httpRequest2, httpRequest3, httpRequest4, httpRequest5] -> code -> markdown -> writeFile -> emailSend (optional)"
+    },
+    "workflowPlan": {
+      "name": "n8n OWASP Scanner Setup and Execution",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Headers Test",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.targetUrl + $json.endpoint }}",
+            "responseFormat": "json",
+            "options": {
+              "headers": {
+                "User-Agent": "OWASP-Scanner"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Cookies Test",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.targetUrl + $json.endpoint }}",
+            "responseFormat": "json",
+            "options": {
+              "headers": {
+                "User-Agent": "OWASP-Scanner"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "CORS Test",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "OPTIONS",
+            "url": "={{ $json.targetUrl + $json.endpoint }}",
+            "responseFormat": "json",
+            "options": {
+              "headers": {
+                "Origin": "https://example.com"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "HTTPS Test",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.targetUrl + $json.endpoint }}",
+            "responseFormat": "json",
+            "options": {
+              "rejectUnauthorized": false
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "HTTP Methods Test",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "OPTIONS",
+            "url": "={{ $json.targetUrl + $json.endpoint }}",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Analyze Results",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "JavaScript",
+            "code": "const results = {};\n// Analyze each test result and populate the results object\nreturn results;"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Markdown Report",
+          "nodeType": "n8n-nodes-base.markdown",
+          "typeVersion": 1,
+          "params": {
+            "content": "OWASP Scan Report\n\n{{JSON.stringify($json.results, null, 2)}}"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Write Report to File",
+          "nodeType": "n8n-nodes-base.writeFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "={{ 'scan-' + new Date().toISOString().replace(/[:.]/g, '-') + '.md' }}",
+            "data": "={{ $json.content }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "OWASP Scan Report",
+            "text": "Please find the attached OWASP scan report.",
+            "attachments": [
+              {
+                "fileName": "={{ $json.fileName }}",
+                "content": "={{ $json.data }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4462,
+      "completion_tokens": 1700,
+      "total_tokens": 6162
+    },
+    "description_optimization": {
+      "prompt_tokens": 522,
+      "completion_tokens": 701,
+      "total_tokens": 1223
+    },
+    "total_tokens": 7385,
+    "total_prompt_tokens": 4984,
+    "total_completion_tokens": 2401
+  },
+  "description_optimization": {
+    "template_id": "10898",
+    "optimized_description": "Workflow Description: n8n OWASP Scanner Setup and Execution\n\nTrigger:\nThe workflow is initiated when a user inputs a target URL and endpoint in the designated input field. This input serves as the starting point for the OWASP scanning process.\n\nData Sources and APIs Needed:\n1. User Input: The target URL (e.g., `https://example.com`) and endpoint (e.g., `/login`) provided by the user.\n2. HTTP Request Node: Utilized to perform various HTTP tests.\n3. JavaScript Code Node: Executes custom logic to analyze the results based on OWASP ASVS rules.\n4. Markdown Node: Generates a Markdown report from the findings.\n5. Gmail API (optional): Used to send the report via email if configured.\n\nOperations and Processing Steps:\n1. Input Stage:\n   - The user enters the target URL and endpoint in the input field of the workflow.\n\n2. Scan Stage:\n   - The workflow executes five parallel HTTP tests to assess the target:\n     a. Headers Test: Checks HTTP headers for security vulnerabilities.\n     b. Cookies Test: Analyzes cookie attributes and security settings.\n     c. CORS Test: Evaluates Cross-Origin Resource Sharing configurations.\n     d. HTTPS Test: Verifies the use of HTTPS and its configurations.\n     e. Methods Test: Tests HTTP methods allowed by the endpoint.\n\n3. Analyze Stage:\n   - A JavaScript Code Node processes the results from the HTTP tests. It applies pure JavaScript logic to check compliance with the OWASP Application Security Verification Standard (ASVS) rules, ensuring that no external tools are required for this analysis.\n\n4. Merge Stage:\n   - The findings from all the tests are compiled into a single Markdown report. This is done using a Markdown Node, which formats the results for easy readability.\n\n5. Output Stage:\n   - The workflow auto-generates a Markdown file named in the format `scan-YYYY-MM-DD_HHMMSS.md`, where the date and time reflect when the scan was executed (e.g., `scan-2025-11-16_210900.md`). The file is prepared for download.\n\n6. Email Stage (Optional):\n   - If the user has connected their Gmail credentials, the workflow can automatically send the generated Markdown report to a specified email address. This step is optional and can be configured in the last node of the workflow.\n\nFinal Output or Action:\nThe final output of the workflow is a downloadable Markdown report containing the results of the OWASP scan, which can also be emailed to the user if the Gmail integration is set up.\n\nSetup Instructions:\n1. Import Workflow:\n   - Copy the full JSON of the workflow from the \"Export Final Workflow\" section.\n   - In n8n, navigate to **Workflows** and select **Import from JSON**. Paste the copied JSON and click **Import**.\n\n2. (Optional) Connect Gmail Credentials:\n   - If the user wishes to enable the email feature, they must connect their Gmail account in the last node of the workflow.\n\n3. Execute the Workflow:\n   - The user clicks on the execute button, enters the target URL and endpoint in the new window, and clicks 'submit' to start the scanning process.\n\nNote:\nThis workflow supports any HTTP/HTTPS endpoint and is compatible with both n8n Cloud and self-hosted environments. Users have the option to download the Markdown report directly from the Markdown to File node if they choose not to use the email feature.",
+    "original_description": "**How the n8n OWASP Scanner Works & How to Set It Up**\n\n**How It Works (Simple Flow):**\n- **1. Input**: Enter target URL + endpoint (e.g., `https://example.com`, `/login`)\n- **2. Scan**: This workflow executes 5 parallel HTTP tests (Headers, Cookies, CORS, HTTPS, Methods)\n- **3. Analyze**: Pure JS logic checks OWASP ASVS (Application Security Verification Standard) rules (no external tools)\n- **4. Merge**: Combines all findings into one Markdown report\n- **5. Output**: Auto-generates + downloads `scan-2025-11-16_210900.md`** (example filename)\n- **6. Email:** (Optional) Forward the report to an email address using Gmail.\n\n---\n\n**Setup in 3 Steps (2 Minutes)**\n\n1. **Import Workflow**\n   - Copy the full JSON (from \"Export Final Workflow\")\n   - In n8n \u2192 **Workflows** \u2192 **Import from JSON** \u2192 Paste \u2192 Import\n\n2. **(Optional) Connect your Gmail credentials**\n   - In the last node to auto-email the report\n\n3. **Click Execute the workflow** \n   - Enter a URL in the new window, then click 'submit'.\n\n*You can alternatively download or receive the Markdown report directly from the Markdown to File node* \n\n---\n  \n*(Supports any HTTP/HTTPS endpoint. Works in n8n Cloud or self-hosted.)*",
+    "description_length": 3280,
+    "usage": {
+      "prompt_tokens": 522,
+      "completion_tokens": 701,
+      "total_tokens": 1223
+    },
+    "error": null,
+    "generated_at": "2026-01-25T22:55:48.881136"
+  },
+  "original_description": "**How the n8n OWASP Scanner Works & How to Set It Up**\n\n**How It Works (Simple Flow):**\n- **1. Input**: Enter target URL + endpoint (e.g., `https://example.com`, `/login`)\n- **2. Scan**: This workflow executes 5 parallel HTTP tests (Headers, Cookies, CORS, HTTPS, Methods)\n- **3. Analyze**: Pure JS logic checks OWASP ASVS (Application Security Verification Standard) rules (no external tools)\n- **4. Merge**: Combines all findings into one Markdown report\n- **5. Output**: Auto-generates + downloads `scan-2025-11-16_210900.md`** (example filename)\n- **6. Email:** (Optional) Forward the report to an email address using Gmail.\n\n---\n\n**Setup in 3 Steps (2 Minutes)**\n\n1. **Import Workflow**\n   - Copy the full JSON (from \"Export Final Workflow\")\n   - In n8n \u2192 **Workflows** \u2192 **Import from JSON** \u2192 Paste \u2192 Import\n\n2. **(Optional) Connect your Gmail credentials**\n   - In the last node to auto-email the report\n\n3. **Click Execute the workflow** \n   - Enter a URL in the new window, then click 'submit'.\n\n*You can alternatively download or receive the Markdown report directly from the Markdown to File node* \n\n---\n  \n*(Supports any HTTP/HTTPS endpoint. Works in n8n Cloud or self-hosted.)*",
+  "optimized_description": "Workflow Description: n8n OWASP Scanner Setup and Execution\n\nTrigger:\nThe workflow is initiated when a user inputs a target URL and endpoint in the designated input field. This input serves as the starting point for the OWASP scanning process.\n\nData Sources and APIs Needed:\n1. User Input: The target URL (e.g., `https://example.com`) and endpoint (e.g., `/login`) provided by the user.\n2. HTTP Request Node: Utilized to perform various HTTP tests.\n3. JavaScript Code Node: Executes custom logic to analyze the results based on OWASP ASVS rules.\n4. Markdown Node: Generates a Markdown report from the findings.\n5. Gmail API (optional): Used to send the report via email if configured.\n\nOperations and Processing Steps:\n1. Input Stage:\n   - The user enters the target URL and endpoint in the input field of the workflow.\n\n2. Scan Stage:\n   - The workflow executes five parallel HTTP tests to assess the target:\n     a. Headers Test: Checks HTTP headers for security vulnerabilities.\n     b. Cookies Test: Analyzes cookie attributes and security settings.\n     c. CORS Test: Evaluates Cross-Origin Resource Sharing configurations.\n     d. HTTPS Test: Verifies the use of HTTPS and its configurations.\n     e. Methods Test: Tests HTTP methods allowed by the endpoint.\n\n3. Analyze Stage:\n   - A JavaScript Code Node processes the results from the HTTP tests. It applies pure JavaScript logic to check compliance with the OWASP Application Security Verification Standard (ASVS) rules, ensuring that no external tools are required for this analysis.\n\n4. Merge Stage:\n   - The findings from all the tests are compiled into a single Markdown report. This is done using a Markdown Node, which formats the results for easy readability.\n\n5. Output Stage:\n   - The workflow auto-generates a Markdown file named in the format `scan-YYYY-MM-DD_HHMMSS.md`, where the date and time reflect when the scan was executed (e.g., `scan-2025-11-16_210900.md`). The file is prepared for download.\n\n6. Email Stage (Optional):\n   - If the user has connected their Gmail credentials, the workflow can automatically send the generated Markdown report to a specified email address. This step is optional and can be configured in the last node of the workflow.\n\nFinal Output or Action:\nThe final output of the workflow is a downloadable Markdown report containing the results of the OWASP scan, which can also be emailed to the user if the Gmail integration is set up.\n\nSetup Instructions:\n1. Import Workflow:\n   - Copy the full JSON of the workflow from the \"Export Final Workflow\" section.\n   - In n8n, navigate to **Workflows** and select **Import from JSON**. Paste the copied JSON and click **Import**.\n\n2. (Optional) Connect Gmail Credentials:\n   - If the user wishes to enable the email feature, they must connect their Gmail account in the last node of the workflow.\n\n3. Execute the Workflow:\n   - The user clicks on the execute button, enters the target URL and endpoint in the new window, and clicks 'submit' to start the scanning process.\n\nNote:\nThis workflow supports any HTTP/HTTPS endpoint and is compatible with both n8n Cloud and self-hosted environments. Users have the option to download the Markdown report directly from the Markdown to File node if they choose not to use the email feature.",
+  "error": null,
+  "generated_at": "2026-01-25T22:56:10.853048",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 1.0,
+    "node_type_f1": 0.7499999999999999,
+    "tp": 6,
+    "fp": 4,
+    "fn": 0,
+    "gt_node_count": 6,
+    "llm_node_count": 10,
+    "connection_precision": 0.2,
+    "connection_recall": 0.1,
+    "connection_f1": 0.13333333333333333,
+    "correct_connections": 1,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.31666666666666665,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4462,
+        "completion_tokens": 1700,
+        "total_tokens": 6162
+      },
+      "description_optimization": {
+        "prompt_tokens": 522,
+        "completion_tokens": 701,
+        "total_tokens": 1223
+      },
+      "total_tokens": 7385,
+      "total_prompt_tokens": 4984,
+      "total_completion_tokens": 2401
+    },
+    "total_cost": 0.03647,
+    "description_optimization_cost": 0.008315000000000001,
+    "workflow_generation_cost": 0.028155000000000003
+  }
+}

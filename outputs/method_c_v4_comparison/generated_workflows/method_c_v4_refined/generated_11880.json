@@ -1,0 +1,250 @@
+{
+  "template_id": "11880",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a content generation and scheduling automation with AI analysis. Use base openAi node.",
+      "trigger_analysis": "Schedule trigger to run the workflow every day at 8:00 AM.",
+      "data_sources": "Google Sheets for Active Campaigns and Daily Content Plan, RSS feeds and Reddit for trending topics, Groq AI for content generation, Google Calendar for scheduling.",
+      "operations": "1. Trigger daily at 8 AM, 2. Fetch trending topics, 3. Read active campaigns from Google Sheets, 4. Enrich campaigns with trends, 5. Generate content with Groq AI, 6. Calculate quality score, 7. Append results to Google Sheets, 8. Schedule events in Google Calendar, 9. Optionally send a summary email.",
+      "output_actions": "Content ideas appended to Google Sheets and events created in Google Calendar.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (fetch trends), googleSheets (read and append), openAi (generate content), set (calculate score), googleCalendar (create event), emailSend (optional summary email).",
+      "connections_plan": "scheduleTrigger -> httpRequest (fetch trends) -> googleSheets (read) -> set (filter active) -> openAi (generate content) -> set (calculate score) -> googleSheets (append results) -> googleCalendar (create event) -> emailSend (optional)."
+    },
+    "workflowPlan": {
+      "name": "Daily Content Generation and Scheduling",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 8 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Trending Topics",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.trendingtopics.com/rss"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Read Active Campaigns",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "activeCampaignsSheetId",
+            "range": "A:E"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Active Campaigns",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json['Status'] }}",
+                  "operation": "equal",
+                  "value2": "active"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Content with Groq AI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate content for {{$json['Project Name']}} with theme {{$json['Theme']}} and target audience {{$json['Target Audience']}}."
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Calculate Quality Score",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "number": [
+                {
+                  "name": "qualityScore",
+                  "value": "={{ $json['content'].length > 100 ? 10 : 5 }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Append to Daily Content Plan",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "dailyContentPlanSheetId",
+            "range": "A:G",
+            "data": "={{ { 'Project Name': $json['Project Name'], 'Date': new Date().toISOString().split('T')[0], 'Platform': $json['Platform'], 'Caption': $json['content'], 'Creative Direction': $json['creativeDirection'], 'Hashtags': $json['hashtags'], 'Quality Score': $json['qualityScore'] } }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Create Event in Google Calendar",
+          "nodeType": "n8n-nodes-base.googleCalendar",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEvent",
+            "calendarId": "primary",
+            "start": "={{ $json['recommendedTime'] }}",
+            "end": "={{ new Date(new Date($json['recommendedTime']).getTime() + 3600000).toISOString() }}",
+            "summary": "={{ $json['Project Name'] }} Content Posting",
+            "description": "={{ $json['content'] }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Daily Summary Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "team@example.com",
+            "subject": "Daily Content Plan Summary",
+            "text": "Processed {{$json['processedCampaigns']}} campaigns with an average quality score of {{$json['averageQualityScore']}}."
+          },
+          "position": {
+            "x": 1700,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9574,
+    "completion_tokens": 1637,
+    "total_tokens": 11211
+  },
+  "description_optimization": null,
+  "original_description": "**How it works:**\n\n1. Daily Trigger:\nEvery morning at 8 AM, the workflow is automatically triggered.\n\n2. Fetch Trending Topics:\nThe workflow collects trending topics from external sources, such as news RSS feeds and Reddit popular posts. These trends are merged and summarized to provide up-to-date context for content generation.\n\n3. Read Active Campaigns:\nThe workflow reads all rows from the \u201cActive Campaigns\u201d Google Sheet, but only processes campaigns with a status of \"active\" to avoid generating content for paused or inactive campaigns.\n\n4. Enrich Campaigns with Trends:\nEach active campaign is enriched with the latest trending topics, so the generated content can reference current events or popular themes.\n\n5. AI Content Generation:\nFor each enriched campaign, Groq AI generates:\n- An engaging post caption tailored to the platform and target audience\n- Creative direction with visual suggestions\n- Relevant hashtags (5-10)\n- Best posting time recommendation for the platform\n\n6. Quality Scoring:\nThe workflow calculates a quality score for each generated content idea, considering factors like caption length, hashtag count, and creative direction.\n\n7. Append to Google Sheets:\nThe generated content ideas, along with their quality scores and other details, are appended to the \u201cDaily Content Plan\u201d Google Sheet for record-keeping and team collaboration.\n\n8. Schedule in Google Calendar:\nFor each campaign, an event is created in Google Calendar with the content details and recommended posting time, ensuring the team is reminded to review or publish the content.\n\n9. Daily Email Summary (Optional):\nAt the end of the process, a summary email can be sent to the team, including statistics such as the number of campaigns processed, average quality score, and a platform breakdown.\n\n\n**Set up steps:**\n\n1. Prepare Your Google Sheets:\n\n- Create a sheet named \u201cActive Campaigns\u201d with columns: Project Name, Theme, Target Audience, Platform, and Status (to mark campaigns as active/inactive).\n- Create another sheet named \u201cDaily Content Plan\u201d with columns for Project Name, Date, Platform, Caption, Creative Direction, Hashtags, and any other details you want to track.\n\n2. Connect Google Services to n8n:\n- In n8n, set up and authenticate your Google Sheets and Google Calendar credentials. You can find authentication information in the n8n documentation for Google credentials.\n\n3. Add a Cron Node:\nDrag in a Cron node and set it to trigger every day at 8:00 AM.\n\n4. Read Campaigns from Google Sheets:\n- Add a Google Sheets node.\n- Set the operation to \u201cRead Rows\u201d and select your \u201cActive Campaigns\u201d sheet.\n- (Optional) Use a Filter or IF node to process only rows where Status is \u201cactive\u201d.\n\n5. (Optional) Fetch Trending Topics:\nIf you want to enrich your content with trending topics, add nodes to fetch data from RSS feeds, Reddit, or other sources.\n\n6. Process Each Campaign:\n- Use a SplitInBatches node to process each campaign row individually.\n\n7. Generate Content Ideas with Groq AI:\n- Add a Groq AI node (or OpenAI node if Groq is not available).\n- Configure the prompt to generate a content idea using the campaign\u2019s theme, target audience, and platform. You can reference fields from the Google Sheets node using expressions like $(\"Google Sheets\").item.json['Theme'].\n\n8. Append Results to \u201cDaily Content Plan\u201d:\n- Add another Google Sheets node.\n- Set the operation to \u201cAppend\u201d and select your \u201cDaily Content Plan\u201d sheet.\n- Map the generated content fields to the appropriate columns.\n\n9. Schedule Events in Google Calendar:\n- Add a Google Calendar node.\n- Set the operation to \u201cCreate Event\u201d.\n- Use the project name and content idea for the event title and description, and set the event time as needed.\n\n10. (Optional) Send a Daily Summary Email:\n- Add an Email node to send a summary of the day\u2019s content plan to your team.\n\n11. Test the Workflow:\n- Run the workflow manually to ensure all steps work as expected.\n- Check that new content ideas appear in the \u201cDaily Content Plan\u201d sheet and that events are created in Google Calendar.\n\n12. Activate the Workflow:\n- Once you\u2019ve confirmed everything works, activate the workflow so it runs automatically every morning.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:44:04.253280",
+  "metrics": {
+    "node_type_precision": 0.6666666666666666,
+    "node_type_recall": 0.3,
+    "node_type_f1": 0.41379310344827586,
+    "tp": 6,
+    "fp": 3,
+    "fn": 14,
+    "gt_node_count": 20,
+    "llm_node_count": 9,
+    "connection_precision": 0.25,
+    "connection_recall": 0.1111111111111111,
+    "connection_f1": 0.15384615384615383,
+    "correct_connections": 2,
+    "gt_connection_count": 18,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.020833333333333332,
+    "usage": {
+      "prompt_tokens": 9574,
+      "completion_tokens": 1637,
+      "total_tokens": 11211
+    },
+    "total_cost": 0.04030500000000001
+  },
+  "is_ai_workflow": false
+}

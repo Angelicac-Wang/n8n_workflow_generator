@@ -1,0 +1,145 @@
+{
+  "template_id": 3477,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Google Sheets to Airtop Profile Update",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Sheets - Get Rows",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:C"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request - Airtop API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.airtop.com/profile/search",
+            "method": "GET",
+            "queryParameters": [
+              {
+                "name": "name",
+                "value": "={{$json[\"name\"]}}"
+              }
+            ],
+            "authentication": "none"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Code - Parse Airtop Response",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const profile = item.json;\n  return {\n    json: {\n      name: profile.name,\n      email: profile.email,\n      phone: profile.phone\n    }\n  };\n});"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets - Update Row",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "updateRow",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:C",
+            "key": "name",
+            "value": "={{$json[\"name\"]}}",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 555,
+    "completion_tokens": 684,
+    "total_tokens": 1239
+  },
+  "error": null,
+  "generated_at": "2026-01-13T03:03:56.181003",
+  "generated_description": "This n8n workflow is manually triggered by clicking 'Test workflow'. Once initiated, it retrieves information from a Google Sheets document, specifically focusing on a person's details. Using this data, the workflow then searches for a corresponding profile via the Airtop API. The response from Airtop is processed and parsed using a code node to extract relevant information. Finally, the workflow updates the original Google Sheets document with the new or modified data obtained from the Airtop profile search.",
+  "description_generation_usage": {
+    "prompt_tokens": 170,
+    "completion_tokens": 93,
+    "total_tokens": 263
+  },
+  "metrics": {
+    "node_type_precision": 0.8,
+    "node_type_recall": 0.8,
+    "node_type_f1": 0.8000000000000002,
+    "tp": 4,
+    "fp": 1,
+    "fn": 1,
+    "gt_node_count": 5,
+    "llm_node_count": 5,
+    "connection_precision": 0.5,
+    "connection_recall": 0.5,
+    "connection_f1": 0.5,
+    "correct_connections": 2,
+    "gt_connection_count": 4,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.26785714285714285,
+    "usage": {
+      "prompt_tokens": 555,
+      "completion_tokens": 684,
+      "total_tokens": 1239
+    },
+    "total_cost": 0.0095825,
+    "description_generation_cost": 0.001355,
+    "workflow_generation_cost": 0.0082275
+  },
+  "original_description": "### About The LinkedIn Profile Discovery Automation\n\nAre you tired of manually searching for LinkedIn profiles or paying expensive data providers for often outdated information? If you spend countless hours trying to find accurate LinkedIn URLs for your prospects or candidates, this automation will change your workflow forever. Just give this workflow the information you have about a contact, and it will automatically augment it with a LinkedIn profile.\n\n### How to find a LinkedIn Profile Link\n\nIn this guide, you'll learn how to automate LinkedIn profile link discovery using Airtop's built-in node in n8n. Using this automation, you'll have a fully automated workflow that saves you hours of manual searching while providing accurate, validated LinkedIn URLs.\n\n### What You'll Need\n\n- A free [Airtop API key](https://portal.airtop.ai/?utm_campaign=n8n)\n- A Google Workspace account. If you have a Gmail account, you\u2019re all set\n- Estimated setup time: 10 minutes\n\n### Understanding the Process\n\nThis automation leverages the power of intelligent search algorithms combined with LinkedIn validation to ensure accuracy. Here's how it works:\n\n- Takes your input data (name, company, etc.) and constructs intelligent search queries\n- Utilizes Google search to identify potential LinkedIn profile URLs\n- Validates the discovered URLs directly against LinkedIn to ensure accuracy\n- Returns confirmed, accurate LinkedIn profile URLs\n\n![image.png](fileId:1096)\n\n### Setting Up Your Automation\n\nGetting started with this automation is straightforward:\n\n#### Prepare Your Google Sheet\n\n- Create a new Google Sheet with columns for input data (name, company, domain, etc.)\n- Add columns for the output LinkedIn URL and validation status (see [this](https://docs.google.com/spreadsheets/d/1rjlKzphEbknNh_ToS9pR_dP_Tw93FsxDte5AI4LH5_E/copy) example)\n\n#### Configure the Automation\n\n- Connect your Google Workspace account to n8n if you haven't already\n- Add your Airtop API credentials\n- (Optionally) Configure your [Airtop Profile](https://docs.airtop.ai/guides/how-to/saving-a-profile) and sign-in to LinkedIn in order to validate profile URL's\n\n#### Run Your First Test\n\n- Add a few test entries to your Google Sheet\n- Run the workflow\n- Check the results in your output columns\n\n![image.png](fileId:1102)\n\n### Customization Options\n\nWhile the default setup uses Google Sheets, this automation is highly flexible:\n\n- **Webhook Integration**: Perfect for integrating with tools like Clay, Instantly, or your custom applications\n- **Alternatives**: Replace Google Sheets with Airtable, Notion, or any other tools you already use for more robust database capabilities\n- **Custom Output Formatting**: Modify the output structure to match your existing systems\n- **Batch Processing**: Configure for bulk processing of multiple profiles\n\n\n### Real-World Applications\n\nThis automation has the potential to transform how we organizations handle profile enrichment.\n\n#### Recruiting Firm Success Story\n\nWith this automation, a recruiting firm could save hundreds of dollars a month in data enrichment fees, achieve better accuracy, and eliminate subscription costs. They would also be able to process thousands of profiles weekly with near-perfect accuracy.\n\n#### Sales Team Integration\n\nA B2B sales team could integrate this automation with their CRM, automatically enriching new leads with validated LinkedIn profiles and saving their SDRs hours per week on manual research.\n\n### Best Practices\n\nTo maximize the accuracy of your results:\n\n- Always include company information (domain or company name) with your search queries\n- Use full names rather than nicknames or initials when possible\n- Consider including location data for more accurate results with common names\n- Implement rate limiting to respect LinkedIn's usage guidelines\n- Keep your input data clean and standardized for best results\n- Use the [integrated proxy](https://docs.airtop.ai/guides/how-to/using-a-proxy) to navigate more effectively through Google and LinkedIn\n\n\n### What's Next?\n\nNow that you've automated LinkedIn profile discovery, consider exploring related automations:\n\n- Automated lead scoring based on LinkedIn profile data\n- Email finder automation using validated LinkedIn profiles\n- Integration with your CRM for automated contact enrichment"
+}

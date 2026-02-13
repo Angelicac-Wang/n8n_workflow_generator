@@ -1,0 +1,235 @@
+{
+  "template_id": "11763",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule to check website status every hour.",
+      "data_sources": "n8n platform for workflow automation and Telegram API for sending alerts.",
+      "operations": "1. Schedule trigger for hourly checks, 2. HTTP request to check website status, 3. Wait for 5 minutes if down, 4. Send alert via Telegram if still down.",
+      "output_actions": "Send downtime alerts via Telegram for websites down longer than 5 minutes.",
+      "nodes_plan": "schedule (trigger), httpRequest (GET), if (check status), wait (delay), httpRequest (recheck), if (final check), telegram (send message)",
+      "connections_plan": "schedule -> httpRequest -> if (status check) -> [wait (if down) -> httpRequest (recheck) -> if (final check) -> telegram (if still down)]"
+    },
+    "workflowPlan": {
+      "name": "Website Downtime Checker Robot Using n8n",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 * * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Website Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://example.com"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "If Website Down",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.statusCode }}",
+                  "operation": "notEqual",
+                  "value2": 200
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait 5 Minutes",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "5m"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Recheck Website Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://example.com"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "If Still Down",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.statusCode }}",
+                  "operation": "notEqual",
+                  "value2": 200
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Telegram Alert",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "YOUR_CHAT_ID",
+            "text": "Website is down: https://example.com"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4296,
+      "completion_tokens": 1063,
+      "total_tokens": 5359
+    },
+    "description_optimization": {
+      "prompt_tokens": 887,
+      "completion_tokens": 535,
+      "total_tokens": 1422
+    },
+    "total_tokens": 6781,
+    "total_prompt_tokens": 5183,
+    "total_completion_tokens": 1598
+  },
+  "description_optimization": {
+    "template_id": "11763",
+    "optimized_description": "Workflow Title: Website Downtime Checker Robot Using n8n\n\nTrigger: The workflow is triggered on a scheduled basis, defaulting to an hourly check of specified websites.\n\nData Sources and APIs Needed:\n1. n8n platform (self-hosted or n8n Cloud)\n2. Telegram API for instant mobile alerts (requires a Telegram bot)\n\nOperations and Processing Steps:\n1. **Setup n8n Environment**: \n   - Sign up for n8n Cloud or set up a self-hosted instance.\n   - Use the prebuilt n8n template for website monitoring.\n\n2. **Configure Monitoring Schedule**: \n   - Set the monitoring schedule to run every hour (or adjust as needed).\n\n3. **Add Websites to Monitor**: \n   - Input the URLs of the websites you wish to monitor.\n\n4. **Define Alert Logic**: \n   - Set a wait time of 300 seconds (5 minutes) before sending an alert if a website is detected as down.\n   - This wait time helps filter out short hiccups, ensuring only real outages trigger alerts.\n\n5. **Monitor Website Status**: \n   - The workflow checks the status of each listed website at the defined intervals.\n\n6. **Alert Mechanism**:\n   - If a website is down for longer than the 5-minute threshold, an alert is triggered.\n   - Alerts can be configured to be sent via email and/or Telegram.\n\n7. **Telegram Bot Setup**:\n   - Create a Telegram bot using BotFather.\n   - Add the bot token and chat ID to the n8n workflow to enable Telegram notifications.\n\n8. **Testing the Workflow**:\n   - Activate the workflow to begin monitoring automatically.\n   - Test the setup by adding a fake or non-existent URL to ensure alerts are functioning correctly after the wait period.\n\n9. **Organize Alerts**:\n   - Ensure alerts are sent cleanly to your inbox.\n   - Optionally, integrate with an AI email labeling workflow for color-coded alerts.\n\nFinal Output or Action:\n- Receive downtime alerts via email and/or instant notifications on your phone through Telegram.\n- Alerts will be sent only for genuine outages that exceed the defined wait time, reducing alert fatigue.\n\nOptional Features:\n- Ability to monitor an unlimited number of websites by adding more URLs.\n- No paid n8n plan is required; self-hosting is free, and this workflow operates on free plans.\n- Telegram is chosen for its speed and simplicity, avoiding the need for paid APIs associated with SMS or WhatsApp.\n\nThis workflow provides a comprehensive solution for monitoring website uptime efficiently, minimizing false positives, and ensuring critical alerts are received promptly.",
+    "original_description": "Get ==Instant== Alerts When Your Website Goes Down \u2014 Using ==n8n== as ==Website Downtime Checker Robot==\n\nIf you manage websites (your own or clients\u2019), downtime alerts are critical.\u2028But most monitoring tools create alert fatigue \u2014 ==emails for every tiny hiccup==, even 30\u201360 second outages.\nThis setup shows how to use n8n as a smart uptime monitor:\u2028\n\u2705 No extra subscriptions\u2028\n\u2705 No false-positive spam\u2028\n\u2705 Alerts only for real downtime\u2028\n\u2705 Optional instant phone notifications\n\nWhy Use n8n for Website Monitoring?\nTraditional tools like Uptime Robot become limiting or expensive as you scale.\nWith n8n, you get:\n* Full control over alert logic\n* Custom timing & thresholds\n* No forced notification rules\n* One tool for uptime and other automations\nYou decide when, how, and why alerts are sent.\n\n**Quick Start:** \nFree n8n Website Monitoring Workflow\nGet running in minutes:\n* Use the prebuilt n8n template\n* Sign up for n8n Cloud or self-host for free\n* Set your schedule (default: hourly)\n* Add the websites you want to monitor\n\n\n**Key Setting** (Important)\nWait time: ==300 seconds (5 minutes)==\n&gt;Recommended*\n\n\u2028If a site goes down, the workflow waits before alerting.\u2028\n\u27a1\ufe0f Short hiccups = ignored\u2028\n\u27a1\ufe0f Real outages = ==alerted==\n\n**How to Test & Use**\n1. Activate the workflow\u2028Toggle it on \u2014 monitoring runs automatically.\n2. Test instantly\u2028Add a fake or non-existent URL and run the workflow.\u2028After the wait period, you\u2019ll receive an alert.\n3. Stay organized\u2028Alerts arrive cleanly in your inbox\u2028(Tip: pair with an AI email labeling workflow for color-coded alerts)\n\nGet Critical Alerts on Your Phone (Telegram)\nEmail is fine \u2014 but critical sites need instant mobile alerts.\nBest option: Telegram bots\n* Free\n* Fast\n* No extra APIs or subscriptions\n\n\nHow It Works\n* Create a Telegram bot via BotFather\n* Add the bot token & chat ID to n8n\n* Receive downtime alerts instantly on your phone\nNo missed notifications. No noise.\n\n\n**FAQ**\n* Can I monitor unlimited sites?\u2028\n&gt; ==Yes== \u2014 just add more URLs.\n\n* What about short downtime (seconds)?\n&gt; Filtered out by the 5-minute wait.\n\n* Do I need a paid n8n plan?\u2028\n&gt; ==No.== Self-hosting is ==free==, and this works on free plans.\n\n* Why not SMS or WhatsApp?\u2028\n&gt; **Telegram** is ==faster, simpler, and doesn\u2019t require paid APIs.==\n\n\n\n\ud83d\udce9 **Contact Me**\n\nIf you have any questions, ideas to share, or would like to collaborate on a project, feel free to reach out. I\u2019m always open to meaningful discussions, feedback, and new opportunities.\n\n\ud83d\udd17 ==Connect with me==\n* [Facebook](https://facebook.com/the.mubiin)\n\n* [LinkedIn](https://www.linkedin.com/in/mubiiin/)\n\n\n\ud83d\udcac You\u2019re welcome to send me a message on any platform, and I\u2019ll get back to you as soon as possible.",
+    "description_length": 2473,
+    "usage": {
+      "prompt_tokens": 887,
+      "completion_tokens": 535,
+      "total_tokens": 1422
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:18:28.030167"
+  },
+  "original_description": "Get ==Instant== Alerts When Your Website Goes Down \u2014 Using ==n8n== as ==Website Downtime Checker Robot==\n\nIf you manage websites (your own or clients\u2019), downtime alerts are critical.\u2028But most monitoring tools create alert fatigue \u2014 ==emails for every tiny hiccup==, even 30\u201360 second outages.\nThis setup shows how to use n8n as a smart uptime monitor:\u2028\n\u2705 No extra subscriptions\u2028\n\u2705 No false-positive spam\u2028\n\u2705 Alerts only for real downtime\u2028\n\u2705 Optional instant phone notifications\n\nWhy Use n8n for Website Monitoring?\nTraditional tools like Uptime Robot become limiting or expensive as you scale.\nWith n8n, you get:\n* Full control over alert logic\n* Custom timing & thresholds\n* No forced notification rules\n* One tool for uptime and other automations\nYou decide when, how, and why alerts are sent.\n\n**Quick Start:** \nFree n8n Website Monitoring Workflow\nGet running in minutes:\n* Use the prebuilt n8n template\n* Sign up for n8n Cloud or self-host for free\n* Set your schedule (default: hourly)\n* Add the websites you want to monitor\n\n\n**Key Setting** (Important)\nWait time: ==300 seconds (5 minutes)==\n&gt;Recommended*\n\n\u2028If a site goes down, the workflow waits before alerting.\u2028\n\u27a1\ufe0f Short hiccups = ignored\u2028\n\u27a1\ufe0f Real outages = ==alerted==\n\n**How to Test & Use**\n1. Activate the workflow\u2028Toggle it on \u2014 monitoring runs automatically.\n2. Test instantly\u2028Add a fake or non-existent URL and run the workflow.\u2028After the wait period, you\u2019ll receive an alert.\n3. Stay organized\u2028Alerts arrive cleanly in your inbox\u2028(Tip: pair with an AI email labeling workflow for color-coded alerts)\n\nGet Critical Alerts on Your Phone (Telegram)\nEmail is fine \u2014 but critical sites need instant mobile alerts.\nBest option: Telegram bots\n* Free\n* Fast\n* No extra APIs or subscriptions\n\n\nHow It Works\n* Create a Telegram bot via BotFather\n* Add the bot token & chat ID to n8n\n* Receive downtime alerts instantly on your phone\nNo missed notifications. No noise.\n\n\n**FAQ**\n* Can I monitor unlimited sites?\u2028\n&gt; ==Yes== \u2014 just add more URLs.\n\n* What about short downtime (seconds)?\n&gt; Filtered out by the 5-minute wait.\n\n* Do I need a paid n8n plan?\u2028\n&gt; ==No.== Self-hosting is ==free==, and this works on free plans.\n\n* Why not SMS or WhatsApp?\u2028\n&gt; **Telegram** is ==faster, simpler, and doesn\u2019t require paid APIs.==\n\n\n\n\ud83d\udce9 **Contact Me**\n\nIf you have any questions, ideas to share, or would like to collaborate on a project, feel free to reach out. I\u2019m always open to meaningful discussions, feedback, and new opportunities.\n\n\ud83d\udd17 ==Connect with me==\n* [Facebook](https://facebook.com/the.mubiin)\n\n* [LinkedIn](https://www.linkedin.com/in/mubiiin/)\n\n\n\ud83d\udcac You\u2019re welcome to send me a message on any platform, and I\u2019ll get back to you as soon as possible.",
+  "optimized_description": "Workflow Title: Website Downtime Checker Robot Using n8n\n\nTrigger: The workflow is triggered on a scheduled basis, defaulting to an hourly check of specified websites.\n\nData Sources and APIs Needed:\n1. n8n platform (self-hosted or n8n Cloud)\n2. Telegram API for instant mobile alerts (requires a Telegram bot)\n\nOperations and Processing Steps:\n1. **Setup n8n Environment**: \n   - Sign up for n8n Cloud or set up a self-hosted instance.\n   - Use the prebuilt n8n template for website monitoring.\n\n2. **Configure Monitoring Schedule**: \n   - Set the monitoring schedule to run every hour (or adjust as needed).\n\n3. **Add Websites to Monitor**: \n   - Input the URLs of the websites you wish to monitor.\n\n4. **Define Alert Logic**: \n   - Set a wait time of 300 seconds (5 minutes) before sending an alert if a website is detected as down.\n   - This wait time helps filter out short hiccups, ensuring only real outages trigger alerts.\n\n5. **Monitor Website Status**: \n   - The workflow checks the status of each listed website at the defined intervals.\n\n6. **Alert Mechanism**:\n   - If a website is down for longer than the 5-minute threshold, an alert is triggered.\n   - Alerts can be configured to be sent via email and/or Telegram.\n\n7. **Telegram Bot Setup**:\n   - Create a Telegram bot using BotFather.\n   - Add the bot token and chat ID to the n8n workflow to enable Telegram notifications.\n\n8. **Testing the Workflow**:\n   - Activate the workflow to begin monitoring automatically.\n   - Test the setup by adding a fake or non-existent URL to ensure alerts are functioning correctly after the wait period.\n\n9. **Organize Alerts**:\n   - Ensure alerts are sent cleanly to your inbox.\n   - Optionally, integrate with an AI email labeling workflow for color-coded alerts.\n\nFinal Output or Action:\n- Receive downtime alerts via email and/or instant notifications on your phone through Telegram.\n- Alerts will be sent only for genuine outages that exceed the defined wait time, reducing alert fatigue.\n\nOptional Features:\n- Ability to monitor an unlimited number of websites by adding more URLs.\n- No paid n8n plan is required; self-hosting is free, and this workflow operates on free plans.\n- Telegram is chosen for its speed and simplicity, avoiding the need for paid APIs associated with SMS or WhatsApp.\n\nThis workflow provides a comprehensive solution for monitoring website uptime efficiently, minimizing false positives, and ensuring critical alerts are received promptly.",
+  "error": null,
+  "generated_at": "2026-01-25T23:18:40.372110",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.26666666666666666,
+    "node_type_f1": 0.36363636363636365,
+    "tp": 4,
+    "fp": 3,
+    "fn": 11,
+    "gt_node_count": 15,
+    "llm_node_count": 7,
+    "connection_precision": 0.2,
+    "connection_recall": 0.09090909090909091,
+    "connection_f1": 0.12500000000000003,
+    "correct_connections": 1,
+    "gt_connection_count": 11,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4296,
+        "completion_tokens": 1063,
+        "total_tokens": 5359
+      },
+      "description_optimization": {
+        "prompt_tokens": 887,
+        "completion_tokens": 535,
+        "total_tokens": 1422
+      },
+      "total_tokens": 6781,
+      "total_prompt_tokens": 5183,
+      "total_completion_tokens": 1598
+    },
+    "total_cost": 0.0289375,
+    "description_optimization_cost": 0.007567500000000001,
+    "workflow_generation_cost": 0.02137
+  }
+}

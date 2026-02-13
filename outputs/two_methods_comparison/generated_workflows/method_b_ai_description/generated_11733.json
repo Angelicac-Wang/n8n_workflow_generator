@@ -1,0 +1,244 @@
+{
+  "template_id": 11733,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is a workflow to automate incident analysis and response.",
+    "workflowPlan": {
+      "name": "Incident Analysis and Response Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "incident-webhook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert HTML to PDF",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.html2pdf.com/v1/generate",
+            "method": "POST",
+            "bodyParameters": [
+              {
+                "name": "html",
+                "value": "={{$json[\"incidentDetailsHtml\"]}}"
+              }
+            ],
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Normalize Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "incidentId": "={{$json[\"incidentId\"]}}",
+              "severity": "={{$json[\"severity\"]}}",
+              "description": "={{$json[\"description\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Root Cause Analysis",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze the root cause and impact of the following incident: {{$json[\"description\"]}}",
+            "temperature": 0.5
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Evaluate Severity",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"severity\"]}}",
+                  "operation": "is",
+                  "value2": "high"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "channel": "incident-alerts",
+            "text": "High severity incident detected: {{$json[\"description\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Execute Data Recovery",
+          "nodeType": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "params": {
+            "command": "sh",
+            "arguments": [
+              "data-recovery-script.sh"
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Upload PDF to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "incident-report.pdf",
+            "fileContent": "={{$json[\"pdfContent\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "stakeholders@example.com",
+            "subject": "Incident Analysis Report",
+            "text": "Incident analysis and actions taken are attached.",
+            "attachments": [
+              {
+                "content": "={{$json[\"pdfContent\"]}}",
+                "fileName": "incident-report.pdf"
+              }
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "8",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 688,
+    "completion_tokens": 1249,
+    "total_tokens": 1937
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:50:18.458602",
+  "generated_description": "This n8n workflow is designed to handle incident analysis and response automation. It is triggered by a Webhook, which likely receives incident data or alerts from an external system. Once triggered, the workflow converts the incident details into a PDF format using the HTML to PDF conversion service. The data is then normalized to ensure consistency and compatibility for further processing.\n\nThe workflow leverages OpenAI's capabilities to perform a root cause and impact analysis on the incident data, providing insights into the underlying issues and potential consequences. The AI-generated response is parsed to extract relevant information, which is then evaluated by a conditional check to determine the severity of the incident.\n\nDepending on the severity, alerts are sent to a designated Slack channel to notify the appropriate team members. If necessary, a data recovery script is executed to mitigate any data loss or corruption issues. The workflow also uploads the generated PDF report to Google Drive for documentation and archival purposes.\n\nFinally, an email is sent via Gmail to stakeholders, providing them with a summary of the incident analysis and any actions taken. This comprehensive workflow ensures timely and efficient incident management, leveraging automation to streamline the response process.",
+  "description_generation_usage": {
+    "prompt_tokens": 215,
+    "completion_tokens": 226,
+    "total_tokens": 441
+  },
+  "metrics": {
+    "node_type_precision": 0.7777777777777778,
+    "node_type_recall": 0.6363636363636364,
+    "node_type_f1": 0.7000000000000001,
+    "tp": 7,
+    "fp": 2,
+    "fn": 4,
+    "gt_node_count": 11,
+    "llm_node_count": 9,
+    "connection_precision": 0.25,
+    "connection_recall": 0.2,
+    "connection_f1": 0.22222222222222224,
+    "correct_connections": 2,
+    "gt_connection_count": 10,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.028571428571428574,
+    "usage": {
+      "prompt_tokens": 688,
+      "completion_tokens": 1249,
+      "total_tokens": 1937
+    },
+    "total_cost": 0.017007500000000002,
+    "description_generation_cost": 0.0027975000000000005,
+    "workflow_generation_cost": 0.01421
+  },
+  "original_description": "# **AI-Powered Incident Report Generator with Severity Alerts & PDF Delivery**\n\n---\n\n## **Description**\n\nAutomate incident reporting from detection to delivery with AI-driven analysis and professional documentation.\n\nThis workflow transforms raw incident details into a **clear, structured incident report**, performs **AI-based root cause and impact analysis**, triggers **real-time alerts for high-severity issues**, and delivers a **polished PDF report** to your operations team \u2014 all with minimal manual effort.\n\n---\n\n## **What This Workflow Does**\n\nTurns incident reporting into a fast, reliable, and repeatable process:\n\n\ud83d\udea8 **Receive Incident Details** \u2013 Accepts incident data via webhook (ID, severity, systems affected, description).\n\n\ud83e\udde0 **AI Analysis** \u2013 Uses AI to generate root cause analysis, impact assessment, and recommended actions.\n\n\u26a0\ufe0f **Severity Check** \u2013 Automatically detects high-severity incidents.\n\n\ud83d\udcac **Slack Alerts** \u2013 Sends instant alerts for critical incidents to the ops channel.\n\n\ud83d\udcc4 **Professional Report Generation** \u2013 Formats incident details into a clean, readable report.\n\n\ud83d\udcd1 **PDF Creation** \u2013 Converts the report into a downloadable PDF.\n\n\ud83d\udce7 **Email Delivery** \u2013 Sends the report to the operations team.\n\n\u2601\ufe0f **Secure Storage** \u2013 Saves a copy to Google Drive for records and compliance.\n\n---\n\n## **Key Features**\n\n\ud83e\udd16 **AI-Generated Analysis** \u2013 Automated root cause, impact, and action recommendations\n\u26a1 **Real-Time Severity Alerts** \u2013 Immediate Slack notifications for high-risk incidents\n\ud83d\udcc4 **Professional PDF Reports** \u2013 Clean, structured, and ready for audits\n\ud83d\udce7 **Automated Delivery** \u2013 Email reports without manual follow-ups\n\u2601\ufe0f **Centralized Storage** \u2013 Securely archive reports in Google Drive\n\n---\n\n## **Perfect For**\n\n\ud83c\udfe2 IT & Operations Teams\n\ud83d\udd10 Security & Compliance Teams\n\ud83e\uddd1\u200d\ud83d\udcbc Internal Ops & Risk Management\n\ud83c\udfed Enterprises handling system or process incidents\n\ud83d\udcca Teams needing audit-ready incident documentation\n\n---\n\n## **What You\u2019ll Need**\n\n### Required Integrations\n\n\ud83e\udd16 **OpenAI** \u2013 Incident analysis and recommendations\n\ud83d\udcc4 **HTMLCSS to PDF** \u2013 Convert reports into PDFs\n\ud83d\udce7 **Gmail** \u2013 Send incident reports\n\ud83d\udcac **Slack** \u2013 Severity-based alerts\n\n### Optional\n\n\u2601\ufe0f **Google Drive** \u2013 Store incident reports securely\n\n---\n\n## **Quick Start**\n\n1\ufe0f\u20e3 Import the workflow into n8n\n2\ufe0f\u20e3 Connect OpenAI, Slack, Gmail, and HTMLCSS to PDF credentials\n3\ufe0f\u20e3 Update Slack channel and email recipients\n4\ufe0f\u20e3 Trigger the webhook with incident data\n5\ufe0f\u20e3 Activate the workflow\n\n---\n\n## **Expected Results**\n\n\u26a1 Faster incident response\n\ud83e\udd16 Consistent AI-driven analysis\n\ud83d\udcc9 Reduced manual reporting work\n\ud83d\udcc4 Audit-ready incident documentation\n\ud83d\udea8 Immediate visibility into critical incidents"
+}

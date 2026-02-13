@@ -1,0 +1,195 @@
+{
+  "template_id": "12296",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or via a webhook to start the AI assistant interaction.",
+      "data_sources": "Shopify API, OpenAI API, Notification services (Discord, Telegram, WhatsApp, Gmail).",
+      "operations": "1. Receive command, 2. Process command with OpenAI, 3. Perform Shopify operations, 4. Send notifications based on actions.",
+      "output_actions": "Execute Shopify operations and send notifications.",
+      "nodes_plan": "webhook (trigger), openAI (process command), shopify (perform operations), discord (send notification), telegram (send notification), rapiwa (send notification), emailSend (send notification)",
+      "connections_plan": "webhook -> openAI -> shopify -> [discord, telegram, rapiwa, emailSend]"
+    },
+    "workflowPlan": {
+      "name": "Shopify AI Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "shopify-ai-assistant"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.command }}",
+            "model": "gpt-4.1-mini"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Shopify Operations",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://your-shopify-store.myshopify.com/admin/api/2023-01/graphql.json",
+            "authentication": "shopifyApi",
+            "body": "={{ $json.openAIResponse }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Discord Notification",
+          "nodeType": "n8n-nodes-base.discord",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "channel": "shopify-notifications",
+            "text": "Shopify operation completed: {{ $json.operationResult }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "123456789",
+            "text": "Shopify operation completed: {{ $json.operationResult }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "WhatsApp Notification",
+          "nodeType": "n8n-nodes-base.rapiwa",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "phoneNumber": "+1234567890",
+            "message": "Shopify operation completed: {{ $json.operationResult }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Email Notification",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Shopify Operation Notification",
+            "text": "Shopify operation completed: {{ $json.operationResult }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4306,
+    "completion_tokens": 1093,
+    "total_tokens": 5399
+  },
+  "description_optimization": null,
+  "original_description": "## Who it's for\nThis **n8n workflow** is designed for Shopify store owners and e-commerce managers who want to automate their store operations through an intelligent AI assistant. The workflow creates a conversational interface that can manage products, process orders, and provide store analytics through natural language commands.\n\n## Features\n- **Intelligent AI Assistant**: Powered by OpenAI with specialized system prompts for e-commerce operations\n- **Shopify Integration**: Complete MCP (Model Context Protocol) server implementation for seamless Shopify operations\n- **Product Management**: Create, update, search, retrieve, and delete products automatically\n- **Order Processing**: Create, update, retrieve, and manage orders including fulfillment status\n- **Context-Aware Automation**: Uses conversation history and Shopify data to minimize user input requirements\n\n## Requirements\n- **Shopify Access Token**: For accessing Shopify store data and operations\n- **OpenAI API Credentials**: For powering the AI assistant\n- **Notification Service Credentials**:\n  `Discord Bot API`, `Telegram Bot API`, `Rapiwa API (for WhatsApp)`, `Gmail OAuth2`\n#### Configure Credentials\n- **Shopify Access Token**: Configure with proper permissions for your store\n- **OpenAI API**: Set up with appropriate model access (gpt-4.1-mini or similar)\n- **Notification Services**: Configure each service with proper API keys and target IDs\n\n## Important Notes\n- **MCP Server Setup**: The workflow includes a Shopify MCP Server that must be properly configured for production use\n- **Tool Selection**: The MCP Client includes specific Shopify tools that can be enabled/disabled based on requirements\n- **System Prompt**: The AI assistant is configured with specialized e-commerce guidelines that can be customized\n- **Confirmation Requirements**: Irreversible actions like deletions will require confirmation\n- **Rate Limiting**: The workflow includes appropriate delays to prevent API rate limiting\n- **Notification Content**: All notifications include a standard success message that can be customized\n\n## Production Deployment for MCP Server\n`To deploy this workflow in production`\n\n## Support & Help\n- **WhatsApp**: [Chat on WhatsApp](https://wa.me/8801322827799)\n- **Discord**: [SpaGreen Community](https://discord.gg/SsCChWEP)\n- **Facebook Group**: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)\n- **Website**: [https://spagreen.net](https://spagreen.net)\n- **Developer Portfolio**: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:52:10.050161",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.15384615384615385,
+    "node_type_f1": 0.24242424242424246,
+    "tp": 4,
+    "fp": 3,
+    "fn": 22,
+    "gt_node_count": 26,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 8,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 4306,
+      "completion_tokens": 1093,
+      "total_tokens": 5399
+    },
+    "total_cost": 0.021695
+  }
+}

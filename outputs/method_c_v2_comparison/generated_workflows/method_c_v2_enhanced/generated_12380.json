@@ -1,0 +1,259 @@
+{
+  "template_id": "12380",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook that receives a meal photo from LINE.",
+      "data_sources": "LINE Messaging API, Google Gemini AI, Google Sheets, Google Drive",
+      "operations": "1. Receive image from LINE, 2. Download image, 3. Analyze image with Google Gemini AI, 4. Calculate nutritional values and health score, 5. Append data to Google Sheets, 6. Upload image to Google Drive, 7. Send nutritional report back to LINE",
+      "output_actions": "Send a formatted nutritional report back to the user via LINE",
+      "nodes_plan": "webhook (trigger), httpRequest (download image), googleGemini (analyze image), set (calculate values), googleSheets (append data), googleDrive (upload image), httpRequest (send LINE message)",
+      "connections_plan": "webhook -> httpRequest (download) -> googleGemini -> set (calculate) -> googleSheets -> googleDrive -> httpRequest (send LINE message)"
+    },
+    "workflowPlan": {
+      "name": "AI Meal Nutrition Tracker",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "LINE Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "line-webhook"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Download Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.body.events[0].message.contentUrl }}",
+            "responseFormat": "file",
+            "options": {
+              "headers": {
+                "Authorization": "Bearer YOUR_LINE_ACCESS_TOKEN"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze Image with Google Gemini",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyzeImage",
+            "image": "={{ $binary.data }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calculate Nutritional Values",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "calories",
+                  "value": "={{ $json.calories }}"
+                },
+                {
+                  "name": "protein",
+                  "value": "={{ $json.protein }}"
+                },
+                {
+                  "name": "carbs",
+                  "value": "={{ $json.carbs }}"
+                },
+                {
+                  "name": "fat",
+                  "value": "={{ $json.fat }}"
+                },
+                {
+                  "name": "fiber",
+                  "value": "={{ $json.fiber }}"
+                },
+                {
+                  "name": "healthScore",
+                  "value": "={{ Math.min(10, Math.max(1, 10 - ($json.calories / 100))) }}"
+                },
+                {
+                  "name": "advice",
+                  "value": "={{ 'Consider balancing your meal with more vegetables.' }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Append to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_GOOGLE_SHEET_ID",
+            "range": "Sheet1",
+            "data": [
+              [
+                "={{ $now.toISOString() }}",
+                "={{ $json.mealType }}",
+                "={{ $json.foodItems }}",
+                "={{ $json.calories }}",
+                "={{ $json.protein }}",
+                "={{ $json.carbs }}",
+                "={{ $json.fat }}",
+                "={{ $json.fiber }}",
+                "={{ $json.healthScore }}",
+                "={{ $json.advice }}",
+                "={{ $json.imageUrl }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload Image to Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "meal-photo.jpg",
+            "fileContent": "={{ $binary.data }}",
+            "parents": [
+              "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send LINE Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.line.me/v2/bot/message/reply",
+            "options": {
+              "headers": {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer YOUR_LINE_ACCESS_TOKEN"
+              }
+            },
+            "body": {
+              "replyToken": "={{ $json.body.events[0].replyToken }}",
+              "messages": [
+                {
+                  "type": "text",
+                  "text": "Nutritional Analysis:\nCalories: {{ $json.calories }}\nProtein: {{ $json.protein }}g\nCarbs: {{ $json.carbs }}g\nFat: {{ $json.fat }}g\nFiber: {{ $json.fiber }}g\nHealth Score: {{ $json.healthScore }}/10\nAdvice: {{ $json.advice }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5769,
+    "completion_tokens": 1538,
+    "total_tokens": 7307
+  },
+  "description_optimization": null,
+  "original_description": "# AI Meal Nutrition Tracker with LINE and Google Sheets\n\n## Who's it for\n\nThis workflow is designed for health-conscious individuals, fitness enthusiasts, and anyone who wants to track their daily food intake without manual calorie counting.\n\nIt is best suited for users who want a simple, AI-powered meal logging system that analyzes food photos one at a time and provides instant nutritional feedback via LINE.\n\n## What it does\n\nThis workflow processes a single meal photo sent via LINE, analyzes it using Google Gemini AI to identify foods and estimate nutritional content, and stores the data in Google Sheets for tracking.\n\nThe workflow focuses on simplicity and encouragement: it receives a meal image, performs AI-based food recognition, estimates calories and macronutrients, calculates a health score, provides personalized advice, and replies with a detailed nutritional breakdown on LINE.\n\n## How it works\n\n1. A single meal photo is sent to the LINE bot.\n2. The workflow is triggered via a LINE webhook.\n3. The image file is downloaded and sent to Google Gemini AI for food analysis.\n4. The AI identifies foods and estimates nutritional values (calories, protein, carbs, fat, fiber).\n5. A health score (1-10) is calculated with personalized improvement tips.\n6. The data is appended to Google Sheets for meal history tracking.\n7. The image is uploaded to Google Drive for reference.\n8. A formatted nutritional report with advice is sent back as a LINE reply.\n\nThis workflow is intentionally designed to handle **one image per execution**.\n\n## Requirements\n\nTo use this workflow, you will need:\n\n- A LINE Messaging API account\n- A Google Gemini API key\n- A Google account with access to Google Sheets and Google Drive\n- A Google Sheets document with the following column names:\n  - Date\n  - Time\n  - Meal Type\n  - Food Items\n  - Calories\n  - Protein (g)\n  - Carbs (g)\n  - Fat (g)\n  - Fiber (g)\n  - Health Score\n  - Advice\n  - Image URL\n\n## Important limitations\n\n- This workflow **does not support multiple images sent in a single message**.\n- Sending images in quick succession may trigger multiple executions and lead to unexpected results.\n- Only the first image in an event payload is processed.\n- Nutritional values are **AI estimates** based on visual analysis and typical serving sizes.\n- Accuracy depends on image quality, lighting, and food visibility.\n- This tool should **not replace professional dietary advice**.\n\nThese limitations are intentional to keep the workflow simple and easy to understand.\n\n## How to set up\n\n1. Create a LINE Messaging API channel and obtain a Channel Access Token.\n2. Generate a Google Gemini API key.\n3. Update the Config node with your LINE token, Google Sheets ID, Google Drive folder ID, and daily calorie goal.\n4. Configure credentials for LINE, Google Gemini, Google Sheets, and Google Drive.\n5. Register the n8n webhook URL in your LINE channel settings.\n6. Activate the workflow in n8n and test it with a single meal photo.\n\n## How to customize\n\n- Modify the AI prompt in the \"Analyze Meal with AI\" node to support different languages or dietary frameworks (keto, vegan, etc.).\n- Adjust the daily calorie goal in the Config node to match individual needs.\n- Add additional nutritional fields such as sodium, sugar, or vitamins.\n- Replace Google Sheets with a fitness app API or database.\n- Integrate with other services to send daily/weekly nutrition summaries.\n\n---\n\n**Note:**  \nThis workflow was tested using real meal photos sent individually via the LINE Messaging API.  \nNutritional estimates are approximations and may vary from actual values. For accurate dietary tracking, consult a registered dietitian.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:52:47.758256",
+  "metrics": {
+    "node_type_precision": 0.8571428571428571,
+    "node_type_recall": 0.46153846153846156,
+    "node_type_f1": 0.6,
+    "tp": 6,
+    "fp": 1,
+    "fn": 7,
+    "gt_node_count": 13,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 12,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.42500000000000004,
+    "usage": {
+      "prompt_tokens": 5769,
+      "completion_tokens": 1538,
+      "total_tokens": 7307
+    },
+    "total_cost": 0.029802500000000003
+  }
+}

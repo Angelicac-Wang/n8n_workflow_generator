@@ -1,0 +1,222 @@
+{
+  "template_id": "10644",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation with fixed AI calls and user interactions. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered by a Google Drive trigger that watches a folder for new video files.",
+      "data_sources": "Google Drive for video files, Google Gemini for AI video analysis, fal.ai for thumbnail generation, Upload-Post for YouTube publishing.",
+      "operations": "1. Trigger on new video in Google Drive, 2. Analyze video with AI (Gemini), 3. Generate concepts (title, description, tags), 4. User selects concept, 5. Generate thumbnails, 6. User selects thumbnail, 7. Upload to YouTube.",
+      "output_actions": "Publish video to YouTube with selected metadata and thumbnail.",
+      "nodes_plan": "googleDriveTrigger (trigger), googleGemini (AI analysis), set (concept generation), form (user review), falAI (thumbnail generation), form (thumbnail review), uploadPost (YouTube upload)",
+      "connections_plan": "googleDriveTrigger -> googleGemini -> set -> form (concept review) -> falAI -> form (thumbnail review) -> uploadPost"
+    },
+    "workflowPlan": {
+      "name": "YouTube Video Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Drive Trigger",
+          "nodeType": "n8n-nodes-base.googleDriveTrigger",
+          "typeVersion": 1,
+          "params": {
+            "watchFolder": "Your Google Drive Folder ID"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Video Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.google.com/gemini/analyze",
+            "body": {
+              "videoUrl": "={{ $json['fileUrl'] }}"
+            },
+            "authentication": "googleGeminiApi"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Concepts",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "json": [
+                {
+                  "name": "concepts",
+                  "value": "[{\"title\": \"Title 1\", \"description\": \"Description 1\", \"tags\": [\"tag1\", \"tag2\"]}, {\"title\": \"Title 2\", \"description\": \"Description 2\", \"tags\": [\"tag3\", \"tag4\"]}, {\"title\": \"Title 3\", \"description\": \"Description 3\", \"tags\": [\"tag5\", \"tag6\"]}]"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Concept Review",
+          "nodeType": "n8n-nodes-base.form",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "selectedConcept",
+                "type": "select",
+                "options": "={{ $json['concepts'] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Thumbnail Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.fal.ai/generate-thumbnails",
+            "body": {
+              "imageUrl": "Your Face Image URL",
+              "concept": "={{ $json['selectedConcept'] }}"
+            },
+            "authentication": "falAiApi"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Thumbnail Review",
+          "nodeType": "n8n-nodes-base.form",
+          "typeVersion": 1,
+          "params": {
+            "fields": [
+              {
+                "name": "selectedThumbnail",
+                "type": "select",
+                "options": "={{ $json['thumbnails'] }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload to YouTube",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.upload-post.com/youtube/upload",
+            "body": {
+              "videoUrl": "={{ $json['fileUrl'] }}",
+              "title": "={{ $json['selectedConcept'].title }}",
+              "description": "={{ $json['selectedConcept'].description }}",
+              "tags": "={{ $json['selectedConcept'].tags }}",
+              "thumbnail": "={{ $json['selectedThumbnail'] }}"
+            },
+            "authentication": "uploadPostApi"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8787,
+    "completion_tokens": 1379,
+    "total_tokens": 10166
+  },
+  "description_optimization": null,
+  "original_description": "![image.png](fileId:3296)\n\nThis workflow transforms any video you drop into a Google Drive folder into a ready-to-publish YouTube upload. It analyzes the video with AI to craft 3 high-CTR title ideas, 3 long SEO-friendly descriptions (with timestamps), and 10\u201315 optimized tags. It then generates 4 thumbnail options using your face and lets you pick your favorite before auto-publishing to YouTube via Upload-Post.\n\n\n### Who Is This For?\n- **YouTube Creators & Editors:** Ship videos with winning titles, thumbnails, and SEO in minutes.\n- **Agencies & Media Teams:** Standardize output and speed across channels and clients.\n- **Founders & Solo Makers:** Maintain consistent publishing with minimal manual work.\n\n### What Problem Does It Solve?\nProducing SEO metadata and high-performing thumbnails is slow and inconsistent. This flow:\n- **Generates High-CTR Options:** 3 distinct angles for title/description/tags.\n- **Creates Thumbnails with Your Face:** 4 options ready for review in one pass.\n- **Auto-Publishes Safely:** Human selection gates reduce risk before going live.\n\n### How It Works\n1. **Google Drive Trigger:** Watches a folder for new video files.\n2. **AI Video Analysis (Gemini):** Produces an in-depth Spanish description and timestamps.\n3. **Concept Generation:** Returns 3 JSON concepts (title, thumbnail prompt, description, tags).\n4. **User Review #1:** Pick your favorite concept in a simple form.\n5. **Thumbnail Generation (fal.ai):** Creates 4 thumbnails using your face (provided image URL).\n6. **User Review #2:** Choose the best thumbnail.\n7. **Upload to YouTube (Upload-Post):** Publishes the video with your chosen title, description, tags, and thumbnail.\n\n### Setup\n1. **Credentials (all offer free trials, no credit card required):**\n   - Google Gemini (chat/vision for analysis)\n   - fal.ai API (thumbnail generation)\n   - [Upload-Post](https://www.upload-post.com) ( [Connect your Youtube channel](https://app.upload-post.com/manage-users) and [generate api keys](https://app.upload-post.com/api-keys))\n   - Google Drive OAuth (folder watch + file download)\n2. **Provide Your Face Image URL(s):** Used by fal.ai to integrate your face into thumbnails.\n3. **Select the Google Drive Folder:** Where you\u2019ll drop videos to process.\n4. **Pick & Publish:** Use the built-in forms to choose concept and thumbnail.\n\n### Requirements\n- **Accounts:** Google (Drive + Gemini), fal.ai, Upload-Post, n8n.\n- **API Keys:** Gemini, fal.ai; Upload-Post credentials; Google Drive OAuth.\n- **Assets:** At least one clear face image for thumbnails.\n\n### Features\n- **Three SEO Angles:** Distinct title/description sets to test different intents.\n- **Rich Descriptions with Timestamps:** Ready for YouTube SEO and viewer navigation.\n- **Face-Integrated Thumbnails:** 4 options aligned with the selected title.\n- **Human-in-the-Loop Controls:** Approve concepts and thumbnails before publishing.\n- **Auto-Publish via Upload-Post:** One click to push live to YouTube.\n- **Start Free:** All API calls can run on free trials, no credit card required.\n\n### Video demo \n\nhttps://www.youtube.com/watch?v=EOOgFveae-U",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:27:34.129451",
+  "metrics": {
+    "node_type_precision": 0.5714285714285714,
+    "node_type_recall": 0.2222222222222222,
+    "node_type_f1": 0.32,
+    "tp": 4,
+    "fp": 3,
+    "fn": 14,
+    "gt_node_count": 18,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 11,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 8787,
+      "completion_tokens": 1379,
+      "total_tokens": 10166
+    },
+    "total_cost": 0.035757500000000005
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,245 @@
+{
+  "template_id": 11763,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Website Status Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Calculate Status",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { status: 'initial' } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Perform Site Test",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com",
+            "method": "GET"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Status Router",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"statusCode\"] === 200}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Split Out",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Config",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "configParam",
+                  "value": "value"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Edit Fields",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "field",
+                  "value": "newValue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Merge",
+          "nodeType": "n8n-nodes-base.merge",
+          "typeVersion": 1,
+          "params": {
+            "mode": "passThrough"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1m"
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Calculate Status1",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { finalStatus: 'reassessed' } }];"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 730,
+    "completion_tokens": 1128,
+    "total_tokens": 1858
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:35:51.857676",
+  "generated_description": "This n8n workflow is designed to automate the process of monitoring and testing a website's status on a scheduled basis. It begins with a Schedule Trigger that initiates the workflow at predefined intervals. Following this, the workflow calculates the current status using the Calculate Status node, likely setting initial parameters or conditions for the test.\n\nThe Perform Site Test node then executes an HTTP request to the website, checking its availability or performance. The results of this test are evaluated by the Status Router node, which directs the workflow based on the outcome of the site test, such as whether the site is up or down.\n\nIf necessary, the workflow uses the Split Out node to handle multiple results or scenarios separately. Configuration settings are applied through the Config node, and any necessary modifications to the data fields are made using the Edit Fields node.\n\nThe workflow consolidates data or results using the Merge node, ensuring that all relevant information is combined for further processing. A Wait node is included to introduce a delay if needed, possibly to allow time for the site to recover or to space out subsequent actions.\n\nFinally, another calculation of status is performed with the Calculate Status1 node, potentially to reassess the situation after a wait period or additional processing. The workflow likely concludes with an action based on the final status, such as sending notifications or logging the results for further analysis.",
+  "description_generation_usage": {
+    "prompt_tokens": 206,
+    "completion_tokens": 268,
+    "total_tokens": 474
+  },
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.4,
+    "tp": 5,
+    "fp": 5,
+    "fn": 10,
+    "gt_node_count": 15,
+    "llm_node_count": 10,
+    "connection_precision": 0.1111111111111111,
+    "connection_recall": 0.09090909090909091,
+    "connection_f1": 0.09999999999999999,
+    "correct_connections": 1,
+    "gt_connection_count": 11,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.4,
+    "usage": {
+      "prompt_tokens": 730,
+      "completion_tokens": 1128,
+      "total_tokens": 1858
+    },
+    "total_cost": 0.016300000000000002,
+    "description_generation_cost": 0.003195,
+    "workflow_generation_cost": 0.013105
+  },
+  "original_description": "Get ==Instant== Alerts When Your Website Goes Down \u2014 Using ==n8n== as ==Website Downtime Checker Robot==\n\nIf you manage websites (your own or clients\u2019), downtime alerts are critical.\u2028But most monitoring tools create alert fatigue \u2014 ==emails for every tiny hiccup==, even 30\u201360 second outages.\nThis setup shows how to use n8n as a smart uptime monitor:\u2028\n\u2705 No extra subscriptions\u2028\n\u2705 No false-positive spam\u2028\n\u2705 Alerts only for real downtime\u2028\n\u2705 Optional instant phone notifications\n\nWhy Use n8n for Website Monitoring?\nTraditional tools like Uptime Robot become limiting or expensive as you scale.\nWith n8n, you get:\n* Full control over alert logic\n* Custom timing & thresholds\n* No forced notification rules\n* One tool for uptime and other automations\nYou decide when, how, and why alerts are sent.\n\n**Quick Start:** \nFree n8n Website Monitoring Workflow\nGet running in minutes:\n* Use the prebuilt n8n template\n* Sign up for n8n Cloud or self-host for free\n* Set your schedule (default: hourly)\n* Add the websites you want to monitor\n\n\n**Key Setting** (Important)\nWait time: ==300 seconds (5 minutes)==\n&gt;Recommended*\n\n\u2028If a site goes down, the workflow waits before alerting.\u2028\n\u27a1\ufe0f Short hiccups = ignored\u2028\n\u27a1\ufe0f Real outages = ==alerted==\n\n**How to Test & Use**\n1. Activate the workflow\u2028Toggle it on \u2014 monitoring runs automatically.\n2. Test instantly\u2028Add a fake or non-existent URL and run the workflow.\u2028After the wait period, you\u2019ll receive an alert.\n3. Stay organized\u2028Alerts arrive cleanly in your inbox\u2028(Tip: pair with an AI email labeling workflow for color-coded alerts)\n\nGet Critical Alerts on Your Phone (Telegram)\nEmail is fine \u2014 but critical sites need instant mobile alerts.\nBest option: Telegram bots\n* Free\n* Fast\n* No extra APIs or subscriptions\n\n\nHow It Works\n* Create a Telegram bot via BotFather\n* Add the bot token & chat ID to n8n\n* Receive downtime alerts instantly on your phone\nNo missed notifications. No noise.\n\n\n**FAQ**\n* Can I monitor unlimited sites?\u2028\n&gt; ==Yes== \u2014 just add more URLs.\n\n* What about short downtime (seconds)?\n&gt; Filtered out by the 5-minute wait.\n\n* Do I need a paid n8n plan?\u2028\n&gt; ==No.== Self-hosting is ==free==, and this works on free plans.\n\n* Why not SMS or WhatsApp?\u2028\n&gt; **Telegram** is ==faster, simpler, and doesn\u2019t require paid APIs.==\n\n\n\n\ud83d\udce9 **Contact Me**\n\nIf you have any questions, ideas to share, or would like to collaborate on a project, feel free to reach out. I\u2019m always open to meaningful discussions, feedback, and new opportunities.\n\n\ud83d\udd17 ==Connect with me==\n* [Facebook](https://facebook.com/the.mubiin)\n\n* [LinkedIn](https://www.linkedin.com/in/mubiiin/)\n\n\n\ud83d\udcac You\u2019re welcome to send me a message on any platform, and I\u2019ll get back to you as soon as possible."
+}

@@ -1,0 +1,242 @@
+{
+  "template_id": "5611",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by receiving a voice or text message, likely through a webhook or messaging platform integration.",
+      "data_sources": "OpenAI API for transcription and NLP, Apollo.io API for lead data, Supabase/PostgreSQL for database storage.",
+      "operations": "1. Receive voice/text input, 2. Transcribe voice to text, 3. Extract search parameters using AI, 4. Construct Apollo.io search URL, 5. Retrieve data from Apollo.io, 6. Verify emails, 7. Check for duplicates, 8. Store in database, 9. Send confirmation notification.",
+      "output_actions": "Store verified leads in the database and send a notification with the count of new leads.",
+      "nodes_plan": "webhook (trigger), openAi (transcription), openAi (NLP), httpRequest (Apollo.io API), set (filter emails), postgres (database storage), telegram (notification)",
+      "connections_plan": "webhook -> openAi (transcription) -> openAi (NLP) -> httpRequest (Apollo.io) -> set (filter) -> postgres -> telegram"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Lead Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "lead-generation"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Transcribe Voice",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "transcribe",
+            "audio": "={{ $json.body.audio }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Search Parameters",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.text }}\n\nExtract search parameters for location, industry, and job titles."
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Apollo.io Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.apollo.io/v1/people/search",
+            "queryParameters": [
+              {
+                "name": "location",
+                "value": "={{ $json.location }}"
+              },
+              {
+                "name": "industry",
+                "value": "={{ $json.industry }}"
+              },
+              {
+                "name": "job_title",
+                "value": "={{ $json.job_title }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Filter Verified Emails",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "boolean": [
+                {
+                  "name": "verifiedEmail",
+                  "value": "={{ $json.email_verified }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check for Duplicates",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "leads",
+            "columns": "email",
+            "where": "email = '{{ $json.email }}'"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Store in Database",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "insert",
+            "table": "leads",
+            "columns": "first_name, last_name, email, linkedin_url, job_title, company_name, industry, location",
+            "values": [
+              "={{ $json.first_name }}",
+              "={{ $json.last_name }}",
+              "={{ $json.email }}",
+              "={{ $json.linkedin_url }}",
+              "={{ $json.job_title }}",
+              "={{ $json.company_name }}",
+              "={{ $json.industry }}",
+              "={{ $json.location }}"
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+            "text": "New leads added: {{ $json.count }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 6129,
+    "completion_tokens": 1404,
+    "total_tokens": 7533
+  },
+  "description_optimization": null,
+  "original_description": "# AI-Powered Lead Generation with Apollo, GPT-4, and Telegram to Database\n\n## Overview\n\nThis intelligent lead generation workflow transforms voice commands or text input into verified prospect lists through automated Apollo.io scraping. The system processes natural language requests, extracts search parameters using AI, and delivers clean, verified contact data directly to your database.\n\n## Key Features\n\n### \ud83c\udfa4 Voice & Text Input Processing\n- **Voice Recognition**: Converts audio messages to text using OpenAI's transcription API\n- **Natural Language Processing**: AI agent interprets requests and extracts search criteria\n- **Flexible Input**: Supports both voice commands and text messages\n\n### \ud83d\udd0d Smart Lead Scraping\n- **Apollo.io Integration**: Automated scraping using official Apollo.io API\n- **Dynamic URL Generation**: Builds search URLs based on extracted parameters\n- **Intelligent Parsing**: Processes location, industry, and job title criteria\n\n### \u2705 Email Verification & Filtering\n- **Verified Emails Only**: Filters results to include only verified email addresses\n- **Duplicate Prevention**: Compares against existing database to avoid duplicates\n- **Data Quality Control**: Ensures high-quality prospect data\n\n### \ud83d\udcca Automated Data Management\n- **Database Integration**: Automatic storage in PostgreSQL/Supabase\n- **Structured Data**: Organizes contacts with complete profile information\n- **Real-time Updates**: Instant database updates with new prospects\n\n## How It Works\n\n1. **Input Processing**: Receive voice message or text command\n2. **AI Analysis**: Extract search parameters (location, industry, job titles)\n3. **URL Construction**: Build Apollo.io search URL with extracted criteria\n4. **Data Scraping**: Retrieve prospect data via Apollo.io API\n5. **Email Verification**: Filter for verified email addresses only\n6. **Duplicate Check**: Compare against existing database records\n7. **Data Storage**: Save new prospects to database\n8. **Confirmation**: Send success notification with count of new leads\n\n## Supported Search Parameters\n\n- **Location**: City, state, country combinations\n- **Industry**: Business sectors and verticals\n- **Job Titles**: Executive roles, departments, seniority levels\n- **Company Size**: Organization scale and employee count\n\n## Data Fields Extracted\n\n### Contact Information\n- First Name & Last Name\n- Email Address (verified only)\n- LinkedIn Profile URL\n- Phone Number (when available)\n\n### Professional Details\n- Current Job Title\n- Company Name\n- Industry\n- Seniority Level\n- Employment History\n\n### Location Data\n- City & State\n- Country\n- Full Location String\n\n### Company Information\n- Website URL\n- Business Industry\n- Organization Details\n\n## Technical Architecture\n\n### Core Components\n- **n8n Workflow Engine**: Orchestrates the entire process\n- **OpenAI Integration**: Powers voice transcription and AI analysis\n- **Apollo.io API**: Source for prospect data\n- **PostgreSQL/Supabase**: Database storage and management\n\n### API Integrations\n- OpenAI Whisper API for voice transcription\n- OpenAI GPT for natural language processing\n- Apollo.io API for lead data retrieval\n- Supabase API for database operations\n\n## Use Cases\n\n### Sales Teams\n- Quickly build prospect lists for outreach campaigns\n- Target specific industries or job roles\n- Maintain clean, verified contact databases\n\n### Marketing Professionals\n- Generate targeted lead lists for campaigns\n- Research prospects in specific markets\n- Build comprehensive contact databases\n\n### Business Development\n- Identify potential partners or clients\n- Research competitive landscapes\n- Generate contact lists for networking\n\n### Recruitment\n- Find candidates in specific locations\n- Target particular job roles or industries\n- Build talent pipeline databases\n\n## Benefits\n\n### \u26a1 Speed & Efficiency\n- Voice commands for instant lead generation\n- Automated processing eliminates manual work\n- Batch processing for large prospect lists\n\n### \ud83c\udfaf Precision Targeting\n- AI-powered parameter extraction\n- Flexible search criteria combinations\n- Industry and role-specific filtering\n\n### \ud83d\udcc8 Data Quality\n- Verified email addresses only\n- Duplicate prevention\n- Structured, consistent data format\n\n### \ud83d\udd04 Automation\n- End-to-end automated workflow\n- Real-time database updates\n- Instant confirmation notifications\n\n## Setup Requirements\n\n### Prerequisites\n- n8n workflow platform\n- OpenAI API access\n- Apollo.io API credentials\n- PostgreSQL or Supabase database\n- Messaging platform integration\n\n### Configuration Steps\n1. Import workflow into n8n\n2. Configure API credentials\n3. Set up database connections\n4. Customize search parameters\n5. Test with sample voice/text input\n\n## Customization Options\n\n### Search Parameters\n- Modify location formats\n- Add custom industry categories\n- Adjust job title variations\n- Set result limits\n\n### Data Processing\n- Customize field mappings\n- Add data validation rules\n- Implement additional filters\n- Configure output formats\n\n### Integration Options\n- Connect to CRM systems\n- Add email marketing tools\n- Integrate with sales platforms\n- Export to various formats\n\n## Success Metrics\n\n- **Processing Speed**: Voice-to-database in under 30 seconds\n- **Data Accuracy**: 95%+ verified email addresses\n- **Automation Level**: 100% hands-free operation\n- **Scalability**: Process 500+ leads per request\n\n---\n\n*Transform your lead generation process with intelligent automation that understands natural language and delivers verified prospects directly to your database.*",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:44:04.615112",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.19047619047619047,
+    "node_type_f1": 0.27586206896551724,
+    "tp": 4,
+    "fp": 4,
+    "fn": 17,
+    "gt_node_count": 21,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 19,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.4027777777777778,
+    "usage": {
+      "prompt_tokens": 6129,
+      "completion_tokens": 1404,
+      "total_tokens": 7533
+    },
+    "total_cost": 0.0293625
+  }
+}

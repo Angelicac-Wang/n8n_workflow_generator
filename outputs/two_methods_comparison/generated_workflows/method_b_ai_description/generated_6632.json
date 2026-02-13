@@ -1,0 +1,237 @@
+{
+  "template_id": 6632,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Social Media Travel Inquiry Handler",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "whatsapp",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Instagram Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "instagram",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Facebook Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "facebook",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 600
+          }
+        },
+        {
+          "id": "4",
+          "label": "Message Processor",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { /* Process message */ return item; });"
+          },
+          "position": {
+            "x": 500,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Travel Agent",
+          "nodeType": "n8n-nodes-base.aiTravelAgent",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_API_KEY"
+          },
+          "position": {
+            "x": 800,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "Platform Memory",
+          "nodeType": "n8n-nodes-base.memory",
+          "typeVersion": 1,
+          "params": {
+            "operation": "store"
+          },
+          "position": {
+            "x": 1100,
+            "y": 400
+          }
+        },
+        {
+          "id": "7",
+          "label": "Ollama Chat Model",
+          "nodeType": "n8n-nodes-base.ollamaChatModel",
+          "typeVersion": 1,
+          "params": {
+            "model": "chat-enhanced"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "8",
+          "label": "Response Router",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "property": "headers['x-platform']",
+            "rules": [
+              {
+                "value": "whatsapp",
+                "output": 0
+              },
+              {
+                "value": "instagram",
+                "output": 1
+              },
+              {
+                "value": "facebook",
+                "output": 2
+              }
+            ]
+          },
+          "position": {
+            "x": 1700,
+            "y": 400
+          }
+        },
+        {
+          "id": "9",
+          "label": "Instagram Sender",
+          "nodeType": "n8n-nodes-base.instagramSender",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_INSTAGRAM_API_KEY"
+          },
+          "position": {
+            "x": 2000,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Facebook Sender",
+          "nodeType": "n8n-nodes-base.facebookSender",
+          "typeVersion": 1,
+          "params": {
+            "apiKey": "YOUR_FACEBOOK_API_KEY"
+          },
+          "position": {
+            "x": 2000,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "4"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 2
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 699,
+    "completion_tokens": 1123,
+    "total_tokens": 1822
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:47:17.397676",
+  "generated_description": "This n8n workflow is designed to manage and respond to incoming messages from multiple social media platforms. It is triggered by messages received on WhatsApp, Instagram, and Facebook through their respective webhooks. Upon receiving a message, the workflow processes it using a Message Processor node, which likely involves parsing and preparing the message for further actions.\n\nThe workflow then utilizes an AI Travel Agent node, which suggests that the messages are related to travel inquiries. This AI component likely provides automated responses or suggestions based on the content of the message. The Platform Memory node is used to store and manage conversation context, ensuring that interactions are coherent and contextually aware.\n\nAn Ollama Chat Model node is employed to enhance the conversational capabilities of the workflow, possibly by generating natural language responses. The Response Router node then determines the appropriate platform to send the response back to, based on the origin of the incoming message.\n\nFinally, the workflow sends the processed and AI-enhanced responses back to the respective platforms using Instagram Sender and Facebook Sender nodes, ensuring that users receive timely and relevant replies to their inquiries. This workflow effectively automates the handling of travel-related queries across multiple social media channels, providing a seamless user experience.",
+  "description_generation_usage": {
+    "prompt_tokens": 223,
+    "completion_tokens": 237,
+    "total_tokens": 460
+  },
+  "metrics": {
+    "node_type_precision": 0.4,
+    "node_type_recall": 0.36363636363636365,
+    "node_type_f1": 0.380952380952381,
+    "tp": 4,
+    "fp": 6,
+    "fn": 7,
+    "gt_node_count": 11,
+    "llm_node_count": 10,
+    "connection_precision": 0.14285714285714285,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.15384615384615383,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 699,
+      "completion_tokens": 1123,
+      "total_tokens": 1822
+    },
+    "total_cost": 0.015905000000000002,
+    "description_generation_cost": 0.0029275000000000004,
+    "workflow_generation_cost": 0.012977500000000001
+  },
+  "original_description": "This automated n8n workflow enables AI-powered responses across multiple social media platforms, including Instagram DMs, Facebook messages, and WhatsApp chats using Meta's APIs. The system provides intelligent customer support, lead generation, and smart engagement at scale through AI-driven conversation management and automated response routing.\n\n## **Good to Know**\n\n* Supports multi-platform messaging across Instagram, Facebook, and WhatsApp\n* Uses AI Travel Agent and Ollama Chat Model for intelligent response generation\n* Includes platform memory for maintaining conversation context and history\n* Automatic message processing and routing based on platform and content type\n* Real-time webhook integration for instant message detection and response\n\n## **How It Works**\n\n* **WhatsApp Trigger** - Monitors incoming WhatsApp messages and initiates automated response workflow\n* **Instagram Webhook** - Captures Instagram DM notifications and processes them for AI analysis\n* **Facebook Webhook** - Detects Facebook Messenger interactions and routes them through the system\n* **Message Processor** - Analyzes incoming messages from all platforms and prepares them for AI processing\n* **AI Travel Agent** - Processes messages using intelligent AI model to generate contextually appropriate responses\n* **Ollama Chat Model** - Provides advanced language processing for complex conversation scenarios\n* **Platform Memory** - Maintains conversation history and context across multiple interactions for personalized responses\n* **Response Router** - Determines optimal response strategy and routes messages to appropriate sending mechanisms\n* **Instagram Sender** - Delivers AI-generated responses back to Instagram DM conversations\n* **Facebook Sender** - Sends automated replies through Facebook Messenger API\n* **Send Message (WhatsApp)** - Delivers personalized responses to WhatsApp chat conversations\n\n## **How to Use**\n\n* Import workflow into n8n\n* Configure Meta's Instagram Graph API, Facebook Messenger API, and WhatsApp Business Cloud API\n* Set up approved Meta Developer App with required permissions\n* Configure webhook endpoints for real-time message detection\n* Set up Ollama Chat Model for AI response generation\n* Test with sample messages across all three platforms\n* Monitor response accuracy and adjust AI parameters as needed\n\n## **Requirements**\n\n* Access to Meta's Instagram Graph API, Facebook Messenger API, and WhatsApp Business Cloud API\n* Approved Meta Developer App\n* Webhook setup and persistent token management for real-time messaging\n* Ollama Chat Model integration\n* AI Travel Agent configuration\n\n## **Customizing This Workflow**\n\n* Modify AI prompts for different business contexts (customer service, sales, support)\n* Adjust response routing logic based on message content or user behavior\n* Configure platform-specific message templates and formatting\n* Set up custom memory storage for enhanced conversation tracking\n* Integrate additional AI models for specialized response scenarios\n* Add message filtering and content moderation capabilities"
+}

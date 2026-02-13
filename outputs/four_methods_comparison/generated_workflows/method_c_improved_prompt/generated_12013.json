@@ -1,0 +1,152 @@
+{
+  "template_id": "12013",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a form submission where users upload PDF bills.",
+      "data_sources": "PDF files uploaded by users, QuickBooks API for vendor and item management, AI service for OCR and data extraction.",
+      "operations": "1. Receive PDF uploads, 2. Extract text using OCR, 3. Parse extracted text with AI to identify invoice details, 4. Check and sync vendors/items with QuickBooks, 5. Create bills in QuickBooks.",
+      "output_actions": "Create and reconcile bills in QuickBooks without duplicates.",
+      "nodes_plan": "formTrigger (upload), pdfExtractor (OCR), aiParser (AI extraction), quickBooks (vendor/item check and bill creation), if (duplicate check).",
+      "connections_plan": "formTrigger -> pdfExtractor -> aiParser -> quickBooks (vendor/item sync) -> quickBooks (bill creation)."
+    },
+    "workflowPlan": {
+      "name": "Automated Purchase Bill Processing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Trigger",
+          "nodeType": "n8n-nodes-base.formTrigger",
+          "typeVersion": 1,
+          "params": {
+            "path": "upload-purchase-bills"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "PDF Extractor",
+          "nodeType": "n8n-nodes-base.pdfExtractor",
+          "typeVersion": 1,
+          "params": {
+            "filePropertyName": "file",
+            "outputFormat": "text"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "AI Invoice Parser",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.text }}\n\nExtract invoice details: number, dates, vendor, line items, subtotal, tax, total."
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "QuickBooks Vendor/Item Sync",
+          "nodeType": "n8n-nodes-base.quickBooks",
+          "typeVersion": 1,
+          "params": {
+            "operation": "get",
+            "resource": "vendor"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "QuickBooks Bill Creation",
+          "nodeType": "n8n-nodes-base.quickBooks",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "resource": "bill",
+            "fields": {
+              "vendorId": "={{ $json.vendorId }}",
+              "lineItems": "={{ $json.lineItems }}",
+              "totalAmount": "={{ $json.total }}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4387,
+    "completion_tokens": 828,
+    "total_tokens": 5215
+  },
+  "description_optimization": null,
+  "original_description": "## \u2705 What problem does this workflow solve?\n\nAccounting teams spend **hours manually entering purchase bills** into accounting systems\u2014copying vendor details, creating items, checking duplicates, and reconciling totals. This workflow removes that manual effort entirely.\n\nWith **OCR + AI + QuickBooks integration**, this automation converts uploaded purchase bills into **fully reconciled QuickBooks bills**\u2014accurately, consistently, and without human intervention.\n\n---\n\n## \u2699\ufe0f What does this workflow do?\n\n- Accepts **multiple purchase bills** in a single upload\n- Extracts structured invoice data using OCR + AI\n- Automatically syncs vendors and items with **:contentReference[oaicite:0]{index=0}**\n- Creates missing vendors or items when needed\n- Generates clean, validated bills inside QuickBooks\n- Prevents duplicate vendors or line items\n\n---\n\n## \ud83e\udde0 How It Works \u2013 Step-by-Step\n\n### 1. \ud83d\udce4 Upload Purchase Bills\n- Users upload **one or multiple PDF bills** using an n8n form\n- Each bill is automatically split and processed individually\n\n### 2. \ud83d\udd0d OCR & Invoice Data Extraction\n- The workflow extracts text from each PDF\n- An AI extraction engine powered by :contentReference[oaicite:2]{index=2} identifies:\n  - Invoice number & dates\n  - Vendor details\n  - Line items (name, quantity, price, amount)\n  - Subtotal, tax, and total\n\n### 3. \ud83d\udd04 Item & Vendor Reconciliation (QuickBooks)\n- Fetches **existing items** from QuickBooks\n- If an item does not exist:\n  - Automatically creates it\n- Checks if the vendor exists:\n  - Creates a new vendor if missing\n- Ensures **zero duplicates** in QuickBooks\n\n### 4. \ud83e\uddfe Bill Payload Creation\n- Builds a clean QuickBooks-compatible bill payload\n- Maps:\n  - Items\n  - Vendor\n  - Dates\n  - Taxes\n  - Totals\n- Handles edge cases like missing quantities or unit prices\n\n### 5. \ud83d\udcb0 Bill Creation in QuickBooks\n- Creates a finalized bill inside QuickBooks\n- Each bill is immediately ready for reconciliation and reporting\n\n---\n\n## \ud83d\udee0 Tools & Integrations Used\n\n- **n8n Form Trigger** \u2013 Bill upload\n- **PDF Extractor** \u2013 Text extraction\n- **AI Invoice Parser** \u2013 Structured data extraction\n- **QuickBooks API** \u2013 Vendor, item, and bill creation\n- **OpenAI / OpenRouter** \u2013 Intelligent field mapping\n\n---\n\n## \ud83d\udca1 Key Benefits\n\n- \u23f1 Eliminates hours of manual bill entry\n- \ud83e\udde0 Intelligent OCR with structured extraction\n- \ud83d\udeab No duplicate vendors or items\n- \u26a1 Instant QuickBooks synchronization\n- \ud83d\udcca Accurate accounting data every time\n\n---\n\n## \ud83d\udc64 Who can use this?\n\nPerfect for:\n- \ud83e\uddfe **Accounting teams**\n- \ud83c\udfe2 **Finance departments**\n- \ud83d\udcc8 **SMBs using QuickBooks**\n- \ud83d\ude80 **SaaS platforms automating bookkeeping**\n\nIf you're processing large volumes of purchase bills, this workflow turns **documents into structured accounting data\u2014automatically**.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:10:30.475222",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 0.15,
+    "node_type_f1": 0.24,
+    "tp": 3,
+    "fp": 2,
+    "fn": 17,
+    "gt_node_count": 20,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 19,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.17777777777777778,
+    "usage": {
+      "prompt_tokens": 4387,
+      "completion_tokens": 828,
+      "total_tokens": 5215
+    },
+    "total_cost": 0.0192475
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "template_id": "2792",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's an automation workflow with AI analysis using OpenAI for sentiment analysis. Use base openAi node.",
+      "trigger_analysis": "This workflow should be triggered manually or on a schedule to periodically scrape and analyze Trustpilot reviews.",
+      "data_sources": "Trustpilot website, OpenAI API for sentiment analysis, Google Sheets for data storage.",
+      "operations": "1. Scrape Trustpilot reviews using HTTP request and HTML parsing. 2. Extract review details. 3. Perform sentiment analysis using OpenAI. 4. Save results to Google Sheets.",
+      "output_actions": "Append or update the extracted and analyzed review data to a Google Sheet.",
+      "nodes_plan": "httpRequest (scrape), htmlExtract (parse), set (extract details), openAi (sentiment analysis), googleSheets (save data)",
+      "connections_plan": "httpRequest -> htmlExtract -> set -> openAi -> googleSheets (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Trustpilot Review Sentiment Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://it.trustpilot.com/review/{{company_id}}",
+            "queryParameters": [
+              {
+                "name": "page",
+                "value": "={{ $json.page }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTML Extract",
+          "nodeType": "n8n-nodes-base.htmlExtract",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{ $json.body }}",
+            "cssSelector": ".review-url-selector",
+            "returnArray": true
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Review Details",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "author",
+                  "value": "={{ $json.author }}"
+                },
+                {
+                  "name": "rating",
+                  "value": "={{ $json.rating }}"
+                },
+                {
+                  "name": "date",
+                  "value": "={{ $json.date }}"
+                },
+                {
+                  "name": "title",
+                  "value": "={{ $json.title }}"
+                },
+                {
+                  "name": "text",
+                  "value": "={{ $json.text }}"
+                },
+                {
+                  "name": "totalReviews",
+                  "value": "={{ $json.totalReviews }}"
+                },
+                {
+                  "name": "country",
+                  "value": "={{ $json.country }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Sentiment Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "classify",
+            "text": "={{ $json.text }}",
+            "categories": [
+              "Positive",
+              "Neutral",
+              "Negative"
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "documentId": "your-google-sheet-id",
+            "sheetName": "Reviews",
+            "columns": [
+              "Author",
+              "Rating",
+              "Date",
+              "Title",
+              "Text",
+              "Total Reviews",
+              "Country",
+              "Sentiment",
+              "Confidence"
+            ],
+            "data": [
+              "={{ $json.author }}",
+              "={{ $json.rating }}",
+              "={{ $json.date }}",
+              "={{ $json.title }}",
+              "={{ $json.text }}",
+              "={{ $json.totalReviews }}",
+              "={{ $json.country }}",
+              "={{ $json.category }}",
+              "={{ $json.confidence }}"
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9384,
+    "completion_tokens": 1105,
+    "total_tokens": 10489
+  },
+  "description_optimization": null,
+  "original_description": "### **Workflow Overview**  \nThis workflow automates the process of **scraping Trustpilot reviews**, extracting key details, analyzing sentiment, and saving the results to **Google Sheets**. It uses **OpenAI** for sentiment analysis and **HTML parsing** for review extraction.\n\n---\n\n### **How It Works**  \n\n#### **1. Scrape Trustpilot Reviews**   \n- **HTTP Request**:  \n  - Fetches review pages from Trustpilot (`https://it.trustpilot.com/review/{{company_id}}`).  \n  - Paginates through pages (up to `max_page` limit).  \n- **HTML Parsing**:  \n  - Extracts review URLs using CSS selectors\n  - Splits the URLs into individual review links.  \n\n#### **2. Extract Review Details**   \n- **Information Extractor**:  \n  - Uses DeepSeek to extract structured data from the review:  \n    - **Author**: Name of the reviewer.  \n    - **Rating**: Numeric rating (1-5).  \n    - **Date**: Review date in `YYYY-MM-DD` format.  \n    - **Title**: Review title.  \n    - **Text**: Full review text.  \n    - **Total Reviews**: Number of reviews by the user.  \n    - **Country**: Reviewer\u2019s country (2-letter code).  \n\n#### **3. Sentiment Analysis**  \n- **Sentiment Analysis Node**:  \n  - Uses OpenAI to classify the review text as **Positive**, **Neutral**, or **Negative**.  \n  - Example output:  \n    ```json  \n    {  \n      \"category\": \"Positive\",  \n      \"confidence\": 0.95  \n    }  \n    ```  \n\n#### **4. Save to Google Sheets**  \n- **Google Sheets Node**:  \n  - Appends or updates the extracted data to a Google Sheet \n\n---\n\n### **Set Up Steps**  \n\n#### **1. Configure Trustpilot Scraping**  \n- **Edit Fields1 Node**:  \n  - Set `company_id` to the Trustpilot company name \n  - Set `max_page` to limit the number of pages scraped.  \n\n#### **2. Configure Google Sheets**  \n- **Google Sheets Node**:  \n  - Update the `documentId` with your Google Sheet ID \n  - Ensure the sheet has the required columns (`Id`, `Data`, `Nome`, etc.).  \n\n#### **3. Configure OpenAI**  \n- **OpenAI Chat Model Node**:  \n  - Add your OpenAI API key.  \n- **Sentiment Analysis Node**:  \n  - Ensure the `categories` match your desired sentiment labels (`Positive, Neutral, Negative`).  \n\n---\n\n### **Key Components**  \n- **Nodes**:  \n  - **HTTP Request/HTML**: Scrape and parse Trustpilot reviews.  \n  - **Information Extractor**: Extract structured review data using DeepSeek.  \n  - **Sentiment Analysis**: Classify review sentiment.  \n  - **Google Sheets**: Save and update review data.  \n- **Credentials**:  \n  - OpenAI API key. \n  - DeepSeek API key.  \n  - Google Sheets OAuth2.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:47:34.001253",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 0.1875,
+    "node_type_f1": 0.2857142857142857,
+    "tp": 3,
+    "fp": 2,
+    "fn": 13,
+    "gt_node_count": 16,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 12,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.39999999999999997,
+    "usage": {
+      "prompt_tokens": 9384,
+      "completion_tokens": 1105,
+      "total_tokens": 10489
+    },
+    "total_cost": 0.03451
+  },
+  "is_ai_workflow": false
+}

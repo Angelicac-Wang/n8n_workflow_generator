@@ -1,0 +1,237 @@
+{
+  "template_id": 11809,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "SEO Keyword Analysis and Strategy",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "SEO Keyword Input Form",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "seo-keyword-input"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Configure Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "keywords",
+                  "value": "={{$json[\"body\"][\"keywords\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Search SERP API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/search",
+            "method": "GET",
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "q",
+                  "value": "={{$json[\"keywords\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Non-Article URLs",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"urlType\"]}}",
+                  "operation": "notEqual",
+                  "value2": "non-article"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Scrape Headings from Articles",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/scrape-headings",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "url",
+                  "value": "={{$json[\"url\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Content Structure Analysis",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/analyze-content",
+            "method": "POST",
+            "bodyParametersUi": {
+              "parameter": [
+                {
+                  "name": "headings",
+                  "value": "={{$json[\"headings\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Google Doc",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "documentTitle": "SEO Content Strategy",
+            "content": "={{$json[\"analysis\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Store in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "sheetId": "your-google-sheet-id",
+            "range": "A1",
+            "valueInputOption": "RAW",
+            "values": [
+              [
+                "={{$json[\"body\"][\"keywords\"]}}",
+                "={{$json[\"body\"][\"timestamp\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "1",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 642,
+    "completion_tokens": 1151,
+    "total_tokens": 1793
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:45:25.846753",
+  "generated_description": "This n8n workflow is initiated when a user submits the SEO Keyword Input Form. Upon submission, the workflow begins by configuring necessary parameters for the subsequent operations. It then utilizes the Google Search SERP API to gather search engine results for the specified keywords. The workflow filters out non-article URLs from these results to focus on relevant content.\n\nNext, it employs another API to scrape headings from the identified article URLs, collecting data on competitor content. This data is aggregated to provide a comprehensive view of competitor strategies. The workflow then leverages AI Content Structure Analysis to examine the aggregated data and derive insights into effective content structures.\n\nFollowing the analysis, the workflow creates a structured document in Google Docs, compiling the insights and recommendations. Finally, it stores the initial form responses in Google Sheets for record-keeping and future reference. The end result is a detailed document that aids in developing a competitive SEO content strategy.",
+  "description_generation_usage": {
+    "prompt_tokens": 212,
+    "completion_tokens": 180,
+    "total_tokens": 392
+  },
+  "metrics": {
+    "node_type_precision": 0.375,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.35294117647058826,
+    "tp": 3,
+    "fp": 5,
+    "fn": 6,
+    "gt_node_count": 9,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 8,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 642,
+      "completion_tokens": 1151,
+      "total_tokens": 1793
+    },
+    "total_cost": 0.015445000000000002,
+    "description_generation_cost": 0.0023300000000000005,
+    "workflow_generation_cost": 0.013115000000000002
+  },
+  "original_description": "# Generate SEO content outlines from SERP analysis to Google Docs\n\n\n## Overview\nStop wasting hours on manual competitor research and content briefing. This workflow automates the creation of data-backed content briefs by analyzing the current top-ranking pages for your specific keyword.\n\n\nIt scrapes the Google Search Engine Results Page (SERP), extracts the content structure (headings H1-H3) from competitor articles, and uses AI to generate a comprehensive article outline based on what is already ranking. The final outline is automatically saved to a Google Doc, streamlining your content production process.\n\n\n## Who is this for?\n- **Content Marketers:** To drastically reduce the time needed to create detailed content briefs.\n- **SEO Specialists:** To analyze competitor content structures at scale without manual checking.\n- **Bloggers & Writers:** To overcome writer's block and ensure their content covers all necessary topics to rank.\n\n\n## How it works\n1.  **Input:** You enter a \"Target Keyword\" and \"Target Audience\" via the built-in n8n Form.\n2.  **SERP Scraping:** The workflow uses **Apify** (Google Search Scraper) to fetch the top results for that keyword.\n3.  **Filtering:** It automatically removes non-article URLs (such as Amazon product pages, YouTube videos, and PDFs) to ensure only relevant content competitors are analyzed.\n4.  **Deep Extraction:** It visits each competitor's URL using **Apify** (Cheerio Scraper) to extract their article metadata and heading structure (H1, H2, H3).\n5.  **AI Analysis:** The aggregated data is sent to **OpenAI**, which analyzes common patterns and generates an optimized article outline.\n6.  **Output:**\n    - A new **Google Doc** is created with the generated outline.\n    - The request details are logged in **Google Sheets** for your records.\n\n\n## Requirements\n- **Apify Account:** You will need an Apify account with access to the *Google Search Result Scraper* and *Cheerio Scraper* actors.\n- **OpenAI Account:** An API key for OpenAI (GPT-3.5 or GPT-4 recommended).\n- **Google Cloud:** Credentials to access Google Docs and Google Sheets.\n\n\n## How to set up\n1.  **Configure Credential:** Connect your Apify, OpenAI, and Google accounts in the respective nodes.\n2.  **Workflow Configuration:** Open the `Workflow Configuration` node. You can change the `countryCode` (default is \"jp\" for Japan) to your target region (e.g., \"us\", \"uk\") and adjust `maxResults` if needed.\n3.  **Google Sheets Setup:** Create a Google Sheet with a column header named `target_keyword`. Copy the Spreadsheet ID and paste it into the `Store Form Responses` node.\n4.  **Run:** Click \"Chat\" or \"Open Form\" in the trigger node to start the workflow.\n\n\n## How to customize\n- **Change the AI Model:** In the `AI Content Structure Analysis` node, you can switch between different OpenAI models or adjust the system prompt to change the tone/format of the outline.\n- **Adjust Filters:** Modify the `Filter Non-Article URLs` node to exclude specific domains you don't want to analyze (e.g., wikipedia.org).\n- **Output Format:** You can modify the `Create Google Doc` node to include more specific data, such as the list of competitor URLs analyzed.![\u30b9\u30af\u30ea\u30fc\u30f3\u30b7\u30e7\u30c3\u30c8 20251215 114351.png](fileId:3657)"
+}

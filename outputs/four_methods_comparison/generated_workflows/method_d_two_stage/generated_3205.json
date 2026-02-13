@@ -1,0 +1,214 @@
+{
+  "template_id": "3205",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a Schedule Trigger node that runs every 15 minutes.",
+      "data_sources": "The primary data source is the Have I Been Pwned API, accessed via an HTTP Request node. A local cache file (cache.json) is used to store the last known breach data.",
+      "operations": "1. Trigger every 15 minutes, 2. Fetch latest breach data from API, 3. Read last known breach from cache, 4. Compare current and cached data, 5. If new breach detected, update cache and send notification.",
+      "output_actions": "Send notifications via selected communication nodes (Email, Slack, Microsoft Teams, Discord, Telegram, Webhook, SMS) when a new breach is detected.",
+      "nodes_plan": "schedule (trigger), httpRequest (GET), readFile (read cache), if (compare data), writeFile (update cache), notification nodes (Email, Slack, etc.)",
+      "connections_plan": "schedule -> httpRequest -> readFile -> if -> [writeFile + notification nodes (if true)]"
+    },
+    "workflowPlan": {
+      "name": "Automated Data Breach Monitoring",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "interval": {
+              "unit": "minutes",
+              "value": 15
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://haveibeenpwned.com/api/v3/breaches"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Read Cache",
+          "nodeType": "n8n-nodes-base.readFile",
+          "typeVersion": 1,
+          "params": {
+            "filePath": "cache.json",
+            "options": {
+              "encoding": "utf8"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check for New Breach",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "json": [
+                {
+                  "value1": "={{ $json['2'].body }}",
+                  "operation": "notEqual",
+                  "value2": "={{ $json['3'].data }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Cache",
+          "nodeType": "n8n-nodes-base.writeFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "cache.json",
+            "data": "={{ $json['2'].body }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Notification",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#breach-alerts",
+            "text": "New data breach detected: {{ $json['2'].body }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4314,
+      "completion_tokens": 1005,
+      "total_tokens": 5319
+    },
+    "description_optimization": {
+      "prompt_tokens": 989,
+      "completion_tokens": 553,
+      "total_tokens": 1542
+    },
+    "total_tokens": 6861,
+    "total_prompt_tokens": 5303,
+    "total_completion_tokens": 1558
+  },
+  "description_optimization": {
+    "template_id": "3205",
+    "optimized_description": "Workflow Description for Automated Monitoring of Data Breaches\n\nTrigger: The workflow is initiated by a Schedule Trigger node that checks the Have I Been Pwned API every 15 minutes for the latest data breaches.\n\nData Sources and APIs: \n- The primary data source is the Have I Been Pwned API, which provides information on recent data breaches. This API does not require an API key for access.\n- A local cache file named `cache.json` is used to store the last known breach data to prevent redundant alerts.\n\nOperations and Processing Steps:\n1. Schedule Trigger Node: Set to trigger every 15 minutes.\n2. HTTP Request Node: This node makes a GET request to the Have I Been Pwned API endpoint to retrieve the latest breach data.\n3. Read from Cache: A function retrieves the last known breach information from `cache.json`.\n4. Compare Against Current Breach: The workflow checks if the latest fetched breach data differs from the cached data. If a new breach is detected:\n   - Update the Cache: The workflow updates `cache.json` with the latest breach data.\n   - Trigger Notification: The workflow proceeds to send an alert using the selected notification mechanism.\n5. Notification Mechanism: Users can customize the alert method by adding one of the following nodes after the New breach node:\n   - Email Node: Sends an email notification to specified recipients, including breach details in the subject or body.\n   - Slack Node: Sends a message to a Slack channel or user, allowing for formatting options like bold text or code blocks.\n   - Microsoft Teams Node: Sends a message to a Teams channel, customizable with relevant breach information.\n   - Discord Node: Sends an alert message to a Discord channel, formatted for clarity.\n   - Telegram Node: Sends messages to a Telegram chat or group, including breach summaries or detailed information.\n   - Webhook Node: Sends breach data to another service via a webhook, allowing for integration with external systems.\n   - SMS Nodes (like Twilio): Sends SMS notifications to specified phone numbers, keeping messages concise and focused on key breach details.\n\nFinal Output or Action: The workflow sends notifications through the chosen alert mechanism whenever a new breach is detected, ensuring users are promptly informed about potential threats to their data. \n\nCustomization Options:\n- Users can modify notification settings to tailor where alerts are sent, choosing from various n8n nodes based on their communication preferences.\n- Users can also adjust the check frequency by changing the interval in the Schedule Trigger node, allowing for hourly or daily checks as needed.\n\nThis workflow is designed for security professionals, developers, and individuals interested in proactive identity protection and data breach awareness. It effectively demonstrates a simple cache mechanism to track previously seen breaches while ensuring timely notifications for new incidents.",
+    "original_description": "[![changelog](https://xqus.relezy.com/haveibeenpwnedcom-breaches/badge.svg)](https://xqus.relezy.com/haveibeenpwnedcom-breaches)\n\n## Who is this for?\n- Security professionals\n- Developers\n- Individuals interested in data breach awareness\n\n## Use Case\n- Automated monitoring for new breaches\n- Proactive identity protection\n- Demonstration of simple cache mechanism\n\n## What this workflow does\n- Checks the Have I Been Pwned API every 15 minutes for the latest breaches.\n- Compares new breach data against previously notified breaches.\n- Demonstrates a simple cache mechanism to track previously seen breaches.\n\n## How the Cache Functionality Works\n- **Read from Cache**: Retrieves the last known breach from `cache.json` to avoid redundant alerts for the same breach.\n- **Compare Against Current Breach**: The workflow checks if the latest fetched breach differs from the cached one.\n- **Update the Cache**: If a new breach is detected, it updates `cache.json` with the latest breach data.\n\n## Setup instructions\n1. The endpoint used in this workflow does *not* require an API key.\n2. Add your desired alert mechanism in the red box attached to the `New breach` node.\n\n## How to customize this workflow to your needs\n- **Modify Notification Settings**: Tailor where alerts are sent (email, Slack, etc.). Add the desired node after the `New breach` node. This node contains all the data from the breach so it is eaisily available.\nYou can choose from a variety of n8n nodes to send alerts when a new breach is detected. Below are a few common options you might consider adding after the New breach node:\n\n1. **Email Node**\nWhat it does: Sends an email notification to one or more recipients.\nUse case: Great for simple alerts to your inbox or a team distribution list.\nCustomization: You can include breach details in the subject or body of the email, using data from the New breach node.\n2. **Slack Node**\nWhat it does: Sends a message to a Slack channel or user.\nUse case: Perfect for real-time alerts to your team in Slack.\nCustomization: You can post breach details directly in a channel or DM. You can also format the message (bold, code blocks, etc.).\n3. **Microsoft Teams Node**\nWhat it does: Sends a message to a Teams channel.\nUse case: For organizations that use Microsoft Teams for communication.\nCustomization: Similar to Slack, you can customize the message content and include all relevant breach information.\n4. **Discord Node**\nWhat it does: Sends an alert message to a Discord channel.\nUse case: Useful for teams or communities that coordinate via Discord.\nCustomization: Add formatted messages with breach details for easy viewing.\n5. **Telegram Node**\nWhat it does: Sends messages to a Telegram chat or group.\nUse case: Good for mobile notifications and fast alerts.\nCustomization: You can include breach summaries or detailed information, and even use bots to automate this.\n6. **Webhook Node** (as a sender)\nWhat it does: Sends breach data to another service via a webhook.\nUse case: If you have an external system or app that handles alerts, you can push the data directly to it.\nCustomization: Send JSON payloads with detailed breach information to trigger actions in other systems.\n7. **SMS Nodes** (like Twilio)\nWhat it does: Sends an SMS notification to one or more phone numbers.\nUse case: For urgent alerts that need to be seen immediately.\nCustomization: Keep messages concise, including key breach details like the time, type of breach, and affected system.\n- **Adjust Check Frequency**: Change the interval in the Schedule Trigger node (e.g., hourly or daily).",
+    "description_length": 2925,
+    "usage": {
+      "prompt_tokens": 989,
+      "completion_tokens": 553,
+      "total_tokens": 1542
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:34:23.084716"
+  },
+  "original_description": "[![changelog](https://xqus.relezy.com/haveibeenpwnedcom-breaches/badge.svg)](https://xqus.relezy.com/haveibeenpwnedcom-breaches)\n\n## Who is this for?\n- Security professionals\n- Developers\n- Individuals interested in data breach awareness\n\n## Use Case\n- Automated monitoring for new breaches\n- Proactive identity protection\n- Demonstration of simple cache mechanism\n\n## What this workflow does\n- Checks the Have I Been Pwned API every 15 minutes for the latest breaches.\n- Compares new breach data against previously notified breaches.\n- Demonstrates a simple cache mechanism to track previously seen breaches.\n\n## How the Cache Functionality Works\n- **Read from Cache**: Retrieves the last known breach from `cache.json` to avoid redundant alerts for the same breach.\n- **Compare Against Current Breach**: The workflow checks if the latest fetched breach differs from the cached one.\n- **Update the Cache**: If a new breach is detected, it updates `cache.json` with the latest breach data.\n\n## Setup instructions\n1. The endpoint used in this workflow does *not* require an API key.\n2. Add your desired alert mechanism in the red box attached to the `New breach` node.\n\n## How to customize this workflow to your needs\n- **Modify Notification Settings**: Tailor where alerts are sent (email, Slack, etc.). Add the desired node after the `New breach` node. This node contains all the data from the breach so it is eaisily available.\nYou can choose from a variety of n8n nodes to send alerts when a new breach is detected. Below are a few common options you might consider adding after the New breach node:\n\n1. **Email Node**\nWhat it does: Sends an email notification to one or more recipients.\nUse case: Great for simple alerts to your inbox or a team distribution list.\nCustomization: You can include breach details in the subject or body of the email, using data from the New breach node.\n2. **Slack Node**\nWhat it does: Sends a message to a Slack channel or user.\nUse case: Perfect for real-time alerts to your team in Slack.\nCustomization: You can post breach details directly in a channel or DM. You can also format the message (bold, code blocks, etc.).\n3. **Microsoft Teams Node**\nWhat it does: Sends a message to a Teams channel.\nUse case: For organizations that use Microsoft Teams for communication.\nCustomization: Similar to Slack, you can customize the message content and include all relevant breach information.\n4. **Discord Node**\nWhat it does: Sends an alert message to a Discord channel.\nUse case: Useful for teams or communities that coordinate via Discord.\nCustomization: Add formatted messages with breach details for easy viewing.\n5. **Telegram Node**\nWhat it does: Sends messages to a Telegram chat or group.\nUse case: Good for mobile notifications and fast alerts.\nCustomization: You can include breach summaries or detailed information, and even use bots to automate this.\n6. **Webhook Node** (as a sender)\nWhat it does: Sends breach data to another service via a webhook.\nUse case: If you have an external system or app that handles alerts, you can push the data directly to it.\nCustomization: Send JSON payloads with detailed breach information to trigger actions in other systems.\n7. **SMS Nodes** (like Twilio)\nWhat it does: Sends an SMS notification to one or more phone numbers.\nUse case: For urgent alerts that need to be seen immediately.\nCustomization: Keep messages concise, including key breach details like the time, type of breach, and affected system.\n- **Adjust Check Frequency**: Change the interval in the Schedule Trigger node (e.g., hourly or daily).",
+  "optimized_description": "Workflow Description for Automated Monitoring of Data Breaches\n\nTrigger: The workflow is initiated by a Schedule Trigger node that checks the Have I Been Pwned API every 15 minutes for the latest data breaches.\n\nData Sources and APIs: \n- The primary data source is the Have I Been Pwned API, which provides information on recent data breaches. This API does not require an API key for access.\n- A local cache file named `cache.json` is used to store the last known breach data to prevent redundant alerts.\n\nOperations and Processing Steps:\n1. Schedule Trigger Node: Set to trigger every 15 minutes.\n2. HTTP Request Node: This node makes a GET request to the Have I Been Pwned API endpoint to retrieve the latest breach data.\n3. Read from Cache: A function retrieves the last known breach information from `cache.json`.\n4. Compare Against Current Breach: The workflow checks if the latest fetched breach data differs from the cached data. If a new breach is detected:\n   - Update the Cache: The workflow updates `cache.json` with the latest breach data.\n   - Trigger Notification: The workflow proceeds to send an alert using the selected notification mechanism.\n5. Notification Mechanism: Users can customize the alert method by adding one of the following nodes after the New breach node:\n   - Email Node: Sends an email notification to specified recipients, including breach details in the subject or body.\n   - Slack Node: Sends a message to a Slack channel or user, allowing for formatting options like bold text or code blocks.\n   - Microsoft Teams Node: Sends a message to a Teams channel, customizable with relevant breach information.\n   - Discord Node: Sends an alert message to a Discord channel, formatted for clarity.\n   - Telegram Node: Sends messages to a Telegram chat or group, including breach summaries or detailed information.\n   - Webhook Node: Sends breach data to another service via a webhook, allowing for integration with external systems.\n   - SMS Nodes (like Twilio): Sends SMS notifications to specified phone numbers, keeping messages concise and focused on key breach details.\n\nFinal Output or Action: The workflow sends notifications through the chosen alert mechanism whenever a new breach is detected, ensuring users are promptly informed about potential threats to their data. \n\nCustomization Options:\n- Users can modify notification settings to tailor where alerts are sent, choosing from various n8n nodes based on their communication preferences.\n- Users can also adjust the check frequency by changing the interval in the Schedule Trigger node, allowing for hourly or daily checks as needed.\n\nThis workflow is designed for security professionals, developers, and individuals interested in proactive identity protection and data breach awareness. It effectively demonstrates a simple cache mechanism to track previously seen breaches while ensuring timely notifications for new incidents.",
+  "error": null,
+  "generated_at": "2026-01-25T23:34:34.213753",
+  "metrics": {
+    "node_type_precision": 0.3333333333333333,
+    "node_type_recall": 0.1111111111111111,
+    "node_type_f1": 0.16666666666666666,
+    "tp": 2,
+    "fp": 4,
+    "fn": 16,
+    "gt_node_count": 18,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 14,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.5,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4314,
+        "completion_tokens": 1005,
+        "total_tokens": 5319
+      },
+      "description_optimization": {
+        "prompt_tokens": 989,
+        "completion_tokens": 553,
+        "total_tokens": 1542
+      },
+      "total_tokens": 6861,
+      "total_prompt_tokens": 5303,
+      "total_completion_tokens": 1558
+    },
+    "total_cost": 0.028837500000000002,
+    "description_optimization_cost": 0.008002500000000001,
+    "workflow_generation_cost": 0.020835000000000003
+  }
+}

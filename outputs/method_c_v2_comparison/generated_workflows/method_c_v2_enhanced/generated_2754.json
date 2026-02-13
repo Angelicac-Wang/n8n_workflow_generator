@@ -1,0 +1,142 @@
+{
+  "template_id": "2754",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or on a schedule to periodically check for new documents.",
+      "data_sources": "Google Drive API for fetching documents, Google Docs API for extracting content, AI model API (e.g., OpenAI) for summarization, Google Sheets API for storing results.",
+      "operations": "1. Fetch the most recent Google Doc from Google Drive, 2. Extract content from the document, 3. Summarize the content using an AI model, 4. Store the summary and document details in Google Sheets.",
+      "output_actions": "The summarized content along with document details should be appended to a Google Sheet.",
+      "nodes_plan": "googleDrive (list files), googleDocs (get content), openAi (summarize), googleSheets (append row)",
+      "connections_plan": "googleDrive -> googleDocs -> openAi -> googleSheets (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Google Doc Summarization and Storage",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Fetch Recent Document",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "mimeType='application/vnd.google-apps.document'",
+            "options": {
+              "orderBy": "createdTime desc",
+              "pageSize": 1
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Extract Document Content",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "documentId": "={{ $json['files'][0]['id'] }}",
+            "operation": "getContent"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Summarize Content",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json['body']['content'] }}",
+            "model": "text-davinci-003",
+            "prompt": "Summarize the following text:"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Store in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{ $json['files'][0]['name'] }}",
+                "={{ $json['choices'][0]['text'] }}",
+                "={{ $json['files'][0]['createdTime'] }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5375,
+    "completion_tokens": 798,
+    "total_tokens": 6173
+  },
+  "description_optimization": null,
+  "original_description": "This workflow is created by AI developers at WeblineIndia. It streamlines the process of managing content by automatically identifying and fetching the most recently added Google Doc file from your Google Drive. It extracts the content of the document for processing and leverages an AI model to generate a concise and meaningful summary of the extracted text. The summarized content is then stored in a designated Google Sheet, alongside relevant details like the document name and the date it was added, providing an organized and easily accessible reference for future use. This automation simplifies document handling, enhances productivity, and ensures seamless data management.\n\n## Steps :\n### Fetch the Most Recent Document from Google Drive\n- **Action:** Use the Google Drive Node.\n- **Details:** List files, filter by date to fetch the most recently added .doc file, and retrieve its file ID and metadata.\n\n### Extract Content from the Document\n- **Action:** Use the Google Docs Node.\n- **Details:** Set the operation to \"Get Content,\" pass the file ID, and extract the document's text content.\n\n### Summarize the Document Using an AI Model\n- **Action:** Use an AI Model Node (e.g., OpenAI, ChatGPT).\n- **Details:** Provide the extracted text to the AI model, use a prompt to generate a summary, and capture the result.\n\n### Store the Summarized Content in Google Sheets\n- **Action:** Use the Google Sheets Node.\n- **Details:** Append a new row to the target sheet with details such as the original document name, summary, and date added.\n\n---\n\n## About WeblineIndia\n**WeblineIndia** specializes in delivering innovative and [custom AI solutions](https://www.weblineindia.com/ai-development.html) to simplify and automate business processes. If you need any help, please reach out to us.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:52:11.040874",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.5,
+    "node_type_f1": 0.6,
+    "tp": 3,
+    "fp": 1,
+    "fn": 3,
+    "gt_node_count": 6,
+    "llm_node_count": 4,
+    "connection_precision": 0.6666666666666666,
+    "connection_recall": 0.6666666666666666,
+    "connection_f1": 0.6666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 3,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.19047619047619047,
+    "usage": {
+      "prompt_tokens": 5375,
+      "completion_tokens": 798,
+      "total_tokens": 6173
+    },
+    "total_cost": 0.021417500000000003
+  }
+}

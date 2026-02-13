@@ -1,0 +1,219 @@
+{
+  "template_id": 12249,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Data Analysis and Notification Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.example.com/data",
+            "method": "GET",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Loop Over Items",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 10
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Calculate Signal",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.signal = calculateSignal(item.json); return item; });"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Chat Model",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Generate insights from the following data: {{JSON.stringify($json)}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "No Operation",
+          "nodeType": "n8n-nodes-base.noOp",
+          "typeVersion": 1,
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "5s"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "typeVersion": 1,
+          "params": {
+            "message": "Analysis complete: {{JSON.stringify($json)}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Telegram Message",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "text": "Analysis results: {{JSON.stringify($json)}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "subject": "Data Analysis Results",
+            "text": "Here are the results of the data analysis: {{JSON.stringify($json)}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "Human-readable Message",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => { item.json.humanMessage = convertToHumanReadable(item.json); return item; });"
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "6",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 748,
+    "completion_tokens": 1102,
+    "total_tokens": 1850
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:38:34.804404",
+  "generated_description": "This n8n workflow is designed to automate the process of analyzing data and sending notifications based on the analysis results. It begins with an HTTP Request node that likely retrieves data from an external source or API. The data is then processed in batches using the Loop Over Items node, which allows for efficient handling of large datasets.\n\nWithin the loop, a Calculate Signal node performs specific calculations or analyses on the data. This is followed by the OpenAI Chat Model node, which likely uses AI to generate insights or summaries from the analyzed data.\n\nThe workflow includes a No Operation node, which serves as a placeholder or a point where no action is taken, possibly for organizational purposes or future expansions. A Wait node introduces a delay in the workflow, which can be used to manage timing or pacing of subsequent actions.\n\nOnce the analysis is complete, the workflow sends notifications through multiple channels: a WhatsApp message via the Send message node, a Telegram message through the Send a text message node, and an email using the Send email node. These notifications likely contain the results of the analysis or any important insights derived from the data.\n\nAdditionally, a Human-readable Message node is used to convert technical data into a format that is easily understandable by humans, ensuring that the recipients of the notifications can comprehend the information being shared.\n\nOverall, this workflow automates the process of data retrieval, analysis, and multi-channel communication, providing timely insights and updates to relevant stakeholders.",
+  "description_generation_usage": {
+    "prompt_tokens": 226,
+    "completion_tokens": 286,
+    "total_tokens": 512
+  },
+  "metrics": {
+    "node_type_precision": 0.9,
+    "node_type_recall": 0.6,
+    "node_type_f1": 0.7200000000000001,
+    "tp": 9,
+    "fp": 1,
+    "fn": 6,
+    "gt_node_count": 15,
+    "llm_node_count": 10,
+    "connection_precision": 0.1111111111111111,
+    "connection_recall": 0.07142857142857142,
+    "connection_f1": 0.08695652173913043,
+    "correct_connections": 1,
+    "gt_connection_count": 14,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.1111111111111111,
+    "usage": {
+      "prompt_tokens": 748,
+      "completion_tokens": 1102,
+      "total_tokens": 1850
+    },
+    "total_cost": 0.016315,
+    "description_generation_cost": 0.003425,
+    "workflow_generation_cost": 0.01289
+  },
+  "original_description": "## Overview\n\nThis workflow is designed to monitor the Top 5 cryptocurrencies in real-time, calculate trading signals (BUY, SELL, HOLD), and send human-readable alerts through multiple channels. It integrates data fetching, signal processing, AI-generated insights, and multi-channel notifications to provide a professional-grade crypto monitoring solution.\n\n## Setup\n\n1. Schedule the trigger\n2. Fetch real-time coin data (CoinGecko, Binance API)\n3. Filter only required fields\n4. Check each data from loop\n5. Add the logic for minimum percentage comparison\n6. Use AI for analysis enhanced insights\n8. Send the notification only if signal is 'SELL' or  'BUY'\n\n## Key Features\n\n- Real-Time Crypto Monitoring: Continuously evaluates the top 5 cryptocurrencies for trading signals.\n- Dynamic Signal Calculation: Generates BUY, SELL, HOLD signals based on 24h price change.\n- If price changed below or above 2% the dynamic signal will assign to dedicated coin.\n- Signal Change Alerts: Sends notifications only when meaningful changes occur.\n- Human-Readable Messaging: Converts numeric signals into readable alerts.\n- AI Insights: Provides explanations or trading advice via OpenAI.\n- Multi-Channel Delivery: Supports WhatsApp, Telegram, and Email.\n- Looped Processing: Each coin is processed independently for accurate alerting.\n- Wait / Delay Node: Prevents API rate limit issues and controls alert flow.\n## Requirements\n\n1. OpenAI API\n2. WhatsApp API\n3. Telegram API\n4. SMTP Credentials or Gmail Credentials."
+}

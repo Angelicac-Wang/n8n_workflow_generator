@@ -1,0 +1,224 @@
+{
+  "template_id": "2098",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a new message received from a chat platform, using a webhook to capture incoming messages.",
+      "data_sources": "The workflow requires the Chat Platform API to receive and send messages, the OpenAI API to generate responses, and an n8n database to store chat history.",
+      "operations": "1. Receive new message via webhook, 2. Retrieve chat history from the database, 3. Append new message to history, 4. Format chat history for OpenAI API, 5. Send request to OpenAI, 6. Store updated chat history, 7. Send response back to user.",
+      "output_actions": "The final output is the response from the OpenAI Assistant sent back to the user, and the updated chat history stored in the database.",
+      "nodes_plan": "webhook (trigger), postgres (retrieve history), set (append message), openAi (generate response), postgres (store history), httpRequest (send response)",
+      "connections_plan": "webhook -> postgres (retrieve) -> set -> openAi -> postgres (store) -> httpRequest"
+    },
+    "workflowPlan": {
+      "name": "Manage Chat History for OpenAI Assistant",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Receive Message",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "receive-message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Retrieve Chat History",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "select",
+            "table": "chat_history",
+            "columns": "*",
+            "where": "user_id = {{$json.body.user_id}}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Append New Message",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "updatedHistory",
+                  "value": "={{ $json.chat_history + '\\n' + $json.body.message }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send to OpenAI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.updatedHistory }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Store Updated History",
+          "nodeType": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "table": "chat_history",
+            "updateKey": "user_id",
+            "columns": "history",
+            "values": {
+              "string": [
+                {
+                  "name": "history",
+                  "value": "={{ $json.updatedHistory + '\\n' + $json.message.content }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.chatplatform.com/sendMessage",
+            "body": {
+              "user_id": "={{ $json.body.user_id }}",
+              "message": "={{ $json.message.content }}"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4243,
+      "completion_tokens": 1074,
+      "total_tokens": 5317
+    },
+    "description_optimization": {
+      "prompt_tokens": 300,
+      "completion_tokens": 482,
+      "total_tokens": 782
+    },
+    "total_tokens": 6099,
+    "total_prompt_tokens": 4543,
+    "total_completion_tokens": 1556
+  },
+  "description_optimization": {
+    "template_id": "2098",
+    "optimized_description": "Workflow Title: Manage Chat History for OpenAI Assistant\n\nTrigger:\nThe workflow is triggered by a new message received from a user in a designated chat platform (e.g., Slack, Discord, or a custom chat application). This message serves as the input for the workflow.\n\nData Sources and APIs Needed:\n1. Chat Platform API: To receive new messages and send responses (e.g., Slack API, Discord API).\n2. OpenAI API: To interact with the OpenAI Assistant for generating responses based on the chat history.\n3. n8n Database (or another storage solution): To store and manage the chat history for each user session.\n\nOperations and Processing Steps:\n1. **Receive New Message**: Use the chat platform API to listen for new messages. This will act as the trigger for the workflow.\n2. **Retrieve Chat History**: Query the n8n database to retrieve the chat history associated with the user who sent the new message. This history will include previous messages exchanged in the current session.\n3. **Append New Message**: Add the newly received message to the retrieved chat history to maintain a complete context for the conversation.\n4. **Prepare API Request**: Format the chat history (including the new message) into the required structure for the OpenAI API. This typically involves creating a prompt that includes the entire conversation context.\n5. **Send Request to OpenAI**: Use the OpenAI API to send the formatted chat history and receive a response from the OpenAI Assistant. Ensure to handle any API authentication and error checking.\n6. **Store Updated Chat History**: Save the updated chat history back into the n8n database, ensuring that it reflects the latest conversation including the new message and the assistant's response.\n7. **Send Response to User**: Use the chat platform API to send the response generated by the OpenAI Assistant back to the user in the chat application.\n\nFinal Output or Action:\nThe final output of this workflow is the response generated by the OpenAI Assistant, which is sent back to the user in the chat platform. Additionally, the workflow maintains an updated chat history in the n8n database, enabling context retention for future interactions.\n\nNote:\nTo utilize this workflow template, ensure that you are using n8n version 1.28.0 or later, as earlier versions may not support the necessary features for managing chat history effectively.",
+    "original_description": "OpenAI Assistant is a powerful tool, but at the time of writing it doesn't automatically remember past messages from a conversation.\n\nThis workflow demonstrates how to get around this, by managing the chat history in n8n and passing it to the assistant when required.\n\nThis makes it possible to use OpenAI Assistant for chatbot use cases.\n\nNote that to use this template, you need to be on n8n version 1.28.0 or later.",
+    "description_length": 2376,
+    "usage": {
+      "prompt_tokens": 300,
+      "completion_tokens": 482,
+      "total_tokens": 782
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:08:24.976853"
+  },
+  "original_description": "OpenAI Assistant is a powerful tool, but at the time of writing it doesn't automatically remember past messages from a conversation.\n\nThis workflow demonstrates how to get around this, by managing the chat history in n8n and passing it to the assistant when required.\n\nThis makes it possible to use OpenAI Assistant for chatbot use cases.\n\nNote that to use this template, you need to be on n8n version 1.28.0 or later.",
+  "optimized_description": "Workflow Title: Manage Chat History for OpenAI Assistant\n\nTrigger:\nThe workflow is triggered by a new message received from a user in a designated chat platform (e.g., Slack, Discord, or a custom chat application). This message serves as the input for the workflow.\n\nData Sources and APIs Needed:\n1. Chat Platform API: To receive new messages and send responses (e.g., Slack API, Discord API).\n2. OpenAI API: To interact with the OpenAI Assistant for generating responses based on the chat history.\n3. n8n Database (or another storage solution): To store and manage the chat history for each user session.\n\nOperations and Processing Steps:\n1. **Receive New Message**: Use the chat platform API to listen for new messages. This will act as the trigger for the workflow.\n2. **Retrieve Chat History**: Query the n8n database to retrieve the chat history associated with the user who sent the new message. This history will include previous messages exchanged in the current session.\n3. **Append New Message**: Add the newly received message to the retrieved chat history to maintain a complete context for the conversation.\n4. **Prepare API Request**: Format the chat history (including the new message) into the required structure for the OpenAI API. This typically involves creating a prompt that includes the entire conversation context.\n5. **Send Request to OpenAI**: Use the OpenAI API to send the formatted chat history and receive a response from the OpenAI Assistant. Ensure to handle any API authentication and error checking.\n6. **Store Updated Chat History**: Save the updated chat history back into the n8n database, ensuring that it reflects the latest conversation including the new message and the assistant's response.\n7. **Send Response to User**: Use the chat platform API to send the response generated by the OpenAI Assistant back to the user in the chat application.\n\nFinal Output or Action:\nThe final output of this workflow is the response generated by the OpenAI Assistant, which is sent back to the user in the chat platform. Additionally, the workflow maintains an updated chat history in the n8n database, enabling context retention for future interactions.\n\nNote:\nTo utilize this workflow template, ensure that you are using n8n version 1.28.0 or later, as earlier versions may not support the necessary features for managing chat history effectively.",
+  "error": null,
+  "generated_at": "2026-01-25T23:08:35.604509",
+  "metrics": {
+    "node_type_precision": 0.16666666666666666,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.2,
+    "tp": 1,
+    "fp": 5,
+    "fn": 3,
+    "gt_node_count": 4,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4243,
+        "completion_tokens": 1074,
+        "total_tokens": 5317
+      },
+      "description_optimization": {
+        "prompt_tokens": 300,
+        "completion_tokens": 482,
+        "total_tokens": 782
+      },
+      "total_tokens": 6099,
+      "total_prompt_tokens": 4543,
+      "total_completion_tokens": 1556
+    },
+    "total_cost": 0.026917500000000004,
+    "description_optimization_cost": 0.00557,
+    "workflow_generation_cost": 0.021347500000000002
+  }
+}

@@ -1,0 +1,206 @@
+{
+  "template_id": "5842",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a content generation automation using AI with fixed sequential calls. Use base nodes.",
+      "trigger_analysis": "Manual trigger to start the workflow when needed.",
+      "data_sources": "Reddit API for scraping posts, OpenAI API for content generation, Google Sheets for logging and storing data.",
+      "operations": "1. Manually trigger workflow, 2. Scrape subreddit posts, 3. Filter questions, 4. Log questions to Google Sheets, 5. Enhance questions with AI, 6. Generate blog content, 7. Save blog content to Google Sheets.",
+      "output_actions": "Final blog content saved to Google Sheets for publishing.",
+      "nodes_plan": "manualTrigger (trigger), httpRequest (Reddit API), if (filter questions), googleSheets (log questions), openAi (enhance questions and generate content), googleSheets (save blog content)",
+      "connections_plan": "manualTrigger -> httpRequest -> if -> [googleSheets (log questions) -> openAi -> googleSheets (save blog content)]"
+    },
+    "workflowPlan": {
+      "name": "Reddit Questions to SEO Articles",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Reddit Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://www.reddit.com/r/n8n/new.json",
+            "options": {
+              "headers": {
+                "User-Agent": "n8n-workflow"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Questions",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.data.children[*].data.title }}",
+                  "operation": "contains",
+                  "value2": "how"
+                },
+                {
+                  "value1": "={{ $json.data.children[*].data.title }}",
+                  "operation": "contains",
+                  "value2": "what"
+                },
+                {
+                  "value1": "={{ $json.data.children[*].data.title }}",
+                  "operation": "contains",
+                  "value2": "why"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Log Questions to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Questions!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "={{ $json.data.children[*].data.title }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Enhance and Generate Content",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Enhance the question: {{ $json.data.children[*].data.title }} and generate a blog post with a title, intro, steps, and conclusion."
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Blog Content to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "BlogContent!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "={{ $json.title }}",
+                "={{ $json.intro }}",
+                "={{ $json.steps }}",
+                "={{ $json.conclusion }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8323,
+    "completion_tokens": 1188,
+    "total_tokens": 9511
+  },
+  "description_optimization": null,
+  "original_description": "## Turn Reddit Questions into SEO Articles Automatically\n\nThis workflow takes real user questions from Reddit and transforms them into fully structured blog posts \u2014 title, intro, steps, and conclusion \u2014 using AI.\n\n---\n\n### How it works\n\n- Manually triggered when you want to run it\n- Scrapes the latest posts from a specific subreddit (e.g. `r/n8n`)\n- Filters only posts that are real questions (based on keywords like \u201chow,\u201d \u201cwhat,\u201d \u201cwhy\u201d)\n- Logs relevant questions into a Google Sheet as raw input\n- Enhances each question using AI (rephrases, creates a clean title and slug)\n- Generates full-length blog content:\n  - \u270f\ufe0f Intro paragraph\n  - \u2705 Step-by-step guide\n  - \ud83e\udde0 Clear conclusion\n- Saves the final blog content to a second Google Sheet for publishing\n\n---\n\n### Set up steps\n\n- You\u2019ll need access to:\n  - Reddit API (OAuth)\n  - OpenAI API\n  - Google Sheets\n- Takes around **15\u201320 minutes** to connect all the credentials and tweak prompts\n- Customize the subreddit or topic focus by changing the Reddit node config\n\n---\n\nPerfect for content teams who want to scale content output using real community pain points \u2014 without ever starting from a blank page.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:31:26.622913",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.1111111111111111,
+    "node_type_f1": 0.1818181818181818,
+    "tp": 3,
+    "fp": 3,
+    "fn": 24,
+    "gt_node_count": 27,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 8,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.3763888888888889,
+    "usage": {
+      "prompt_tokens": 8323,
+      "completion_tokens": 1188,
+      "total_tokens": 9511
+    },
+    "total_cost": 0.03268750000000001
+  },
+  "is_ai_workflow": true
+}

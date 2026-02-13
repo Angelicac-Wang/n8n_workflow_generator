@@ -1,0 +1,263 @@
+{
+  "template_id": "2862",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by an Email Trigger (IMAP) node to monitor a specified email inbox for new incoming emails.",
+      "data_sources": "IMAP for receiving emails, OpenAI API for generating summaries and responses, Gmail API for sending drafts for human review, SMTP for sending finalized emails, and optionally Google Sheets for tracking interactions.",
+      "operations": "1. Trigger on new email, 2. Convert email content to plain text, 3. Summarize email content, 4. Generate response, 5. Send draft for review, 6. Classify feedback, 7. Send final email if approved.",
+      "output_actions": "The final output is sending an approved email response back to the original sender and optionally logging the interaction.",
+      "nodes_plan": "emailTrigger (IMAP), markdown (convert to text), openAi (summarize), openAi (generate response), gmail (send draft), if (classify feedback), smtp (send email), googleSheets (optional logging)",
+      "connections_plan": "emailTrigger -> markdown -> openAi (summarize) -> openAi (generate response) -> gmail (send draft) -> if (classify feedback) -> [smtp (approved) | loop back (declined)]"
+    },
+    "workflowPlan": {
+      "name": "Automated Email Handling and Response",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Email Trigger",
+          "nodeType": "n8n-nodes-base.emailTrigger",
+          "typeVersion": 1,
+          "params": {
+            "email": "your-email@example.com",
+            "password": "your-password",
+            "host": "imap.example.com",
+            "port": 993,
+            "secure": true
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Convert to Text",
+          "nodeType": "n8n-nodes-base.markdown",
+          "typeVersion": 1,
+          "params": {
+            "value": "={{ $json.body }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Summarize Email",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Summarize the following email content in 100 words: {{ $json.text }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Response",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Based on this summary, generate a professional email response: {{ $json.summary }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Send Draft for Review",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "operation": "send",
+            "to": "reviewer@example.com",
+            "subject": "Draft Email for Review",
+            "body": "={{ $json.response }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Classify Feedback",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.feedback }}",
+                  "operation": "equal",
+                  "value2": "Approved"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Final Email",
+          "nodeType": "n8n-nodes-base.smtp",
+          "typeVersion": 1,
+          "params": {
+            "host": "smtp.example.com",
+            "port": 587,
+            "secure": false,
+            "auth": {
+              "user": "your-email@example.com",
+              "pass": "your-password"
+            },
+            "to": "={{ $json.sender }}",
+            "subject": "Re: {{ $json.subject }}",
+            "text": "={{ $json.response }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log Interaction",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1",
+            "data": "={{ $json }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4383,
+      "completion_tokens": 1358,
+      "total_tokens": 5741
+    },
+    "description_optimization": {
+      "prompt_tokens": 711,
+      "completion_tokens": 622,
+      "total_tokens": 1333
+    },
+    "total_tokens": 7074,
+    "total_prompt_tokens": 5094,
+    "total_completion_tokens": 1980
+  },
+  "description_optimization": {
+    "template_id": "2862",
+    "optimized_description": "This workflow automates the handling of incoming emails, summarizing their content, generating appropriate responses using a retrieval-augmented generation (RAG) approach, and obtaining approval or suggestions before sending replies. The workflow is structured into two main sections: Email Handling and Summarization, and Response Generation and Approval.\n\n**Trigger:**\nThe workflow is initiated by the `Email Trigger (IMAP)` node, which continuously monitors a specified email inbox for new incoming emails.\n\n**Data Sources and APIs Needed:**\n1. IMAP for receiving emails.\n2. OpenAI API for generating summaries and responses.\n3. Gmail API for sending drafts for human review.\n4. SMTP for sending finalized emails.\n5. Optional: Google Sheets or similar platforms for tracking interactions.\n\n**Operations and Processing Steps:**\n\n1. **Email Handling and Summarization:**\n   - Upon receiving a new email, the `Email Trigger (IMAP)` node activates.\n   - The email content, typically in HTML format, is processed by the `Markdown` node to convert it into plain text if necessary.\n   - The `Email Summarization Chain` node utilizes AI to generate a concise summary of the email content, limited to 100 words.\n\n2. **Response Generation and Approval:**\n   - A `Write Email` node is used to create a professional response based on the summarized content. The response is crafted to ensure brevity and professionalism, adhering to the established word limit.\n   - The draft response is then sent for human review through the `Gmail` node, which is configured to allow free-text feedback options. This step is crucial for obtaining approval before any automated replies are sent.\n   - If the response is approved, the finalized email is sent back to the original sender using the `Send Email` node. If the response is declined, the workflow loops back to allow for further edits or manual intervention.\n   - A `Text Classifier` node categorizes feedback from reviewers as either \"Approved\" or \"Declined.\" This classification guides the workflow on whether to proceed with sending the email or require additional modifications.\n\n**Final Output or Action:**\nThe final output of this workflow is the automated sending of emails that have been summarized, drafted, and approved, ensuring that all communications are handled efficiently and professionally. Additionally, the workflow allows for tracking and managing feedback, enhancing the overall responsiveness and quality of email interactions.\n\n**Set Up Steps:**\nTo replicate this workflow in your n8n environment, follow these configuration steps:\n1. Set up an n8n instance locally or via cloud services.\n2. Import the provided JSON configuration file into your workspace.\n3. Ensure all required credentials (IMAP, SMTP, OpenAI API keys) are properly configured under Credentials.\n4. Customize parameters to fit specific business needs, including conditional checks and AI message templates to align with organizational tone and style.\n5. Verify correct mappings between fields for tracking interactions in external systems like Google Sheets.\n\nThis structured workflow description provides a comprehensive overview of the email handling automation process, ensuring clarity and completeness for effective workflow generation.",
+    "original_description": "### How it Works\n\nThis workflow automates the handling of incoming emails, summarizes their content, generates appropriate responses using a retrieval-augmented generation (RAG) approach, and obtains approval or suggestions before sending replies. Below is an explanation of its functionality divided into two main sections:\n\n1. **Email Handling and Summarization**:\n   - The process begins with the `Email Trigger (IMAP)` node which listens for new emails in a specified inbox.\n   - Once an email is received, the `Markdown` node converts its HTML content into plain text if necessary, followed by the `Email Summarization Chain` that uses AI to create a concise summary of up to 100 words.\n\n2. **Response Generation and Approval**:\n   - A `Write email` node generates a professional response based on the summarized content, ensuring brevity and professionalism while keeping within the word limit.\n   - Before sending out any automated replies, the system sends these drafts via Gmail for human review and approval through the `Gmail` node configured with free-text response options. If approved, the finalized email is sent back to the original sender using the `Send Email` node; otherwise, it loops back for further edits or manual intervention.\n   - Additionally, there's a `Text Classifier` node designed to categorize feedback from humans as either \"Approved\" or \"Declined\", guiding whether the email should proceed directly to being sent or require additional editing.\n\n### Set Up Steps\n\nTo replicate this workflow within your own n8n environment, follow these essential configuration steps:\n\n1. **Configuration**:\n   - Begin by setting up an n8n instance either locally or via cloud services offered directly from their official site.\n   - Import the provided JSON configuration file into your workspace, making sure all required credentials such as IMAP, SMTP, OpenAI API keys, etc., are properly set up under Credentials since multiple nodes rely heavily on external integrations for functionalities like reading emails, generating summaries, crafting replies, and managing approvals.\n\n2. **Customization**:\n   - Adjust parameters according to specific business needs, including but not limited to adjusting the conditions used during conditional checks performed by nodes like `Approve?`.\n   - Modify the template messages given to AI models so they align closely with organizational tone & style preferences while maintaining professionalism expected in business communications.\n   - Ensure correct mappings between fields when appending data to external systems where records might need tracking post-interaction completion, such as Google Sheets or similar platforms.",
+    "description_length": 3269,
+    "usage": {
+      "prompt_tokens": 711,
+      "completion_tokens": 622,
+      "total_tokens": 1333
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:03:52.441193"
+  },
+  "original_description": "### How it Works\n\nThis workflow automates the handling of incoming emails, summarizes their content, generates appropriate responses using a retrieval-augmented generation (RAG) approach, and obtains approval or suggestions before sending replies. Below is an explanation of its functionality divided into two main sections:\n\n1. **Email Handling and Summarization**:\n   - The process begins with the `Email Trigger (IMAP)` node which listens for new emails in a specified inbox.\n   - Once an email is received, the `Markdown` node converts its HTML content into plain text if necessary, followed by the `Email Summarization Chain` that uses AI to create a concise summary of up to 100 words.\n\n2. **Response Generation and Approval**:\n   - A `Write email` node generates a professional response based on the summarized content, ensuring brevity and professionalism while keeping within the word limit.\n   - Before sending out any automated replies, the system sends these drafts via Gmail for human review and approval through the `Gmail` node configured with free-text response options. If approved, the finalized email is sent back to the original sender using the `Send Email` node; otherwise, it loops back for further edits or manual intervention.\n   - Additionally, there's a `Text Classifier` node designed to categorize feedback from humans as either \"Approved\" or \"Declined\", guiding whether the email should proceed directly to being sent or require additional editing.\n\n### Set Up Steps\n\nTo replicate this workflow within your own n8n environment, follow these essential configuration steps:\n\n1. **Configuration**:\n   - Begin by setting up an n8n instance either locally or via cloud services offered directly from their official site.\n   - Import the provided JSON configuration file into your workspace, making sure all required credentials such as IMAP, SMTP, OpenAI API keys, etc., are properly set up under Credentials since multiple nodes rely heavily on external integrations for functionalities like reading emails, generating summaries, crafting replies, and managing approvals.\n\n2. **Customization**:\n   - Adjust parameters according to specific business needs, including but not limited to adjusting the conditions used during conditional checks performed by nodes like `Approve?`.\n   - Modify the template messages given to AI models so they align closely with organizational tone & style preferences while maintaining professionalism expected in business communications.\n   - Ensure correct mappings between fields when appending data to external systems where records might need tracking post-interaction completion, such as Google Sheets or similar platforms.",
+  "optimized_description": "This workflow automates the handling of incoming emails, summarizing their content, generating appropriate responses using a retrieval-augmented generation (RAG) approach, and obtaining approval or suggestions before sending replies. The workflow is structured into two main sections: Email Handling and Summarization, and Response Generation and Approval.\n\n**Trigger:**\nThe workflow is initiated by the `Email Trigger (IMAP)` node, which continuously monitors a specified email inbox for new incoming emails.\n\n**Data Sources and APIs Needed:**\n1. IMAP for receiving emails.\n2. OpenAI API for generating summaries and responses.\n3. Gmail API for sending drafts for human review.\n4. SMTP for sending finalized emails.\n5. Optional: Google Sheets or similar platforms for tracking interactions.\n\n**Operations and Processing Steps:**\n\n1. **Email Handling and Summarization:**\n   - Upon receiving a new email, the `Email Trigger (IMAP)` node activates.\n   - The email content, typically in HTML format, is processed by the `Markdown` node to convert it into plain text if necessary.\n   - The `Email Summarization Chain` node utilizes AI to generate a concise summary of the email content, limited to 100 words.\n\n2. **Response Generation and Approval:**\n   - A `Write Email` node is used to create a professional response based on the summarized content. The response is crafted to ensure brevity and professionalism, adhering to the established word limit.\n   - The draft response is then sent for human review through the `Gmail` node, which is configured to allow free-text feedback options. This step is crucial for obtaining approval before any automated replies are sent.\n   - If the response is approved, the finalized email is sent back to the original sender using the `Send Email` node. If the response is declined, the workflow loops back to allow for further edits or manual intervention.\n   - A `Text Classifier` node categorizes feedback from reviewers as either \"Approved\" or \"Declined.\" This classification guides the workflow on whether to proceed with sending the email or require additional modifications.\n\n**Final Output or Action:**\nThe final output of this workflow is the automated sending of emails that have been summarized, drafted, and approved, ensuring that all communications are handled efficiently and professionally. Additionally, the workflow allows for tracking and managing feedback, enhancing the overall responsiveness and quality of email interactions.\n\n**Set Up Steps:**\nTo replicate this workflow in your n8n environment, follow these configuration steps:\n1. Set up an n8n instance locally or via cloud services.\n2. Import the provided JSON configuration file into your workspace.\n3. Ensure all required credentials (IMAP, SMTP, OpenAI API keys) are properly configured under Credentials.\n4. Customize parameters to fit specific business needs, including conditional checks and AI message templates to align with organizational tone and style.\n5. Verify correct mappings between fields for tracking interactions in external systems like Google Sheets.\n\nThis structured workflow description provides a comprehensive overview of the email handling automation process, ensuring clarity and completeness for effective workflow generation.",
+  "error": null,
+  "generated_at": "2026-01-25T23:04:08.228473",
+  "metrics": {
+    "node_type_precision": 0.25,
+    "node_type_recall": 0.09090909090909091,
+    "node_type_f1": 0.13333333333333333,
+    "tp": 2,
+    "fp": 6,
+    "fn": 20,
+    "gt_node_count": 22,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 12,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.1,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4383,
+        "completion_tokens": 1358,
+        "total_tokens": 5741
+      },
+      "description_optimization": {
+        "prompt_tokens": 711,
+        "completion_tokens": 622,
+        "total_tokens": 1333
+      },
+      "total_tokens": 7074,
+      "total_prompt_tokens": 5094,
+      "total_completion_tokens": 1980
+    },
+    "total_cost": 0.03253500000000001,
+    "description_optimization_cost": 0.007997500000000001,
+    "workflow_generation_cost": 0.024537500000000004
+  }
+}

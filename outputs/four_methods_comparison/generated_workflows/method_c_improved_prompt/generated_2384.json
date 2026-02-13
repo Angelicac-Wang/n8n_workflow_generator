@@ -1,0 +1,169 @@
+{
+  "template_id": "2384",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or by a user action in a chat interface.",
+      "data_sources": "Local LLMs managed by Ollama, accessible via a local server.",
+      "operations": "1. Capture user input from chat, 2. Send input to Ollama server, 3. Receive AI-generated response, 4. Deliver response back to chat interface.",
+      "output_actions": "Display the AI-generated response in the chat interface.",
+      "nodes_plan": "manualTrigger (trigger), set (prepare input), httpRequest (send to Ollama), set (process response), respondToChat (output)",
+      "connections_plan": "manualTrigger -> set (prepare input) -> httpRequest -> set (process response) -> respondToChat"
+    },
+    "workflowPlan": {
+      "name": "Local LLM Chat with Ollama",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Prepare Input",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "userInput",
+                  "value": "Enter your prompt here"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Send to Ollama",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "http://localhost:port/ollama-endpoint",
+            "body": {
+              "prompt": "={{ $json.userInput }}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Response",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "aiResponse",
+                  "value": "={{ $json.response }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Respond to Chat",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "chatOutput",
+                  "value": "={{ $json.aiResponse }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 4016,
+    "completion_tokens": 823,
+    "total_tokens": 4839
+  },
+  "description_optimization": null,
+  "original_description": "## Chat with local LLMs using n8n and Ollama\nThis n8n workflow allows you to seamlessly interact with your self-hosted Large Language Models (LLMs) through a user-friendly chat interface. By connecting to Ollama, a powerful tool for managing local LLMs, you can send prompts and receive AI-generated responses directly within n8n.\n\n### Use cases\n* Private AI Interactions\nIdeal for scenarios where data privacy and confidentiality are important.\n* Cost-Effective LLM Usage\nAvoid ongoing cloud API costs by running models on your own hardware.\n* Experimentation & Learning\nA great way to explore and experiment with different LLMs in a local, controlled environment.\n* Prototyping & Development\nBuild and test AI-powered applications without relying on external services.\n\n### How it works\n1. When chat message received: Captures the user's input from the chat interface.\n2. Chat LLM Chain: Sends the input to the Ollama server and receives the AI-generated response.\n3. Delivers the LLM's response back to the chat interface.\n\n### Set up steps\n* Make sure Ollama is installed and running on your machine before executing this workflow.\n* Edit the Ollama address if different from the default.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-01-25T23:48:41.778285",
+  "metrics": {
+    "node_type_precision": 0.0,
+    "node_type_recall": 0.0,
+    "node_type_f1": 0.0,
+    "tp": 0,
+    "fp": 5,
+    "fn": 3,
+    "gt_node_count": 3,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 1,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 4016,
+      "completion_tokens": 823,
+      "total_tokens": 4839
+    },
+    "total_cost": 0.01827
+  }
+}

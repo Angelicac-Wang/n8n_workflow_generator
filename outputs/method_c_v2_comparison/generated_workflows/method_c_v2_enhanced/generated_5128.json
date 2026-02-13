@@ -1,0 +1,212 @@
+{
+  "template_id": "5128",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or via a schedule to process a specific URL for content sharing.",
+      "data_sources": "The workflow requires data from a URL, Google Gemini API for AI content generation, ScreenshotOne for capturing webpage screenshots, and upload-post.com for posting to social media platforms.",
+      "operations": "1. Receive or set a URL input, 2. Generate social media posts using AI, 3. Capture a screenshot of the webpage, 4. Post content to X, LinkedIn, Threads, and Reddit.",
+      "output_actions": "The final output is the publication of AI-generated posts with screenshots across multiple social media platforms.",
+      "nodes_plan": "set (input URL), googleGemini (AI content generation), screenshotOne (capture screenshot), uploadPost (X, LinkedIn, Threads), reddit (post text-only content)",
+      "connections_plan": "set -> googleGemini -> screenshotOne -> [uploadPost (X), uploadPost (LinkedIn), uploadPost (Threads), reddit]"
+    },
+    "workflowPlan": {
+      "name": "Automated Content Sharing",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Set Input Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "url",
+                  "value": "https://example.com/article"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Content Generation",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateContent",
+            "url": "={{ $json.url }}",
+            "platforms": [
+              "X",
+              "LinkedIn",
+              "Threads",
+              "Reddit"
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Capture Screenshot",
+          "nodeType": "n8n-nodes-base.screenshotOne",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{ $json.url }}",
+            "accessKey": "YOUR_SCREENSHOTONE_ACCESS_KEY"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Upload Post to X",
+          "nodeType": "n8n-nodes-base.uploadPost",
+          "typeVersion": 1,
+          "params": {
+            "platform": "X",
+            "content": "={{ $json['AI Content Generation'].X }}",
+            "image": "={{ $json['Capture Screenshot'].imageUrl }}",
+            "apiToken": "YOUR_UPLOAD_POST_API_TOKEN",
+            "userId": "YOUR_UPLOAD_POST_USER_ID"
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload Post to LinkedIn",
+          "nodeType": "n8n-nodes-base.uploadPost",
+          "typeVersion": 1,
+          "params": {
+            "platform": "LinkedIn",
+            "content": "={{ $json['AI Content Generation'].LinkedIn }}",
+            "image": "={{ $json['Capture Screenshot'].imageUrl }}",
+            "apiToken": "YOUR_UPLOAD_POST_API_TOKEN",
+            "userId": "YOUR_UPLOAD_POST_USER_ID"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Upload Post to Threads",
+          "nodeType": "n8n-nodes-base.uploadPost",
+          "typeVersion": 1,
+          "params": {
+            "platform": "Threads",
+            "content": "={{ $json['AI Content Generation'].Threads }}",
+            "image": "={{ $json['Capture Screenshot'].imageUrl }}",
+            "apiToken": "YOUR_UPLOAD_POST_API_TOKEN",
+            "userId": "YOUR_UPLOAD_POST_USER_ID"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Post to Reddit",
+          "nodeType": "n8n-nodes-base.reddit",
+          "typeVersion": 1,
+          "params": {
+            "operation": "submit",
+            "subreddit": "test",
+            "title": "={{ $json['AI Content Generation'].Reddit.title }}",
+            "text": "={{ $json['AI Content Generation'].Reddit.content }}",
+            "credentials": "YOUR_REDDIT_CREDENTIALS"
+          },
+          "position": {
+            "x": 700,
+            "y": 400
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 6008,
+    "completion_tokens": 1260,
+    "total_tokens": 7268
+  },
+  "description_optimization": null,
+  "original_description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.* \n\n## Description\nThis automation template is designed for content curators, marketers, and anyone looking to supercharge their content sharing strategy. It transforms any web article, blog post, or news link into a series of platform-specific social media posts, generated by AI. It also captures a live screenshot of the webpage to use as the post image, automating the entire process of publishing them across X (Twitter), LinkedIn, Threads, and Reddit.\n\n***Note: The default example is configured to share n8n templates, but this workflow can promote any web page, article, or news story. Just change the URL! The upload-post node only works for self-hosted n8n instances, but you can use the standard http node for uploading the content***\n\n![Captura de pantalla 20250701 a las 13.02.29.png](fileId:1656)\n\n## Who Is This For?\n- **Content Curators & Marketers:** Effortlessly share valuable industry news and articles with tailored messages and visuals for each audience.\n- **Social Media Managers:** Keep your social feeds consistently active with relevant, high-quality content without the manual overhead.\n- **Community Builders & Brand Evangelists:** Quickly disseminate product updates, tutorials, and blog posts to your community on all relevant platforms.\n- **Professionals & Thought Leaders:** Build your personal brand by easily sharing insightful articles with automated visuals, adding your unique perspective.\n\n## What Problem Does This Workflow Solve?\nSharing a single piece of content across multiple social platforms is tedious. You need to manually write unique posts, create visuals, and then publish everything. This workflow addresses these challenges by:\n- **Automating Content Creation:** Uses a powerful AI agent (Google Gemini) to read any URL and write compelling, unique posts for each social network.\n- **Generating Visuals Automatically:** Captures a high-quality screenshot of the source webpage to use as a visually appealing image in your posts, increasing engagement.\n- **Ensuring Platform-Specific Tone:** The AI is instructed to generate professional posts for LinkedIn, concise threads for X, conversational updates for Threads, and community-focused posts for Reddit.\n- **One-Click Distribution:** Takes a single URL as input and handles the entire content creation and sharing process across multiple platforms automatically.\n\n## How It Works\n1. **Input a URL:** In the \"Set Input Data\" node, simply paste the URL of the article or page you want to share.\n2. **AI Analysis & Generation:** The workflow sends the URL to the AI agent, which scrapes the content and generates four distinct, ready-to-publish posts.\n3. **Screenshot Generation:** At the same time, it uses the ScreenshotOne service to capture a high-quality image of the provided URL.\n4. **Cross-Platform Publishing:** The generated content and the screenshot are automatically sent to the corresponding nodes to be posted on X, LinkedIn, and Threads, while the text-only version is sent to Reddit.\n\n## Setup\n1. **AI Model Credentials:** Add your Google Gemini API key to the **Google Gemini Chat Model** node to power the AI agent.\n2. **Screenshot Service (ScreenshotOne):** The workflow uses ScreenshotOne to generate images for your posts.\n    - Create a free account at [screenshotone.com](https://screenshotone.com) to get your own API key. **The free plan includes 100 screenshots per month.**\n    - In the **Upload Post X**, **Upload Post LinkedIn**, and **Upload Post Threads** nodes, go to the `Photos` parameter (under *Additional Fields*) and replace the existing `access_key` in the URL with your own.\n3. **Upload-Post Account:** This workflow uses `upload-post.com` for multi-platform posting.\n    - Create a free account at [upload-post.com](https://upload-post.com) to get your API Token and User ID.\n    - Add the credentials in the **Upload Post X**, **Upload Post LinkedIn**, and **Upload Post Threads** nodes.\n4. **Reddit Credentials:** Connect your Reddit account using OAuth2 in the **Reddit** node to enable posting.\n5. **Customize the AI:** (Optional) Edit the prompt in the **Social Media Agent** node to match your content. The default prompt is optimized for sharing n8n templates, but you can easily adapt it for any topic to fit your brand's voice and style.\n\n## Requirements\n- **Accounts:** n8n, Google (for Gemini API), ScreenshotOne, upload-post.com, Reddit.\n- **API Keys & Credentials:** Google Gemini API Key, ScreenshotOne API Key, Upload-post.com API Token & User ID, Reddit OAuth2 credentials.\n\nUse this template to become a content-sharing powerhouse, saving hours of work while increasing your reach and engagement across the web.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:47:12.877381",
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.4166666666666667,
+    "node_type_f1": 0.5263157894736842,
+    "tp": 5,
+    "fp": 2,
+    "fn": 7,
+    "gt_node_count": 12,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 6,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.2,
+    "usage": {
+      "prompt_tokens": 6008,
+      "completion_tokens": 1260,
+      "total_tokens": 7268
+    },
+    "total_cost": 0.027620000000000002
+  }
+}

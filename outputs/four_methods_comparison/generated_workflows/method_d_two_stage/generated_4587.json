@@ -1,0 +1,191 @@
+{
+  "template_id": "4587",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered via a webhook to allow flexible data entry methods, including form submissions or automated processes.",
+      "data_sources": "The workflow requires Apify for Instagram data scraping and Google Sheets for data storage.",
+      "operations": "1. Receive Instagram username via webhook, 2. Scrape Instagram profile using Apify, 3. Format the scraped data, 4. Store the data in Google Sheets.",
+      "output_actions": "The final output is the automatic logging of Instagram profile data into Google Sheets.",
+      "nodes_plan": "webhook (trigger), apify (scrape), set (format data), googleSheets (store data)",
+      "connections_plan": "webhook -> apify -> set -> googleSheets (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Instagram Profile Intelligence",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "instagram-profile"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Apify Instagram Scraper",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "apify/instagram-profile-scraper",
+            "input": {
+              "username": "={{ $json.body.username }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Format Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "followers",
+                  "value": "={{ $json.data.followers }}"
+                },
+                {
+                  "name": "following",
+                  "value": "={{ $json.data.following }}"
+                },
+                {
+                  "name": "biography",
+                  "value": "={{ $json.data.biography }}"
+                },
+                {
+                  "name": "profilePictureUrl",
+                  "value": "={{ $json.data.profilePictureUrl }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:D",
+            "data": [
+              [
+                "={{ $json.followers }}",
+                "={{ $json.following }}",
+                "={{ $json.biography }}",
+                "={{ $json.profilePictureUrl }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4397,
+      "completion_tokens": 783,
+      "total_tokens": 5180
+    },
+    "description_optimization": {
+      "prompt_tokens": 949,
+      "completion_tokens": 636,
+      "total_tokens": 1585
+    },
+    "total_tokens": 6765,
+    "total_prompt_tokens": 5346,
+    "total_completion_tokens": 1419
+  },
+  "description_optimization": {
+    "template_id": "4587",
+    "optimized_description": "Workflow Overview: This n8n automation serves as a sophisticated social media intelligence gathering tool that streamlines the process of researching Instagram profiles. By leveraging web scraping, data formatting, and cloud storage technologies, this workflow provides a comprehensive solution for extracting valuable insights from Instagram profiles.\n\nTrigger & Input: The workflow is initiated through a user-driven process. Users can submit Instagram usernames via a form-based trigger or utilize webhook support for flexible data entry methods. This allows for manual or automated initiation of the workflow.\n\nData Sources and APIs Needed:\n1. Apify Account: Required for Instagram scraping, including an API token and configured scraping parameters.\n2. Google Sheets: Necessary for data storage, requiring a connected Google account and a prepared tracking spreadsheet with appropriate sharing settings.\n3. n8n Installation: Either a cloud or self-hosted instance is needed, along with workflow configuration and API credential management.\n\nOperations and Processing Steps:\n1. Web Scraping: \n   - Utilize Apify integration to perform robust Instagram data extraction.\n   - Conduct comprehensive profile scanning to gather the following metrics:\n     - Followers count\n     - Following count\n     - Profile biography\n     - Profile picture URL\n     \n2. Data Formatting:\n   - Implement intelligent data mapping to ensure a standardized data structure.\n   - Prepare the collected data for storage in an organized format.\n\n3. Cloud Logging:\n   - Integrate with Google Sheets to automatically store the scraped data.\n   - Create a persistent database that allows for easy access and analysis of the collected insights.\n\nFinal Output or Action: The workflow culminates in the automatic logging of Instagram profile data into Google Sheets, creating a living, updateable database. This enables users to perform effortless tracking and analysis of social media metrics.\n\nKey Benefits:\n- Full Automation: Provides instant profile intelligence without manual effort.\n- Comprehensive Insights: Delivers detailed social media metrics for informed decision-making.\n- Effortless Tracking: Automates data collection for ongoing analysis.\n- Multi-Purpose Research: Offers flexibility in data gathering for various applications.\n\nPotential Use Cases:\n- Influencer Marketing: Identifying potential talent for campaigns.\n- Competitive Intelligence: Conducting audience research to inform strategies.\n- Social Media Analysis: Tracking performance metrics over time.\n- Recruitment: Scouting for talent through social media profiles.\n- Brand Partnerships: Identifying collaboration opportunities based on profile insights.\n\nFuture Enhancement Suggestions:\n- Advanced profile scoring to evaluate potential influencers.\n- Engagement rate calculation for deeper insights.\n- Real-time change alerts for monitored profiles.\n- Multi-platform profile tracking for broader analysis.\n- AI-powered insights generation to enhance data interpretation.\n\nTechnical Considerations:\n- Implement robust error handling to manage potential issues during scraping.\n- Use exponential backoff strategies for API calls to avoid rate limiting.\n- Maintain flexible data extraction strategies to adapt to changes in Instagram's structure.\n- Ensure compliance with Instagram's terms of service to protect user privacy.\n\nEthical Guidelines:\n- Respect user privacy and utilize data solely for legitimate research purposes.\n- Maintain transparent data collection practices and provide opt-out mechanisms for users.\n\nThis workflow is designed to transform social media research into an intelligent, automated process, enabling users to unlock valuable insights from Instagram profiles efficiently.",
+    "original_description": "## Workflow Overview\nThis cutting-edge n8n automation is a powerful social media intelligence gathering tool designed to transform Instagram profile research into a seamless, automated process. By intelligently combining web scraping, data formatting, and cloud storage technologies, this workflow:\n\n1. **Discovers Profile Insights**: \n   - Automatically scrapes Instagram profile data\n   - Captures comprehensive profile metrics\n   - Extracts critical social media intelligence\n\n2. **Intelligent Data Capture**:\n   - Retrieves follower counts\n   - Collects biographical information\n   - Captures profile picture and external links\n\n3. **Seamless Data Logging**:\n   - Automatically stores data in Google Sheets\n   - Creates a living, updateable database\n   - Enables easy analysis and tracking\n\n## Key Benefits\n- \ud83e\udd16 **Full Automation**: Instant profile intelligence\n- \ud83d\udca1 **Comprehensive Insights**: Detailed social media metrics\n- \ud83d\udcca **Effortless Tracking**: Automated data collection\n- \ud83c\udf10 **Multi-Purpose Research**: Flexible data gathering\n\n## Workflow Architecture\n\n### \ud83d\udd39 Stage 1: Trigger & Input\n- **Form-Based Trigger**: Manual username submission\n- **Webhook Support**: Flexible data entry methods\n- **User-Driven Initiation**\n\n### \ud83d\udd39 Stage 2: Web Scraping\n- **Apify Integration**: Robust Instagram data extraction\n- **Comprehensive Profile Scanning**:\n  - Followers count\n  - Following count\n  - Profile biography\n  - Profile picture URL\n\n### \ud83d\udd39 Stage 3: Data Formatting\n- **Intelligent Data Mapping**\n- **Standardized Data Structure**\n- **Preparation for Storage**\n\n### \ud83d\udd39 Stage 4: Cloud Logging\n- **Google Sheets Integration**\n- **Persistent Data Storage**\n- **Easy Access and Analysis**\n\n## Potential Use Cases\n- **Influencer Marketing**: Talent identification\n- **Competitive Intelligence**: Audience research\n- **Social Media Analysis**: Performance tracking\n- **Recruitment**: Talent scouting\n- **Brand Partnerships**: Collaboration opportunities\n\n## Setup Requirements\n1. **Apify Account**\n   - Instagram scraping actor\n   - API token\n   - Configured scraping parameters\n\n2. **Google Sheets**\n   - Connected Google account\n   - Prepared tracking spreadsheet\n   - Appropriate sharing settings\n\n3. **n8n Installation**\n   - Cloud or self-hosted instance\n   - Workflow configuration\n   - API credential management\n\n## Future Enhancement Suggestions\n- \ud83e\udd16 Advanced profile scoring\n- \ud83d\udcca Engagement rate calculation\n- \ud83d\udd14 Real-time change alerts\n- \ud83c\udf10 Multi-platform profile tracking\n- \ud83e\udde0 AI-powered insights generation\n\n## Technical Considerations\n- Implement robust error handling\n- Use exponential backoff for API calls\n- Maintain flexible data extraction strategies\n- Ensure compliance with platform terms of service\n\n## Ethical Guidelines\n- Respect user privacy\n- Use data for legitimate research\n- Maintain transparent data collection practices\n- Provide opt-out mechanisms\n\n\n## Connect With Me\n\n**Ready to unlock social media insights?**\n\n\ud83d\udce7 **Email**: Yaron@nofluff.online\n\n\ud83c\udfa5 **YouTube**: [@YaronBeen](https://www.youtube.com/@YaronBeen/videos)\n\n\ud83d\udcbc **LinkedIn**: [Yaron Been](https://www.linkedin.com/in/yaronbeen/)\n\n**Transform your social media research with intelligent, automated workflows!**\n\n#InstagramDataScraping #SocialMediaIntelligence #InfluencerMarketing #DataAutomation #AIResearch #MarketingTechnology #SocialMediaAnalytics #ProfileIntelligence #WebScraping #MarketingTech",
+    "description_length": 3749,
+    "usage": {
+      "prompt_tokens": 949,
+      "completion_tokens": 636,
+      "total_tokens": 1585
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:28:05.849253"
+  },
+  "original_description": "## Workflow Overview\nThis cutting-edge n8n automation is a powerful social media intelligence gathering tool designed to transform Instagram profile research into a seamless, automated process. By intelligently combining web scraping, data formatting, and cloud storage technologies, this workflow:\n\n1. **Discovers Profile Insights**: \n   - Automatically scrapes Instagram profile data\n   - Captures comprehensive profile metrics\n   - Extracts critical social media intelligence\n\n2. **Intelligent Data Capture**:\n   - Retrieves follower counts\n   - Collects biographical information\n   - Captures profile picture and external links\n\n3. **Seamless Data Logging**:\n   - Automatically stores data in Google Sheets\n   - Creates a living, updateable database\n   - Enables easy analysis and tracking\n\n## Key Benefits\n- \ud83e\udd16 **Full Automation**: Instant profile intelligence\n- \ud83d\udca1 **Comprehensive Insights**: Detailed social media metrics\n- \ud83d\udcca **Effortless Tracking**: Automated data collection\n- \ud83c\udf10 **Multi-Purpose Research**: Flexible data gathering\n\n## Workflow Architecture\n\n### \ud83d\udd39 Stage 1: Trigger & Input\n- **Form-Based Trigger**: Manual username submission\n- **Webhook Support**: Flexible data entry methods\n- **User-Driven Initiation**\n\n### \ud83d\udd39 Stage 2: Web Scraping\n- **Apify Integration**: Robust Instagram data extraction\n- **Comprehensive Profile Scanning**:\n  - Followers count\n  - Following count\n  - Profile biography\n  - Profile picture URL\n\n### \ud83d\udd39 Stage 3: Data Formatting\n- **Intelligent Data Mapping**\n- **Standardized Data Structure**\n- **Preparation for Storage**\n\n### \ud83d\udd39 Stage 4: Cloud Logging\n- **Google Sheets Integration**\n- **Persistent Data Storage**\n- **Easy Access and Analysis**\n\n## Potential Use Cases\n- **Influencer Marketing**: Talent identification\n- **Competitive Intelligence**: Audience research\n- **Social Media Analysis**: Performance tracking\n- **Recruitment**: Talent scouting\n- **Brand Partnerships**: Collaboration opportunities\n\n## Setup Requirements\n1. **Apify Account**\n   - Instagram scraping actor\n   - API token\n   - Configured scraping parameters\n\n2. **Google Sheets**\n   - Connected Google account\n   - Prepared tracking spreadsheet\n   - Appropriate sharing settings\n\n3. **n8n Installation**\n   - Cloud or self-hosted instance\n   - Workflow configuration\n   - API credential management\n\n## Future Enhancement Suggestions\n- \ud83e\udd16 Advanced profile scoring\n- \ud83d\udcca Engagement rate calculation\n- \ud83d\udd14 Real-time change alerts\n- \ud83c\udf10 Multi-platform profile tracking\n- \ud83e\udde0 AI-powered insights generation\n\n## Technical Considerations\n- Implement robust error handling\n- Use exponential backoff for API calls\n- Maintain flexible data extraction strategies\n- Ensure compliance with platform terms of service\n\n## Ethical Guidelines\n- Respect user privacy\n- Use data for legitimate research\n- Maintain transparent data collection practices\n- Provide opt-out mechanisms\n\n\n## Connect With Me\n\n**Ready to unlock social media insights?**\n\n\ud83d\udce7 **Email**: Yaron@nofluff.online\n\n\ud83c\udfa5 **YouTube**: [@YaronBeen](https://www.youtube.com/@YaronBeen/videos)\n\n\ud83d\udcbc **LinkedIn**: [Yaron Been](https://www.linkedin.com/in/yaronbeen/)\n\n**Transform your social media research with intelligent, automated workflows!**\n\n#InstagramDataScraping #SocialMediaIntelligence #InfluencerMarketing #DataAutomation #AIResearch #MarketingTechnology #SocialMediaAnalytics #ProfileIntelligence #WebScraping #MarketingTech",
+  "optimized_description": "Workflow Overview: This n8n automation serves as a sophisticated social media intelligence gathering tool that streamlines the process of researching Instagram profiles. By leveraging web scraping, data formatting, and cloud storage technologies, this workflow provides a comprehensive solution for extracting valuable insights from Instagram profiles.\n\nTrigger & Input: The workflow is initiated through a user-driven process. Users can submit Instagram usernames via a form-based trigger or utilize webhook support for flexible data entry methods. This allows for manual or automated initiation of the workflow.\n\nData Sources and APIs Needed:\n1. Apify Account: Required for Instagram scraping, including an API token and configured scraping parameters.\n2. Google Sheets: Necessary for data storage, requiring a connected Google account and a prepared tracking spreadsheet with appropriate sharing settings.\n3. n8n Installation: Either a cloud or self-hosted instance is needed, along with workflow configuration and API credential management.\n\nOperations and Processing Steps:\n1. Web Scraping: \n   - Utilize Apify integration to perform robust Instagram data extraction.\n   - Conduct comprehensive profile scanning to gather the following metrics:\n     - Followers count\n     - Following count\n     - Profile biography\n     - Profile picture URL\n     \n2. Data Formatting:\n   - Implement intelligent data mapping to ensure a standardized data structure.\n   - Prepare the collected data for storage in an organized format.\n\n3. Cloud Logging:\n   - Integrate with Google Sheets to automatically store the scraped data.\n   - Create a persistent database that allows for easy access and analysis of the collected insights.\n\nFinal Output or Action: The workflow culminates in the automatic logging of Instagram profile data into Google Sheets, creating a living, updateable database. This enables users to perform effortless tracking and analysis of social media metrics.\n\nKey Benefits:\n- Full Automation: Provides instant profile intelligence without manual effort.\n- Comprehensive Insights: Delivers detailed social media metrics for informed decision-making.\n- Effortless Tracking: Automates data collection for ongoing analysis.\n- Multi-Purpose Research: Offers flexibility in data gathering for various applications.\n\nPotential Use Cases:\n- Influencer Marketing: Identifying potential talent for campaigns.\n- Competitive Intelligence: Conducting audience research to inform strategies.\n- Social Media Analysis: Tracking performance metrics over time.\n- Recruitment: Scouting for talent through social media profiles.\n- Brand Partnerships: Identifying collaboration opportunities based on profile insights.\n\nFuture Enhancement Suggestions:\n- Advanced profile scoring to evaluate potential influencers.\n- Engagement rate calculation for deeper insights.\n- Real-time change alerts for monitored profiles.\n- Multi-platform profile tracking for broader analysis.\n- AI-powered insights generation to enhance data interpretation.\n\nTechnical Considerations:\n- Implement robust error handling to manage potential issues during scraping.\n- Use exponential backoff strategies for API calls to avoid rate limiting.\n- Maintain flexible data extraction strategies to adapt to changes in Instagram's structure.\n- Ensure compliance with Instagram's terms of service to protect user privacy.\n\nEthical Guidelines:\n- Respect user privacy and utilize data solely for legitimate research purposes.\n- Maintain transparent data collection practices and provide opt-out mechanisms for users.\n\nThis workflow is designed to transform social media research into an intelligent, automated process, enabling users to unlock valuable insights from Instagram profiles efficiently.",
+  "error": null,
+  "generated_at": "2026-01-25T23:28:16.555387",
+  "metrics": {
+    "node_type_precision": 0.5,
+    "node_type_recall": 0.5,
+    "node_type_f1": 0.5,
+    "tp": 2,
+    "fp": 2,
+    "fn": 2,
+    "gt_node_count": 4,
+    "llm_node_count": 4,
+    "connection_precision": 0.3333333333333333,
+    "connection_recall": 0.3333333333333333,
+    "connection_f1": 0.3333333333333333,
+    "correct_connections": 1,
+    "gt_connection_count": 3,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.525,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4397,
+        "completion_tokens": 783,
+        "total_tokens": 5180
+      },
+      "description_optimization": {
+        "prompt_tokens": 949,
+        "completion_tokens": 636,
+        "total_tokens": 1585
+      },
+      "total_tokens": 6765,
+      "total_prompt_tokens": 5346,
+      "total_completion_tokens": 1419
+    },
+    "total_cost": 0.027555,
+    "description_optimization_cost": 0.0087325,
+    "workflow_generation_cost": 0.0188225
+  }
+}

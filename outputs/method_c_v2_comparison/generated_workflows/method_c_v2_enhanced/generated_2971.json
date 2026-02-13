@@ -1,0 +1,148 @@
+{
+  "template_id": "2971",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or on a schedule, as it involves generating video content based on user-defined prompts.",
+      "data_sources": "Leonardo AI for image generation, Creatomate for video editing, and a language model like DeepSeek V3 for scriptwriting.",
+      "operations": "1. Generate video script using AI, 2. Generate images for each scenario in the script, 3. Assemble script and images into a video using Creatomate.",
+      "output_actions": "The final output is a polished video ready for upload to platforms like YouTube or Instagram.",
+      "nodes_plan": "manualTrigger (trigger), aiScriptGeneration (custom node for LLM), leonardoImageGeneration (httpRequest), creatomateVideoAssembly (httpRequest)",
+      "connections_plan": "manualTrigger -> aiScriptGeneration -> leonardoImageGeneration -> creatomateVideoAssembly"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Video Generation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Script Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.deepseek.ai/v3/generate-script",
+            "body": {
+              "prompt": "={{ $json.prompt }}",
+              "scenarios": "={{ $json.scenarios }}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Leonardo Image Generation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.leonardo.ai/generate-image",
+            "body": {
+              "style": "={{ $json.imageStyle }}",
+              "resolution": "={{ $json.resolution }}",
+              "scenarios": "={{ $json.scenarios }}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Creatomate Video Assembly",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.creatomate.com/assemble-video",
+            "body": {
+              "template": "AI generated story template",
+              "script": "={{ $json.script }}",
+              "images": "={{ $json.images }}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5567,
+    "completion_tokens": 821,
+    "total_tokens": 6388
+  },
+  "description_optimization": null,
+  "original_description": "# Automate Your Video Content Creation: AI-Powered Video Generation\n\nThis n8n template streamlines the creation of high-quality, faceless videos, automating the entire process from scriptwriting to final video production. Leveraging AI tools like Leonardo AI and Creatomate, this workflow empowers content creators to efficiently produce engaging videos without on-camera presence.\n\n## Who is this for?\n\nThis template is ideal for:\n\n* Content creators looking to scale their presence on YouTube, Instagram, and TikTok.\n* Marketers seeking to automate video marketing campaigns.\n* Anyone wanting to produce professional-looking videos quickly and easily.\n* Individuals wishing to create faceless video content.\n\n## What problem is this workflow solving?\n\nCreating engaging videos can be time-consuming and resource-intensive. This workflow eliminates the manual effort involved in scripting, image sourcing, and video editing, allowing creators to focus on strategy and content ideation. It addresses the challenge of consistent video production by automating repetitive tasks.\n\n## What this workflow does:\n\nThis workflow automates the following steps:\n\n* **AI-Driven Scriptwriting:** Uses an LLM (default: DeepSeek V3) to generate a compelling video script based on your system prompt and desired number of scenarios.\n* **AI Image Generation:** Integrates with Leonardo AI to create visually appealing images for each scenario in the script. You define the image style and resolution.\n* **Automated Video Editing:** Connects to Creatomate to assemble the script and images into a polished video, ready for upload. You\u2019ll use a pre-created \u201cAI generated story template\u201d within Creatomate.\n\n## Setup:\n\n* **Video Script Generation:** Provide a detailed system prompt describing your video\u2019s topic, target audience, and key message. Specify the number of scenarios. Select your preferred LLM (DeepSeek V3 is the default).\n* **Image Generation:** Connect your Leonardo AI account. Choose your preferred image generation model and set the video resolution. Craft a detailed prompt for Leonardo AI, defining the image style (e.g., \u201ccinematic,\u201d \u201ccartoon,\u201d \u201crealistic\u201d).\n* **Video Editing:** Link your Creatomate account. Create an empty \u201cAI generated story template\u201d in Creatomate. Copy the cURL from the Creatomate template to the video generation node. Link your ElevenLabs account to Creatomate and choose the desired voice.\n\n## How to customize this workflow:\n\n* **Script Customization:** Refine the system prompt to guide the AI. Experiment with different LLMs.\n* **Image Style:** Adjust the Leonardo AI prompt. Explore different image generation models.\n* **Video Editing:** Modify the Creatomate template to customize transitions, text overlays, and other elements. Add voiceover using the ElevenLabs integration in Creatomate.\n\n## Category:\n\nMarketing, Social Media, Content Creation",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:56:01.832302",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.08823529411764706,
+    "node_type_f1": 0.15789473684210525,
+    "tp": 3,
+    "fp": 1,
+    "fn": 31,
+    "gt_node_count": 34,
+    "llm_node_count": 4,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 8,
+    "llm_connection_count": 2,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 5567,
+      "completion_tokens": 821,
+      "total_tokens": 6388
+    },
+    "total_cost": 0.0221275
+  }
+}

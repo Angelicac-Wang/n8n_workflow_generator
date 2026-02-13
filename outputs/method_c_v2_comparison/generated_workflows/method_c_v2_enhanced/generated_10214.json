@@ -1,0 +1,216 @@
+{
+  "template_id": "10214",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a WhatsApp message via a webhook.",
+      "data_sources": "WhatsApp Cloud API, Redis, Google Gemini API, MySQL database, Google Sheets",
+      "operations": "1. Receive WhatsApp message, 2. Check Redis for model assignment, 3. Assign model if not present, 4. Route to appropriate Gemini model, 5. Use LangChain AI Agent for query processing, 6. Fetch data from MySQL and Google Sheets, 7. Send response back via WhatsApp",
+      "output_actions": "Send a response message back to the guest via WhatsApp",
+      "nodes_plan": "webhook (trigger), redis (check and set), switch (model selector), langchain agent (AI processing), mysql (data fetch), googleSheets (pricing data), httpRequest (send WhatsApp message)",
+      "connections_plan": "webhook -> redis check -> switch (model selector) -> langchain agent -> [mysql, googleSheets] -> httpRequest"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Hotel Receptionist",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Redis for Model",
+          "nodeType": "n8n-nodes-base.redis",
+          "typeVersion": 1,
+          "params": {
+            "operation": "get",
+            "key": "llm-user:{{$json['from']}}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Model Selector",
+          "nodeType": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "params": {
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "string": [
+                      {
+                        "value1": "={{$json['modelIndex']}}",
+                        "operation": "equal",
+                        "value2": "0"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "LangChain AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "model": "={{$json['modelIndex'] === 0 ? 'Gemini 1' : 'Gemini 2'}}",
+            "prompt": "Process the guest query and generate SQL query if needed."
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Fetch Data from MySQL",
+          "nodeType": "n8n-nodes-base.mysql",
+          "typeVersion": 1,
+          "params": {
+            "operation": "executeQuery",
+            "query": "={{$json['sqlQuery']}}"
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Fetch Pricing from Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getRows",
+            "sheetId": "your-sheet-id",
+            "range": "Pricing!A1:D10"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send WhatsApp Message",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v13.0/me/messages",
+            "body": {
+              "messaging_product": "whatsapp",
+              "to": "={{$json['from']}}",
+              "type": "text",
+              "text": {
+                "body": "={{$json['response']}}"
+              }
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 6310,
+    "completion_tokens": 1226,
+    "total_tokens": 7536
+  },
+  "description_optimization": null,
+  "original_description": "### Overview  \nThis project is an **AI-powered hotel receptionist** built using **n8n**, designed to handle guest queries automatically through **WhatsApp**.  \nIt integrates **Google Gemini**, **Redis**, **MySQL**, and **Google Sheets** via **LangChain** to create an intelligent conversational system that understands and answers booking-related questions in real time.  \n\nA standout feature of this workflow is its **AI model-switching system** \u2014 it dynamically assigns users to different Gemini models, balancing traffic, improving performance, and reducing API costs.  \n\n---\n\n## How It Works  \n\n### WhatsApp Trigger  \nThe workflow starts when a hotel guest sends a message through WhatsApp.  \nThe system captures the **message text**, **contact details**, and **session information** for further processing.  \n\n### Redis-Based Model Management  \n- The workflow checks **Redis** for a saved record of the user\u2019s previously assigned AI model.  \n- If no record exists, a **Model Decider** node assigns a new model (e.g., Gemini 1 or Gemini 2).  \n- Redis then stores this model assignment for an hour, ensuring consistent routing and controlled traffic distribution.  \n\n### Model Selector  \nThe **Model Selector** routes each user\u2019s request to the correct Gemini instance, enabling parallel execution across multiple AI models for **faster response times** and **cost optimization**.  \n\n### AI Agent Logic  \nThe **LangChain AI Agent** serves as the system\u2019s reasoning core. It:  \n- Interprets guest questions such as:  \n  - \u201cWho checked in today?\u201d  \n  - \u201cShow me tomorrow\u2019s bookings.\u201d  \n  - \u201cWhat\u2019s the price for a deluxe suite for two nights?\u201d  \n- Generates safe, **read-only SQL SELECT queries**.  \n- Fetches the requested data from the **MySQL database**.  \n- Combines this with dynamic pricing or promotions from **Google Sheets**, if available.  \n\n### Response Delivery  \nOnce the AI Agent formulates an answer, it sends a natural-sounding message back to the guest via WhatsApp, completing the interaction loop.  \n\n---\n\n## Setup & Requirements  \n\n### Prerequisites  \nBefore deploying this workflow, ensure the following:  \n- **n8n Instance** (local or hosted)  \n- **WhatsApp Cloud API** with messaging permissions  \n- **Google Gemini API Key** (for both models)  \n- **Redis Database** for user session and model routing  \n- **MySQL Database** for hotel booking and guest data  \n- **Google Sheets Account** (optional, for pricing or offer data)  \n\n### Step-by-Step Setup  \n\n1. **Configure Credentials**  \n   - Add all API credentials in **n8n \u2192 Settings \u2192 Credentials** (WhatsApp, Redis, MySQL, Google).  \n\n2. **Prepare Databases**  \n   - **MySQL Tables Example:**  \n     - `bookings(id, guest_name, room_type, check_in, check_out)`  \n     - `rooms(id, type, rate, status)`  \n   - Ensure the MySQL user has **read-only** permissions.  \n\n3. **Set Up Redis**  \n   - Create Redis keys for each user:  \n     ```\n     llm-user:&lt;whatsapp_id&gt; = { \"modelIndex\": 0 }\n     ```  \n   - TTL: 3600 seconds (1 hour).  \n\n4. **Connect Google Sheets (Optional)**  \n   - Add your sheet under **Google Sheets OAuth2**.  \n   - Use it to manage room rates, discounts, or seasonal offers dynamically.  \n\n5. **WhatsApp Webhook Configuration**  \n   - In Meta\u2019s Developer Console, set the webhook URL to your n8n instance.  \n   - Select message updates to trigger the workflow.  \n\n6. **Testing the Workflow**  \n   - Send messages like \u201cWho booked today?\u201d or a voice message.  \n   - Confirm responses include real data from MySQL and contextual replies.  \n\n---\n\n## Key Features  \n\n- **Text & voice support** for guest interactions  \n- **Automatic AI model-switching** using Redis  \n- **Session memory** for context-aware conversations  \n- **Read-only SQL query generation** for database safety  \n- **Google Sheets integration** for live pricing and availability  \n- **Scalable design** supporting multiple LLM instances  \n\n---\n\n## Example Guest Queries  \n\n| Guest Query | AI Response Example |\n|--------------|--------------------|\n| \u201cWho checked in today?\u201d | \u201cTwo guests have checked in today: Mr. Ahmed (Room 203) and Ms. Priya (Room 410).\u201d |\n| \u201cHow much is a deluxe room for two nights?\u201d | \u201cA deluxe room costs $120 per night. The total for two nights is $240.\u201d |\n| \u201cDo you have any discounts this week?\u201d | \u201cYes! We\u2019re offering a 10% weekend discount on all deluxe and suite rooms.\u201d |\n| \u201cShow me tomorrow\u2019s check-outs.\u201d | \u201cThree check-outs are scheduled tomorrow: Mr. Khan (101), Ms. Lee (207), and Mr. Singh (309).\u201d |\n\n---\n\n## Customization Options  \n\n### \ud83e\udde9 Model Assignment Logic  \nYou can modify the **Model Decider node** to:  \n- Assign models based on user load, region, or priority level.  \n- Increase or decrease TTL in Redis for longer model persistence.  \n\n### \ud83e\udde0 AI Agent Prompt  \nAdjust the **system prompt** to control tone and response behavior \u2014 for example:  \n- Add multilingual support.  \n- Include upselling or booking confirmation messages.  \n\n### \ud83d\uddc2\ufe0f Database Expansion  \nExtend MySQL to include:  \n- Staff schedules  \n- Maintenance records  \n- Restaurant reservations  \nThen link new queries in the AI Agent node for richer responses.  \n\n---\n\n## Tech Stack  \n\n- **n8n** \u2013 Workflow automation & orchestration  \n- **Google Gemini (PaLM)** \u2013 LLM for reasoning & generation  \n- **Redis** \u2013 Model assignment & session management  \n- **MySQL** \u2013 Booking & guest data storage  \n- **Google Sheets** \u2013 Dynamic pricing reference  \n- **WhatsApp Cloud API** \u2013 Messaging interface  \n\n---\n\n## Outcome  \nThis workflow demonstrates how **AI automation** can transform hotel operations by combining **WhatsApp communication**, **database intelligence**, and **multi-model AI reasoning**.  \nIt\u2019s a production-ready foundation for **scalable, cost-optimized, AI-driven hospitality solutions** that deliver fast, accurate, and personalized guest interactions.  \n````",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:37:01.073985",
+  "metrics": {
+    "node_type_precision": 0.2857142857142857,
+    "node_type_recall": 0.15384615384615385,
+    "node_type_f1": 0.2,
+    "tp": 2,
+    "fp": 5,
+    "fn": 11,
+    "gt_node_count": 13,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 5,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 6310,
+      "completion_tokens": 1226,
+      "total_tokens": 7536
+    },
+    "total_cost": 0.028035000000000004
+  }
+}

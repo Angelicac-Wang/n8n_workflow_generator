@@ -1,0 +1,210 @@
+{
+  "template_id": "3101",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a monitoring and notification workflow using AI for decision-making. Use base nodes.",
+      "trigger_analysis": "The workflow should be triggered on a schedule to perform daily checks.",
+      "data_sources": "Web pages to be monitored, OpenAI API for analysis, Firecrawl API for web scraping, Gmail for notifications.",
+      "operations": "1. Initial web page scrape, 2. Delay for 1 day, 3. Second web page scrape, 4. AI analysis to decide on notification, 5. Send email notification if needed.",
+      "output_actions": "Send an email notification if changes are detected.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (Firecrawl for scraping), delay (1 day), openAi (AI analysis), if (decision), emailSend (notification)",
+      "connections_plan": "scheduleTrigger -> httpRequest (scrape 1) -> delay -> httpRequest (scrape 2) -> openAi -> if -> [emailSend (true branch)]"
+    },
+    "workflowPlan": {
+      "name": "Web Page Change Monitor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 0 * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Initial Scrape",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.firecrawl.com/scrape",
+            "queryParameters": [
+              {
+                "name": "url",
+                "value": "={{ $json.websiteUrl }}"
+              }
+            ],
+            "authentication": "={{ $credentials.firecrawlApiKey }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "1 Day Delay",
+          "nodeType": "n8n-nodes-base.delay",
+          "typeVersion": 1,
+          "params": {
+            "delayDuration": 86400
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Second Scrape",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.firecrawl.com/scrape",
+            "queryParameters": [
+              {
+                "name": "url",
+                "value": "={{ $json.websiteUrl }}"
+              }
+            ],
+            "authentication": "={{ $credentials.firecrawlApiKey }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Compare the initial and second scrape results and determine if there are significant changes that warrant a notification.",
+            "model": "gpt-4"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Decision",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.changesDetected }}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Web Page Change Detected",
+            "text": "Significant changes were detected on the monitored web page. Please review the details."
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 8477,
+    "completion_tokens": 1183,
+    "total_tokens": 9660
+  },
+  "description_optimization": null,
+  "original_description": "## Who is this template for?\nThis workflow template is designed for people seeking alerts when certain specific changes are made to any web page. Leveraging agentic AI, it analyzes the page every day and autonomously decides whether to send you an e-mail notification.\n\n## Example use cases\n- Track price changes on [competitor's website]. Notify me when the price drops below \u20ac50.\n- Monitor new blog posts on [industry leader's website] and summarize key insights.\n- Check [competitor's job page] for new job postings related to software development.\n- Watch for new product launches on [e-commerce site] and send me a summary.\n- Detect any changes in the terms and conditions of [specific website].\n- Track customer reviews for [specific product] on [review site] and extract key themes.\n\n## How it works\n- When clicking 'test workflow' in the editor, a new browser tab will open where you can fill in the details of your espionage assignment\n- Make sure you be as concise as possible when instructing AI. Instruct specific and to the point (see examples at the bottom).\n- After submission, the flow will start off by extracting both the relevant website url and an optimized prompt. OpenAI's structured outputs is utilized, followed by a code node to parse the results for further use.\n- From here on, the endless loop of daily checks will begin:\n1. Initial scrape \n2. 1 day delay\n3. Second scrape\n4. AI agent decides whether or not to notify you \n5. Back to step 1\n- You can cancel an espionage assignment at any time in the executions tab\n\n## Set up steps\n- Insert your OpenAI API key in the structured outputs node (second one)\n- Create a Firecrawl account and connect your Firecrawl API key in both 'Scrape page'-nodes\n- Connect your OpenAI account in the AI agents' model node\n- Connect your Gmail account in the AI agents' Gmail tool node",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:22:10.534929",
+  "metrics": {
+    "node_type_precision": 0.2857142857142857,
+    "node_type_recall": 0.2222222222222222,
+    "node_type_f1": 0.25,
+    "tp": 2,
+    "fp": 5,
+    "fn": 7,
+    "gt_node_count": 9,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 7,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.07142857142857142,
+    "usage": {
+      "prompt_tokens": 8477,
+      "completion_tokens": 1183,
+      "total_tokens": 9660
+    },
+    "total_cost": 0.0330225
+  },
+  "is_ai_workflow": true
+}

@@ -1,0 +1,182 @@
+{
+  "template_id": 12346,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Resume Processing and Notification",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Resume Download",
+          "nodeType": "httpRequest",
+          "params": {
+            "url": "https://example.com/download-resume",
+            "method": "GET"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Resume",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "return JSON.parse($node[\"Resume Download\"].json[\"body\"]);"
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Analyze with Google Gemini 1",
+          "nodeType": "googleGemini",
+          "params": {
+            "input": "{{$node[\"Parse Resume\"].json}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Enhance with Google Gemini 2",
+          "nodeType": "googleGemini",
+          "params": {
+            "input": "{{$node[\"Analyze with Google Gemini 1\"].json}}"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Finalize with Google Gemini 3",
+          "nodeType": "googleGemini",
+          "params": {
+            "input": "{{$node[\"Enhance with Google Gemini 2\"].json}}"
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Resume Writer",
+          "nodeType": "function",
+          "params": {
+            "functionCode": "return { resume: $node[\"Finalize with Google Gemini 3\"].json };"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Manage Google Sheets",
+          "nodeType": "googleSheets",
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputOption": "RAW",
+            "values": "{{$node[\"Resume Writer\"].json[\"resume\"]}}"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Notify User",
+          "nodeType": "telegram",
+          "params": {
+            "chatId": "your-chat-id",
+            "text": "Resume processing completed successfully."
+          },
+          "position": {
+            "x": 1600,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 686,
+    "completion_tokens": 838,
+    "total_tokens": 1524
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:49:48.339963",
+  "generated_description": "This n8n workflow is designed to automate the process of downloading, analyzing, and enhancing resumes, followed by notifying the user. The workflow is triggered when a resume needs to be processed. It begins by downloading the resume using an HTTP request. The downloaded resume is then parsed and structured for further processing.\n\nThe workflow utilizes Google Gemini, a language model API, at multiple stages to analyze and enhance the resume content. The parsed data is processed through several nodes, including three instances of Google Gemini, which likely contribute to different aspects of the analysis and enhancement process.\n\nOnce the resume content is refined, the workflow involves a \"Resume Writer\" agent, which may be responsible for generating or improving the resume based on the analyzed data. The workflow also includes operations to clear and manage data within a Google Sheets document, indicating that some data storage or logging is involved.\n\nFinally, the workflow concludes by notifying the user via a Telegram message, informing them of the completion of the resume processing. This comprehensive workflow efficiently handles the end-to-end process of resume management, from downloading to user notification, leveraging advanced language processing and data management tools.",
+  "description_generation_usage": {
+    "prompt_tokens": 231,
+    "completion_tokens": 224,
+    "total_tokens": 455
+  },
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.2222222222222222,
+    "node_type_f1": 0.34285714285714286,
+    "tp": 6,
+    "fp": 2,
+    "fn": 21,
+    "gt_node_count": 27,
+    "llm_node_count": 8,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 20,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 686,
+      "completion_tokens": 838,
+      "total_tokens": 1524
+    },
+    "total_cost": 0.0129125,
+    "description_generation_cost": 0.0028175,
+    "workflow_generation_cost": 0.010095
+  },
+  "original_description": "# Generate visual resumes from Telegram inputs using Google Gemini\n\nThis workflow transforms text-based resume data into visually stunning images by leveraging Google Gemini's reasoning and vision capabilities. It autonomously analyzes the candidate's profile, selects an appropriate design template based on their industry, and renders a high-quality resume image directly in Telegram.\n\n## Target Audience\nJob seekers, career coaches, resume writers, and recruitment agencies looking to automate design generation.\n\n## How it works\n1. **Classify Input**: The workflow starts with a **Telegram** trigger. A **Google Gemini** agent analyzes the incoming message to determine if it is a casual chat or a resume generation request.\n2. **Fetch Context**: If it is a resume request, a **BrowserAct** node triggers a workflow (using the \"AI Resume Replicant\" template) to fetch necessary external context or data.\n3. **Ingest Designs (Optional)**: If a reference image is provided, **CloudConvert** standardizes the file, and **Google Gemini Vision** reverse-engineers the layout and style, saving the \"Visual DNA\" to **Google Sheets**.\n4. **Draft Blueprint**: The \"Resume Writer\" AI agent selects a stored design template that matches the candidate's industry (e.g., \"Corporate\" for Finance, \"Creative\" for Design) and maps the text content to the layout.\n5. **Generate Prompt**: A \"Visualizer\" AI agent converts the structured blueprint into a highly detailed natural language prompt for image generation.\n6. **Render & Deliver**: **Google Gemini** generates the final resume image, which is then sent back to the user via **Telegram**.\n\n## How to set up\n1. **Configure Credentials**: Connect your **Telegram**, **Google Gemini**, **Google Sheets**, **CloudConvert**, and **BrowserAct** accounts in n8n.\n2. **Prepare BrowserAct**: Ensure the **AI Resume Replicant** template is saved in your BrowserAct account.\n3. **Setup Google Sheet**: Create a new Google Sheet with the required header (listed below).\n4. **Connect Sheet**: Open the **Google Sheets** nodes (Clear, Get, Append) and select your new spreadsheet.\n5. **Configure Telegram**: Ensure your Telegram Bot is connected to the Trigger and Message nodes.\n\n## Google Sheet Headers\nTo use this workflow, create a Google Sheet with the following header:\n* Resume Details\n\n## Requirements\n* **BrowserAct** account (Template: **AI Resume Replicant**).\n* **Google Gemini** account.\n* **Telegram** account (Bot Token).\n* **CloudConvert** account.\n* **Google Sheets** account.\n\n## How to customize the workflow\n1. **Refine Design Logic**: Modify the system prompt in the \"Resume Writer\" agent to change how the AI matches industries to design styles (e.g., force specific colors for specific roles).\n2. **Change Output Format**: Replace the **Telegram** response node with a **Google Drive** node to save the generated images as PDF or PNG files instead of sending them.\n3. **Switch Image Model**: Update the \"Generate an image\" node to use a different image generation model if preferred (e.g., OpenAI DALL-E).\n\n## Need Help?\n* [How to Find Your BrowserAct API Key & Workflow ID](https://www.youtube.com/watch?v=pDjoZWEsZlE)\n* [How to Connect n8n to BrowserAct](https://www.youtube.com/watch?v=RoYMdJaRdcQ)\n* [How to Use & Customize BrowserAct Templates](https://www.youtube.com/watch?v=CPZHFUASncY)\n\n---\n### Workflow Guidance and Showcase Video\n\n* #### [I Built a Resume Bot that CLONES Any Template! \ud83e\udd16 (BrowserAct + n8n + Gemini Tutorial)](https://youtu.be/TnObYpgHXSs)"
+}

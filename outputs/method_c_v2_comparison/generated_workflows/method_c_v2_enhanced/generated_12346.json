@@ -1,0 +1,218 @@
+{
+  "template_id": "12346",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a message received in Telegram, indicating a resume generation request.",
+      "data_sources": "Telegram for input messages, Google Gemini for AI processing, Google Sheets for storing design data, CloudConvert for image processing, BrowserAct for fetching external context.",
+      "operations": "1. Trigger on Telegram message, 2. Classify message type using Google Gemini, 3. Fetch context with BrowserAct if needed, 4. Process reference image with CloudConvert and Google Gemini Vision, 5. Draft resume blueprint with AI, 6. Generate image with Google Gemini, 7. Send image back to Telegram.",
+      "output_actions": "The final output is a visually designed resume image sent back to the user via Telegram.",
+      "nodes_plan": "telegramTrigger, googleGemini (classification), browserAct (fetch context), cloudConvert (image processing), googleGeminiVision (design analysis), googleSheets (store design DNA), googleGemini (image generation), telegramSendMessage (send image)",
+      "connections_plan": "telegramTrigger -> googleGemini (classification) -> [browserAct (fetch context) | cloudConvert (image processing) -> googleGeminiVision (design analysis) -> googleSheets] -> googleGemini (image generation) -> telegramSendMessage"
+    },
+    "workflowPlan": {
+      "name": "Visual Resume Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateType": "message"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Classify Message",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "classify",
+            "input": "={{ $json.message.text }}"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Fetch Context",
+          "nodeType": "n8n-nodes-base.browserAct",
+          "typeVersion": 1,
+          "params": {
+            "workflowTemplate": "AI Resume Replicant"
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Process Reference Image",
+          "nodeType": "n8n-nodes-base.cloudConvert",
+          "typeVersion": 1,
+          "params": {
+            "operation": "convert",
+            "inputFormat": "auto",
+            "outputFormat": "png"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Analyze Design",
+          "nodeType": "n8n-nodes-base.googleGeminiVision",
+          "typeVersion": 1,
+          "params": {
+            "operation": "analyze",
+            "image": "={{ $json.data }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Store Design DNA",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Resume Details"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Generate Resume Image",
+          "nodeType": "n8n-nodes-base.googleGemini",
+          "typeVersion": 1,
+          "params": {
+            "operation": "generateImage",
+            "prompt": "={{ $json.prompt }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Resume Image",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "={{ $json.chat.id }}",
+            "text": "Here is your visually designed resume!",
+            "attachments": "={{ $json.image }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0,
+          "condition": "resumeRequest"
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0,
+          "condition": "hasReferenceImage"
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5806,
+    "completion_tokens": 1266,
+    "total_tokens": 7072
+  },
+  "description_optimization": null,
+  "original_description": "# Generate visual resumes from Telegram inputs using Google Gemini\n\nThis workflow transforms text-based resume data into visually stunning images by leveraging Google Gemini's reasoning and vision capabilities. It autonomously analyzes the candidate's profile, selects an appropriate design template based on their industry, and renders a high-quality resume image directly in Telegram.\n\n## Target Audience\nJob seekers, career coaches, resume writers, and recruitment agencies looking to automate design generation.\n\n## How it works\n1. **Classify Input**: The workflow starts with a **Telegram** trigger. A **Google Gemini** agent analyzes the incoming message to determine if it is a casual chat or a resume generation request.\n2. **Fetch Context**: If it is a resume request, a **BrowserAct** node triggers a workflow (using the \"AI Resume Replicant\" template) to fetch necessary external context or data.\n3. **Ingest Designs (Optional)**: If a reference image is provided, **CloudConvert** standardizes the file, and **Google Gemini Vision** reverse-engineers the layout and style, saving the \"Visual DNA\" to **Google Sheets**.\n4. **Draft Blueprint**: The \"Resume Writer\" AI agent selects a stored design template that matches the candidate's industry (e.g., \"Corporate\" for Finance, \"Creative\" for Design) and maps the text content to the layout.\n5. **Generate Prompt**: A \"Visualizer\" AI agent converts the structured blueprint into a highly detailed natural language prompt for image generation.\n6. **Render & Deliver**: **Google Gemini** generates the final resume image, which is then sent back to the user via **Telegram**.\n\n## How to set up\n1. **Configure Credentials**: Connect your **Telegram**, **Google Gemini**, **Google Sheets**, **CloudConvert**, and **BrowserAct** accounts in n8n.\n2. **Prepare BrowserAct**: Ensure the **AI Resume Replicant** template is saved in your BrowserAct account.\n3. **Setup Google Sheet**: Create a new Google Sheet with the required header (listed below).\n4. **Connect Sheet**: Open the **Google Sheets** nodes (Clear, Get, Append) and select your new spreadsheet.\n5. **Configure Telegram**: Ensure your Telegram Bot is connected to the Trigger and Message nodes.\n\n## Google Sheet Headers\nTo use this workflow, create a Google Sheet with the following header:\n* Resume Details\n\n## Requirements\n* **BrowserAct** account (Template: **AI Resume Replicant**).\n* **Google Gemini** account.\n* **Telegram** account (Bot Token).\n* **CloudConvert** account.\n* **Google Sheets** account.\n\n## How to customize the workflow\n1. **Refine Design Logic**: Modify the system prompt in the \"Resume Writer\" agent to change how the AI matches industries to design styles (e.g., force specific colors for specific roles).\n2. **Change Output Format**: Replace the **Telegram** response node with a **Google Drive** node to save the generated images as PDF or PNG files instead of sending them.\n3. **Switch Image Model**: Update the \"Generate an image\" node to use a different image generation model if preferred (e.g., OpenAI DALL-E).\n\n## Need Help?\n* [How to Find Your BrowserAct API Key & Workflow ID](https://www.youtube.com/watch?v=pDjoZWEsZlE)\n* [How to Connect n8n to BrowserAct](https://www.youtube.com/watch?v=RoYMdJaRdcQ)\n* [How to Use & Customize BrowserAct Templates](https://www.youtube.com/watch?v=CPZHFUASncY)\n\n---\n### Workflow Guidance and Showcase Video\n\n* #### [I Built a Resume Bot that CLONES Any Template! \ud83e\udd16 (BrowserAct + n8n + Gemini Tutorial)](https://youtu.be/TnObYpgHXSs)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T03:03:54.786582",
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.25925925925925924,
+    "node_type_f1": 0.39999999999999997,
+    "tp": 7,
+    "fp": 1,
+    "fn": 20,
+    "gt_node_count": 27,
+    "llm_node_count": 8,
+    "connection_precision": 0.125,
+    "connection_recall": 0.05,
+    "connection_f1": 0.07142857142857144,
+    "correct_connections": 1,
+    "gt_connection_count": 20,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.1989795918367347,
+    "usage": {
+      "prompt_tokens": 5806,
+      "completion_tokens": 1266,
+      "total_tokens": 7072
+    },
+    "total_cost": 0.027175000000000005
+  }
+}

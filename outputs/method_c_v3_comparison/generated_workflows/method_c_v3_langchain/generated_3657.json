@@ -1,0 +1,203 @@
+{
+  "template_id": "3657",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "YES - This IS a conversational AI agent workflow. Detection: 'Voiceflow', 'multi-channel conversational agent', 'RAG', 'vector store', 'OpenAI'. MUST use LangChain architecture with chatTrigger, agent, lmChat nodes.",
+      "trigger_analysis": "MUST use @n8n/n8n-nodes-langchain.chatTrigger for interactive chat interface (NOT n8n-nodes-base.webhook).",
+      "data_sources": "Voiceflow for chat input, Google Calendar for scheduling, Qdrant for vector storage, OpenAI for AI processing, Order Tracking API for order status.",
+      "operations": "1. Receive chat input via chatTrigger, 2. Agent orchestrates with LLM reasoning, 3. Query order status, 4. Schedule appointments, 5. Use RAG system for product/service questions.",
+      "output_actions": "Intelligent chat response back to user with order status, appointment confirmation, or product information.",
+      "nodes_plan": "chatTrigger (chat input), agent (orchestrator - REQUIRED), lmChatOpenAi (AI reasoning), memoryBufferWindow (conversation context), httpRequestTool (order tracking), googleCalendarTool (appointment scheduling), vectorStoreQdrant (RAG system).",
+      "connections_plan": "chatTrigger \u2192 agent (main flow), agent connects to: lmChatOpenAi, memoryBufferWindow, httpRequestTool, googleCalendarTool, vectorStoreQdrant as sub-nodes."
+    },
+    "workflowPlan": {
+      "name": "Voiceflow Conversational Agent",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1,
+          "params": {
+            "mode": "chat",
+            "options": {}
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "promptType": "define",
+            "text": "You are a multi-channel conversational agent. Handle order tracking, appointment scheduling, and answer product/service questions using RAG.",
+            "options": {}
+          },
+          "position": {
+            "x": 320,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "OpenAI GPT-4",
+          "nodeType": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4",
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 1000
+            }
+          },
+          "position": {
+            "x": 540,
+            "y": 180
+          }
+        },
+        {
+          "id": "4",
+          "label": "Conversation Memory",
+          "nodeType": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "params": {
+            "contextWindowLength": 10
+          },
+          "position": {
+            "x": 540,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Order Tracking API",
+          "nodeType": "n8n-nodes-base.httpRequestTool",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.ordertracking.com/status",
+            "queryParameters": [
+              {
+                "name": "orderId",
+                "value": "={{ $json.orderId }}"
+              }
+            ]
+          },
+          "position": {
+            "x": 540,
+            "y": 420
+          }
+        },
+        {
+          "id": "6",
+          "label": "Google Calendar Tool",
+          "nodeType": "n8n-nodes-base.googleCalendarTool",
+          "typeVersion": 1,
+          "params": {
+            "operation": "createEvent",
+            "calendarId": "primary",
+            "start": "={{ $json.startTime }}",
+            "end": "={{ $json.endTime }}",
+            "summary": "={{ $json.summary }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 540
+          }
+        },
+        {
+          "id": "7",
+          "label": "Qdrant Vector Store",
+          "nodeType": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+          "typeVersion": 1,
+          "params": {
+            "operation": "query",
+            "collection": "product_docs",
+            "query": "={{ $json.query }}"
+          },
+          "position": {
+            "x": 540,
+            "y": 660
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9115,
+    "completion_tokens": 1252,
+    "total_tokens": 10367
+  },
+  "description_optimization": null,
+  "original_description": "**Voiceflow** is a no-code platform that allows you to design, prototype, and deploy conversational assistants across multiple channels\u2014such as **chat**, **voice**, and **phone**\u2014with advanced logic and natural language understanding. It supports integration with APIs, webhooks, and even tools like Twilio for phone agents. It's perfect for building customer support agents, voice bots, or intelligent assistants.\n\nThis workflow connects **n8n** and **Voiceflow** with tools like **Google Calendar**, **Qdrant (vector database)**, **OpenAI**, and an **order tracking API** to power a smart, multi-channel conversational agent.\n\n![image](https://i.postimg.cc/3rSPwMn2/langflow.png)\n\nThere are 3 main webhook endpoints in n8n that Voiceflow interacts with:\n\n1. **`n8n_order`** \u2013 receives user input related to order tracking, queries an API, and responds with tracking status.\n2. **`n8n_appointment`** \u2013 processes appointment booking, reformats date input using OpenAI, and creates a Google Calendar event.\n3. **`n8n_rag`** \u2013 handles general product/service questions using a RAG (Retrieval-Augmented Generation) system backed by:\n   - **Google Drive** document ingestion,\n   - **Qdrant vector store** for search,\n   - and **OpenAI** models for context-based answers.\n\nEach webhook is connected to a corresponding **\"Capture\" block** inside Voiceflow, which sends data to n8n and waits for the response.\n\n---\n\n### **How It Works**  \nThis n8n workflow integrates **Voiceflow** for chatbot/voice interactions, **Google Calendar** for appointment scheduling, and **RAG (Retrieval-Augmented Generation)** for knowledge-based responses. Here\u2019s the flow:  \n\n- **Trigger**:  \n  - Three webhooks (`n8n_order`, `n8n_appointment`, `n8n_rag`) receive inputs from Voiceflow (chat, voice, or phone calls).  \n  - Each webhook routes requests to specific functions:  \n    - **Order Tracking**: Fetches order status via an external API.  \n    - **Appointment Scheduling**: Uses OpenAI to parse dates, creates Google Calendar events, and confirms via WhatsApp.  \n    - **RAG System**: Queries a Qdrant vector store (populated with Google Drive documents) to answer customer questions using GPT-4.  \n\n- **AI Processing**:  \n  - **OpenAI Chains**: Convert natural language dates to Google Calendar formats and generate responses.  \n  - **RAG Pipeline**: Embeds documents (via OpenAI), stores them in Qdrant, and retrieves context-aware answers.  \n  - **Voiceflow Integration**: Routes responses back to Voiceflow for multi-channel delivery (chat, voice, or phone).  \n\n- **Outputs**:  \n  - Confirmation messages (e.g., \"Event created successfully\").  \n  - Dynamic responses for orders, appointments, or product support. \n\n---\n\n### **Setup Steps**  \n\n##### **Prerequisites**:  \n- **APIs**:  \n  - Google Calendar & Drive OAuth credentials.  \n  - Qdrant vector database (hosted or cloud).  \n  - OpenAI API key (for GPT-4 and embeddings).  \n\n##### **Configuration**:  \n1. **Qdrant Setup**:  \n   - Run the **\"Create collection\"** and **\"Refresh collection\"** nodes to initialize the vector store.  \n   - Populate it with documents using the **Google Drive \u2192 Qdrant** pipeline (embeddings generated via OpenAI).  \n\n2. **Voiceflow Webhooks**:  \n   - Link Voiceflow\u2019s \"Captures\" to n8n\u2019s webhook URLs (`n8n_order`, `n8n_appointment`, `n8n_rag`).  \n\n3. **Google Calendar**:  \n   - Authenticate the **Google Calendar node** and set event templates (e.g., `summary`, `description`).  \n\n4. **RAG System**:  \n   - Configure the **Qdrant vector store** and **OpenAI embeddings** nodes.  \n   - Adjust the **Retrieve Agent**\u2019s system prompt for domain-specific queries (e.g., electronics store support).   \n\n#### **Optional**:  \n- Add Twilio for phone-agent capabilities.  \n- Customize OpenAI prompts for tone/accuracy.  \n\n![image](https://i.postimg.cc/855gyTZP/voiceflow-agent.png)\n![image](https://i.postimg.cc/5Nn4Sk43/voiceflow-agent2.png)\n\nPS. You can import a Twilio number to assign it to your agent for becoming a Phone Agent\n\n![image](https://i.postimg.cc/cLymTTFv/voiceflow-agent3.png)\n\n---\n### **Need help customizing?**  \n[Contact me](mailto:info@n3w.it) for consulting and support or add me on [Linkedin](https://www.linkedin.com/in/davideboizza/)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T08:33:08.127210",
+  "metrics": {
+    "node_type_precision": 0.42857142857142855,
+    "node_type_recall": 0.10714285714285714,
+    "node_type_f1": 0.17142857142857143,
+    "tp": 3,
+    "fp": 4,
+    "fn": 25,
+    "gt_node_count": 28,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 12,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.19444444444444442,
+    "usage": {
+      "prompt_tokens": 9115,
+      "completion_tokens": 1252,
+      "total_tokens": 10367
+    },
+    "total_cost": 0.035307500000000006
+  },
+  "is_ai_workflow": true
+}

@@ -1,0 +1,204 @@
+{
+  "template_id": 5626,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the workflow to automate image generation and sending based on chat and Telegram messages.",
+    "workflowPlan": {
+      "name": "Image Generation and Sending Workflow",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "chat-trigger"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Telegram Trigger",
+          "nodeType": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1,
+          "params": {
+            "updateTypes": [
+              "message"
+            ]
+          },
+          "position": {
+            "x": 200,
+            "y": 400
+          }
+        },
+        {
+          "id": "3",
+          "label": "Set Initial Values",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": [
+              {
+                "name": "initialData",
+                "value": "={{$json[\"body\"]}}"
+              }
+            ]
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Clean JSON Data",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "return { cleanedData: JSON.parse($json[\"initialData\"]) };"
+          },
+          "position": {
+            "x": 600,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Extract Prompt",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "return { prompt: $json[\"cleanedData\"].message };"
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/api/generate-image",
+            "method": "POST",
+            "body": {
+              "prompt": "={{$json[\"prompt\"]}}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 1000,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Assign Filename",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "return { filename: `image_${Date.now()}.png`, imageUrl: $json[\"imageUrl\"] };"
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Image via Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendPhoto",
+            "chatId": "={{$json[\"chatId\"]}}",
+            "photo": "={{$json[\"imageUrl\"]}}",
+            "caption": "Here is your generated image!"
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "3"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 668,
+    "completion_tokens": 1003,
+    "total_tokens": 1671
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:32:35.984238",
+  "generated_description": "This n8n workflow is designed to automate the process of generating and sending images based on chat interactions. It is triggered by two events: receiving a chat message or a Telegram message. \n\nWhen a chat message is received, the workflow begins by setting initial values and cleaning the JSON data using custom code. It then extracts a prompt from the message through another code operation. This prompt is used to create an image via an HTTP request to an external API or service. Concurrently, the workflow can also be triggered by a message received on Telegram, which follows a similar process.\n\nThe workflow employs the Google Gemini Chat Model to process the chat content, ensuring the prompt is suitable for image generation. An AI agent is then tasked with creating an image from the prompt. The generated image is assigned a filename through a code operation.\n\nFinally, the image is sent back to the user as a response via Telegram, completing the workflow. This automation efficiently transforms text prompts from chat or Telegram messages into visual content and delivers it back to the user.",
+  "description_generation_usage": {
+    "prompt_tokens": 231,
+    "completion_tokens": 206,
+    "total_tokens": 437
+  },
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.6363636363636364,
+    "node_type_f1": 0.7368421052631579,
+    "tp": 7,
+    "fp": 1,
+    "fn": 4,
+    "gt_node_count": 11,
+    "llm_node_count": 8,
+    "connection_precision": 0.42857142857142855,
+    "connection_recall": 0.375,
+    "connection_f1": 0.39999999999999997,
+    "correct_connections": 3,
+    "gt_connection_count": 8,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.35714285714285715,
+    "usage": {
+      "prompt_tokens": 668,
+      "completion_tokens": 1003,
+      "total_tokens": 1671
+    },
+    "total_cost": 0.0143375,
+    "description_generation_cost": 0.0026375,
+    "workflow_generation_cost": 0.0117
+  },
+  "original_description": "### This n8n template demonstrates how to use AI to generate custom images from scratch - fully automated, prompt-driven, and ready to deploy at scale.\n\nUse cases are many: You can use it for marketing visuals, character art, digital posters, storyboards, or even daily image generation for your personal purposes.\n\n## How It Works\n- The flow is triggered by a chat message in N8N or via Telegram. The default image size is 1080 x 1920 pixels. To use a different size, update the values in the **\u201cFields - Set Values\u201d** node before triggering the workflow.\n- The input is parsed into a clean, structured prompt using a multi-step transformation process.\n- Our AI Agent sends the final prompt to Google Gemini\u2019s image model for generation (you can also integrate with OpenAI or other chat models).\n- The raw image data created by the AI Agent will be run through a number of codes to make sure it's feasible for your preview if needed and downloading.\n- Then, we use an HTTP node to fetch the result so you can preview the image.\n- You can send it back to the chat message in N8N or Telegram, or save it locally to your disk.\n\n## How To Use\n- Download the workflow package.\n- Import the package into your N8N interface.\n- Set up the credentials in the following nodes for tool access and usability: **\"Telegram Trigger\"**; **\"AI Agent - Create Image From Prompt\"**; **\"Telegram Response\"** or **\"Save Image To Disk\"** (based on your wish).\n- Activate the **\"Telegram Response\"** OR **\"Save Image To Disk\"** node to specify where you want to save your image later.\n- Open the chat interface (via N8N or Telegram).\n- Type your image prompt or detailed descriptions and send.\n- Wait for the process to run and finish in a few seconds.\n- Check the result in your desired saving location.\n\n## Requirements\n- Google Gemini account with image generation access.\n- Telegram bot access and chat setup (optional).\n- Connection to local storage (optional).\n\n## How To Customize\n- We\u2019re setting the default image size to 1080 x 1920 pixels and the default image model to \"flux\". You can customize both of these values in the **\u201cFields \u2013 Set Values\u201d** node. Supported image model options include: \"flux\", \"kontext\", \"turbo\", and \"gptimage\".\n- In the **\u201cAI Agent \u2013 Create Image From Prompt\u201d** node, you can also change the AI chat model. By default, it uses Google Gemini, but you can easily replace it with OpenAI ChatGPT, Microsoft AI Copilot, or any other compatible provider.\n\n## Need Help?\nJoin our community on different platforms for support, inspiration and tips from others.\n\nWebsite: https://www.agentcircle.ai/\nEtsy: https://www.etsy.com/shop/AgentCircle\nGumroad: http://agentcircle.gumroad.com/\nDiscord Global: https://discord.gg/d8SkCzKwnP\nFB Page Global: https://www.facebook.com/agentcircle/\nFB Group Global: https://www.facebook.com/groups/aiagentcircle/\nX: https://x.com/agent_circle\nYouTube: https://www.youtube.com/@agentcircle\nLinkedIn: https://www.linkedin.com/company/agentcircle"
+}

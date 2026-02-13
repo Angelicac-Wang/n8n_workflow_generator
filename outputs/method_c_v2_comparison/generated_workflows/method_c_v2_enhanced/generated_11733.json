@@ -1,0 +1,237 @@
+{
+  "template_id": "11733",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook to receive incident details.",
+      "data_sources": "OpenAI for AI analysis, Slack API for alerts, HTMLCSS to PDF for report generation, Gmail for email delivery, Google Drive for storage.",
+      "operations": "1. Receive incident details via webhook, 2. Perform AI analysis for root cause and impact, 3. Check severity, 4. Send Slack alerts for high-severity incidents, 5. Generate a professional report, 6. Convert report to PDF, 7. Email the PDF report, 8. Store the report in Google Drive.",
+      "output_actions": "Email the PDF report and store a copy in Google Drive.",
+      "nodes_plan": "webhook (trigger), openAi (AI analysis), if (severity check), slack (alert), set (format report), htmlToPdf (convert to PDF), emailSend (send email), googleDrive (store report)",
+      "connections_plan": "webhook -> openAi -> if -> [slack (true branch)] -> set -> htmlToPdf -> emailSend -> googleDrive"
+    },
+    "workflowPlan": {
+      "name": "AI-Powered Incident Report Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "incident-report"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "AI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "={{ $json.body.description }}\n\nAnalyze the root cause, impact, and recommend actions."
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Severity Check",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.body.severity }}",
+                  "operation": "greaterThan",
+                  "value2": 7
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Slack Alert",
+          "nodeType": "n8n-nodes-base.slack",
+          "typeVersion": 1,
+          "params": {
+            "operation": "postMessage",
+            "channel": "#ops-channel",
+            "text": "High-severity incident detected: {{ $json.body.description }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Format Report",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "report",
+                  "value": "Incident Report\n\nID: {{ $json.body.id }}\nSeverity: {{ $json.body.severity }}\nSystems Affected: {{ $json.body.systemsAffected }}\nDescription: {{ $json.body.description }}\n\nAI Analysis: {{ $json.aiAnalysis }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Convert to PDF",
+          "nodeType": "n8n-nodes-base.htmlToPdf",
+          "typeVersion": 1,
+          "params": {
+            "html": "={{ $json.report }}",
+            "options": {}
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "ops-team@example.com",
+            "subject": "Incident Report",
+            "text": "Please find the attached incident report.",
+            "attachments": [
+              {
+                "content": "={{ $json.pdf }}",
+                "type": "application/pdf",
+                "filename": "incident-report.pdf"
+              }
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Store in Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "upload",
+            "fileName": "incident-report.pdf",
+            "fileContent": "={{ $json.pdf }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5516,
+    "completion_tokens": 1370,
+    "total_tokens": 6886
+  },
+  "description_optimization": null,
+  "original_description": "# **AI-Powered Incident Report Generator with Severity Alerts & PDF Delivery**\n\n---\n\n## **Description**\n\nAutomate incident reporting from detection to delivery with AI-driven analysis and professional documentation.\n\nThis workflow transforms raw incident details into a **clear, structured incident report**, performs **AI-based root cause and impact analysis**, triggers **real-time alerts for high-severity issues**, and delivers a **polished PDF report** to your operations team \u2014 all with minimal manual effort.\n\n---\n\n## **What This Workflow Does**\n\nTurns incident reporting into a fast, reliable, and repeatable process:\n\n\ud83d\udea8 **Receive Incident Details** \u2013 Accepts incident data via webhook (ID, severity, systems affected, description).\n\n\ud83e\udde0 **AI Analysis** \u2013 Uses AI to generate root cause analysis, impact assessment, and recommended actions.\n\n\u26a0\ufe0f **Severity Check** \u2013 Automatically detects high-severity incidents.\n\n\ud83d\udcac **Slack Alerts** \u2013 Sends instant alerts for critical incidents to the ops channel.\n\n\ud83d\udcc4 **Professional Report Generation** \u2013 Formats incident details into a clean, readable report.\n\n\ud83d\udcd1 **PDF Creation** \u2013 Converts the report into a downloadable PDF.\n\n\ud83d\udce7 **Email Delivery** \u2013 Sends the report to the operations team.\n\n\u2601\ufe0f **Secure Storage** \u2013 Saves a copy to Google Drive for records and compliance.\n\n---\n\n## **Key Features**\n\n\ud83e\udd16 **AI-Generated Analysis** \u2013 Automated root cause, impact, and action recommendations\n\u26a1 **Real-Time Severity Alerts** \u2013 Immediate Slack notifications for high-risk incidents\n\ud83d\udcc4 **Professional PDF Reports** \u2013 Clean, structured, and ready for audits\n\ud83d\udce7 **Automated Delivery** \u2013 Email reports without manual follow-ups\n\u2601\ufe0f **Centralized Storage** \u2013 Securely archive reports in Google Drive\n\n---\n\n## **Perfect For**\n\n\ud83c\udfe2 IT & Operations Teams\n\ud83d\udd10 Security & Compliance Teams\n\ud83e\uddd1\u200d\ud83d\udcbc Internal Ops & Risk Management\n\ud83c\udfed Enterprises handling system or process incidents\n\ud83d\udcca Teams needing audit-ready incident documentation\n\n---\n\n## **What You\u2019ll Need**\n\n### Required Integrations\n\n\ud83e\udd16 **OpenAI** \u2013 Incident analysis and recommendations\n\ud83d\udcc4 **HTMLCSS to PDF** \u2013 Convert reports into PDFs\n\ud83d\udce7 **Gmail** \u2013 Send incident reports\n\ud83d\udcac **Slack** \u2013 Severity-based alerts\n\n### Optional\n\n\u2601\ufe0f **Google Drive** \u2013 Store incident reports securely\n\n---\n\n## **Quick Start**\n\n1\ufe0f\u20e3 Import the workflow into n8n\n2\ufe0f\u20e3 Connect OpenAI, Slack, Gmail, and HTMLCSS to PDF credentials\n3\ufe0f\u20e3 Update Slack channel and email recipients\n4\ufe0f\u20e3 Trigger the webhook with incident data\n5\ufe0f\u20e3 Activate the workflow\n\n---\n\n## **Expected Results**\n\n\u26a1 Faster incident response\n\ud83e\udd16 Consistent AI-driven analysis\n\ud83d\udcc9 Reduced manual reporting work\n\ud83d\udcc4 Audit-ready incident documentation\n\ud83d\udea8 Immediate visibility into critical incidents",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T03:04:33.275037",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.5454545454545454,
+    "node_type_f1": 0.631578947368421,
+    "tp": 6,
+    "fp": 2,
+    "fn": 5,
+    "gt_node_count": 11,
+    "llm_node_count": 8,
+    "connection_precision": 0.125,
+    "connection_recall": 0.1,
+    "connection_f1": 0.11111111111111112,
+    "correct_connections": 1,
+    "gt_connection_count": 10,
+    "llm_connection_count": 8,
+    "avg_parameter_accuracy": 0.16666666666666666,
+    "usage": {
+      "prompt_tokens": 5516,
+      "completion_tokens": 1370,
+      "total_tokens": 6886
+    },
+    "total_cost": 0.02749
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "template_id": "11809",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered manually or via a form submission to input the target keyword and audience.",
+      "data_sources": "Apify for SERP scraping, OpenAI for AI analysis, Google Docs for output, and Google Sheets for logging.",
+      "operations": "1. Receive input from form, 2. Scrape SERP with Apify, 3. Filter non-article URLs, 4. Extract headings from articles, 5. Generate outline with OpenAI, 6. Create Google Doc, 7. Log details in Google Sheets.",
+      "output_actions": "Create a Google Doc with the article outline and log the request details in Google Sheets.",
+      "nodes_plan": "manualTrigger (trigger), set (input handling), apify (SERP scraping), filter (non-article URLs), apify (heading extraction), openAi (AI analysis), googleDocs (create doc), googleSheets (log details)",
+      "connections_plan": "manualTrigger -> set -> apify (SERP) -> filter -> apify (extract) -> openAi -> googleDocs -> googleSheets"
+    },
+    "workflowPlan": {
+      "name": "SEO Content Outline Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Input",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "targetKeyword",
+                  "value": "Enter your keyword"
+                },
+                {
+                  "name": "targetAudience",
+                  "value": "Enter your audience"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Apify SERP Scraper",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "google-search-scraper",
+            "input": {
+              "queries": "={{ $json.targetKeyword }}",
+              "countryCode": "us",
+              "maxResults": 10
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Filter Non-Article URLs",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.url }}",
+                  "operation": "notContains",
+                  "value2": "amazon.com"
+                },
+                {
+                  "value1": "={{ $json.url }}",
+                  "operation": "notContains",
+                  "value2": "youtube.com"
+                },
+                {
+                  "value1": "={{ $json.url }}",
+                  "operation": "notContains",
+                  "value2": ".pdf"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Apify Cheerio Scraper",
+          "nodeType": "n8n-nodes-base.apify",
+          "typeVersion": 1,
+          "params": {
+            "actorId": "cheerio-scraper",
+            "input": {
+              "startUrls": "={{ $json.url }}",
+              "pageFunction": "function pageFunction(context) { return { headings: $('h1, h2, h3').text() }; }"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "OpenAI Analysis",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Analyze the following headings and generate an optimized content outline: {{ $json.headings }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Google Doc",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "documentTitle": "SEO Content Outline",
+            "content": "={{ $json.message.content }}"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Log to Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-spreadsheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{ $json.targetKeyword }}",
+                "={{ $json.targetAudience }}",
+                "={{ $json.message.content }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5733,
+    "completion_tokens": 1409,
+    "total_tokens": 7142
+  },
+  "description_optimization": null,
+  "original_description": "# Generate SEO content outlines from SERP analysis to Google Docs\n\n\n## Overview\nStop wasting hours on manual competitor research and content briefing. This workflow automates the creation of data-backed content briefs by analyzing the current top-ranking pages for your specific keyword.\n\n\nIt scrapes the Google Search Engine Results Page (SERP), extracts the content structure (headings H1-H3) from competitor articles, and uses AI to generate a comprehensive article outline based on what is already ranking. The final outline is automatically saved to a Google Doc, streamlining your content production process.\n\n\n## Who is this for?\n- **Content Marketers:** To drastically reduce the time needed to create detailed content briefs.\n- **SEO Specialists:** To analyze competitor content structures at scale without manual checking.\n- **Bloggers & Writers:** To overcome writer's block and ensure their content covers all necessary topics to rank.\n\n\n## How it works\n1.  **Input:** You enter a \"Target Keyword\" and \"Target Audience\" via the built-in n8n Form.\n2.  **SERP Scraping:** The workflow uses **Apify** (Google Search Scraper) to fetch the top results for that keyword.\n3.  **Filtering:** It automatically removes non-article URLs (such as Amazon product pages, YouTube videos, and PDFs) to ensure only relevant content competitors are analyzed.\n4.  **Deep Extraction:** It visits each competitor's URL using **Apify** (Cheerio Scraper) to extract their article metadata and heading structure (H1, H2, H3).\n5.  **AI Analysis:** The aggregated data is sent to **OpenAI**, which analyzes common patterns and generates an optimized article outline.\n6.  **Output:**\n    - A new **Google Doc** is created with the generated outline.\n    - The request details are logged in **Google Sheets** for your records.\n\n\n## Requirements\n- **Apify Account:** You will need an Apify account with access to the *Google Search Result Scraper* and *Cheerio Scraper* actors.\n- **OpenAI Account:** An API key for OpenAI (GPT-3.5 or GPT-4 recommended).\n- **Google Cloud:** Credentials to access Google Docs and Google Sheets.\n\n\n## How to set up\n1.  **Configure Credential:** Connect your Apify, OpenAI, and Google accounts in the respective nodes.\n2.  **Workflow Configuration:** Open the `Workflow Configuration` node. You can change the `countryCode` (default is \"jp\" for Japan) to your target region (e.g., \"us\", \"uk\") and adjust `maxResults` if needed.\n3.  **Google Sheets Setup:** Create a Google Sheet with a column header named `target_keyword`. Copy the Spreadsheet ID and paste it into the `Store Form Responses` node.\n4.  **Run:** Click \"Chat\" or \"Open Form\" in the trigger node to start the workflow.\n\n\n## How to customize\n- **Change the AI Model:** In the `AI Content Structure Analysis` node, you can switch between different OpenAI models or adjust the system prompt to change the tone/format of the outline.\n- **Adjust Filters:** Modify the `Filter Non-Article URLs` node to exclude specific domains you don't want to analyze (e.g., wikipedia.org).\n- **Output Format:** You can modify the `Create Google Doc` node to include more specific data, such as the list of competitor URLs analyzed.![\u30b9\u30af\u30ea\u30fc\u30f3\u30b7\u30e7\u30c3\u30c8 20251215 114351.png](fileId:3657)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:58:07.088509",
+  "metrics": {
+    "node_type_precision": 0.75,
+    "node_type_recall": 0.6666666666666666,
+    "node_type_f1": 0.7058823529411765,
+    "tp": 6,
+    "fp": 2,
+    "fn": 3,
+    "gt_node_count": 9,
+    "llm_node_count": 8,
+    "connection_precision": 0.2857142857142857,
+    "connection_recall": 0.25,
+    "connection_f1": 0.26666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 8,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.10416666666666667,
+    "usage": {
+      "prompt_tokens": 5733,
+      "completion_tokens": 1409,
+      "total_tokens": 7142
+    },
+    "total_cost": 0.028422500000000003
+  }
+}

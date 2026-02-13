@@ -1,0 +1,249 @@
+{
+  "template_id": "11693",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook to receive form submissions with position, industry, and region.",
+      "data_sources": "Google Sheets API for data storage, Google Custom Search API for LinkedIn profile searches.",
+      "operations": "1. Receive form submission, 2. Perform Google Custom Search, 3. Extract profile data, 4. Handle pagination, 5. Append/update data in Google Sheets.",
+      "output_actions": "Store the extracted LinkedIn profiles in a Google Sheet.",
+      "nodes_plan": "webhook (trigger), httpRequest (Google Custom Search), set (extract data), if (pagination), googleSheets (append/update)",
+      "connections_plan": "webhook -> httpRequest -> set -> if (pagination) -> googleSheets"
+    },
+    "workflowPlan": {
+      "name": "LinkedIn Profile Collection",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "linkedin-profile-collection"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Custom Search",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://www.googleapis.com/customsearch/v1",
+            "queryParameters": [
+              {
+                "name": "key",
+                "value": "YOUR_API_KEY"
+              },
+              {
+                "name": "cx",
+                "value": "YOUR_CSE_ID"
+              },
+              {
+                "name": "q",
+                "value": "={{ $json.body.position }} {{ $json.body.industry }} site:linkedin.com/in"
+              }
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Extract Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "name",
+                  "value": "={{ $json.items[0].pagemap.person[0].name }}"
+                },
+                {
+                  "name": "title",
+                  "value": "={{ $json.items[0].pagemap.person[0].jobtitle }}"
+                },
+                {
+                  "name": "profileLink",
+                  "value": "={{ $json.items[0].link }}"
+                },
+                {
+                  "name": "description",
+                  "value": "={{ $json.items[0].snippet }}"
+                },
+                {
+                  "name": "imageLink",
+                  "value": "={{ $json.items[0].pagemap.cse_image[0].src }}"
+                },
+                {
+                  "name": "searchedPosition",
+                  "value": "={{ $json.body.position }}"
+                },
+                {
+                  "name": "searchedIndustry",
+                  "value": "={{ $json.body.industry }}"
+                },
+                {
+                  "name": "searchedRegion",
+                  "value": "={{ $json.body.region }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Check Pagination",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.queries.nextPage[0].startIndex || 0 }}",
+                  "operation": "larger",
+                  "value2": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Sheet1!A:H",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              "={{ $json.name }}",
+              "={{ $json.title }}",
+              "={{ $json.profileLink }}",
+              "={{ $json.description }}",
+              "={{ $json.imageLink }}",
+              "={{ $json.searchedPosition }}",
+              "={{ $json.searchedIndustry }}",
+              "={{ $json.searchedRegion }}"
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4342,
+      "completion_tokens": 1155,
+      "total_tokens": 5497
+    },
+    "description_optimization": {
+      "prompt_tokens": 621,
+      "completion_tokens": 583,
+      "total_tokens": 1204
+    },
+    "total_tokens": 6701,
+    "total_prompt_tokens": 4963,
+    "total_completion_tokens": 1738
+  },
+  "description_optimization": {
+    "template_id": "11693",
+    "optimized_description": "Workflow Description for LinkedIn Profile Collection\n\nTrigger:\nThe workflow is initiated through a web form submission where users input three key parameters: position, industry, and region. This serves as the starting point for the profile collection process.\n\nData Sources and APIs Needed:\n1. Google Sheets: OAuth2 credentials required for accessing and updating the Google Sheet.\n2. Google Custom Search API: An API key is necessary to perform searches on LinkedIn profiles.\n3. Google Custom Search Engine (CSE): A unique CSE ID is required to restrict search results to LinkedIn profile URLs.\n4. Google Sheet: A pre-existing Google Sheet must be set up with the following columns: name, title, profile link, description, image link, searched position, searched industry, and searched region.\n\nOperations and Processing Steps:\n1. User accesses the web form and inputs the desired position, industry, and region.\n2. Upon submission, the workflow triggers a Google Custom Search query, specifically targeting LinkedIn profile URLs based on the provided inputs.\n3. The workflow processes the search results to extract structured profile information, including:\n   - Name\n   - Job title (cleaned using custom logic to ensure consistency)\n   - LinkedIn profile link\n   - Description or bio snippet\n   - Profile image URL\n4. The workflow includes logic to handle pagination, automatically detecting if additional results are available. It continues to fetch results until the predefined limit is reached.\n5. All extracted profiles are appended or updated in the designated Google Sheet, ensuring that the list remains organized and free of duplicates.\n\nFinal Output or Action:\nThe final output of the workflow is an organized and deduplicated list of LinkedIn profiles stored in the specified Google Sheet. This list can be utilized for outreach, research, hiring, or market analysis purposes.\n\nSetup Instructions:\n1. Connect your Google Sheets credentials to the workflow.\n2. Input your Custom Search API key and CSE ID into the HTTP Request node.\n3. Select the target Google Sheet in the \u201cAppend or update row in sheet\u201d node.\n4. Open the form URL and submit the required position, industry, and region.\n5. Execute the workflow to begin the automated scraping of LinkedIn profiles.\n\nCustomization Options:\n- Users can modify the search query structure to target niche industries more effectively.\n- Enrichment tools such as Hunter.io, Clearbit, or People Data can be integrated for enhanced data collection.\n- The pagination limit can be expanded beyond the default settings to capture more results.\n- Filters can be added to eliminate non-relevant results from the output.\n- The workflow can be configured to output data to various CRM tools, including HubSpot, Notion, Airtable, or additional Google Sheets.\n\nThis structured workflow is designed for recruiters, founders, sales teams, and lead-generation specialists seeking an efficient method to gather LinkedIn profiles for various professional purposes without the need for manual searching.",
+    "original_description": "## Who\u2019s it for\nThis template is ideal for recruiters, founders, sales teams, and lead-generation specialists who want to quickly collect LinkedIn profiles based on role, industry, and region. It is perfect for users who want profile lists for outreach, research, hiring, or market analysis without manually searching LinkedIn.\n\n## What it does / How it works\nThis workflow begins with a web form where you enter three inputs: position, industry, and region.  \nOnce the form is submitted, the workflow performs a Google Custom Search query restricted to LinkedIn profile URLs.  \nThe results are processed to extract structured profile information such as:\n\n- Name  \n- Job title (cleaned using custom logic)  \n- LinkedIn profile link  \n- Description / bio snippet  \n- Profile image URL  \n\nThe workflow automatically handles pagination by detecting whether more results are available and continues fetching until the limit is reached.  \nAll extracted profiles are appended or updated in a Google Sheet so you always maintain an organized and deduplicated list.\n\n## Requirements\n- Google Sheets OAuth2 credentials  \n- Google Custom Search API key  \n- Google CSE (Custom Search Engine) ID  \n- A Google Sheet with the required columns (name, title, profile link, description, image link, searched position, searched industry, searched region)\n\n## How to set up\n1. Connect your Google Sheets credentials.  \n2. Add your Custom Search API key and CSE ID inside the HTTP Request node.  \n3. Select your target Google Sheet in the \u201cAppend or update row in sheet\u201d node.  \n4. Open the form URL and submit your position, industry, and region.  \n5. Run the workflow to begin scraping profiles.\n\n## How to customize the workflow\n- Modify search query structure for niche industries  \n- Add enrichment tools (Hunter.io, Clearbit, People Data)  \n- Expand pagination limit beyond the default  \n- Add filters to remove non-relevant results  \n- Output data to CRM tools like HubSpot, Notion, Airtable, or Sheets",
+    "description_length": 3045,
+    "usage": {
+      "prompt_tokens": 621,
+      "completion_tokens": 583,
+      "total_tokens": 1204
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:04:32.541488"
+  },
+  "original_description": "## Who\u2019s it for\nThis template is ideal for recruiters, founders, sales teams, and lead-generation specialists who want to quickly collect LinkedIn profiles based on role, industry, and region. It is perfect for users who want profile lists for outreach, research, hiring, or market analysis without manually searching LinkedIn.\n\n## What it does / How it works\nThis workflow begins with a web form where you enter three inputs: position, industry, and region.  \nOnce the form is submitted, the workflow performs a Google Custom Search query restricted to LinkedIn profile URLs.  \nThe results are processed to extract structured profile information such as:\n\n- Name  \n- Job title (cleaned using custom logic)  \n- LinkedIn profile link  \n- Description / bio snippet  \n- Profile image URL  \n\nThe workflow automatically handles pagination by detecting whether more results are available and continues fetching until the limit is reached.  \nAll extracted profiles are appended or updated in a Google Sheet so you always maintain an organized and deduplicated list.\n\n## Requirements\n- Google Sheets OAuth2 credentials  \n- Google Custom Search API key  \n- Google CSE (Custom Search Engine) ID  \n- A Google Sheet with the required columns (name, title, profile link, description, image link, searched position, searched industry, searched region)\n\n## How to set up\n1. Connect your Google Sheets credentials.  \n2. Add your Custom Search API key and CSE ID inside the HTTP Request node.  \n3. Select your target Google Sheet in the \u201cAppend or update row in sheet\u201d node.  \n4. Open the form URL and submit your position, industry, and region.  \n5. Run the workflow to begin scraping profiles.\n\n## How to customize the workflow\n- Modify search query structure for niche industries  \n- Add enrichment tools (Hunter.io, Clearbit, People Data)  \n- Expand pagination limit beyond the default  \n- Add filters to remove non-relevant results  \n- Output data to CRM tools like HubSpot, Notion, Airtable, or Sheets",
+  "optimized_description": "Workflow Description for LinkedIn Profile Collection\n\nTrigger:\nThe workflow is initiated through a web form submission where users input three key parameters: position, industry, and region. This serves as the starting point for the profile collection process.\n\nData Sources and APIs Needed:\n1. Google Sheets: OAuth2 credentials required for accessing and updating the Google Sheet.\n2. Google Custom Search API: An API key is necessary to perform searches on LinkedIn profiles.\n3. Google Custom Search Engine (CSE): A unique CSE ID is required to restrict search results to LinkedIn profile URLs.\n4. Google Sheet: A pre-existing Google Sheet must be set up with the following columns: name, title, profile link, description, image link, searched position, searched industry, and searched region.\n\nOperations and Processing Steps:\n1. User accesses the web form and inputs the desired position, industry, and region.\n2. Upon submission, the workflow triggers a Google Custom Search query, specifically targeting LinkedIn profile URLs based on the provided inputs.\n3. The workflow processes the search results to extract structured profile information, including:\n   - Name\n   - Job title (cleaned using custom logic to ensure consistency)\n   - LinkedIn profile link\n   - Description or bio snippet\n   - Profile image URL\n4. The workflow includes logic to handle pagination, automatically detecting if additional results are available. It continues to fetch results until the predefined limit is reached.\n5. All extracted profiles are appended or updated in the designated Google Sheet, ensuring that the list remains organized and free of duplicates.\n\nFinal Output or Action:\nThe final output of the workflow is an organized and deduplicated list of LinkedIn profiles stored in the specified Google Sheet. This list can be utilized for outreach, research, hiring, or market analysis purposes.\n\nSetup Instructions:\n1. Connect your Google Sheets credentials to the workflow.\n2. Input your Custom Search API key and CSE ID into the HTTP Request node.\n3. Select the target Google Sheet in the Append or update row in sheet node.\n4. Open the form URL and submit the required position, industry, and region.\n5. Execute the workflow to begin the automated scraping of LinkedIn profiles.\n\nCustomization Options:\n- Users can modify the search query structure to target niche industries more effectively.\n- Enrichment tools such as Hunter.io, Clearbit, or People Data can be integrated for enhanced data collection.\n- The pagination limit can be expanded beyond the default settings to capture more results.\n- Filters can be added to eliminate non-relevant results from the output.\n- The workflow can be configured to output data to various CRM tools, including HubSpot, Notion, Airtable, or additional Google Sheets.\n\nThis structured workflow is designed for recruiters, founders, sales teams, and lead-generation specialists seeking an efficient method to gather LinkedIn profiles for various professional purposes without the need for manual searching.",
+  "error": null,
+  "generated_at": "2026-01-25T23:04:42.887069",
+  "metrics": {
+    "node_type_precision": 0.8,
+    "node_type_recall": 0.4444444444444444,
+    "node_type_f1": 0.5714285714285714,
+    "tp": 4,
+    "fp": 1,
+    "fn": 5,
+    "gt_node_count": 9,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 9,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.32386363636363635,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4342,
+        "completion_tokens": 1155,
+        "total_tokens": 5497
+      },
+      "description_optimization": {
+        "prompt_tokens": 621,
+        "completion_tokens": 583,
+        "total_tokens": 1204
+      },
+      "total_tokens": 6701,
+      "total_prompt_tokens": 4963,
+      "total_completion_tokens": 1738
+    },
+    "total_cost": 0.0297875,
+    "description_optimization_cost": 0.0073825,
+    "workflow_generation_cost": 0.022405
+  }
+}

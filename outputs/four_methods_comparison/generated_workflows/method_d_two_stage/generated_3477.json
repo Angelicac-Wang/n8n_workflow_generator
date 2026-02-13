@@ -1,0 +1,210 @@
+{
+  "template_id": "3477",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by new entries in a Google Sheet, which can be achieved using the Google Sheets node with a polling trigger.",
+      "data_sources": "Google Sheets for input data, Google Search API for searching LinkedIn profiles, Airtop API for URL validation.",
+      "operations": "1. Monitor Google Sheets for new entries. 2. Extract contact information. 3. Construct search queries. 4. Use Google Search API to find LinkedIn URLs. 5. Validate URLs with Airtop API. 6. Format and update results back to Google Sheets.",
+      "output_actions": "The final output is the validated LinkedIn profile URLs and their statuses written back to the Google Sheet.",
+      "nodes_plan": "googleSheets (trigger and data), set (construct queries), httpRequest (Google Search API), airtop (validate URLs), googleSheets (update results)",
+      "connections_plan": "googleSheets (trigger) -> set (construct queries) -> httpRequest (search) -> airtop (validate) -> googleSheets (update)"
+    },
+    "workflowPlan": {
+      "name": "LinkedIn Profile Discovery Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Google Sheets Trigger",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!A:C",
+            "polling": true
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Construct Search Query",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "searchQuery",
+                  "value": "={{ $json.name }} {{ $json.company }} site:linkedin.com"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Search API",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://www.googleapis.com/customsearch/v1",
+            "queryParameters": [
+              {
+                "name": "q",
+                "value": "={{ $json.searchQuery }}"
+              },
+              {
+                "name": "key",
+                "value": "your-google-api-key"
+              },
+              {
+                "name": "cx",
+                "value": "your-search-engine-id"
+              }
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Validate LinkedIn URLs",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.airtop.io/validate",
+            "body": {
+              "urls": "={{ $json.items.map(item => item.link) }}"
+            },
+            "json": true
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Update Google Sheet",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-sheet-id",
+            "range": "Sheet1!D:F",
+            "data": "={{ $json.validatedUrls }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4250,
+      "completion_tokens": 986,
+      "total_tokens": 5236
+    },
+    "description_optimization": {
+      "prompt_tokens": 1087,
+      "completion_tokens": 489,
+      "total_tokens": 1576
+    },
+    "total_tokens": 6812,
+    "total_prompt_tokens": 5337,
+    "total_completion_tokens": 1475
+  },
+  "description_optimization": {
+    "template_id": "3477",
+    "optimized_description": "Workflow Title: LinkedIn Profile Discovery Automation\n\nTrigger: The workflow is initiated when new entries are added to a specified Google Sheet containing contact information (name, company, domain, etc.).\n\nData Sources and APIs Needed:\n1. Google Workspace account (Google Sheets)\n2. Airtop API key (free registration required)\n3. LinkedIn account (optional for validation)\n\nOperations and Processing Steps:\n1. **Google Sheets Integration**: Connect the Google Sheets node to the workflow to monitor a specific sheet for new entries.\n2. **Data Retrieval**: Extract input data (name, company, domain) from the new row in the Google Sheet.\n3. **Search Query Construction**: Construct intelligent search queries using the input data to facilitate LinkedIn profile discovery.\n4. **Google Search API**: Utilize the Google Search API to identify potential LinkedIn profile URLs based on the constructed queries.\n5. **URL Validation**: Use the Airtop API to validate the discovered LinkedIn URLs against LinkedIn to ensure accuracy.\n6. **Output Formatting**: Format the results to include confirmed LinkedIn profile URLs and their validation status.\n7. **Update Google Sheet**: Write the validated LinkedIn URLs and their corresponding validation statuses back to the Google Sheet in the designated output columns.\n\nFinal Output or Action:\nThe workflow outputs confirmed LinkedIn profile URLs along with their validation status directly into the Google Sheet, allowing users to easily access accurate LinkedIn profiles for their contacts.\n\nCustomization Options:\n- **Webhook Integration**: Integrate with other tools like Clay or Instantly for enhanced functionality.\n- **Database Alternatives**: Replace Google Sheets with Airtable, Notion, or other database tools for improved data management.\n- **Custom Output Formatting**: Adjust the output structure to align with existing systems.\n- **Batch Processing**: Configure the workflow to process multiple profiles in bulk for efficiency.\n\nBest Practices:\n- Include company information (domain or company name) with search queries for better accuracy.\n- Use full names instead of nicknames or initials to enhance search results.\n- Consider adding location data to refine searches for common names.\n- Implement rate limiting to comply with LinkedIn's usage guidelines.\n- Maintain clean and standardized input data for optimal results.\n- Utilize the integrated proxy feature to navigate Google and LinkedIn more effectively.\n\nThis automation streamlines the process of discovering LinkedIn profiles, significantly reducing manual effort and enhancing data accuracy for recruiting firms and sales teams.",
+    "original_description": "### About The LinkedIn Profile Discovery Automation\n\nAre you tired of manually searching for LinkedIn profiles or paying expensive data providers for often outdated information? If you spend countless hours trying to find accurate LinkedIn URLs for your prospects or candidates, this automation will change your workflow forever. Just give this workflow the information you have about a contact, and it will automatically augment it with a LinkedIn profile.\n\n### How to find a LinkedIn Profile Link\n\nIn this guide, you'll learn how to automate LinkedIn profile link discovery using Airtop's built-in node in n8n. Using this automation, you'll have a fully automated workflow that saves you hours of manual searching while providing accurate, validated LinkedIn URLs.\n\n### What You'll Need\n\n- A free [Airtop API key](https://portal.airtop.ai/?utm_campaign=n8n)\n- A Google Workspace account. If you have a Gmail account, you\u2019re all set\n- Estimated setup time: 10 minutes\n\n### Understanding the Process\n\nThis automation leverages the power of intelligent search algorithms combined with LinkedIn validation to ensure accuracy. Here's how it works:\n\n- Takes your input data (name, company, etc.) and constructs intelligent search queries\n- Utilizes Google search to identify potential LinkedIn profile URLs\n- Validates the discovered URLs directly against LinkedIn to ensure accuracy\n- Returns confirmed, accurate LinkedIn profile URLs\n\n![image.png](fileId:1096)\n\n### Setting Up Your Automation\n\nGetting started with this automation is straightforward:\n\n#### Prepare Your Google Sheet\n\n- Create a new Google Sheet with columns for input data (name, company, domain, etc.)\n- Add columns for the output LinkedIn URL and validation status (see [this](https://docs.google.com/spreadsheets/d/1rjlKzphEbknNh_ToS9pR_dP_Tw93FsxDte5AI4LH5_E/copy) example)\n\n#### Configure the Automation\n\n- Connect your Google Workspace account to n8n if you haven't already\n- Add your Airtop API credentials\n- (Optionally) Configure your [Airtop Profile](https://docs.airtop.ai/guides/how-to/saving-a-profile) and sign-in to LinkedIn in order to validate profile URL's\n\n#### Run Your First Test\n\n- Add a few test entries to your Google Sheet\n- Run the workflow\n- Check the results in your output columns\n\n![image.png](fileId:1102)\n\n### Customization Options\n\nWhile the default setup uses Google Sheets, this automation is highly flexible:\n\n- **Webhook Integration**: Perfect for integrating with tools like Clay, Instantly, or your custom applications\n- **Alternatives**: Replace Google Sheets with Airtable, Notion, or any other tools you already use for more robust database capabilities\n- **Custom Output Formatting**: Modify the output structure to match your existing systems\n- **Batch Processing**: Configure for bulk processing of multiple profiles\n\n\n### Real-World Applications\n\nThis automation has the potential to transform how we organizations handle profile enrichment.\n\n#### Recruiting Firm Success Story\n\nWith this automation, a recruiting firm could save hundreds of dollars a month in data enrichment fees, achieve better accuracy, and eliminate subscription costs. They would also be able to process thousands of profiles weekly with near-perfect accuracy.\n\n#### Sales Team Integration\n\nA B2B sales team could integrate this automation with their CRM, automatically enriching new leads with validated LinkedIn profiles and saving their SDRs hours per week on manual research.\n\n### Best Practices\n\nTo maximize the accuracy of your results:\n\n- Always include company information (domain or company name) with your search queries\n- Use full names rather than nicknames or initials when possible\n- Consider including location data for more accurate results with common names\n- Implement rate limiting to respect LinkedIn's usage guidelines\n- Keep your input data clean and standardized for best results\n- Use the [integrated proxy](https://docs.airtop.ai/guides/how-to/using-a-proxy) to navigate more effectively through Google and LinkedIn\n\n\n### What's Next?\n\nNow that you've automated LinkedIn profile discovery, consider exploring related automations:\n\n- Automated lead scoring based on LinkedIn profile data\n- Email finder automation using validated LinkedIn profiles\n- Integration with your CRM for automated contact enrichment",
+    "description_length": 2643,
+    "usage": {
+      "prompt_tokens": 1087,
+      "completion_tokens": 489,
+      "total_tokens": 1576
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:05:43.632700"
+  },
+  "original_description": "### About The LinkedIn Profile Discovery Automation\n\nAre you tired of manually searching for LinkedIn profiles or paying expensive data providers for often outdated information? If you spend countless hours trying to find accurate LinkedIn URLs for your prospects or candidates, this automation will change your workflow forever. Just give this workflow the information you have about a contact, and it will automatically augment it with a LinkedIn profile.\n\n### How to find a LinkedIn Profile Link\n\nIn this guide, you'll learn how to automate LinkedIn profile link discovery using Airtop's built-in node in n8n. Using this automation, you'll have a fully automated workflow that saves you hours of manual searching while providing accurate, validated LinkedIn URLs.\n\n### What You'll Need\n\n- A free [Airtop API key](https://portal.airtop.ai/?utm_campaign=n8n)\n- A Google Workspace account. If you have a Gmail account, you\u2019re all set\n- Estimated setup time: 10 minutes\n\n### Understanding the Process\n\nThis automation leverages the power of intelligent search algorithms combined with LinkedIn validation to ensure accuracy. Here's how it works:\n\n- Takes your input data (name, company, etc.) and constructs intelligent search queries\n- Utilizes Google search to identify potential LinkedIn profile URLs\n- Validates the discovered URLs directly against LinkedIn to ensure accuracy\n- Returns confirmed, accurate LinkedIn profile URLs\n\n![image.png](fileId:1096)\n\n### Setting Up Your Automation\n\nGetting started with this automation is straightforward:\n\n#### Prepare Your Google Sheet\n\n- Create a new Google Sheet with columns for input data (name, company, domain, etc.)\n- Add columns for the output LinkedIn URL and validation status (see [this](https://docs.google.com/spreadsheets/d/1rjlKzphEbknNh_ToS9pR_dP_Tw93FsxDte5AI4LH5_E/copy) example)\n\n#### Configure the Automation\n\n- Connect your Google Workspace account to n8n if you haven't already\n- Add your Airtop API credentials\n- (Optionally) Configure your [Airtop Profile](https://docs.airtop.ai/guides/how-to/saving-a-profile) and sign-in to LinkedIn in order to validate profile URL's\n\n#### Run Your First Test\n\n- Add a few test entries to your Google Sheet\n- Run the workflow\n- Check the results in your output columns\n\n![image.png](fileId:1102)\n\n### Customization Options\n\nWhile the default setup uses Google Sheets, this automation is highly flexible:\n\n- **Webhook Integration**: Perfect for integrating with tools like Clay, Instantly, or your custom applications\n- **Alternatives**: Replace Google Sheets with Airtable, Notion, or any other tools you already use for more robust database capabilities\n- **Custom Output Formatting**: Modify the output structure to match your existing systems\n- **Batch Processing**: Configure for bulk processing of multiple profiles\n\n\n### Real-World Applications\n\nThis automation has the potential to transform how we organizations handle profile enrichment.\n\n#### Recruiting Firm Success Story\n\nWith this automation, a recruiting firm could save hundreds of dollars a month in data enrichment fees, achieve better accuracy, and eliminate subscription costs. They would also be able to process thousands of profiles weekly with near-perfect accuracy.\n\n#### Sales Team Integration\n\nA B2B sales team could integrate this automation with their CRM, automatically enriching new leads with validated LinkedIn profiles and saving their SDRs hours per week on manual research.\n\n### Best Practices\n\nTo maximize the accuracy of your results:\n\n- Always include company information (domain or company name) with your search queries\n- Use full names rather than nicknames or initials when possible\n- Consider including location data for more accurate results with common names\n- Implement rate limiting to respect LinkedIn's usage guidelines\n- Keep your input data clean and standardized for best results\n- Use the [integrated proxy](https://docs.airtop.ai/guides/how-to/using-a-proxy) to navigate more effectively through Google and LinkedIn\n\n\n### What's Next?\n\nNow that you've automated LinkedIn profile discovery, consider exploring related automations:\n\n- Automated lead scoring based on LinkedIn profile data\n- Email finder automation using validated LinkedIn profiles\n- Integration with your CRM for automated contact enrichment",
+  "optimized_description": "Workflow Title: LinkedIn Profile Discovery Automation\n\nTrigger: The workflow is initiated when new entries are added to a specified Google Sheet containing contact information (name, company, domain, etc.).\n\nData Sources and APIs Needed:\n1. Google Workspace account (Google Sheets)\n2. Airtop API key (free registration required)\n3. LinkedIn account (optional for validation)\n\nOperations and Processing Steps:\n1. **Google Sheets Integration**: Connect the Google Sheets node to the workflow to monitor a specific sheet for new entries.\n2. **Data Retrieval**: Extract input data (name, company, domain) from the new row in the Google Sheet.\n3. **Search Query Construction**: Construct intelligent search queries using the input data to facilitate LinkedIn profile discovery.\n4. **Google Search API**: Utilize the Google Search API to identify potential LinkedIn profile URLs based on the constructed queries.\n5. **URL Validation**: Use the Airtop API to validate the discovered LinkedIn URLs against LinkedIn to ensure accuracy.\n6. **Output Formatting**: Format the results to include confirmed LinkedIn profile URLs and their validation status.\n7. **Update Google Sheet**: Write the validated LinkedIn URLs and their corresponding validation statuses back to the Google Sheet in the designated output columns.\n\nFinal Output or Action:\nThe workflow outputs confirmed LinkedIn profile URLs along with their validation status directly into the Google Sheet, allowing users to easily access accurate LinkedIn profiles for their contacts.\n\nCustomization Options:\n- **Webhook Integration**: Integrate with other tools like Clay or Instantly for enhanced functionality.\n- **Database Alternatives**: Replace Google Sheets with Airtable, Notion, or other database tools for improved data management.\n- **Custom Output Formatting**: Adjust the output structure to align with existing systems.\n- **Batch Processing**: Configure the workflow to process multiple profiles in bulk for efficiency.\n\nBest Practices:\n- Include company information (domain or company name) with search queries for better accuracy.\n- Use full names instead of nicknames or initials to enhance search results.\n- Consider adding location data to refine searches for common names.\n- Implement rate limiting to comply with LinkedIn's usage guidelines.\n- Maintain clean and standardized input data for optimal results.\n- Utilize the integrated proxy feature to navigate Google and LinkedIn more effectively.\n\nThis automation streamlines the process of discovering LinkedIn profiles, significantly reducing manual effort and enhancing data accuracy for recruiting firms and sales teams.",
+  "error": null,
+  "generated_at": "2026-01-25T23:05:55.207569",
+  "metrics": {
+    "node_type_precision": 0.4,
+    "node_type_recall": 0.4,
+    "node_type_f1": 0.4000000000000001,
+    "tp": 2,
+    "fp": 3,
+    "fn": 3,
+    "gt_node_count": 5,
+    "llm_node_count": 5,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 4,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4250,
+        "completion_tokens": 986,
+        "total_tokens": 5236
+      },
+      "description_optimization": {
+        "prompt_tokens": 1087,
+        "completion_tokens": 489,
+        "total_tokens": 1576
+      },
+      "total_tokens": 6812,
+      "total_prompt_tokens": 5337,
+      "total_completion_tokens": 1475
+    },
+    "total_cost": 0.028092500000000003,
+    "description_optimization_cost": 0.0076075000000000005,
+    "workflow_generation_cost": 0.020485000000000003
+  }
+}

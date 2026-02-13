@@ -1,0 +1,284 @@
+{
+  "template_id": "9810",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by a webhook when a user submits a video request via a web form.",
+      "data_sources": "The workflow requires the Kie.AI API for video generation, the ImgBB API for image uploads, and optionally the Telegram API for notifications.",
+      "operations": "1. Receive video request via webhook, 2. Check for image upload, 3. Upload image to ImgBB if present, 4. Send video generation request to Kie.AI, 5. Poll for video status, 6. Download video once ready, 7. Optionally send notification via Telegram.",
+      "output_actions": "The final output is a clean, watermark-free MP4 video file. Optionally, a notification with the video link is sent via Telegram.",
+      "nodes_plan": "webhook (trigger), if (check image), httpRequest (ImgBB upload), httpRequest (Kie.AI request), wait (polling), httpRequest (Kie.AI status), httpRequest (download video), telegram (send message)",
+      "connections_plan": "webhook -> if (image check) -> [httpRequest (ImgBB) -> httpRequest (Kie.AI) | httpRequest (Kie.AI)] -> wait -> httpRequest (Kie.AI status) -> httpRequest (download) -> telegram (optional)"
+    },
+    "workflowPlan": {
+      "name": "AI Video Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "video-request"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Check Image Upload",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ !!$json.body.image }}",
+                  "operation": "true"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Upload Image to ImgBB",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.imgbb.com/1/upload",
+            "body": {
+              "key": "YOUR_IMGBB_API_KEY",
+              "image": "={{ $json.body.image }}"
+            },
+            "options": {
+              "bodyContentType": "form-data"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Send Request to Kie.AI",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.kie.ai/v1/video/generate",
+            "headers": {
+              "Authorization": "Bearer YOUR_KIEAI_API_KEY"
+            },
+            "body": {
+              "prompt": "={{ $json.body.description }}",
+              "quality": "={{ $json.body.quality }}",
+              "aspect_ratio": "={{ $json.body.aspectRatio }}",
+              "image_url": "={{ $node[\"Upload Image to ImgBB\"].json.data.url || '' }}"
+            },
+            "options": {
+              "bodyContentType": "json"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Wait for Video Generation",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": {
+              "value": 30,
+              "unit": "seconds"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Check Video Status",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.kie.ai/v1/video/status",
+            "headers": {
+              "Authorization": "Bearer YOUR_KIEAI_API_KEY"
+            },
+            "queryParameters": {
+              "video_id": "={{ $node[\"Send Request to Kie.AI\"].json.video_id }}"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Download Video",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $node[\"Check Video Status\"].json.download_url }}",
+            "responseFormat": "file",
+            "fileName": "video.mp4"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send Telegram Notification",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "text": "Your video is ready: {{ $node[\"Download Video\"].json.file }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "4",
+          "outputIndex": 1,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4484,
+      "completion_tokens": 1539,
+      "total_tokens": 6023
+    },
+    "description_optimization": {
+      "prompt_tokens": 918,
+      "completion_tokens": 723,
+      "total_tokens": 1641
+    },
+    "total_tokens": 7664,
+    "total_prompt_tokens": 5402,
+    "total_completion_tokens": 2262
+  },
+  "description_optimization": {
+    "template_id": "9810",
+    "optimized_description": "This n8n workflow allows users to generate professional AI videos using OpenAI's Sora 2 without watermarks. The workflow is designed for minimal setup and enables video creation from text descriptions or image animations through a user-friendly web form interface. It is suitable for generating cinematic AI videos for various purposes, including social media, marketing campaigns, product demos, or creative projects. The workflow supports both text-to-video and image-to-video generation, with automatic status polling until the video is ready for download.\n\nTrigger: The workflow is initiated when a user submits a video request via a web form. The form collects the following information:\n- Video description\n- Aspect ratio\n- Quality options\n- Optional image upload\n\nData Sources and APIs Required:\n1. Kie.AI API for video generation using Sora 2.\n2. ImgBB API for uploading images (if applicable).\n3. (Optional) Telegram API for sending notifications.\n\nOperations and Processing Steps:\n1. User submits a video request through the web form.\n2. The workflow checks if an image has been uploaded:\n   - If an image is uploaded, it is sent to ImgBB to generate a public URL.\n   - If no image is uploaded, the workflow proceeds with text-to-video generation.\n3. The workflow sends a request to the Kie.AI API with the following parameters:\n   - Prompt (video description)\n   - Quality\n   - Aspect ratio\n4. After sending the request, the workflow waits for 30 seconds and checks the status of video generation.\n5. If the video is not ready, the workflow automatically retries the status check every 30 seconds until the video generation is complete.\n6. Once the video is ready, it is downloaded as a clean, watermark-free MP4 file.\n7. (Optional) The workflow sends a notification via Telegram with the video link.\n\nFinal Output or Action:\n- The workflow outputs a clean, watermark-free MP4 video file ready for use.\n- (Optional) A notification is sent via Telegram with the video link.\n\nSetup Steps:\n1. Obtain a Kie.AI API Key:\n   - Sign up at kie.ai and generate a new API key from the dashboard.\n2. Configure n8n Credentials:\n   - In n8n, create a new credential using HTTP Header Auth.\n   - Name it \"Kie Ai(Veo and more)\" and set the header value to \"Bearer YOUR_API_KEY\".\n3. ImgBB Setup for Image-to-Video:\n   - Acquire a free API key from api.imgbb.com.\n   - Update the ImgBB API key in the workflow.\n4. (Optional) Configure Telegram Notifications:\n   - Create a Telegram bot using @BotFather and obtain your Chat ID.\n   - Update the Chat ID in the Telegram nodes or remove them if notifications are not needed.\n\nRequirements:\n- Kie.AI account with API access for Sora 2.\n- ImgBB account for image hosting (free tier available).\n- (Optional) Telegram bot for video delivery notifications.\n\nCustomization Options:\n- Adjust wait times in the workflow for video generation based on regional performance.\n- Add email notifications as an alternative or in addition to Telegram.\n- Modify the web form to collect additional metadata such as user information or project names.\n- Implement error handling nodes for production-level deployments.\n- Connect to cloud storage solutions (e.g., Google Drive, Dropbox) for video delivery instead of using Telegram.\n- Integrate with existing content management systems (CMS) for enhanced functionality.\n\nFor assistance and support, please contact contact@bilsimaging.com.",
+    "original_description": "## Sora 2 Video Generator - No Watermark (Minimal Setup)\n\n### This n8n workflow enables you to generate professional AI videos using OpenAI's Sora 2 without watermarks. Create videos from text descriptions or animate your images with a simple web form interface - ready to use in just 5 minutes!\n\nGenerate cinematic AI videos for social media, marketing campaigns, product demos, or creative projects. The workflow handles both text-to-video and image-to-video generation with automatic status polling until your video is ready.\n\n**Good to know:**\n\n\u2022 Kie.AI charges per video generation. Check their pricing page for current rates\n\u2022 Videos typically take 30-60 seconds for standard quality, 60-120 seconds for HD\n\u2022 The workflow automatically retries status checks every 30 seconds until completion\n\u2022 No watermarks on output videos \n\n---\n\n### How it works\n\n\u2022 Users submit video requests via a beautiful web form with description, aspect ratio, and quality options\n\u2022 The workflow detects if an image was uploaded and routes to either text-to-video or image-to-video \n\u2022 For image uploads, the file is automatically uploaded to ImgBB to generate a public URL\n\u2022 The request is sent to Sora 2 API via Kie.AI with your specifications (prompt, quality, aspect ratio)\n\u2022 The workflow waits 30 seconds, then checks if video generation is complete\n\u2022 If not ready, it automatically loops back and checks again every 30 seconds\n\u2022 Once complete, the video is downloaded and optionally sent via Telegram notification\n\u2022 Clean, watermark-free MP4 video output ready for use\n\n---\n\n### Set up steps\n\n**Step 1: Get Kie.AI API Key**\n\u2022 Sign up at kie.ai and navigate to your dashboard\n\u2022 Go to API Keys section and generate a new key\n\u2022 Copy the API key for the next step\n\n**Step 2: Configure n8n Credentials**\n\u2022 In n8n, go to Credentials \u2192 New Credential\n\u2022 Select \"HTTP Header Auth\"\n\u2022 Name: `Kie Ai(Veo and more)` (exact name required)\n\u2022 Header Name: `Authorization`\n\u2022 Header Value: `Bearer YOUR_API_KEY`\n\u2022 Save the credential\n\n**Step 3: ImgBB Setup (for Image-to-Video)**\n\u2022 Get a free API key from api.imgbb.com\n\u2022 Open the \"Upload to ImgBB\" node in the workflow\n\u2022 Replace the `YOUR_ImgBB_API_KEY` parameter with your ImgBB API key\n\n**Step 4: (Optional) Telegram Notifications**\n\u2022 Create a bot with @BotFather on Telegram\n\u2022 Get your Chat ID from @get_id_bot\n\u2022 Update YOUR_CHAT_ID in both Telegram nodes\n\u2022 Or delete Telegram nodes entirely if not needed\n\n### Requirements\n\n\u2022 Kie.AI account with API access for Sora 2\n\u2022 ImgBB account for image hosting (free tier available)\n\u2022 (Optional) Telegram bot for video delivery notifications\n\n---\n\n### Customising this workflow\n\n\u2022 Adjust wait times in the Wait nodes if generation takes longer in your region\n\u2022 Add email notifications instead of/in addition to Telegram\n\u2022 Modify the form to collect additional metadata (user info, project names, etc.)\n\u2022 Add error handling nodes for production deployments\n\u2022 Connect to cloud storage (Google Drive, Dropbox) instead of Telegram for video delivery\n\u2022 Integrate with your existing CMS or content management system\n\n**For assistance and support:** contact@bilsimaging.com",
+    "description_length": 3407,
+    "usage": {
+      "prompt_tokens": 918,
+      "completion_tokens": 723,
+      "total_tokens": 1641
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:16:04.126800"
+  },
+  "original_description": "## Sora 2 Video Generator - No Watermark (Minimal Setup)\n\n### This n8n workflow enables you to generate professional AI videos using OpenAI's Sora 2 without watermarks. Create videos from text descriptions or animate your images with a simple web form interface - ready to use in just 5 minutes!\n\nGenerate cinematic AI videos for social media, marketing campaigns, product demos, or creative projects. The workflow handles both text-to-video and image-to-video generation with automatic status polling until your video is ready.\n\n**Good to know:**\n\n\u2022 Kie.AI charges per video generation. Check their pricing page for current rates\n\u2022 Videos typically take 30-60 seconds for standard quality, 60-120 seconds for HD\n\u2022 The workflow automatically retries status checks every 30 seconds until completion\n\u2022 No watermarks on output videos \n\n---\n\n### How it works\n\n\u2022 Users submit video requests via a beautiful web form with description, aspect ratio, and quality options\n\u2022 The workflow detects if an image was uploaded and routes to either text-to-video or image-to-video \n\u2022 For image uploads, the file is automatically uploaded to ImgBB to generate a public URL\n\u2022 The request is sent to Sora 2 API via Kie.AI with your specifications (prompt, quality, aspect ratio)\n\u2022 The workflow waits 30 seconds, then checks if video generation is complete\n\u2022 If not ready, it automatically loops back and checks again every 30 seconds\n\u2022 Once complete, the video is downloaded and optionally sent via Telegram notification\n\u2022 Clean, watermark-free MP4 video output ready for use\n\n---\n\n### Set up steps\n\n**Step 1: Get Kie.AI API Key**\n\u2022 Sign up at kie.ai and navigate to your dashboard\n\u2022 Go to API Keys section and generate a new key\n\u2022 Copy the API key for the next step\n\n**Step 2: Configure n8n Credentials**\n\u2022 In n8n, go to Credentials \u2192 New Credential\n\u2022 Select \"HTTP Header Auth\"\n\u2022 Name: `Kie Ai(Veo and more)` (exact name required)\n\u2022 Header Name: `Authorization`\n\u2022 Header Value: `Bearer YOUR_API_KEY`\n\u2022 Save the credential\n\n**Step 3: ImgBB Setup (for Image-to-Video)**\n\u2022 Get a free API key from api.imgbb.com\n\u2022 Open the \"Upload to ImgBB\" node in the workflow\n\u2022 Replace the `YOUR_ImgBB_API_KEY` parameter with your ImgBB API key\n\n**Step 4: (Optional) Telegram Notifications**\n\u2022 Create a bot with @BotFather on Telegram\n\u2022 Get your Chat ID from @get_id_bot\n\u2022 Update YOUR_CHAT_ID in both Telegram nodes\n\u2022 Or delete Telegram nodes entirely if not needed\n\n### Requirements\n\n\u2022 Kie.AI account with API access for Sora 2\n\u2022 ImgBB account for image hosting (free tier available)\n\u2022 (Optional) Telegram bot for video delivery notifications\n\n---\n\n### Customising this workflow\n\n\u2022 Adjust wait times in the Wait nodes if generation takes longer in your region\n\u2022 Add email notifications instead of/in addition to Telegram\n\u2022 Modify the form to collect additional metadata (user info, project names, etc.)\n\u2022 Add error handling nodes for production deployments\n\u2022 Connect to cloud storage (Google Drive, Dropbox) instead of Telegram for video delivery\n\u2022 Integrate with your existing CMS or content management system\n\n**For assistance and support:** contact@bilsimaging.com",
+  "optimized_description": "This n8n workflow allows users to generate professional AI videos using OpenAI's Sora 2 without watermarks. The workflow is designed for minimal setup and enables video creation from text descriptions or image animations through a user-friendly web form interface. It is suitable for generating cinematic AI videos for various purposes, including social media, marketing campaigns, product demos, or creative projects. The workflow supports both text-to-video and image-to-video generation, with automatic status polling until the video is ready for download.\n\nTrigger: The workflow is initiated when a user submits a video request via a web form. The form collects the following information:\n- Video description\n- Aspect ratio\n- Quality options\n- Optional image upload\n\nData Sources and APIs Required:\n1. Kie.AI API for video generation using Sora 2.\n2. ImgBB API for uploading images (if applicable).\n3. (Optional) Telegram API for sending notifications.\n\nOperations and Processing Steps:\n1. User submits a video request through the web form.\n2. The workflow checks if an image has been uploaded:\n   - If an image is uploaded, it is sent to ImgBB to generate a public URL.\n   - If no image is uploaded, the workflow proceeds with text-to-video generation.\n3. The workflow sends a request to the Kie.AI API with the following parameters:\n   - Prompt (video description)\n   - Quality\n   - Aspect ratio\n4. After sending the request, the workflow waits for 30 seconds and checks the status of video generation.\n5. If the video is not ready, the workflow automatically retries the status check every 30 seconds until the video generation is complete.\n6. Once the video is ready, it is downloaded as a clean, watermark-free MP4 file.\n7. (Optional) The workflow sends a notification via Telegram with the video link.\n\nFinal Output or Action:\n- The workflow outputs a clean, watermark-free MP4 video file ready for use.\n- (Optional) A notification is sent via Telegram with the video link.\n\nSetup Steps:\n1. Obtain a Kie.AI API Key:\n   - Sign up at kie.ai and generate a new API key from the dashboard.\n2. Configure n8n Credentials:\n   - In n8n, create a new credential using HTTP Header Auth.\n   - Name it \"Kie Ai(Veo and more)\" and set the header value to \"Bearer YOUR_API_KEY\".\n3. ImgBB Setup for Image-to-Video:\n   - Acquire a free API key from api.imgbb.com.\n   - Update the ImgBB API key in the workflow.\n4. (Optional) Configure Telegram Notifications:\n   - Create a Telegram bot using @BotFather and obtain your Chat ID.\n   - Update the Chat ID in the Telegram nodes or remove them if notifications are not needed.\n\nRequirements:\n- Kie.AI account with API access for Sora 2.\n- ImgBB account for image hosting (free tier available).\n- (Optional) Telegram bot for video delivery notifications.\n\nCustomization Options:\n- Adjust wait times in the workflow for video generation based on regional performance.\n- Add email notifications as an alternative or in addition to Telegram.\n- Modify the web form to collect additional metadata such as user information or project names.\n- Implement error handling nodes for production-level deployments.\n- Connect to cloud storage solutions (e.g., Google Drive, Dropbox) for video delivery instead of using Telegram.\n- Integrate with existing content management systems (CMS) for enhanced functionality.\n\nFor assistance and support, please contact contact@bilsimaging.com.",
+  "error": null,
+  "generated_at": "2026-01-25T23:16:18.028583",
+  "metrics": {
+    "node_type_precision": 0.875,
+    "node_type_recall": 0.4666666666666667,
+    "node_type_f1": 0.608695652173913,
+    "tp": 7,
+    "fp": 1,
+    "fn": 8,
+    "gt_node_count": 15,
+    "llm_node_count": 8,
+    "connection_precision": 0.8333333333333334,
+    "connection_recall": 0.5555555555555556,
+    "connection_f1": 0.6666666666666667,
+    "correct_connections": 5,
+    "gt_connection_count": 9,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.05714285714285715,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4484,
+        "completion_tokens": 1539,
+        "total_tokens": 6023
+      },
+      "description_optimization": {
+        "prompt_tokens": 918,
+        "completion_tokens": 723,
+        "total_tokens": 1641
+      },
+      "total_tokens": 7664,
+      "total_prompt_tokens": 5402,
+      "total_completion_tokens": 2262
+    },
+    "total_cost": 0.036125000000000004,
+    "description_optimization_cost": 0.009525,
+    "workflow_generation_cost": 0.026600000000000002
+  }
+}

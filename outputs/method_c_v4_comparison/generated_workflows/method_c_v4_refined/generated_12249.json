@@ -1,0 +1,291 @@
+{
+  "template_id": "12249",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a monitoring and notification system with AI analysis. Use base openAi node.",
+      "trigger_analysis": "Schedule trigger to run the workflow at regular intervals for real-time monitoring.",
+      "data_sources": "CoinGecko API, Binance API, OpenAI API, WhatsApp API, Telegram API, SMTP or Gmail for email notifications.",
+      "operations": "1. Schedule trigger, 2. Fetch real-time crypto data, 3. Filter required fields, 4. Loop through each coin, 5. Calculate trading signals, 6. Use AI for insights, 7. Send notifications if signal is 'SELL' or 'BUY'.",
+      "output_actions": "Send notifications via WhatsApp, Telegram, and Email when a 'SELL' or 'BUY' signal is detected.",
+      "nodes_plan": "scheduleTrigger (trigger), httpRequest (fetch data), set (filter data), splitInBatches (loop through coins), code (calculate signals), openAi (AI insights), if (check signals), whatsapp, telegram, emailSend (notifications).",
+      "connections_plan": "scheduleTrigger -> httpRequest -> set -> splitInBatches -> code -> openAi -> if -> [whatsapp, telegram, emailSend]"
+    },
+    "workflowPlan": {
+      "name": "Crypto Monitoring and Alert System",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "*/5 * * * *"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Crypto Data",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.coingecko.com/api/v3/coins/markets",
+            "queryParameters": [
+              {
+                "name": "vs_currency",
+                "value": "usd"
+              },
+              {
+                "name": "order",
+                "value": "market_cap_desc"
+              },
+              {
+                "name": "per_page",
+                "value": "5"
+              },
+              {
+                "name": "page",
+                "value": "1"
+              },
+              {
+                "name": "sparkline",
+                "value": "false"
+              }
+            ]
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Data",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "id",
+                  "value": "={{ $json.id }}"
+                },
+                {
+                  "name": "symbol",
+                  "value": "={{ $json.symbol }}"
+                },
+                {
+                  "name": "price_change_percentage_24h",
+                  "value": "={{ $json.price_change_percentage_24h }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Loop Through Coins",
+          "nodeType": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Calculate Signals",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return items.map(item => {\n  const change = item.json.price_change_percentage_24h;\n  let signal = 'HOLD';\n  if (change > 2) signal = 'BUY';\n  else if (change < -2) signal = 'SELL';\n  item.json.signal = signal;\n  return item;\n});"
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "AI Insights",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "The current signal for {{ $json.symbol }} is {{ $json.signal }}. Provide a brief analysis or insight."
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Check Signal",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.signal }}",
+                  "operation": "in",
+                  "value2": "BUY,SELL"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Send WhatsApp",
+          "nodeType": "n8n-nodes-base.whatsapp",
+          "typeVersion": 1,
+          "params": {
+            "phoneNumber": "1234567890",
+            "message": "Signal for {{ $json.symbol }}: {{ $json.signal }}. Insight: {{ $json.message.content }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 100
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Telegram",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "chatId": "123456789",
+            "text": "Signal for {{ $json.symbol }}: {{ $json.signal }}. Insight: {{ $json.message.content }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 200
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "user@example.com",
+            "subject": "Crypto Alert: {{ $json.symbol }}",
+            "text": "Signal for {{ $json.symbol }}: {{ $json.signal }}. Insight: {{ $json.message.content }}"
+          },
+          "position": {
+            "x": 1500,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9037,
+    "completion_tokens": 1742,
+    "total_tokens": 10779
+  },
+  "description_optimization": null,
+  "original_description": "## Overview\n\nThis workflow is designed to monitor the Top 5 cryptocurrencies in real-time, calculate trading signals (BUY, SELL, HOLD), and send human-readable alerts through multiple channels. It integrates data fetching, signal processing, AI-generated insights, and multi-channel notifications to provide a professional-grade crypto monitoring solution.\n\n## Setup\n\n1. Schedule the trigger\n2. Fetch real-time coin data (CoinGecko, Binance API)\n3. Filter only required fields\n4. Check each data from loop\n5. Add the logic for minimum percentage comparison\n6. Use AI for analysis enhanced insights\n8. Send the notification only if signal is 'SELL' or  'BUY'\n\n## Key Features\n\n- Real-Time Crypto Monitoring: Continuously evaluates the top 5 cryptocurrencies for trading signals.\n- Dynamic Signal Calculation: Generates BUY, SELL, HOLD signals based on 24h price change.\n- If price changed below or above 2% the dynamic signal will assign to dedicated coin.\n- Signal Change Alerts: Sends notifications only when meaningful changes occur.\n- Human-Readable Messaging: Converts numeric signals into readable alerts.\n- AI Insights: Provides explanations or trading advice via OpenAI.\n- Multi-Channel Delivery: Supports WhatsApp, Telegram, and Email.\n- Looped Processing: Each coin is processed independently for accurate alerting.\n- Wait / Delay Node: Prevents API rate limit issues and controls alert flow.\n## Requirements\n\n1. OpenAI API\n2. WhatsApp API\n3. Telegram API\n4. SMTP Credentials or Gmail Credentials.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T15:04:50.109925",
+  "metrics": {
+    "node_type_precision": 0.9,
+    "node_type_recall": 0.6,
+    "node_type_f1": 0.7200000000000001,
+    "tp": 9,
+    "fp": 1,
+    "fn": 6,
+    "gt_node_count": 15,
+    "llm_node_count": 10,
+    "connection_precision": 0.4444444444444444,
+    "connection_recall": 0.2857142857142857,
+    "connection_f1": 0.34782608695652173,
+    "correct_connections": 4,
+    "gt_connection_count": 14,
+    "llm_connection_count": 9,
+    "avg_parameter_accuracy": 0.2314814814814815,
+    "usage": {
+      "prompt_tokens": 9037,
+      "completion_tokens": 1742,
+      "total_tokens": 10779
+    },
+    "total_cost": 0.040012500000000006
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,260 @@
+{
+  "template_id": "5842",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be manually triggered by the user to allow flexibility in deciding when to generate articles.",
+      "data_sources": "Reddit API for scraping posts, OpenAI API for content generation, Google Sheets for logging and storing data.",
+      "operations": "1. Scrape latest posts from subreddit, 2. Filter posts for questions, 3. Log questions to Google Sheets, 4. Enhance questions with OpenAI, 5. Generate full blog content, 6. Save final content to Google Sheets.",
+      "output_actions": "The final output is a structured blog article stored in a Google Sheet, ready for review and publication.",
+      "nodes_plan": "manualTrigger (trigger), httpRequest (Reddit API), if (filter questions), googleSheets (log questions), openAi (enhance questions), googleSheets (save articles)",
+      "connections_plan": "manualTrigger -> httpRequest (Reddit) -> if (filter) -> [googleSheets (log questions) -> openAi (enhance) -> googleSheets (save articles)]"
+    },
+    "workflowPlan": {
+      "name": "Reddit to SEO Article Generator",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Fetch Reddit Posts",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://www.reddit.com/r/n8n/new.json",
+            "authentication": "oAuth2",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Filter Questions",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.data.title }}",
+                  "operation": "contains",
+                  "value2": "how"
+                },
+                {
+                  "value1": "={{ $json.data.title }}",
+                  "operation": "contains",
+                  "value2": "what"
+                },
+                {
+                  "value1": "={{ $json.data.title }}",
+                  "operation": "contains",
+                  "value2": "why"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Log Questions",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "RawQuestions!A1",
+            "data": [
+              {
+                "values": [
+                  "={{ $json.data.title }}",
+                  "={{ $json.data.selftext }}"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Enhance with OpenAI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Rephrase the following question and generate an SEO-friendly title and slug: {{ $json.data.title }}",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Blog Content",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a full-length blog article based on the following question: {{ $json.data.title }}. Include an introduction, step-by-step guide, and conclusion.",
+            "model": "text-davinci-003"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Save Articles",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Articles!A1",
+            "data": [
+              {
+                "values": [
+                  "={{ $json.title }}",
+                  "={{ $json.introduction }}",
+                  "={{ $json.stepByStep }}",
+                  "={{ $json.conclusion }}"
+                ]
+              }
+            ]
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4255,
+      "completion_tokens": 1306,
+      "total_tokens": 5561
+    },
+    "description_optimization": {
+      "prompt_tokens": 472,
+      "completion_tokens": 495,
+      "total_tokens": 967
+    },
+    "total_tokens": 6528,
+    "total_prompt_tokens": 4727,
+    "total_completion_tokens": 1801
+  },
+  "description_optimization": {
+    "template_id": "5842",
+    "optimized_description": "This workflow automates the process of transforming real user questions from Reddit into fully structured SEO articles. The workflow is designed to be initiated manually when the user decides to run it, making it flexible for content teams looking to generate articles based on community inquiries.\n\nTrigger:\n- The workflow is manually triggered by the user.\n\nData Sources and APIs Needed:\n- Reddit API (requires OAuth authentication)\n- OpenAI API for content generation\n- Google Sheets for logging and storing data\n\nOperations and Processing Steps:\n1. The workflow begins by scraping the latest posts from a specified subreddit, such as `r/n8n`.\n2. It filters the scraped posts to identify those that are genuine questions. This is done by searching for specific keywords in the post titles or content, including \"how,\" \"what,\" and \"why.\"\n3. The relevant questions are logged into a Google Sheet as raw input for tracking and further processing.\n4. Each identified question is enhanced using the OpenAI API. This step involves rephrasing the question and generating a clean, SEO-friendly title and slug.\n5. The workflow then generates full-length blog content based on the enhanced question. This includes:\n   - An introductory paragraph that sets the context for the article.\n   - A step-by-step guide that provides detailed answers or solutions to the question.\n   - A clear conclusion that summarizes the key points and offers final thoughts.\n6. The final blog content, including the title, introduction, step-by-step guide, and conclusion, is saved to a second Google Sheet designated for publishing.\n\nFinal Output or Action:\n- The completed blog articles are stored in a Google Sheet, ready for review and publication. This structured approach allows content teams to efficiently scale their content output by leveraging real community pain points, eliminating the need to start from a blank page.\n\nSetup Steps:\n- Users will need to connect to the following services:\n  - Reddit API for accessing subreddit data.\n  - OpenAI API for generating content based on user questions.\n  - Google Sheets for logging and storing both raw questions and final articles.\n- The setup process typically takes around 15\u201320 minutes to connect all necessary credentials and customize prompts as needed.\n- Users can customize the focus of the workflow by changing the configuration of the Reddit node to target different subreddits or topics.\n\nThis workflow is ideal for content teams aiming to enhance their content creation process by utilizing real questions from the community, ensuring that their articles address actual user interests and needs.",
+    "original_description": "## Turn Reddit Questions into SEO Articles Automatically\n\nThis workflow takes real user questions from Reddit and transforms them into fully structured blog posts \u2014 title, intro, steps, and conclusion \u2014 using AI.\n\n---\n\n### How it works\n\n- Manually triggered when you want to run it\n- Scrapes the latest posts from a specific subreddit (e.g. `r/n8n`)\n- Filters only posts that are real questions (based on keywords like \u201chow,\u201d \u201cwhat,\u201d \u201cwhy\u201d)\n- Logs relevant questions into a Google Sheet as raw input\n- Enhances each question using AI (rephrases, creates a clean title and slug)\n- Generates full-length blog content:\n  - \u270f\ufe0f Intro paragraph\n  - \u2705 Step-by-step guide\n  - \ud83e\udde0 Clear conclusion\n- Saves the final blog content to a second Google Sheet for publishing\n\n---\n\n### Set up steps\n\n- You\u2019ll need access to:\n  - Reddit API (OAuth)\n  - OpenAI API\n  - Google Sheets\n- Takes around **15\u201320 minutes** to connect all the credentials and tweak prompts\n- Customize the subreddit or topic focus by changing the Reddit node config\n\n---\n\nPerfect for content teams who want to scale content output using real community pain points \u2014 without ever starting from a blank page.",
+    "description_length": 2637,
+    "usage": {
+      "prompt_tokens": 472,
+      "completion_tokens": 495,
+      "total_tokens": 967
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:49:51.576164"
+  },
+  "original_description": "## Turn Reddit Questions into SEO Articles Automatically\n\nThis workflow takes real user questions from Reddit and transforms them into fully structured blog posts \u2014 title, intro, steps, and conclusion \u2014 using AI.\n\n---\n\n### How it works\n\n- Manually triggered when you want to run it\n- Scrapes the latest posts from a specific subreddit (e.g. `r/n8n`)\n- Filters only posts that are real questions (based on keywords like \u201chow,\u201d \u201cwhat,\u201d \u201cwhy\u201d)\n- Logs relevant questions into a Google Sheet as raw input\n- Enhances each question using AI (rephrases, creates a clean title and slug)\n- Generates full-length blog content:\n  - \u270f\ufe0f Intro paragraph\n  - \u2705 Step-by-step guide\n  - \ud83e\udde0 Clear conclusion\n- Saves the final blog content to a second Google Sheet for publishing\n\n---\n\n### Set up steps\n\n- You\u2019ll need access to:\n  - Reddit API (OAuth)\n  - OpenAI API\n  - Google Sheets\n- Takes around **15\u201320 minutes** to connect all the credentials and tweak prompts\n- Customize the subreddit or topic focus by changing the Reddit node config\n\n---\n\nPerfect for content teams who want to scale content output using real community pain points \u2014 without ever starting from a blank page.",
+  "optimized_description": "This workflow automates the process of transforming real user questions from Reddit into fully structured SEO articles. The workflow is designed to be initiated manually when the user decides to run it, making it flexible for content teams looking to generate articles based on community inquiries.\n\nTrigger:\n- The workflow is manually triggered by the user.\n\nData Sources and APIs Needed:\n- Reddit API (requires OAuth authentication)\n- OpenAI API for content generation\n- Google Sheets for logging and storing data\n\nOperations and Processing Steps:\n1. The workflow begins by scraping the latest posts from a specified subreddit, such as `r/n8n`.\n2. It filters the scraped posts to identify those that are genuine questions. This is done by searching for specific keywords in the post titles or content, including \"how,\" \"what,\" and \"why.\"\n3. The relevant questions are logged into a Google Sheet as raw input for tracking and further processing.\n4. Each identified question is enhanced using the OpenAI API. This step involves rephrasing the question and generating a clean, SEO-friendly title and slug.\n5. The workflow then generates full-length blog content based on the enhanced question. This includes:\n   - An introductory paragraph that sets the context for the article.\n   - A step-by-step guide that provides detailed answers or solutions to the question.\n   - A clear conclusion that summarizes the key points and offers final thoughts.\n6. The final blog content, including the title, introduction, step-by-step guide, and conclusion, is saved to a second Google Sheet designated for publishing.\n\nFinal Output or Action:\n- The completed blog articles are stored in a Google Sheet, ready for review and publication. This structured approach allows content teams to efficiently scale their content output by leveraging real community pain points, eliminating the need to start from a blank page.\n\nSetup Steps:\n- Users will need to connect to the following services:\n  - Reddit API for accessing subreddit data.\n  - OpenAI API for generating content based on user questions.\n  - Google Sheets for logging and storing both raw questions and final articles.\n- The setup process typically takes around 1520 minutes to connect all necessary credentials and customize prompts as needed.\n- Users can customize the focus of the workflow by changing the configuration of the Reddit node to target different subreddits or topics.\n\nThis workflow is ideal for content teams aiming to enhance their content creation process by utilizing real questions from the community, ensuring that their articles address actual user interests and needs.",
+  "error": null,
+  "generated_at": "2026-01-25T23:50:05.100426",
+  "metrics": {
+    "node_type_precision": 0.42857142857142855,
+    "node_type_recall": 0.1111111111111111,
+    "node_type_f1": 0.17647058823529413,
+    "tp": 3,
+    "fp": 4,
+    "fn": 24,
+    "gt_node_count": 27,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 8,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.3763888888888889,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4255,
+        "completion_tokens": 1306,
+        "total_tokens": 5561
+      },
+      "description_optimization": {
+        "prompt_tokens": 472,
+        "completion_tokens": 495,
+        "total_tokens": 967
+      },
+      "total_tokens": 6528,
+      "total_prompt_tokens": 4727,
+      "total_completion_tokens": 1801
+    },
+    "total_cost": 0.029827500000000003,
+    "description_optimization_cost": 0.00613,
+    "workflow_generation_cost": 0.023697500000000003
+  }
+}

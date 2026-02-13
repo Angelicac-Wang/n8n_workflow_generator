@@ -1,0 +1,275 @@
+{
+  "template_id": 4024,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Automated WordPress Content Creation and Notification",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Topic Chooser and Title Maker",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { topic: 'AI in Healthcare', title: 'The Future of AI in Medicine' } }];"
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Parse Topics and Titles",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "fields": {
+              "addFields": [
+                {
+                  "name": "parsedTopic",
+                  "value": "={{$json[\"topic\"]}}"
+                },
+                {
+                  "name": "parsedTitle",
+                  "value": "={{$json[\"title\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Generate Content Details",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return [{ json: { category: 'Technology', metaDescription: 'Exploring the impact of AI in healthcare.', keyphrases: ['AI', 'Healthcare', 'Medicine'] } }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Create Draft Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "method": "POST",
+            "authentication": "basicAuth",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "title",
+                  "value": "={{$json[\"parsedTitle\"]}}"
+                },
+                {
+                  "name": "content",
+                  "value": "={{$json[\"metaDescription\"]}}"
+                },
+                {
+                  "name": "status",
+                  "value": "draft"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Generate Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.openai.com/v1/images/generations",
+            "method": "POST",
+            "authentication": "apiKey",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "prompt",
+                  "value": "={{$json[\"parsedTopic\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Upload Image to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/media",
+            "method": "POST",
+            "authentication": "basicAuth",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "file",
+                  "value": "={{$json[\"image\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Set Featured Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts/{{$json[\"id\"]}}",
+            "method": "POST",
+            "authentication": "basicAuth",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "featured_media",
+                  "value": "={{$json[\"media_id\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1600,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Send Discord Notification",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://discord.com/api/webhooks/your-webhook-id",
+            "method": "POST",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "content",
+                  "value": "New draft post created: {{$json[\"parsedTitle\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1800,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 763,
+    "completion_tokens": 1425,
+    "total_tokens": 2188
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:34:18.657465",
+  "generated_description": "This n8n workflow is designed to automate the creation and publication of content on a WordPress site, with additional integration for image generation and social media notification. \n\n1. **Trigger**: The workflow is initiated by a Schedule Trigger, which activates the process at predefined intervals.\n\n2. **Data Sources and APIs**: \n   - It uses a language model chain (chainLlm) to generate topics and titles for the content.\n   - OpenAI's API is utilized to generate images related to the content.\n   - WordPress API is used for creating and managing posts.\n   - Discord's webhook is used for sending notifications.\n\n3. **Operations**:\n   - The workflow begins by generating topics and titles using the \"Topic Chooser and Title Maker\" node.\n   - The generated topics and titles are parsed for structured output.\n   - A language model chain is further used to generate additional content details such as categories, meta descriptions, and keyphrases.\n   - A draft post is created in WordPress with the generated content.\n   - An image is generated using OpenAI and uploaded to WordPress.\n   - The uploaded image is set as the featured image for the WordPress post.\n   - Finally, a notification about the new post is sent to a Discord channel using a webhook.\n\n4. **Final Output/Action**: The workflow results in a draft post being created on WordPress with a generated image set as the featured image. Additionally, a notification is sent to",
+  "description_generation_usage": {
+    "prompt_tokens": 248,
+    "completion_tokens": 300,
+    "total_tokens": 548
+  },
+  "metrics": {
+    "node_type_precision": 0.3333333333333333,
+    "node_type_recall": 0.21428571428571427,
+    "node_type_f1": 0.2608695652173913,
+    "tp": 3,
+    "fp": 6,
+    "fn": 11,
+    "gt_node_count": 14,
+    "llm_node_count": 9,
+    "connection_precision": 0.2,
+    "connection_recall": 0.1,
+    "connection_f1": 0.13333333333333333,
+    "correct_connections": 1,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "prompt_tokens": 763,
+      "completion_tokens": 1425,
+      "total_tokens": 2188
+    },
+    "total_cost": 0.019777500000000003,
+    "description_generation_cost": 0.00362,
+    "workflow_generation_cost": 0.0161575
+  },
+  "original_description": "# Generate and Publish SEO-Optimized Blog Posts to WordPress\n\n\nThis n8n workflow, **BlogBlitz**, automates the creation and publishing of SEO-optimized blog posts for WordPress, saving you hours of content creation time. Triggered via Telegram or a scheduled interval, it generates 1,500\u20132,500-word articles on Technology, AI, Tech Facts, History, or Tips, complete with catchy titles, slugs, meta descriptions, and realistic featured images. Perfect for bloggers and marketers, BlogBlitz ensures your site stays fresh with high-quality content.\n\n## Who is this for?\nBloggers, content marketers, and WordPress site owners who want to automate high-quality, SEO-ready blog content creation without manual writing or formatting.\n\n## What problem is this workflow solving?\nManually creating engaging, SEO-optimized blog posts is time-consuming and requires expertise. BlogBlitz solves this by automating the entire process\u2014from generating ideas and writing articles to publishing and notifying you\u2014keeping your site active and discoverable.\n\n## What this workflow does\n- **Triggers**: Runs every 3 hours via a Schedule Trigger or on-demand with a Telegram command (\u201cgenerate\u201d).  \n- **Generates Content**: Uses OpenRouter to pick a category (e.g., Technology, AI) and create a title, slug, focus keyphrase, and meta description.  \n- **Writes Articles**: OpenAI crafts 1,500\u20132,500-word posts with SEO-friendly structure, headings, and a call-to-action.  \n- **Adds Visuals**: Generates realistic featured images with OpenAI and uploads them to WordPress.  \n- **SEO Features**: Generate optimized slug, focus keyphrase, meta description\n- **Publishes**: Posts articles to WordPress with proper categories and featured images.  \n- **Notifies**: Sends publish alerts with links to Discord and Telegram.  \n\n## Setup\n1. **[n8n instance](https://n8n.partnerlinks.io/khaisastudio) (Cloud or self-hosted)**: Ensure you have a cloud or self-hosted n8n instance.  \n2. **Credentials**:  \n   - WordPress: API access for `wp-json/wp/v2` endpoint.  \n   - OpenAI: For article and image generation.  \n   - OpenRouter: For title and category generation.  \n   - Telegram: Bot API for triggers and notifications.  \n   - Discord: Webhook for publish alerts.  \n3. **WordPress Configuration**:  \n   - Set up categories (Technology [ID:3], AI [ID:4], Tech Fact [ID:7], Tech History [ID:8], Tech Tips [ID:9]).  \n   - Ensure an admin user ID is available (default: 1).   \n4. **Node Setup**:  \n   - Use the Edit Fields node to centralize variables like category IDs.  \n5. **Test**: Send \u201cgenerate\u201d via Telegram to test the workflow. Check WordPress for the published post.  \n\n\n## How to customize this workflow to your needs\n- **Change Categories**: Update the WordPress Post Draft node to match your site\u2019s category IDs.  \n- **Adjust Schedule**: Modify the Schedule Trigger node for different intervals (e.g., daily).  \n- **Tweak Tone**: Edit the prompt in the Basic LLM Chain node for a different writing style (e.g., formal or casual).  \n- **Add Platforms**: Extend notifications to Slack or email by adding nodes.  \n- **Image Style**: Adjust the OpenAI image node for different sizes or styles (e.g., \u201cnatural\u201d instead of \u201cvivid\u201d).  \n\n## Pre-Requirements\n- **n8n Instance**: Cloud or self-hosted.  \n- **Credentials**:  \n  - WordPress API (wp-json/wp/v2 endpoint).  \n  - OpenAI API for text and images.  \n  - OpenRouter API for AI content.  \n  - Telegram bot API.  \n  - Discord Webhook API.  \n- **Dependencies**: `@n8n/n8n-nodes-langchain` package.  \n- **WordPress Setup**: Categories and admin user ID configured.  \n- **Network**: Stable internet for API calls.  \n\n---\n*Made by: [Khaisa Studio](https://khaisa.studio)*  \n*Tag: youtube, summarizer, telegram, openai*  \n*Category: AI Automation, Video Tools*\nNeed a custom? **[Contact Me](https://khmuhtadin.com)**"
+}

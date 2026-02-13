@@ -1,0 +1,163 @@
+{
+  "template_id": 2819,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "Here is the n8n workflow to process chat messages related to expenses and store the extracted information in Google Sheets.",
+    "workflowPlan": {
+      "name": "Expense Chat Message Processor",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Webhook Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "expense-chat-message",
+            "method": "POST",
+            "responseMode": "onReceived"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "OpenAI Chat Model 1",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Process the following chat message to understand its context and extract potential expense information."
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Window Buffer Memory",
+          "nodeType": "n8n-nodes-base.memory",
+          "typeVersion": 1,
+          "params": {
+            "action": "store",
+            "key": "chatContext"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI Chat Model 2",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-3.5-turbo",
+            "prompt": "Refine the extracted information and ensure it is ready for parsing into JSON format."
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Expense Text to JSON Parser",
+          "nodeType": "n8n-nodes-base.jsonParse",
+          "typeVersion": 1,
+          "params": {
+            "sourceData": "={{$json[\"text\"]}}",
+            "options": {
+              "keepOnlySet": false
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Save Expense into Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputMode": "USER_ENTERED",
+            "data": "={{$json}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 627,
+    "completion_tokens": 786,
+    "total_tokens": 1413
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:41:31.296526",
+  "generated_description": "This n8n workflow is designed to process chat messages related to expenses and store the extracted information in a Google Sheets document. The workflow is triggered when a chat message is received. It utilizes an AI Agent to handle the initial processing of the message.\n\nThe workflow includes two instances of the OpenAI Chat Model, which likely assist in understanding and interpreting the content of the message. The Window Buffer Memory node is used to manage and store conversation context temporarily.\n\nOnce the message is processed, the Expense text to JSON parser extracts relevant expense information from the chat message. This parsed data is then saved into a Google Sheets document using the Save expense into Google Sheets node.\n\nOverall, the workflow automates the extraction and recording of expense data from chat messages into a structured format in Google Sheets, streamlining the process of expense tracking and management.",
+  "description_generation_usage": {
+    "prompt_tokens": 223,
+    "completion_tokens": 165,
+    "total_tokens": 388
+  },
+  "metrics": {
+    "node_type_precision": 0.16666666666666666,
+    "node_type_recall": 0.1111111111111111,
+    "node_type_f1": 0.13333333333333333,
+    "tp": 1,
+    "fp": 5,
+    "fn": 8,
+    "gt_node_count": 9,
+    "llm_node_count": 6,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 3,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.08333333333333333,
+    "usage": {
+      "prompt_tokens": 627,
+      "completion_tokens": 786,
+      "total_tokens": 1413
+    },
+    "total_cost": 0.011635,
+    "description_generation_cost": 0.0022075000000000003,
+    "workflow_generation_cost": 0.0094275
+  },
+  "original_description": "## Use Case\nIt is very convenient to add expenses via simple chat message. This workflow attempts to do exactly this using AI-powered n8n magic!\n\n![20250129 at 17.37.png](fileId:921)\nSend message to a chat, something like **\"car wash; 59.3 usd; 25 jan 2024\"**\n\nAnd get a response:\n**Your expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}**\n\n\nLLM will smartly parse your message to structured JSON and save the expense as a new row into Google Sheet!\n\n\n\n## Installation\n### 1. Set up Google Sheets:\nClone this Sheet:\nhttps://docs.google.com/spreadsheets/d/1D0r3tun7LF7Ypb21CmbTKEtn76WE-kaHvBCM5NdgiPU/edit?gid=0#gid=0\n\n(File -&gt; Make a copy)\n\nChoose this sheet into \"Save expense into Google Sheets\" node.\n\n\n### 2. Fix sub-workflow dropdown: \nopen \"Parse msg and save to Sheets\" node (which is an n8n sub-workflow executor tool) and make sure the SAME workflow is chosen in the dropdown. it will allow n8n to locate and call \"Workflow Input Trigger\" properly when needed.\n\n\n### 3. Activate the workflow to make chat work properly.\nSent message to chat, something like \"car wash; 59.3 usd; 25 jan 2024\"\n\nyou should get a response:\nYour expense saved, here is the output of save sub-workflow:{\"cost\":59.3,\"descr\":\"car wash\",\"date\":\"2024-01-25\",\"msg\":\"car wash; 59.3 usd; 25 jan 2024\"}\n\nand new row in Google sheets should be inserted!"
+}

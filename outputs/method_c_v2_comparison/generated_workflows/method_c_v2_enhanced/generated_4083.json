@@ -1,0 +1,485 @@
+{
+  "template_id": "4083",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by incoming messages from WhatsApp, Facebook Messenger, Instagram DM, and n8n Chat, as well as new lead submissions via an Airtable Form Submitted Webhook.",
+      "data_sources": "WhatsApp Business API, Facebook Messenger API, Instagram API, n8n Chat, Airtable API, Supabase, OpenAI API, PostgreSQL for chat memory.",
+      "operations": "1. Trigger on new messages or form submissions, 2. Ingest and preprocess messages, 3. Use AI for sales engagement, 4. Log details in CRM, 5. Book consultations, 6. Deliver responses.",
+      "output_actions": "Send responses back to the original messaging platform or confirm form submission via WhatsApp.",
+      "nodes_plan": "webhook (triggers), set (data preparation), httpRequest (API calls), openAi (AI processing), postgres (chat memory), airtable (CRM operations), switch (routing), respondToWebhook (response delivery).",
+      "connections_plan": "Each trigger node connects to its respective data preparation node, which then connects to the AI processing node. The AI node connects to CRM and calendar nodes, and finally to response delivery nodes."
+    },
+    "workflowPlan": {
+      "name": "Multi-Channel AI-Driven Sales Engagement",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp"
+          },
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        },
+        {
+          "id": "2",
+          "label": "Facebook Messenger Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "facebook"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Instagram DM Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "instagram"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "n8n Chat Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "n8n-chat"
+          },
+          "position": {
+            "x": 100,
+            "y": 400
+          }
+        },
+        {
+          "id": "5",
+          "label": "Airtable Form Submitted Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "airtable-form"
+          },
+          "position": {
+            "x": 100,
+            "y": 500
+          }
+        },
+        {
+          "id": "6",
+          "label": "WhatsApp Message Preprocessing",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "messageType",
+                  "value": "={{ $json.body.messageType }}"
+                },
+                {
+                  "name": "content",
+                  "value": "={{ $json.body.content }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Facebook Message Preprocessing",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "senderId",
+                  "value": "={{ $json.body.senderId }}"
+                },
+                {
+                  "name": "message",
+                  "value": "={{ $json.body.message }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "8",
+          "label": "Instagram Message Preprocessing",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "senderId",
+                  "value": "={{ $json.body.senderId }}"
+                },
+                {
+                  "name": "message",
+                  "value": "={{ $json.body.message }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "n8n Chat Message Preprocessing",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "sessionId",
+                  "value": "={{ $json.body.sessionId }}"
+                },
+                {
+                  "name": "input",
+                  "value": "={{ $json.body.input }}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "10",
+          "label": "AI Agent",
+          "nodeType": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1,
+          "params": {
+            "model": "gpt-4o",
+            "memory": "postgres",
+            "tools": [
+              "technical_and_sales_knowledge",
+              "crmAgent",
+              "calendarAgent"
+            ]
+          },
+          "position": {
+            "x": 500,
+            "y": 250
+          }
+        },
+        {
+          "id": "11",
+          "label": "CRM Update",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "table": "Leads",
+            "id": "={{ $json.leadId }}",
+            "fields": {
+              "Name": "={{ $json.name }}",
+              "Email": "={{ $json.email }}",
+              "Interest": "={{ $json.interest }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 250
+          }
+        },
+        {
+          "id": "12",
+          "label": "Book Consultation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://calendar.service.com/book",
+            "body": {
+              "date": "={{ $json.date }}",
+              "time": "={{ $json.time }}",
+              "contact": "={{ $json.contact }}"
+            }
+          },
+          "position": {
+            "x": 700,
+            "y": 350
+          }
+        },
+        {
+          "id": "13",
+          "label": "WhatsApp Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.whatsapp.com/send",
+            "body": {
+              "to": "={{ $json.to }}",
+              "message": "={{ $json.message }}"
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "14",
+          "label": "Facebook Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v11.0/me/messages",
+            "body": {
+              "recipient": {
+                "id": "={{ $json.recipientId }}"
+              },
+              "message": {
+                "text": "={{ $json.message }}"
+              }
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "15",
+          "label": "Instagram Response",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://graph.instagram.com/me/messages",
+            "body": {
+              "recipient": {
+                "id": "={{ $json.recipientId }}"
+              },
+              "message": {
+                "text": "={{ $json.message }}"
+              }
+            }
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "16",
+          "label": "n8n Chat Response",
+          "nodeType": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "params": {
+            "response": "={{ $json.response }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 400
+          }
+        },
+        {
+          "id": "17",
+          "label": "Airtable Form Processing",
+          "nodeType": "n8n-nodes-base.airtable",
+          "typeVersion": 1,
+          "params": {
+            "operation": "create",
+            "table": "Contacts",
+            "fields": {
+              "Name": "={{ $json.name }}",
+              "Email": "={{ $json.email }}"
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 500
+          }
+        },
+        {
+          "id": "18",
+          "label": "WhatsApp Form Confirmation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.whatsapp.com/send",
+            "body": {
+              "to": "={{ $json.phone }}",
+              "message": "Thank you for your submission!"
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "17",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "11",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "12",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "13",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "14",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "15",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "10",
+          "to": "16",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "17",
+          "to": "18",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 6033,
+    "completion_tokens": 2709,
+    "total_tokens": 8742
+  },
+  "description_optimization": null,
+  "original_description": "**This workflow automates multi-channel AI-driven sales engagement for lead qualification, service information delivery, and consultation booking. It integrates WhatsApp, Facebook Messenger, Instagram DM, and an n8n chat interface with a backend CRM (Airtable), a knowledge base (Supabase), and conversational AI (OpenAI), all orchestrated by n8n.**\n\n# Tools & Services Used\n\nMessaging Platforms: WhatsApp, Facebook Messenger, Instagram DM, n8n Built-in Chat\n\nAI Core & Processing: OpenAI (GPT-4o for main agent logic, Whisper for audio transcription)\n\nCRM & Data Management: Airtable (for initial WhatsApp lead lookup, lead form submissions, and as the backend for the crmAgent sub-workflow operations)\n\nKnowledge Base: Supabase (Vector Store for technical_and_sales_knowledge tool)\n\nChat Memory: PostgreSQL (for the main AI Agent's conversation history)\n\nOrchestration & Automation: n8n (Self-hosted, utilizing Langchain community nodes)\n\nCalendar Service: Integrated via the calendarAgent sub-workflow\n\nCRM Service: Integrated via the crmAgent sub-workflow (interacting with Airtable)\n\n# Workflow Overview\n\n## This automation performs the following steps:\n\nTrigger: A new interaction is initiated through one of the following channels:\n\nA new message is received via the WhatsApp Trigger.\n\nA new message is received via the Facebook Trigger (Webhook).\n\nA new message is received via the Instagram Trigger (Webhook).\n\nA new message is received via the n8n Chat Trigger.\n\nAlternatively, a new lead is submitted via the Airtable Form Submitted Webhook.\n\nChannel-Specific Ingestion & Pre-processing:\n\n## For WhatsApp:\n\nThe system attempts to find an existing lead in Airtable using the sender's phone number.\n\nIncoming messages are routed by the Handle Message Types switch:\n\nText messages are passed to the Edit Fields - chat1 node to prepare input for the AI Agent, including any found lead information.\n\nAudio messages are processed: the WhatsApp Business Cloud node gets the media URL, the HTTP Request node downloads the audio, OpenAI transcribes it to text, and Edit Fields - chat2 prepares this transcribed text and lead information for the AI Agent.\n\nUnsupported message types trigger the Reply To User1 node to send a notification that the message type cannot be processed.\n\n## For Facebook Messenger:\n\nThe system responds to webhook verification (Respond to Webhook - facebook get) and acknowledges new messages (Respond to Webhook - facebook post).\n\nThe If is not echo - facebook node filters out messages sent by the page.\n\nThe Sales Agent Demo - typing_on node sends a typing indicator.\n\nThe Edit Fields - facebook node prepares the message text, sender ID, and Facebook-specific context for the AI Agent.\n\n## For Instagram DM:\n\nThe system responds to webhook verification (Respond to Webhook - instagram get) and acknowledges new messages (Respond to Webhook - instagram post).\n\nThe If is not echo - instagram node filters out messages sent by the business account.\n\nThe Edit Fields - instagram node prepares the message text, sender ID, and Instagram-specific context for the AI Agent.\n\n## For n8n Chat:\n\nThe Edit Fields - chat node prepares the user's input and session information for the AI Agent.\n\n## Input Aggregation for AI Agent:\n\nProcessed data from all active messaging channels (WhatsApp text/audio, Facebook, Instagram, n8n Chat) is funneled through the No Operation, do nothing node to the main AI Agent.\n\n## AI Sales Conversation & Tool Utilization:\n\nThe AI Agent (using OpenAI Chat Model - GPT-4o, and Postgres Chat Memory) engages the user according to its system prompt, aiming to qualify them for Paint Protection Film (PPF), Ceramic Coating, or Window Tint.\n\nThe AI Agent uses the technical_and_sales_knowledge tool (which queries the Demo Supabase vector store via Embeddings OpenAI and OpenAI Chat Model1) to provide service details and answer questions.\n\nThe AI Agent uses the crmAgent tool (a sub-workflow) to log contact details (Name, Email, service interest) and update opportunity statuses in Airtable.\n\nThe AI Agent uses the calendarAgent tool (a sub-workflow) to book consultation appointments once preferred dates/times are provided. This occurs after contact details are logged in the CRM.\n\n## Response Delivery:\n\nThe AI Agent's final textual response is passed to the Switch node.\n\nThe Switch node routes the response to the appropriate node for delivery on the original channel:\n\nReply To User for WhatsApp.\n\nFacebook Graph API - Sales Agent Demo for Facebook Messenger.\n\nInstagram Graph API - smb.sales.agent.demo for Instagram DM.\n\nOutput - chat for the n8n Chat interface.\n\n## Airtable Form Submission Processing (Separate Branch):\n\nWhen the Airtable Form Submitted webhook receives data, the Airtable node fetches the full record.\n\nThe Create Contact node creates a new contact in the Airtable 'Contacts' table.\n\nThe Edit Fields - form node prepares data for a notification.\n\nThe WhatsApp Business Cloud2 node sends a templated WhatsApp message to the lead, confirming their form submission.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:40:54.228335",
+  "metrics": {
+    "node_type_precision": 0.7222222222222222,
+    "node_type_recall": 0.26,
+    "node_type_f1": 0.3823529411764706,
+    "tp": 13,
+    "fp": 5,
+    "fn": 37,
+    "gt_node_count": 50,
+    "llm_node_count": 18,
+    "connection_precision": 0.14285714285714285,
+    "connection_recall": 0.047619047619047616,
+    "connection_f1": 0.07142857142857142,
+    "correct_connections": 1,
+    "gt_connection_count": 21,
+    "llm_connection_count": 7,
+    "avg_parameter_accuracy": 0.3076923076923077,
+    "usage": {
+      "prompt_tokens": 6033,
+      "completion_tokens": 2709,
+      "total_tokens": 8742
+    },
+    "total_cost": 0.0421725
+  }
+}

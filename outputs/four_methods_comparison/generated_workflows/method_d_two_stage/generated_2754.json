@@ -1,0 +1,201 @@
+{
+  "template_id": "2754",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule, such as daily or weekly, to check for new documents in Google Drive.",
+      "data_sources": "Google Drive API, Google Docs API, AI Model API (e.g., OpenAI, ChatGPT), Google Sheets API.",
+      "operations": "1. Fetch the most recent Google Doc from Google Drive, 2. Extract content from the document, 3. Summarize the document using an AI model, 4. Store the summarized content in Google Sheets.",
+      "output_actions": "The final output is storing the summarized content and relevant document details in a Google Sheet.",
+      "nodes_plan": "schedule (trigger), googleDrive (list files), googleDocs (get content), openAi (summarize), googleSheets (append row)",
+      "connections_plan": "schedule -> googleDrive -> googleDocs -> openAi -> googleSheets (linear flow)"
+    },
+    "workflowPlan": {
+      "name": "Google Doc Management Automation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.schedule",
+          "typeVersion": 1,
+          "params": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "mode": "everyWeek",
+                  "hour": 9,
+                  "minute": 0
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Google Drive",
+          "nodeType": "n8n-nodes-base.googleDrive",
+          "typeVersion": 1,
+          "params": {
+            "operation": "list",
+            "query": "mimeType='application/vnd.google-apps.document'",
+            "options": {
+              "orderBy": "createdTime desc",
+              "pageSize": 1
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Google Docs",
+          "nodeType": "n8n-nodes-base.googleDocs",
+          "typeVersion": 1,
+          "params": {
+            "operation": "getContent",
+            "documentId": "={{ $json['id'] }}"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "OpenAI",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Summarize the following document content: {{ $json['content'] }}"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A:C",
+            "data": [
+              [
+                "={{ $json['name'] }}",
+                "={{ $json['message']['content'] }}",
+                "={{ $json['createdTime'] }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4320,
+      "completion_tokens": 892,
+      "total_tokens": 5212
+    },
+    "description_optimization": {
+      "prompt_tokens": 576,
+      "completion_tokens": 559,
+      "total_tokens": 1135
+    },
+    "total_tokens": 6347,
+    "total_prompt_tokens": 4896,
+    "total_completion_tokens": 1451
+  },
+  "description_optimization": {
+    "template_id": "2754",
+    "optimized_description": "This workflow, developed by AI developers at WeblineIndia, automates the management of content by efficiently identifying and processing the most recently added Google Doc file from Google Drive. The workflow is designed to streamline document handling, enhance productivity, and ensure seamless data management. Below is a structured description of the workflow:\n\n**Trigger:** The workflow is initiated on a scheduled basis (e.g., daily or weekly) to check for new documents in Google Drive.\n\n**Data Sources and APIs Needed:**\n1. Google Drive API - to access and list files in the user's Google Drive.\n2. Google Docs API - to extract content from the identified Google Doc.\n3. AI Model API (e.g., OpenAI, ChatGPT) - to generate a summary of the extracted text.\n4. Google Sheets API - to store the summarized content and relevant details in a Google Sheet.\n\n**Operations and Processing Steps:**\n\n1. **Fetch the Most Recent Document from Google Drive:**\n   - Action: Utilize the Google Drive Node.\n   - Details: List all files in the user's Google Drive, applying filters to retrieve only .doc files. Sort the files by the date added to identify the most recently added document. Capture the file ID and relevant metadata (such as the document name and date added).\n\n2. **Extract Content from the Document:**\n   - Action: Utilize the Google Docs Node.\n   - Details: Set the operation to \"Get Content\" and pass the retrieved file ID. Extract the full text content of the identified Google Doc for further processing.\n\n3. **Summarize the Document Using an AI Model:**\n   - Action: Utilize an AI Model Node (e.g., OpenAI, ChatGPT).\n   - Details: Provide the extracted text to the AI model. Use a predefined prompt to instruct the model to generate a concise and meaningful summary of the document's content. Capture the summary output for the next step.\n\n4. **Store the Summarized Content in Google Sheets:**\n   - Action: Utilize the Google Sheets Node.\n   - Details: Append a new row to a designated Google Sheet. Include the following details in the new row: the original document name, the generated summary, and the date the document was added. This organized storage allows for easy reference and access in the future.\n\n**Final Output or Action:**\nThe workflow concludes with the summarized content and relevant document details being successfully stored in the specified Google Sheet. This automation not only simplifies document management but also provides an organized reference for users, enhancing overall productivity.\n\nThis structured workflow effectively automates the process of managing Google Docs, ensuring that users can easily access summaries of their most recent documents while minimizing manual effort. For further assistance or custom AI solutions, users are encouraged to reach out to WeblineIndia.",
+    "original_description": "This workflow is created by AI developers at WeblineIndia. It streamlines the process of managing content by automatically identifying and fetching the most recently added Google Doc file from your Google Drive. It extracts the content of the document for processing and leverages an AI model to generate a concise and meaningful summary of the extracted text. The summarized content is then stored in a designated Google Sheet, alongside relevant details like the document name and the date it was added, providing an organized and easily accessible reference for future use. This automation simplifies document handling, enhances productivity, and ensures seamless data management.\n\n## Steps :\n### Fetch the Most Recent Document from Google Drive\n- **Action:** Use the Google Drive Node.\n- **Details:** List files, filter by date to fetch the most recently added .doc file, and retrieve its file ID and metadata.\n\n### Extract Content from the Document\n- **Action:** Use the Google Docs Node.\n- **Details:** Set the operation to \"Get Content,\" pass the file ID, and extract the document's text content.\n\n### Summarize the Document Using an AI Model\n- **Action:** Use an AI Model Node (e.g., OpenAI, ChatGPT).\n- **Details:** Provide the extracted text to the AI model, use a prompt to generate a summary, and capture the result.\n\n### Store the Summarized Content in Google Sheets\n- **Action:** Use the Google Sheets Node.\n- **Details:** Append a new row to the target sheet with details such as the original document name, summary, and date added.\n\n---\n\n## About WeblineIndia\n**WeblineIndia** specializes in delivering innovative and [custom AI solutions](https://www.weblineindia.com/ai-development.html) to simplify and automate business processes. If you need any help, please reach out to us.",
+    "description_length": 2820,
+    "usage": {
+      "prompt_tokens": 576,
+      "completion_tokens": 559,
+      "total_tokens": 1135
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:28:59.079754"
+  },
+  "original_description": "This workflow is created by AI developers at WeblineIndia. It streamlines the process of managing content by automatically identifying and fetching the most recently added Google Doc file from your Google Drive. It extracts the content of the document for processing and leverages an AI model to generate a concise and meaningful summary of the extracted text. The summarized content is then stored in a designated Google Sheet, alongside relevant details like the document name and the date it was added, providing an organized and easily accessible reference for future use. This automation simplifies document handling, enhances productivity, and ensures seamless data management.\n\n## Steps :\n### Fetch the Most Recent Document from Google Drive\n- **Action:** Use the Google Drive Node.\n- **Details:** List files, filter by date to fetch the most recently added .doc file, and retrieve its file ID and metadata.\n\n### Extract Content from the Document\n- **Action:** Use the Google Docs Node.\n- **Details:** Set the operation to \"Get Content,\" pass the file ID, and extract the document's text content.\n\n### Summarize the Document Using an AI Model\n- **Action:** Use an AI Model Node (e.g., OpenAI, ChatGPT).\n- **Details:** Provide the extracted text to the AI model, use a prompt to generate a summary, and capture the result.\n\n### Store the Summarized Content in Google Sheets\n- **Action:** Use the Google Sheets Node.\n- **Details:** Append a new row to the target sheet with details such as the original document name, summary, and date added.\n\n---\n\n## About WeblineIndia\n**WeblineIndia** specializes in delivering innovative and [custom AI solutions](https://www.weblineindia.com/ai-development.html) to simplify and automate business processes. If you need any help, please reach out to us.",
+  "optimized_description": "This workflow, developed by AI developers at WeblineIndia, automates the management of content by efficiently identifying and processing the most recently added Google Doc file from Google Drive. The workflow is designed to streamline document handling, enhance productivity, and ensure seamless data management. Below is a structured description of the workflow:\n\n**Trigger:** The workflow is initiated on a scheduled basis (e.g., daily or weekly) to check for new documents in Google Drive.\n\n**Data Sources and APIs Needed:**\n1. Google Drive API - to access and list files in the user's Google Drive.\n2. Google Docs API - to extract content from the identified Google Doc.\n3. AI Model API (e.g., OpenAI, ChatGPT) - to generate a summary of the extracted text.\n4. Google Sheets API - to store the summarized content and relevant details in a Google Sheet.\n\n**Operations and Processing Steps:**\n\n1. **Fetch the Most Recent Document from Google Drive:**\n   - Action: Utilize the Google Drive Node.\n   - Details: List all files in the user's Google Drive, applying filters to retrieve only .doc files. Sort the files by the date added to identify the most recently added document. Capture the file ID and relevant metadata (such as the document name and date added).\n\n2. **Extract Content from the Document:**\n   - Action: Utilize the Google Docs Node.\n   - Details: Set the operation to \"Get Content\" and pass the retrieved file ID. Extract the full text content of the identified Google Doc for further processing.\n\n3. **Summarize the Document Using an AI Model:**\n   - Action: Utilize an AI Model Node (e.g., OpenAI, ChatGPT).\n   - Details: Provide the extracted text to the AI model. Use a predefined prompt to instruct the model to generate a concise and meaningful summary of the document's content. Capture the summary output for the next step.\n\n4. **Store the Summarized Content in Google Sheets:**\n   - Action: Utilize the Google Sheets Node.\n   - Details: Append a new row to a designated Google Sheet. Include the following details in the new row: the original document name, the generated summary, and the date the document was added. This organized storage allows for easy reference and access in the future.\n\n**Final Output or Action:**\nThe workflow concludes with the summarized content and relevant document details being successfully stored in the specified Google Sheet. This automation not only simplifies document management but also provides an organized reference for users, enhancing overall productivity.\n\nThis structured workflow effectively automates the process of managing Google Docs, ensuring that users can easily access summaries of their most recent documents while minimizing manual effort. For further assistance or custom AI solutions, users are encouraged to reach out to WeblineIndia.",
+  "error": null,
+  "generated_at": "2026-01-25T23:29:07.191087",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 0.5,
+    "node_type_f1": 0.5454545454545454,
+    "tp": 3,
+    "fp": 2,
+    "fn": 3,
+    "gt_node_count": 6,
+    "llm_node_count": 5,
+    "connection_precision": 0.5,
+    "connection_recall": 0.6666666666666666,
+    "connection_f1": 0.5714285714285715,
+    "correct_connections": 2,
+    "gt_connection_count": 3,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.19047619047619047,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4320,
+        "completion_tokens": 892,
+        "total_tokens": 5212
+      },
+      "description_optimization": {
+        "prompt_tokens": 576,
+        "completion_tokens": 559,
+        "total_tokens": 1135
+      },
+      "total_tokens": 6347,
+      "total_prompt_tokens": 4896,
+      "total_completion_tokens": 1451
+    },
+    "total_cost": 0.026750000000000003,
+    "description_optimization_cost": 0.007030000000000001,
+    "workflow_generation_cost": 0.01972
+  }
+}

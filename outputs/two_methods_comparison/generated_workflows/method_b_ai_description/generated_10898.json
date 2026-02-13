@@ -1,0 +1,255 @@
+{
+  "template_id": 10898,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Landing Page Security Analysis",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Form Submission Trigger",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "security-analysis",
+            "method": "POST",
+            "responseMode": "onReceived",
+            "responseData": "allEntries"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Configuration",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "url",
+                  "value": "={{$json[\"body\"][\"url\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Security Headers",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "responseFormat": "string",
+            "options": {
+              "fullResponse": true
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Analyze Security Headers",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const headers = $json[\"headers\"];\n// Analyze headers here\nreturn [{ headers }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Allowed HTTP Methods",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "method": "OPTIONS",
+            "responseFormat": "string",
+            "options": {
+              "fullResponse": true
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Analyze HTTP Methods",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const methods = $json[\"headers\"][\"allow\"];\n// Analyze methods here\nreturn [{ methods }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Check Cookies",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "={{$json[\"url\"]}}",
+            "responseFormat": "string",
+            "options": {
+              "fullResponse": true
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 500
+          }
+        },
+        {
+          "id": "8",
+          "label": "Analyze Cookies",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const cookies = $json[\"headers\"][\"set-cookie\"];\n// Analyze cookies here\nreturn [{ cookies }];"
+          },
+          "position": {
+            "x": 800,
+            "y": 500
+          }
+        },
+        {
+          "id": "9",
+          "label": "Compile Report",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "language": "javascript",
+            "code": "const report = {\n  headers: $items(\"Analyze Security Headers\")[0].json.headers,\n  methods: $items(\"Analyze HTTP Methods\")[0].json.methods,\n  cookies: $items(\"Analyze Cookies\")[0].json.cookies\n};\nreturn [{ report }];"
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.gmail",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "Security Analysis Report",
+            "text": "={{$json[\"report\"]}}"
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "2",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "2",
+          "to": "7"
+        },
+        {
+          "from": "7",
+          "to": "8"
+        },
+        {
+          "from": "4",
+          "to": "9"
+        },
+        {
+          "from": "6",
+          "to": "9"
+        },
+        {
+          "from": "8",
+          "to": "9"
+        },
+        {
+          "from": "9",
+          "to": "10"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 662,
+    "completion_tokens": 1352,
+    "total_tokens": 2014
+  },
+  "error": null,
+  "generated_at": "2026-01-13T02:59:06.064616",
+  "generated_description": "This n8n workflow is designed to perform a comprehensive security analysis of a landing page. It is triggered by the submission of a form on the landing page, which initiates a series of operations to evaluate various security aspects of the page.\n\nThe workflow utilizes multiple HTTP requests to test different security features, including security headers, HTTP methods, and cookies. Specifically, it sends requests to assess the presence and configuration of security headers, the allowed HTTP methods, and the handling of cookies. Each of these tests is followed by a code node that analyzes the results, providing insights into the security posture of the landing page.\n\nThe workflow also includes a configuration node to set necessary parameters for the tests. After completing the analysis, the results are merged and compiled into a cohesive report.\n\nFinally, the workflow concludes by sending an email through Gmail, delivering the security analysis report to the designated recipient. This ensures that stakeholders are informed about the security status of the landing page and can take appropriate actions if any vulnerabilities are detected.",
+  "description_generation_usage": {
+    "prompt_tokens": 211,
+    "completion_tokens": 200,
+    "total_tokens": 411
+  },
+  "metrics": {
+    "node_type_precision": 0.9,
+    "node_type_recall": 1.0,
+    "node_type_f1": 0.9473684210526316,
+    "tp": 9,
+    "fp": 1,
+    "fn": 0,
+    "gt_node_count": 9,
+    "llm_node_count": 10,
+    "connection_precision": 0.4,
+    "connection_recall": 0.2,
+    "connection_f1": 0.26666666666666666,
+    "correct_connections": 2,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "prompt_tokens": 662,
+      "completion_tokens": 1352,
+      "total_tokens": 2014
+    },
+    "total_cost": 0.017702500000000003,
+    "description_generation_cost": 0.0025275000000000002,
+    "workflow_generation_cost": 0.015175000000000001
+  },
+  "original_description": "**How the n8n OWASP Scanner Works & How to Set It Up**\n\n**How It Works (Simple Flow):**\n- **1. Input**: Enter target URL + endpoint (e.g., `https://example.com`, `/login`)\n- **2. Scan**: This workflow executes 5 parallel HTTP tests (Headers, Cookies, CORS, HTTPS, Methods)\n- **3. Analyze**: Pure JS logic checks OWASP ASVS (Application Security Verification Standard) rules (no external tools)\n- **4. Merge**: Combines all findings into one Markdown report\n- **5. Output**: Auto-generates + downloads `scan-2025-11-16_210900.md`** (example filename)\n- **6. Email:** (Optional) Forward the report to an email address using Gmail.\n\n---\n\n**Setup in 3 Steps (2 Minutes)**\n\n1. **Import Workflow**\n   - Copy the full JSON (from \"Export Final Workflow\")\n   - In n8n \u2192 **Workflows** \u2192 **Import from JSON** \u2192 Paste \u2192 Import\n\n2. **(Optional) Connect your Gmail credentials**\n   - In the last node to auto-email the report\n\n3. **Click Execute the workflow** \n   - Enter a URL in the new window, then click 'submit'.\n\n*You can alternatively download or receive the Markdown report directly from the Markdown to File node* \n\n---\n  \n*(Supports any HTTP/HTTPS endpoint. Works in n8n Cloud or self-hosted.)*"
+}

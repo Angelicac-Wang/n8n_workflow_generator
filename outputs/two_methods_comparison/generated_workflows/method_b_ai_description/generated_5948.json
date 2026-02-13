@@ -1,0 +1,196 @@
+{
+  "template_id": 5948,
+  "llm_response": {
+    "mode": "create_workflow",
+    "workflowPlan": {
+      "name": "Job Listings Monitoring and Pricing Update",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Scheduled Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 * * * *"
+          },
+          "position": {
+            "x": 200,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Set Search Parameters",
+          "nodeType": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "params": {
+            "values": {
+              "string": [
+                {
+                  "name": "searchQuery",
+                  "value": "desired job title or keywords"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 400,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Data Processing with OpenAI",
+          "nodeType": "n8n-nodes-base.openai",
+          "typeVersion": 1,
+          "params": {
+            "model": "text-davinci-003",
+            "prompt": "Analyze job listings data: {{$json[\"data\"]}}"
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Data Scraping",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://example.com/job-listings",
+            "responseFormat": "string",
+            "jsonParameters": true,
+            "options": {
+              "fullResponse": true
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Pricing Data",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"pricingData\"]}}",
+                  "value2": "={{$json[\"newPricingData\"]}}"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Update Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "update",
+            "sheetId": "your-google-sheet-id",
+            "range": "Sheet1!A1",
+            "valueInputMode": "RAW",
+            "values": [
+              [
+                "={{$json[\"updatedPricingData\"]}}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1200,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Output Handling",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { json: { formattedData: JSON.stringify($json, null, 2) } };"
+          },
+          "position": {
+            "x": 1400,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "4"
+        },
+        {
+          "from": "4",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 1
+        },
+        {
+          "from": "6",
+          "to": "7"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 701,
+    "completion_tokens": 920,
+    "total_tokens": 1621
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:38:13.188508",
+  "generated_description": "This n8n workflow is designed to automate the process of monitoring job listings and updating pricing data. It is triggered by a scheduled event, which initiates the workflow to check job listings at specified intervals.\n\n1. **Trigger**: The workflow begins with a scheduled trigger that initiates the process of checking job listings.\n2. **Set Search Parameters**: It sets specific parameters to refine the search for job listings.\n3. **Data Processing**: The workflow utilizes OpenAI's language model to process or analyze the data retrieved from job listings.\n4. **Data Scraping**: It employs a client tool to scrape the required data from job listings and formats it as markdown.\n5. **Conditional Logic**: A node checks for any changes in pricing data retrieved from a Google Sheets document.\n6. **Update Operations**: If there are changes in the pricing data, the workflow updates the Google Sheets document accordingly.\n7. **Output Handling**: An auto-fixing output parser is used to ensure the data is correctly formatted and processed.\n\nThe workflow effectively automates the task of monitoring job listings and managing pricing data, ensuring that any changes are promptly updated in the Google Sheets document.",
+  "description_generation_usage": {
+    "prompt_tokens": 250,
+    "completion_tokens": 239,
+    "total_tokens": 489
+  },
+  "metrics": {
+    "node_type_precision": 0.42857142857142855,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.3157894736842105,
+    "tp": 3,
+    "fp": 4,
+    "fn": 9,
+    "gt_node_count": 12,
+    "llm_node_count": 7,
+    "connection_precision": 0.16666666666666666,
+    "connection_recall": 0.16666666666666666,
+    "connection_f1": 0.16666666666666666,
+    "correct_connections": 1,
+    "gt_connection_count": 6,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.3333333333333333,
+    "usage": {
+      "prompt_tokens": 701,
+      "completion_tokens": 920,
+      "total_tokens": 1621
+    },
+    "total_cost": 0.013967500000000002,
+    "description_generation_cost": 0.0030150000000000003,
+    "workflow_generation_cost": 0.010952500000000002
+  },
+  "original_description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.*\n\nThis workflow automatically monitors competitor pricing changes and website updates to keep you informed of market movements. It saves you time by eliminating the need to manually check competitor websites and provides alerts only when actual changes occur, preventing information overload.\n\n## Overview\n\nThis workflow automatically scrapes competitor pricing pages (like ClickUp) and compares current pricing with previously stored data. It uses Bright Data to access competitor websites without being blocked and AI to intelligently extract pricing information, updating your tracking spreadsheet only when changes are detected.\n\n## Tools Used\n\n- **n8n**: The automation platform that orchestrates the workflow\n- **Bright Data**: For scraping competitor websites without being blocked\n- **OpenAI**: AI agent for intelligent pricing data extraction and parsing\n- **Google Sheets**: For storing and comparing historical pricing data\n\n## How to Install\n\n1. **Import the Workflow**: Download the .json file and import it into your n8n instance\n2. **Configure Bright Data**: Add your Bright Data credentials to the MCP Client node\n3. **Set Up OpenAI**: Configure your OpenAI API credentials\n4. **Configure Google Sheets**: Connect your Google Sheets account and set up your pricing tracking spreadsheet\n5. **Customize**: Set your competitor URLs and pricing monitoring schedule\n\n## Use Cases\n\n- **Product Teams**: Monitor competitor feature and pricing changes for strategic planning\n- **Sales Teams**: Stay informed of competitor pricing to adjust sales strategies\n- **Marketing Teams**: Track competitor messaging and positioning changes\n- **Business Intelligence**: Build comprehensive competitor analysis databases\n\n## Connect with Me\n\n- **Website**: https://www.nofluff.online\n- **YouTube**: https://www.youtube.com/@YaronBeen/videos\n- **LinkedIn**: https://www.linkedin.com/in/yaronbeen/\n- **Get Bright Data**: https://get.brightdata.com/1tndi4600b25 (Using this link supports my free workflows with a small commission)\n\n#n8n #automation #competitoranalysis #pricingmonitoring #brightdata #webscraping #competitortracking #marketintelligence #n8nworkflow #workflow #nocode #pricetracking #businessintelligence #competitiveanalysis #marketresearch #competitormonitoring #pricingdata #websitemonitoring #competitorpricing #marketanalysis #competitorwatch #pricingalerts #businessautomation #competitorinsights #markettrends #pricingchanges #competitorupdates #strategicanalysis #marketposition #competitiveintelligence"
+}

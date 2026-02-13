@@ -1,0 +1,297 @@
+{
+  "template_id": "10898",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "workflow_type_check": "NO - This is NOT a conversational AI agent workflow. It's a security scanning automation with report generation and optional email sending. Use base nodes.",
+      "trigger_analysis": "Manual trigger to start the workflow execution",
+      "data_sources": "Target URL and endpoint for HTTP tests",
+      "operations": "1. Input target URL and endpoint, 2. Execute parallel HTTP tests, 3. Analyze results against OWASP ASVS rules, 4. Merge findings into a Markdown report, 5. Generate and download the report, 6. Optionally send the report via email using Gmail",
+      "output_actions": "Generate a Markdown report and optionally send it via email",
+      "nodes_plan": "manualTrigger (start), httpRequest (parallel tests), function (analyze results), markdown (generate report), writeFile (download report), emailSend (optional email)",
+      "connections_plan": "manualTrigger -> httpRequest (parallel) -> function (analyze) -> markdown -> writeFile -> emailSend (optional)"
+    },
+    "workflowPlan": {
+      "name": "OWASP Security Scanner",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Manual Trigger",
+          "nodeType": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "params": {},
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request - Headers",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.url }}{{ $json.endpoint }}",
+            "options": {
+              "headers": {
+                "User-Agent": "OWASP-Scanner"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 100
+          }
+        },
+        {
+          "id": "3",
+          "label": "HTTP Request - Cookies",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.url }}{{ $json.endpoint }}",
+            "options": {
+              "headers": {
+                "User-Agent": "OWASP-Scanner"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "HTTP Request - CORS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "OPTIONS",
+            "url": "={{ $json.url }}{{ $json.endpoint }}",
+            "options": {
+              "headers": {
+                "User-Agent": "OWASP-Scanner"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "HTTP Request - HTTPS",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "={{ $json.url }}{{ $json.endpoint }}",
+            "options": {
+              "headers": {
+                "User-Agent": "OWASP-Scanner"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 400
+          }
+        },
+        {
+          "id": "6",
+          "label": "HTTP Request - Methods",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "OPTIONS",
+            "url": "={{ $json.url }}{{ $json.endpoint }}",
+            "options": {
+              "headers": {
+                "User-Agent": "OWASP-Scanner"
+              }
+            }
+          },
+          "position": {
+            "x": 300,
+            "y": 500
+          }
+        },
+        {
+          "id": "7",
+          "label": "Analyze Results",
+          "nodeType": "n8n-nodes-base.function",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "return { findings: 'Analyzed results based on OWASP ASVS rules' };"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Generate Markdown Report",
+          "nodeType": "n8n-nodes-base.markdown",
+          "typeVersion": 1,
+          "params": {
+            "content": "={{ $json.findings }}",
+            "fileName": "scan-{{ new Date().toISOString().slice(0,10) }}_{{ new Date().toISOString().slice(11,19).replace(/:/g, '') }}.md"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "9",
+          "label": "Write File",
+          "nodeType": "n8n-nodes-base.writeFile",
+          "typeVersion": 1,
+          "params": {
+            "fileName": "={{ $json.fileName }}",
+            "data": "={{ $json.content }}"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "10",
+          "label": "Send Email",
+          "nodeType": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "params": {
+            "to": "recipient@example.com",
+            "subject": "OWASP Scan Report",
+            "text": "The OWASP scan report is attached.",
+            "attachments": "={{ $json.fileName }}"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "1",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "7",
+          "to": "8",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "8",
+          "to": "9",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "9",
+          "to": "10",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 9037,
+    "completion_tokens": 1689,
+    "total_tokens": 10726
+  },
+  "description_optimization": null,
+  "original_description": "**How the n8n OWASP Scanner Works & How to Set It Up**\n\n**How It Works (Simple Flow):**\n- **1. Input**: Enter target URL + endpoint (e.g., `https://example.com`, `/login`)\n- **2. Scan**: This workflow executes 5 parallel HTTP tests (Headers, Cookies, CORS, HTTPS, Methods)\n- **3. Analyze**: Pure JS logic checks OWASP ASVS (Application Security Verification Standard) rules (no external tools)\n- **4. Merge**: Combines all findings into one Markdown report\n- **5. Output**: Auto-generates + downloads `scan-2025-11-16_210900.md`** (example filename)\n- **6. Email:** (Optional) Forward the report to an email address using Gmail.\n\n---\n\n**Setup in 3 Steps (2 Minutes)**\n\n1. **Import Workflow**\n   - Copy the full JSON (from \"Export Final Workflow\")\n   - In n8n \u2192 **Workflows** \u2192 **Import from JSON** \u2192 Paste \u2192 Import\n\n2. **(Optional) Connect your Gmail credentials**\n   - In the last node to auto-email the report\n\n3. **Click Execute the workflow** \n   - Enter a URL in the new window, then click 'submit'.\n\n*You can alternatively download or receive the Markdown report directly from the Markdown to File node* \n\n---\n  \n*(Supports any HTTP/HTTPS endpoint. Works in n8n Cloud or self-hosted.)*",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T14:47:44.488950",
+  "metrics": {
+    "node_type_precision": 0.6,
+    "node_type_recall": 1.0,
+    "node_type_f1": 0.7499999999999999,
+    "tp": 6,
+    "fp": 4,
+    "fn": 0,
+    "gt_node_count": 6,
+    "llm_node_count": 10,
+    "connection_precision": 0.2,
+    "connection_recall": 0.1,
+    "connection_f1": 0.13333333333333333,
+    "correct_connections": 1,
+    "gt_connection_count": 10,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.2333333333333333,
+    "usage": {
+      "prompt_tokens": 9037,
+      "completion_tokens": 1689,
+      "total_tokens": 10726
+    },
+    "total_cost": 0.039482500000000004
+  },
+  "is_ai_workflow": false
+}

@@ -1,0 +1,255 @@
+{
+  "template_id": 12013,
+  "llm_response": {
+    "mode": "create_workflow",
+    "reply": "This workflow automates the creation of bills in QuickBooks, handling vendor and item data management.",
+    "workflowPlan": {
+      "name": "QuickBooks Bill Creation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Trigger",
+          "nodeType": "webhook",
+          "typeVersion": 1,
+          "params": {
+            "path": "create-bill",
+            "method": "POST"
+          },
+          "position": {
+            "x": 200,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Split Items",
+          "nodeType": "splitInBatches",
+          "typeVersion": 1,
+          "params": {
+            "batchSize": 1
+          },
+          "position": {
+            "x": 400,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Find Vendor",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.quickbooks.com/v3/company/{companyId}/vendor",
+            "method": "GET",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 600,
+            "y": 100
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Vendor",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.quickbooks.com/v3/company/{companyId}/vendor",
+            "method": "POST",
+            "authentication": "oAuth2Api",
+            "body": {
+              "name": "{{$json[\"vendorName\"]}}"
+            }
+          },
+          "position": {
+            "x": 600,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Check Vendor Exists",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"vendorExists\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 800,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Find Item",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.quickbooks.com/v3/company/{companyId}/item",
+            "method": "GET",
+            "authentication": "oAuth2Api"
+          },
+          "position": {
+            "x": 1000,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Create Item",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.quickbooks.com/v3/company/{companyId}/item",
+            "method": "POST",
+            "authentication": "oAuth2Api",
+            "body": {
+              "name": "{{$json[\"itemName\"]}}",
+              "type": "Inventory",
+              "incomeAccountRef": {
+                "value": "79"
+              }
+            }
+          },
+          "position": {
+            "x": 1000,
+            "y": 300
+          }
+        },
+        {
+          "id": "8",
+          "label": "Check Item Exists",
+          "nodeType": "if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{$json[\"itemExists\"]}}",
+                  "operation": "isTrue"
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1200,
+            "y": 200
+          }
+        },
+        {
+          "id": "9",
+          "label": "Create Bill",
+          "nodeType": "httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "url": "https://api.quickbooks.com/v3/company/{companyId}/bill",
+            "method": "POST",
+            "authentication": "oAuth2Api",
+            "body": {
+              "vendorRef": {
+                "value": "{{$json[\"vendorId\"]}}"
+              },
+              "line": [
+                {
+                  "amount": "{{$json[\"amount\"]}}",
+                  "detailType": "ItemBasedExpenseLineDetail",
+                  "itemBasedExpenseLineDetail": {
+                    "itemRef": {
+                      "value": "{{$json[\"itemId\"]}}"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1400,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2"
+        },
+        {
+          "from": "2",
+          "to": "3"
+        },
+        {
+          "from": "3",
+          "to": "5"
+        },
+        {
+          "from": "5",
+          "to": "4",
+          "outputIndex": 1
+        },
+        {
+          "from": "5",
+          "to": "6"
+        },
+        {
+          "from": "6",
+          "to": "8"
+        },
+        {
+          "from": "8",
+          "to": "7",
+          "outputIndex": 1
+        },
+        {
+          "from": "8",
+          "to": "9"
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 706,
+    "completion_tokens": 1264,
+    "total_tokens": 1970
+  },
+  "error": null,
+  "generated_at": "2026-01-13T08:32:14.267195",
+  "generated_description": "This n8n workflow is designed to automate the process of creating bills and managing vendor and item data within QuickBooks. \n\n1. **Trigger**: The workflow is initiated when there is a need to create a bill, potentially involving new items or vendors.\n\n2. **Data Sources/APIs**: It interacts with QuickBooks to manage vendor and item data, and it uses HTTP requests to create bills.\n\n3. **Operations**:\n   - The workflow first checks if the necessary items for the bill need to be created by splitting the items into individual components.\n   - It then attempts to find the corresponding vendor in QuickBooks. If the vendor does not exist, it proceeds to create a new vendor.\n   - The workflow checks if any new items need to be created in QuickBooks and handles their creation if necessary.\n   - It merges the paths of item creation and vendor verification to ensure all necessary data is available.\n   - Finally, it collects all item mappings and uses this data to create a bill through an HTTP request.\n\n4. **Final Output/Action**: The result of this workflow is the successful creation of a bill in QuickBooks, with all required items and vendor information accurately recorded and updated.",
+  "description_generation_usage": {
+    "prompt_tokens": 224,
+    "completion_tokens": 244,
+    "total_tokens": 468
+  },
+  "metrics": {
+    "node_type_precision": 0.5555555555555556,
+    "node_type_recall": 0.25,
+    "node_type_f1": 0.3448275862068966,
+    "tp": 5,
+    "fp": 4,
+    "fn": 15,
+    "gt_node_count": 20,
+    "llm_node_count": 9,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 19,
+    "llm_connection_count": 4,
+    "avg_parameter_accuracy": 0.025,
+    "usage": {
+      "prompt_tokens": 706,
+      "completion_tokens": 1264,
+      "total_tokens": 1970
+    },
+    "total_cost": 0.017405,
+    "description_generation_cost": 0.0030000000000000005,
+    "workflow_generation_cost": 0.014405000000000001
+  },
+  "original_description": "## \u2705 What problem does this workflow solve?\n\nAccounting teams spend **hours manually entering purchase bills** into accounting systems\u2014copying vendor details, creating items, checking duplicates, and reconciling totals. This workflow removes that manual effort entirely.\n\nWith **OCR + AI + QuickBooks integration**, this automation converts uploaded purchase bills into **fully reconciled QuickBooks bills**\u2014accurately, consistently, and without human intervention.\n\n---\n\n## \u2699\ufe0f What does this workflow do?\n\n- Accepts **multiple purchase bills** in a single upload\n- Extracts structured invoice data using OCR + AI\n- Automatically syncs vendors and items with **:contentReference[oaicite:0]{index=0}**\n- Creates missing vendors or items when needed\n- Generates clean, validated bills inside QuickBooks\n- Prevents duplicate vendors or line items\n\n---\n\n## \ud83e\udde0 How It Works \u2013 Step-by-Step\n\n### 1. \ud83d\udce4 Upload Purchase Bills\n- Users upload **one or multiple PDF bills** using an n8n form\n- Each bill is automatically split and processed individually\n\n### 2. \ud83d\udd0d OCR & Invoice Data Extraction\n- The workflow extracts text from each PDF\n- An AI extraction engine powered by :contentReference[oaicite:2]{index=2} identifies:\n  - Invoice number & dates\n  - Vendor details\n  - Line items (name, quantity, price, amount)\n  - Subtotal, tax, and total\n\n### 3. \ud83d\udd04 Item & Vendor Reconciliation (QuickBooks)\n- Fetches **existing items** from QuickBooks\n- If an item does not exist:\n  - Automatically creates it\n- Checks if the vendor exists:\n  - Creates a new vendor if missing\n- Ensures **zero duplicates** in QuickBooks\n\n### 4. \ud83e\uddfe Bill Payload Creation\n- Builds a clean QuickBooks-compatible bill payload\n- Maps:\n  - Items\n  - Vendor\n  - Dates\n  - Taxes\n  - Totals\n- Handles edge cases like missing quantities or unit prices\n\n### 5. \ud83d\udcb0 Bill Creation in QuickBooks\n- Creates a finalized bill inside QuickBooks\n- Each bill is immediately ready for reconciliation and reporting\n\n---\n\n## \ud83d\udee0 Tools & Integrations Used\n\n- **n8n Form Trigger** \u2013 Bill upload\n- **PDF Extractor** \u2013 Text extraction\n- **AI Invoice Parser** \u2013 Structured data extraction\n- **QuickBooks API** \u2013 Vendor, item, and bill creation\n- **OpenAI / OpenRouter** \u2013 Intelligent field mapping\n\n---\n\n## \ud83d\udca1 Key Benefits\n\n- \u23f1 Eliminates hours of manual bill entry\n- \ud83e\udde0 Intelligent OCR with structured extraction\n- \ud83d\udeab No duplicate vendors or items\n- \u26a1 Instant QuickBooks synchronization\n- \ud83d\udcca Accurate accounting data every time\n\n---\n\n## \ud83d\udc64 Who can use this?\n\nPerfect for:\n- \ud83e\uddfe **Accounting teams**\n- \ud83c\udfe2 **Finance departments**\n- \ud83d\udcc8 **SMBs using QuickBooks**\n- \ud83d\ude80 **SaaS platforms automating bookkeeping**\n\nIf you're processing large volumes of purchase bills, this workflow turns **documents into structured accounting data\u2014automatically**."
+}

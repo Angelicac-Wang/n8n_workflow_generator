@@ -1,0 +1,203 @@
+{
+  "template_id": "11763",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered on a schedule, ideally every 5 minutes, to check the status of the websites.",
+      "data_sources": "The workflow will need to access the websites to be monitored and the Telegram API for sending alerts.",
+      "operations": "1. Schedule trigger every 5 minutes, 2. HTTP request to check website status, 3. IF node to check response status, 4. Wait for 5 minutes if down, 5. Recheck status, 6. Send Telegram alert if still down.",
+      "output_actions": "Send a Telegram message if the website is confirmed down after the wait period.",
+      "nodes_plan": "scheduleTrigger, httpRequest, if, wait, httpRequest (recheck), telegram",
+      "connections_plan": "scheduleTrigger -> httpRequest -> if -> [wait (if down) -> httpRequest (recheck) -> if (recheck) -> telegram (if still down)]"
+    },
+    "workflowPlan": {
+      "name": "Website Downtime Checker",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1,
+          "params": {
+            "interval": 5,
+            "unit": "minutes"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://example.com"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Status",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.statusCode }}",
+                  "operation": "notEqual",
+                  "value2": 200
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Wait",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "amount": 5,
+            "unit": "minutes"
+          },
+          "position": {
+            "x": 700,
+            "y": 100
+          }
+        },
+        {
+          "id": "5",
+          "label": "Recheck HTTP Request",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://example.com"
+          },
+          "position": {
+            "x": 900,
+            "y": 100
+          }
+        },
+        {
+          "id": "6",
+          "label": "Final Check Status",
+          "nodeType": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "params": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{ $json.statusCode }}",
+                  "operation": "notEqual",
+                  "value2": 200
+                }
+              ]
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 100
+          }
+        },
+        {
+          "id": "7",
+          "label": "Send Telegram Alert",
+          "nodeType": "n8n-nodes-base.telegram",
+          "typeVersion": 1,
+          "params": {
+            "operation": "sendMessage",
+            "chatId": "YOUR_CHAT_ID",
+            "text": "Website is down: https://example.com"
+          },
+          "position": {
+            "x": 1300,
+            "y": 100
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5643,
+    "completion_tokens": 1073,
+    "total_tokens": 6716
+  },
+  "description_optimization": null,
+  "original_description": "Get ==Instant== Alerts When Your Website Goes Down \u2014 Using ==n8n== as ==Website Downtime Checker Robot==\n\nIf you manage websites (your own or clients\u2019), downtime alerts are critical.\u2028But most monitoring tools create alert fatigue \u2014 ==emails for every tiny hiccup==, even 30\u201360 second outages.\nThis setup shows how to use n8n as a smart uptime monitor:\u2028\n\u2705 No extra subscriptions\u2028\n\u2705 No false-positive spam\u2028\n\u2705 Alerts only for real downtime\u2028\n\u2705 Optional instant phone notifications\n\nWhy Use n8n for Website Monitoring?\nTraditional tools like Uptime Robot become limiting or expensive as you scale.\nWith n8n, you get:\n* Full control over alert logic\n* Custom timing & thresholds\n* No forced notification rules\n* One tool for uptime and other automations\nYou decide when, how, and why alerts are sent.\n\n**Quick Start:** \nFree n8n Website Monitoring Workflow\nGet running in minutes:\n* Use the prebuilt n8n template\n* Sign up for n8n Cloud or self-host for free\n* Set your schedule (default: hourly)\n* Add the websites you want to monitor\n\n\n**Key Setting** (Important)\nWait time: ==300 seconds (5 minutes)==\n&gt;Recommended*\n\n\u2028If a site goes down, the workflow waits before alerting.\u2028\n\u27a1\ufe0f Short hiccups = ignored\u2028\n\u27a1\ufe0f Real outages = ==alerted==\n\n**How to Test & Use**\n1. Activate the workflow\u2028Toggle it on \u2014 monitoring runs automatically.\n2. Test instantly\u2028Add a fake or non-existent URL and run the workflow.\u2028After the wait period, you\u2019ll receive an alert.\n3. Stay organized\u2028Alerts arrive cleanly in your inbox\u2028(Tip: pair with an AI email labeling workflow for color-coded alerts)\n\nGet Critical Alerts on Your Phone (Telegram)\nEmail is fine \u2014 but critical sites need instant mobile alerts.\nBest option: Telegram bots\n* Free\n* Fast\n* No extra APIs or subscriptions\n\n\nHow It Works\n* Create a Telegram bot via BotFather\n* Add the bot token & chat ID to n8n\n* Receive downtime alerts instantly on your phone\nNo missed notifications. No noise.\n\n\n**FAQ**\n* Can I monitor unlimited sites?\u2028\n&gt; ==Yes== \u2014 just add more URLs.\n\n* What about short downtime (seconds)?\n&gt; Filtered out by the 5-minute wait.\n\n* Do I need a paid n8n plan?\u2028\n&gt; ==No.== Self-hosting is ==free==, and this works on free plans.\n\n* Why not SMS or WhatsApp?\u2028\n&gt; **Telegram** is ==faster, simpler, and doesn\u2019t require paid APIs.==\n\n\n\n\ud83d\udce9 **Contact Me**\n\nIf you have any questions, ideas to share, or would like to collaborate on a project, feel free to reach out. I\u2019m always open to meaningful discussions, feedback, and new opportunities.\n\n\ud83d\udd17 ==Connect with me==\n* [Facebook](https://facebook.com/the.mubiin)\n\n* [LinkedIn](https://www.linkedin.com/in/mubiiin/)\n\n\n\ud83d\udcac You\u2019re welcome to send me a message on any platform, and I\u2019ll get back to you as soon as possible.",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:46:37.750711",
+  "metrics": {
+    "node_type_precision": 0.7142857142857143,
+    "node_type_recall": 0.3333333333333333,
+    "node_type_f1": 0.4545454545454545,
+    "tp": 5,
+    "fp": 2,
+    "fn": 10,
+    "gt_node_count": 15,
+    "llm_node_count": 7,
+    "connection_precision": 0.2,
+    "connection_recall": 0.09090909090909091,
+    "connection_f1": 0.12500000000000003,
+    "correct_connections": 1,
+    "gt_connection_count": 11,
+    "llm_connection_count": 5,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 5643,
+      "completion_tokens": 1073,
+      "total_tokens": 6716
+    },
+    "total_cost": 0.024837500000000005
+  }
+}

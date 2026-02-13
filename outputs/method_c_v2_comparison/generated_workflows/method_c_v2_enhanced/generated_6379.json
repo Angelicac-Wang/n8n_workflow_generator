@@ -1,0 +1,190 @@
+{
+  "template_id": "6379",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "The workflow should be triggered by an incoming WhatsApp message using the WhatsApp Business Cloud API.",
+      "data_sources": "WhatsApp Business Cloud API for incoming messages, Google Sheets/Airtable/MySQL for reservation data, OpenAI for text generation.",
+      "operations": "1. Receive WhatsApp message, 2. Parse message with AI to extract reservation details, 3. Check availability in datastore, 4. Calculate group discount, 5. Generate confirmation message with OpenAI, 6. Send confirmation back to WhatsApp, 7. Schedule reminder message.",
+      "output_actions": "Send a confirmation message back to the user on WhatsApp and optionally schedule a reminder.",
+      "nodes_plan": "webhook (trigger), aiFunction (parse message), datastoreCheck (availability), function (calculate discount), openAi (generate confirmation), httpRequest (send message), wait (schedule reminder)",
+      "connections_plan": "webhook -> aiFunction -> datastoreCheck -> function -> openAi -> httpRequest -> wait (optional reminder)"
+    },
+    "workflowPlan": {
+      "name": "WhatsApp Restaurant Reservation",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "WhatsApp Webhook",
+          "nodeType": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "params": {
+            "httpMethod": "POST",
+            "path": "whatsapp-reservation"
+          },
+          "position": {
+            "x": 100,
+            "y": 200
+          }
+        },
+        {
+          "id": "2",
+          "label": "Parse Message",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function parseMessage(input) { /* AI parsing logic */ return { name: '', date: '', time: '', partySize: '' }; }"
+          },
+          "position": {
+            "x": 300,
+            "y": 200
+          }
+        },
+        {
+          "id": "3",
+          "label": "Check Availability",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "read",
+            "sheetId": "your-sheet-id",
+            "range": "Reservations!A1:D100"
+          },
+          "position": {
+            "x": 500,
+            "y": 200
+          }
+        },
+        {
+          "id": "4",
+          "label": "Calculate Discount",
+          "nodeType": "n8n-nodes-base.code",
+          "typeVersion": 1,
+          "params": {
+            "functionCode": "function calculateDiscount(partySize) { /* Discount logic */ return discount; }"
+          },
+          "position": {
+            "x": 700,
+            "y": 200
+          }
+        },
+        {
+          "id": "5",
+          "label": "Generate Confirmation",
+          "nodeType": "n8n-nodes-base.openAi",
+          "typeVersion": 1,
+          "params": {
+            "operation": "chat",
+            "text": "Generate a confirmation message for a reservation."
+          },
+          "position": {
+            "x": 900,
+            "y": 200
+          }
+        },
+        {
+          "id": "6",
+          "label": "Send Confirmation",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.whatsapp.com/send",
+            "body": {
+              "to": "={{ $json.phoneNumber }}",
+              "message": "={{ $json.confirmationMessage }}"
+            }
+          },
+          "position": {
+            "x": 1100,
+            "y": 200
+          }
+        },
+        {
+          "id": "7",
+          "label": "Schedule Reminder",
+          "nodeType": "n8n-nodes-base.wait",
+          "typeVersion": 1,
+          "params": {
+            "waitFor": "1d"
+          },
+          "position": {
+            "x": 1300,
+            "y": 200
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "prompt_tokens": 5410,
+    "completion_tokens": 1085,
+    "total_tokens": 6495
+  },
+  "description_optimization": null,
+  "original_description": "Streamline restaurant reservations on WhatsApp\n\n## Overview\n\nThis n8n template automates table bookings via WhatsApp, letting users request, confirm, and manage reservations without manual intervention. It leverages AI to parse messages, apply group discounts, check availability, and send natural confirmations\u2014all within a single, reusable workflow.\n\n## Key Features\n\n* **AI\u2011powered parsing & responses**: Extracts guest name, date, time, and party size from free\u2011form WhatsApp messages and generates friendly confirmations..\n* **Availability lookup**: Integrates with Google Sheets, Airtable, or MySQL to verify slot availability in real time.\n* **Automated reminders**: Optionally schedules follow\u2011up messages 24 hours before the booking.\n* **Modular design**: Swap triggers, storage, or messaging nodes to fit your infrastructure.\n\n## How It Works\n\n1. **Trigger**: Incoming WhatsApp message via WhatsApp Business Cloud API.\n2. **Parse & Validate**: AI Function node extracts intent and guest details.\n4. **Calculate Discount**: Custom Function node computes group discount.\n5. **Compose Confirmation**: Open Ai text model generates a personalized response.\n6. **Send Message**:Request node posts back to WhatsApp.\n7. **Optional Reminder**: Wait node + HTTP Request for pre\u2011booking follow\u2011up.\n\n## Requirements\n\n* WhatsApp Business Cloud API access\n* n8n Cloud or self\u2011hosted instance\n* Reservation datastore (Google Sheets, Airtable, MySQL)\n* Open ai  key for AI text generation\n\n## Customization Tips\n\n* **Menu Attachments**: Add media nodes to send PDFs or images.\n* **Alternate Slot Suggestions**: Use AI to propose new times if a slot is full.\n* **Upsell Offers**: Follow up with add\u2011on suggestions (e.g., wine pairings).\n* **Localization**: Extend prompts for multilingual support.\n![Screenshot 20250724 161418.png](fileId:1853)",
+  "optimized_description": null,
+  "error": null,
+  "generated_at": "2026-02-05T02:55:35.180933",
+  "metrics": {
+    "node_type_precision": 0.14285714285714285,
+    "node_type_recall": 0.0625,
+    "node_type_f1": 0.08695652173913043,
+    "tp": 1,
+    "fp": 6,
+    "fn": 15,
+    "gt_node_count": 16,
+    "llm_node_count": 7,
+    "connection_precision": 0.0,
+    "connection_recall": 0.0,
+    "connection_f1": 0.0,
+    "correct_connections": 0,
+    "gt_connection_count": 9,
+    "llm_connection_count": 6,
+    "avg_parameter_accuracy": 0.0,
+    "usage": {
+      "prompt_tokens": 5410,
+      "completion_tokens": 1085,
+      "total_tokens": 6495
+    },
+    "total_cost": 0.024375
+  }
+}

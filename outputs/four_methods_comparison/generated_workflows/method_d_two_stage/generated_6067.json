@@ -1,0 +1,258 @@
+{
+  "template_id": "6067",
+  "llm_response": {
+    "mode": "create_workflow",
+    "reasoning": {
+      "trigger_analysis": "This workflow should be triggered on a schedule, specifically every Monday at 6:00 AM using a CRON trigger.",
+      "data_sources": "The workflow requires the Perplexity API for topic research, OpenAI API for content generation, Leonardo AI for image creation, WordPress API for publishing, and Google Sheets API for logging.",
+      "operations": "1. Research trending topics using Perplexity API. 2. Generate blog content with OpenAI API. 3. Create a blog image using Leonardo AI. 4. Upload the image to WordPress. 5. Publish the blog post on WordPress. 6. Log the post details in Google Sheets.",
+      "output_actions": "The final output is a published blog post on WordPress with a featured image and a log entry in Google Sheets.",
+      "nodes_plan": "cron (schedule), httpRequest (Perplexity), httpRequest (OpenAI), httpRequest (Leonardo AI), httpRequest (WordPress), googleSheets (log)",
+      "connections_plan": "cron -> httpRequest (Perplexity) -> httpRequest (OpenAI) -> httpRequest (Leonardo AI) -> httpRequest (WordPress) -> googleSheets"
+    },
+    "workflowPlan": {
+      "name": "SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress",
+      "nodes": [
+        {
+          "id": "1",
+          "label": "Schedule Trigger",
+          "nodeType": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "params": {
+            "cronExpression": "0 6 * * 1"
+          },
+          "position": {
+            "x": 100,
+            "y": 300
+          }
+        },
+        {
+          "id": "2",
+          "label": "Research Topics",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "GET",
+            "url": "https://api.perplexity.ai/trending-topics",
+            "authentication": "headerAuth",
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 300,
+            "y": 300
+          }
+        },
+        {
+          "id": "3",
+          "label": "Generate Blog Content",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/engines/gpt-4.1-mini/completions",
+            "authentication": "headerAuth",
+            "body": {
+              "prompt": "Write a 1000-1500 word SEO-optimized article about {{ $json.trendingTopic }}.",
+              "max_tokens": 1500
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 500,
+            "y": 300
+          }
+        },
+        {
+          "id": "4",
+          "label": "Create Blog Image",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://api.leonardo.ai/generate-image",
+            "authentication": "headerAuth",
+            "body": {
+              "description": "Cinematic image for blog post about {{ $json.trendingTopic }}."
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 700,
+            "y": 300
+          }
+        },
+        {
+          "id": "5",
+          "label": "Upload Image to WordPress",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/media",
+            "authentication": "basicAuth",
+            "body": {
+              "file": "={{ $json.image }}",
+              "alt_text": "Cinematic image for {{ $json.trendingTopic }}",
+              "title": "Image for {{ $json.trendingTopic }}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 900,
+            "y": 300
+          }
+        },
+        {
+          "id": "6",
+          "label": "Publish Blog Post",
+          "nodeType": "n8n-nodes-base.httpRequest",
+          "typeVersion": 1,
+          "params": {
+            "method": "POST",
+            "url": "https://yourwordpresssite.com/wp-json/wp/v2/posts",
+            "authentication": "basicAuth",
+            "body": {
+              "title": "Blog Post about {{ $json.trendingTopic }}",
+              "content": "={{ $json.blogContent }}",
+              "status": "publish",
+              "featured_media": "={{ $json.mediaId }}"
+            },
+            "responseFormat": "json"
+          },
+          "position": {
+            "x": 1100,
+            "y": 300
+          }
+        },
+        {
+          "id": "7",
+          "label": "Log Post in Google Sheets",
+          "nodeType": "n8n-nodes-base.googleSheets",
+          "typeVersion": 1,
+          "params": {
+            "operation": "append",
+            "sheetId": "your_google_sheet_id",
+            "range": "Sheet1!A:C",
+            "valueInputMode": "USER_ENTERED",
+            "values": [
+              [
+                "={{ $json.title }}",
+                "={{ $json.url }}",
+                "={{ $json.publishedDate }}"
+              ]
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 300
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": "1",
+          "to": "2",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "2",
+          "to": "3",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "3",
+          "to": "4",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "4",
+          "to": "5",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "5",
+          "to": "6",
+          "outputIndex": 0,
+          "inputIndex": 0
+        },
+        {
+          "from": "6",
+          "to": "7",
+          "outputIndex": 0,
+          "inputIndex": 0
+        }
+      ]
+    }
+  },
+  "usage": {
+    "workflow_generation": {
+      "prompt_tokens": 4349,
+      "completion_tokens": 1434,
+      "total_tokens": 5783
+    },
+    "description_optimization": {
+      "prompt_tokens": 677,
+      "completion_tokens": 590,
+      "total_tokens": 1267
+    },
+    "total_tokens": 7050,
+    "total_prompt_tokens": 5026,
+    "total_completion_tokens": 2024
+  },
+  "description_optimization": {
+    "template_id": "6067",
+    "optimized_description": "Workflow Title: SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress\n\nTrigger: The workflow is triggered every Monday at 6:00 AM via a CRON schedule.\n\nData Sources and APIs Needed:\n1. Perplexity API for researching trending startup topics.\n2. OpenAI API (GPT-4.1 Mini or similar) for generating blog content.\n3. Leonardo AI for creating cinematic blog images.\n4. WordPress API (Basic Auth) for publishing blog posts.\n5. Google Sheets API (OAuth2) for tracking published posts.\n\nOperations and Processing Steps:\n1. **Research Trending Topics**: Use the Perplexity API to gather data on trending startup topics relevant to the target audience.\n2. **Generate Blog Content**: Utilize the OpenAI API to create a 1000\u20131500 word SEO-optimized article in structured HTML format based on the researched topics.\n3. **Create Blog Image**: Use Leonardo AI to generate a cinematic image that complements the blog post.\n4. **Upload Image to WordPress**: Upload the generated image to WordPress, ensuring it includes appropriate alt text and an SEO-friendly filename.\n5. **Publish Blog Post**: Publish the generated article to WordPress in a pre-defined category, ensuring it is formatted correctly for online viewing.\n6. **Log Post in Google Sheets**: Record the details of the published post (including title, URL, and publication date) in a Google Sheets document for tracking and analytics.\n\nFinal Output or Action:\nThe workflow results in the automated creation and publishing of a weekly SEO-optimized blog post on WordPress, complete with a featured image and tracking information logged in Google Sheets. This process allows for consistent content generation without manual intervention, enhancing the content strategy and SEO presence of the user.\n\nSetup Instructions:\n1. Connect the necessary credentials for each API:\n   - Perplexity API\n   - OpenAI API (GPT-4.1 Mini or similar)\n   - Leonardo AI (Bearer token)\n   - WordPress (Basic Auth)\n   - Google Sheets (OAuth2)\n2. Customize the content by adjusting the prompt in the HTTP node to align with the desired tone or focus, changing the WordPress category ID, and updating the scheduling if a different publishing day is preferred.\n3. Test the workflow manually to ensure all steps function correctly before enabling the automated schedule.\n\nPro Tips:\n- Consider adding Slack or email notifications to alert when a post goes live.\n- Use multiple categories or RSS feeds to diversify content topics.\n- Adjust the GPT prompt to cater to different languages or tones as needed.\n- Implement post-validation rules if necessary to ensure quality before publishing.\n\nThis workflow streamlines the entire editorial process, from research and writing to design, publishing, and tracking, all powered by AI. It eliminates the hassle of manual posting and enables users to scale their content strategy effectively while maintaining relevance in their niche.",
+    "original_description": "## \u2728 SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress\n\nThis workflow automates the creation and publishing of weekly SEO-optimized blog posts using AI and publishes them directly to WordPress \u2014 with featured images and tracking in Google Sheets.\n\n---\n\n## \ud83e\udde0 Who is this for\n\nThis automation is ideal for:\n\n- Startup platforms and tech blogs  \n- Content creators and marketers  \n- Solopreneurs who want consistent blog output  \n- Spanish-speaking audiences focused on startup trends  \n\n---\n\n## \u2699\ufe0f What it does\n\n- \u23f0 Runs every Monday at 6:00 AM via CRON  \n- \ud83d\udce1 Uses Perplexity AI to research trending startup topics  \n- \ud83d\udcdd Generates a 1000\u20131500 word article with GPT in structured HTML  \n- \ud83c\udfa8 Creates a cinematic blog image using Leonardo AI  \n- \ud83d\uddbc\ufe0f Uploads the image to WordPress with alt text and SEO-friendly filename  \n- \ud83d\udcf0 Publishes the post in a pre-defined category  \n- \ud83d\udcca Logs the post in Google Sheets for tracking  \n\n---\n\n## \ud83d\ude80 How to set it up\n\n1. **Connect your credentials**:\n   - Perplexity API  \n   - OpenAI (GPT-4.1 Mini or similar)  \n   - Leonardo AI (Bearer token)  \n   - WordPress (Basic Auth)  \n   - Google Sheets (OAuth2)\n\n2. **Customize your content**:\n   - Adjust the prompt inside the HTTP node to fit your tone or focus  \n   - Change the WordPress category ID  \n   - Update scheduling if you want a different publishing day  \n\n3. **Test the workflow manually** to ensure all steps function correctly\n\n---\n\n## \ud83d\udca1 Pro tips\n\n- Add Slack or email nodes to get notified when a post goes live  \n- Use multiple categories or RSS feeds for content diversification  \n- Adjust GPT prompt to support different languages or tones  \n- Add post-validation rules if needed before publishing  \n\n---\n\n## \ud83c\udfaf Why this matters\n\nThis workflow gives you a full editorial process on autopilot: research, writing, design, publishing, and tracking \u2014 all powered by AI. No more blank pages or manual posting.\n\n**Use it to scale your content strategy, boost your SEO, and stay relevant \u2014 100% hands-free.**",
+    "description_length": 2911,
+    "usage": {
+      "prompt_tokens": 677,
+      "completion_tokens": 590,
+      "total_tokens": 1267
+    },
+    "error": null,
+    "generated_at": "2026-01-25T23:44:03.566167"
+  },
+  "original_description": "## \u2728 SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress\n\nThis workflow automates the creation and publishing of weekly SEO-optimized blog posts using AI and publishes them directly to WordPress \u2014 with featured images and tracking in Google Sheets.\n\n---\n\n## \ud83e\udde0 Who is this for\n\nThis automation is ideal for:\n\n- Startup platforms and tech blogs  \n- Content creators and marketers  \n- Solopreneurs who want consistent blog output  \n- Spanish-speaking audiences focused on startup trends  \n\n---\n\n## \u2699\ufe0f What it does\n\n- \u23f0 Runs every Monday at 6:00 AM via CRON  \n- \ud83d\udce1 Uses Perplexity AI to research trending startup topics  \n- \ud83d\udcdd Generates a 1000\u20131500 word article with GPT in structured HTML  \n- \ud83c\udfa8 Creates a cinematic blog image using Leonardo AI  \n- \ud83d\uddbc\ufe0f Uploads the image to WordPress with alt text and SEO-friendly filename  \n- \ud83d\udcf0 Publishes the post in a pre-defined category  \n- \ud83d\udcca Logs the post in Google Sheets for tracking  \n\n---\n\n## \ud83d\ude80 How to set it up\n\n1. **Connect your credentials**:\n   - Perplexity API  \n   - OpenAI (GPT-4.1 Mini or similar)  \n   - Leonardo AI (Bearer token)  \n   - WordPress (Basic Auth)  \n   - Google Sheets (OAuth2)\n\n2. **Customize your content**:\n   - Adjust the prompt inside the HTTP node to fit your tone or focus  \n   - Change the WordPress category ID  \n   - Update scheduling if you want a different publishing day  \n\n3. **Test the workflow manually** to ensure all steps function correctly\n\n---\n\n## \ud83d\udca1 Pro tips\n\n- Add Slack or email nodes to get notified when a post goes live  \n- Use multiple categories or RSS feeds for content diversification  \n- Adjust GPT prompt to support different languages or tones  \n- Add post-validation rules if needed before publishing  \n\n---\n\n## \ud83c\udfaf Why this matters\n\nThis workflow gives you a full editorial process on autopilot: research, writing, design, publishing, and tracking \u2014 all powered by AI. No more blank pages or manual posting.\n\n**Use it to scale your content strategy, boost your SEO, and stay relevant \u2014 100% hands-free.**",
+  "optimized_description": "Workflow Title: SEO Blog Post Automation with Perplexity, GPT, Leonardo AI & WordPress\n\nTrigger: The workflow is triggered every Monday at 6:00 AM via a CRON schedule.\n\nData Sources and APIs Needed:\n1. Perplexity API for researching trending startup topics.\n2. OpenAI API (GPT-4.1 Mini or similar) for generating blog content.\n3. Leonardo AI for creating cinematic blog images.\n4. WordPress API (Basic Auth) for publishing blog posts.\n5. Google Sheets API (OAuth2) for tracking published posts.\n\nOperations and Processing Steps:\n1. **Research Trending Topics**: Use the Perplexity API to gather data on trending startup topics relevant to the target audience.\n2. **Generate Blog Content**: Utilize the OpenAI API to create a 10001500 word SEO-optimized article in structured HTML format based on the researched topics.\n3. **Create Blog Image**: Use Leonardo AI to generate a cinematic image that complements the blog post.\n4. **Upload Image to WordPress**: Upload the generated image to WordPress, ensuring it includes appropriate alt text and an SEO-friendly filename.\n5. **Publish Blog Post**: Publish the generated article to WordPress in a pre-defined category, ensuring it is formatted correctly for online viewing.\n6. **Log Post in Google Sheets**: Record the details of the published post (including title, URL, and publication date) in a Google Sheets document for tracking and analytics.\n\nFinal Output or Action:\nThe workflow results in the automated creation and publishing of a weekly SEO-optimized blog post on WordPress, complete with a featured image and tracking information logged in Google Sheets. This process allows for consistent content generation without manual intervention, enhancing the content strategy and SEO presence of the user.\n\nSetup Instructions:\n1. Connect the necessary credentials for each API:\n   - Perplexity API\n   - OpenAI API (GPT-4.1 Mini or similar)\n   - Leonardo AI (Bearer token)\n   - WordPress (Basic Auth)\n   - Google Sheets (OAuth2)\n2. Customize the content by adjusting the prompt in the HTTP node to align with the desired tone or focus, changing the WordPress category ID, and updating the scheduling if a different publishing day is preferred.\n3. Test the workflow manually to ensure all steps function correctly before enabling the automated schedule.\n\nPro Tips:\n- Consider adding Slack or email notifications to alert when a post goes live.\n- Use multiple categories or RSS feeds to diversify content topics.\n- Adjust the GPT prompt to cater to different languages or tones as needed.\n- Implement post-validation rules if necessary to ensure quality before publishing.\n\nThis workflow streamlines the entire editorial process, from research and writing to design, publishing, and tracking, all powered by AI. It eliminates the hassle of manual posting and enables users to scale their content strategy effectively while maintaining relevance in their niche.",
+  "error": null,
+  "generated_at": "2026-01-25T23:44:21.391916",
+  "metrics": {
+    "node_type_precision": 0.8571428571428571,
+    "node_type_recall": 0.46153846153846156,
+    "node_type_f1": 0.6,
+    "tp": 6,
+    "fp": 1,
+    "fn": 7,
+    "gt_node_count": 13,
+    "llm_node_count": 7,
+    "connection_precision": 0.6666666666666666,
+    "connection_recall": 0.2,
+    "connection_f1": 0.30769230769230765,
+    "correct_connections": 2,
+    "gt_connection_count": 10,
+    "llm_connection_count": 3,
+    "avg_parameter_accuracy": 0.0496031746031746,
+    "usage": {
+      "workflow_generation": {
+        "prompt_tokens": 4349,
+        "completion_tokens": 1434,
+        "total_tokens": 5783
+      },
+      "description_optimization": {
+        "prompt_tokens": 677,
+        "completion_tokens": 590,
+        "total_tokens": 1267
+      },
+      "total_tokens": 7050,
+      "total_prompt_tokens": 5026,
+      "total_completion_tokens": 2024
+    },
+    "total_cost": 0.032805,
+    "description_optimization_cost": 0.007592500000000001,
+    "workflow_generation_cost": 0.0252125
+  }
+}
