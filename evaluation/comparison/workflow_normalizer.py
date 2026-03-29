@@ -107,6 +107,10 @@ class WorkflowNormalizer:
         Returns:
             Normalized workflow with nodes and connections
         """
+        # Raw n8n workflow JSON (no mode wrapper)
+        if 'nodes' in llm_response and 'connections' in llm_response and 'mode' not in llm_response:
+            return self._normalize_from_n8n_workflow(llm_response)
+
         # Check if mode is create_workflow
         if llm_response.get('mode') != 'create_workflow':
             return {"nodes": [], "connections": []}
@@ -127,6 +131,67 @@ class WorkflowNormalizer:
         # Case 3: Empty or invalid
         else:
             return {"nodes": [], "connections": []}
+
+    def _normalize_from_n8n_workflow(self, workflow: Dict) -> Dict:
+        """
+        Normalize raw n8n workflow JSON output.
+
+        Args:
+            workflow: Raw n8n workflow dictionary
+
+        Returns:
+            Normalized workflow
+        """
+        # Extract nodes (skip stickyNote nodes)
+        nodes = []
+        for node in workflow.get('nodes', []):
+            full_type = node.get('type', 'unknown')
+
+            if 'stickynote' in full_type.lower():
+                continue
+
+            normalized_type = self._normalize_node_type(full_type)
+
+            nodes.append({
+                "id": node.get('id', ''),
+                "name": node.get('name', ''),
+                "type": normalized_type,
+                "full_type": full_type,
+                "parameters": node.get('parameters', {})
+            })
+
+        # Extract connections using n8n format (same as ground truth)
+        valid_node_names = {node['name'] for node in nodes}
+        connections = []
+        conn_dict = workflow.get('connections', {})
+
+        for source_name, targets in conn_dict.items():
+            if source_name not in valid_node_names:
+                continue
+
+            main_outputs = targets.get('main', [])
+            for output_idx, target_list in enumerate(main_outputs):
+                if not target_list:
+                    continue
+                for target in target_list:
+                    if isinstance(target, str):
+                        target_name = target
+                        target_index = 0
+                    elif isinstance(target, dict):
+                        target_name = target.get('node', '')
+                        target_index = target.get('index', 0)
+                    else:
+                        continue
+                    if target_name not in valid_node_names:
+                        continue
+                    connections.append({
+                        "from": source_name,
+                        "to": target_name,
+                        "from_output": output_idx,
+                        "to_input": target_index
+                    })
+
+        return {"nodes": nodes, "connections": connections}
 
     def _normalize_from_steps(self, steps: List[Dict]) -> Dict:
         """

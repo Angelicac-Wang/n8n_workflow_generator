@@ -303,7 +303,9 @@ class ModuleAwareWorkflowComposer:
         matched_leaves: List[Dict],
         initial_concrete_nodes: List[str],
         user_query: str,
-        params: Dict
+        params: Dict,
+        selected_trigger: Optional[str] = None,
+        selected_end: Optional[str] = None
     ) -> List[Dict]:
         """
         組合工作流程候選（改進版：限制版多候選生成）
@@ -327,8 +329,13 @@ class ModuleAwareWorkflowComposer:
         if not high_reward_leaves:
             high_reward_leaves = matched_leaves
         
-        # Step 2: 自動偵測模組入口（恢復原本邏輯）
-        module_entries = self._detect_module_entries(high_reward_leaves, list(initial_concrete_nodes))
+        # Step 2: 自動偵測模組入口（使用選定的 trigger 和 end node）
+        module_entries = self._detect_module_entries(
+            high_reward_leaves, 
+            list(initial_concrete_nodes),
+            selected_trigger=selected_trigger,
+            selected_end=selected_end
+        )
         
         workflow_candidates = []
         
@@ -409,13 +416,21 @@ class ModuleAwareWorkflowComposer:
         
         return filled_params
     
-    def _detect_module_entries(self, leaves, concrete_nodes_list):
+    def _detect_module_entries(
+        self, 
+        leaves, 
+        concrete_nodes_list,
+        selected_trigger: Optional[str] = None,
+        selected_end: Optional[str] = None
+    ):
         """
         自動偵測模組入口（n8n 版本：使用實際的 trigger 節點作為入口）
         
         Args:
             leaves: MCTS 匹配的葉子節點
             concrete_nodes_list: 具體節點列表
+            selected_trigger: 選定的 trigger node（如果提供，只使用這個）
+            selected_end: 選定的 end node（如果提供，只使用這個）
         
         Returns:
             entries: {trigger_node: [reachable_nodes]} 字典
@@ -423,47 +438,64 @@ class ModuleAwareWorkflowComposer:
         entries = {}
         all_module_nodes = set(concrete_nodes_list)
         
-        # Step 1: 找出所有 trigger 節點（以 Trigger 結尾，或包含 trigger 關鍵字）
-        trigger_nodes = [
-            n for n in concrete_nodes_list 
-            if n.lower().endswith('trigger') or 'trigger' in n.lower()
-        ]
-        
-        # 也包含一些常見的 trigger 節點（即使沒有 Trigger 後綴）
-        common_triggers = ['webhook', 'manualTrigger', 'scheduleTrigger', 'cron']
-        for node in concrete_nodes_list:
-            if any(trigger in node.lower() for trigger in common_triggers):
-                if node not in trigger_nodes:
-                    trigger_nodes.append(node)
-        
-        if not trigger_nodes:
-            print("   - Warning: No trigger nodes found. Using all nodes as fallback.")
-            return {None: concrete_nodes_list}
-        
-        print(f"   - Found {len(trigger_nodes)} trigger nodes: {trigger_nodes[:5]}...")
-        
-        # Step 2: 找出所有出度為 0 的節點作為終點
-        end_nodes = []
-        for node in concrete_nodes_list:
-            if node in self.graph:
-                if self.graph.out_degree(node) == 0:
-                    end_nodes.append(node)
-        
-        # 如果沒有找到出度為 0 的節點，使用常見的終點節點
-        if not end_nodes:
-            common_ends = ['noOp', 'stopAndError', 'emailSend', 'respondToWebhook']
+        # Step 1: 如果提供了選定的 trigger，只使用這個
+        if selected_trigger:
+            if selected_trigger not in self.graph:
+                print(f"   - Warning: Selected trigger {selected_trigger} not found in graph.")
+                return {None: concrete_nodes_list}
+            trigger_nodes = [selected_trigger]
+            print(f"   - Using selected trigger node: {selected_trigger}")
+        else:
+            # 找出所有 trigger 節點（以 Trigger 結尾，或包含 trigger 關鍵字）
+            trigger_nodes = [
+                n for n in concrete_nodes_list 
+                if n.lower().endswith('trigger') or 'trigger' in n.lower()
+            ]
+            
+            # 也包含一些常見的 trigger 節點（即使沒有 Trigger 後綴）
+            common_triggers = ['webhook', 'manualTrigger', 'scheduleTrigger', 'cron']
             for node in concrete_nodes_list:
-                if any(end in node for end in common_ends):
-                    end_nodes.append(node)
+                if any(trigger in node.lower() for trigger in common_triggers):
+                    if node not in trigger_nodes:
+                        trigger_nodes.append(node)
+            
+            if not trigger_nodes:
+                print("   - Warning: No trigger nodes found. Using all nodes as fallback.")
+                return {None: concrete_nodes_list}
+            
+            print(f"   - Found {len(trigger_nodes)} trigger nodes: {trigger_nodes[:5]}...")
         
-        if not end_nodes:
-            print("   - Warning: No end nodes found. Will use all nodes as potential ends.")
-            end_nodes = list(concrete_nodes_list)
+        # Step 2: 如果提供了選定的 end node，只使用這個
+        if selected_end:
+            if selected_end not in self.graph:
+                print(f"   - Warning: Selected end node {selected_end} not found in graph. Using all nodes as potential ends.")
+                end_nodes = list(concrete_nodes_list)
+            else:
+                end_nodes = [selected_end]
+                print(f"   - Using selected end node: {selected_end}")
+        else:
+            # 找出所有出度為 0 的節點作為終點
+            end_nodes = []
+            for node in concrete_nodes_list:
+                if node in self.graph:
+                    if self.graph.out_degree(node) == 0:
+                        end_nodes.append(node)
+            
+            # 如果沒有找到出度為 0 的節點，使用常見的終點節點
+            if not end_nodes:
+                common_ends = ['noOp', 'stopAndError', 'emailSend', 'respondToWebhook']
+                for node in concrete_nodes_list:
+                    if any(end in node for end in common_ends):
+                        end_nodes.append(node)
+            
+            if not end_nodes:
+                print("   - Warning: No end nodes found. Will use all nodes as potential ends.")
+                end_nodes = list(concrete_nodes_list)
+            
+            print(f"   - Found {len(end_nodes)} potential end nodes: {end_nodes[:5]}...")
         
-        print(f"   - Found {len(end_nodes)} potential end nodes: {end_nodes[:5]}...")
-        
-        # Step 3: 對每個 trigger 節點，進行雙向 BFS
-        for trigger in trigger_nodes[:3]:  # 限制為前 3 個 trigger，避免太多組合
+        # Step 3: 對每個 trigger 節點，進行雙向 BFS（現在通常只有一個 trigger）
+        for trigger in trigger_nodes:
             if trigger not in self.graph:
                 continue
             
@@ -478,9 +510,9 @@ class ModuleAwareWorkflowComposer:
                         visited_forward.add(neigh)
                         queue.append(neigh)
             
-            # 反向BFS：從所有終點往前
+            # 反向BFS：從所有終點往前（現在通常只有一個 end node）
             visited_backward = set()
-            for end_node in end_nodes[:5]:  # 限制為前 5 個終點
+            for end_node in end_nodes:  # 不再限制數量，因為已經選定了
                 if end_node not in self.graph:
                     continue
                 queue = deque([end_node])
@@ -552,16 +584,17 @@ class ModuleAwareWorkflowComposer:
             print(" - Warning: No valid end nodes identified.")
             return []
         
-        # 定義關鍵節點 (Critical Nodes) - n8n 版本
-        # 使用 n8n 相關的關鍵字：function, code, if, switch, merge, openai, agent 等
-        critical_keywords = [
-            'function', 'code', 'if', 'switch', 'merge', 
-            'openai', 'agent', 'llm', 'chat', 'embedding',
-            'extract', 'transform', 'filter', 'aggregate'
+        # 定義關鍵節點 (Critical Nodes) - 使用指定的5個節點
+        critical_nodes = [
+            'n8n-nodes-base.httpRequest',
+            '@n8n/n8n-nodes-langchain.agent',
+            'n8n-nodes-base.set',
+            'n8n-nodes-base.code',
+            'n8n-nodes-base.if'
         ]
         required_nodes_in_subgraph = [
             n for n in nodes 
-            if any(k.lower() in n.lower() for k in critical_keywords) 
+            if n in critical_nodes
             and n != start_node 
             and n not in potential_ends
         ]

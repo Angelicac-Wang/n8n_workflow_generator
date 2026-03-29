@@ -23,7 +23,7 @@ from evaluation.utils.result_saver import ResultSaver
 from evaluation.comparison.workflow_normalizer import WorkflowNormalizer
 from evaluation.comparison.node_matcher import NodeMatcher
 from evaluation.evaluators.node_accuracy_evaluator import NodeAccuracyEvaluator
-from evaluation.evaluators.parameter_evaluator import ParameterEvaluator
+from evaluation.evaluators.llm_json_validity import llm_output_json_validity_metrics
 from evaluation.evaluators.cost_tracker import CostTracker
 from evaluation.orchestration.progress_tracker import ProgressTracker
 
@@ -45,23 +45,29 @@ class EvaluationPipeline:
         # Initialize components
         self.template_loader = TemplateLoader(self.config['templates_dir'])
         self.result_saver = ResultSaver(self.config['output_dir'])
-        self.prompt_builder = PromptBuilder(self.config['prompt_template_path'])
+        self.prompt_builder = None
+        if not self.config.get('use_prompt_id', False):
+            self.prompt_builder = PromptBuilder(self.config['prompt_template_path'])
 
         self.llm_generator = LLMWorkflowGenerator(
             openai_api_key=self.config['openai_key'],
             prompt_builder=self.prompt_builder,
             model=self.config['model'],
             max_retries=self.config.get('max_retries', 3),
-            retry_delay=self.config.get('retry_delay', 2.0)
+            retry_delay=self.config.get('retry_delay', 2.0),
+            use_prompt_id=self.config.get('use_prompt_id', False),
+            prompt_id=self.config.get('prompt_id'),
+            prompt_version=self.config.get('prompt_version'),
+            openai_project=self.config.get('openai_project'),
+            openai_organization=self.config.get('openai_organization'),
+            max_output_tokens=self.config.get('max_output_tokens')
         )
 
         self.normalizer = WorkflowNormalizer()
         self.node_matcher = NodeMatcher()
         self.node_evaluator = NodeAccuracyEvaluator()
-        self.param_evaluator = ParameterEvaluator(
-            model_name=self.config['embedding_model'],
-            threshold=self.config['param_similarity_threshold']
-        )
+        # Lazy init: ParameterEvaluator requires optional heavy deps
+        self.param_evaluator = None
         self.cost_tracker = CostTracker()
 
     def run_generation(self, resume: bool = True, limit: Optional[int] = None):
@@ -167,6 +173,7 @@ class EvaluationPipeline:
 
             # Load generated workflow
             generated_data = self.result_saver.load_generated_workflow(template_id)
+            json_metrics = llm_output_json_validity_metrics(generated_data)
 
             # Check for generation errors
             if generated_data.get('error'):
@@ -174,7 +181,7 @@ class EvaluationPipeline:
                     "template_id": template_id,
                     "template_name": template.get('workflow', {}).get('name', ''),
                     "error": generated_data['error'],
-                    "metrics": None
+                    "metrics": dict(json_metrics),
                 })
                 tracker.increment_error()
                 tracker.update(i + 1)
@@ -195,8 +202,11 @@ class EvaluationPipeline:
             # Evaluate metrics
             node_metrics = self.node_evaluator.evaluate_node_types(matching_result)
             connection_metrics = self.node_evaluator.evaluate_connections(gt_workflow, llm_workflow)
-            param_metrics = self.param_evaluator.evaluate_parameters(matching_result)
-            cost_metrics = self.cost_tracker.calculate_cost(generated_data['usage'])
+            param_metrics = self._evaluate_parameters_safe(matching_result)
+            cost_metrics = self.cost_tracker.calculate_cost(
+                generated_data['usage'],
+                model=self.config.get('model', 'gpt-4o')
+            )
 
             # Combine results
             template_result = {
@@ -208,6 +218,7 @@ class EvaluationPipeline:
                     **connection_metrics,
                     **param_metrics,
                     **cost_metrics,
+                    **json_metrics,
                     "usage": generated_data['usage']
                 }
             }
@@ -233,6 +244,30 @@ class EvaluationPipeline:
 
         print(f"\nResults saved to: {self.result_saver.eval_results_dir}")
         self._print_summary(summary_stats, cost_report)
+
+    def _evaluate_parameters_safe(self, matching_result: Dict) -> Dict:
+        """
+        Evaluate parameter metrics, but gracefully degrade when optional deps
+        (sentence-transformers / sklearn / torch) are not installed.
+        """
+        if self.param_evaluator is None:
+            try:
+                from evaluation.evaluators.parameter_evaluator import ParameterEvaluator
+
+                self.param_evaluator = ParameterEvaluator(
+                    model_name=self.config['embedding_model'],
+                    threshold=self.config['param_similarity_threshold']
+                )
+            except Exception as e:
+                print(
+                    f"Warning: parameter evaluation skipped (optional deps missing): {e}"
+                )
+                return {
+                    "avg_parameter_accuracy": 0.0,
+                    "per_node_accuracy": [],
+                }
+
+        return self.param_evaluator.evaluate_parameters(matching_result)
 
     def _load_config(self, config_path: str) -> Dict:
         """
@@ -264,6 +299,12 @@ class EvaluationPipeline:
 
             config['openai_key'] = api_key
 
+        # Resolve optional OpenAI project and organization
+        if "openai_project" in config and "${OPENAI_PROJECT}" in str(config['openai_project']):
+            config['openai_project'] = os.getenv('OPENAI_PROJECT')
+        if "openai_organization" in config and "${OPENAI_ORGANIZATION}" in str(config['openai_organization']):
+            config['openai_organization'] = os.getenv('OPENAI_ORGANIZATION')
+
         return config
 
     def _compute_summary_statistics(self, results: List[Dict]) -> Dict:
@@ -276,67 +317,96 @@ class EvaluationPipeline:
         Returns:
             Summary statistics dictionary
         """
-        valid_results = [r for r in results if r.get('metrics')]
+        zero_block = {
+            "mean_f1": 0.0,
+            "median_f1": 0.0,
+            "std_f1": 0.0,
+            "min_f1": 0.0,
+            "max_f1": 0.0,
+        }
+        zero_param = {
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+        }
 
-        if not valid_results:
+        if not results:
             return {
+                "total_templates": 0,
+                "successful_evaluations": 0,
+                "failed_evaluations": 0,
+                "node_accuracy": dict(zero_block),
+                "connection_accuracy": dict(zero_block),
+                "parameter_accuracy": dict(zero_param),
+                "json_validity": {"mean": 0.0, "count": 0},
+                "error": "No results",
+            }
+
+        full_eval = [
+            r for r in results
+            if r.get("metrics") and "node_type_f1" in r["metrics"]
+        ]
+        json_scores = [
+            float(r["metrics"]["llm_output_valid_json"])
+            for r in results
+            if r.get("metrics") and "llm_output_valid_json" in r["metrics"]
+        ]
+        json_block = {
+            "mean": float(np.mean(json_scores)) if json_scores else 0.0,
+            "count": len(json_scores),
+        }
+
+        if not full_eval:
+            out = {
                 "total_templates": len(results),
                 "successful_evaluations": 0,
                 "failed_evaluations": len(results),
-                "node_accuracy": {
-                    "mean_f1": 0.0,
-                    "median_f1": 0.0,
-                    "std_f1": 0.0,
-                    "min_f1": 0.0,
-                    "max_f1": 0.0
-                },
-                "connection_accuracy": {
-                    "mean_f1": 0.0,
-                    "median_f1": 0.0,
-                    "std_f1": 0.0,
-                    "min_f1": 0.0,
-                    "max_f1": 0.0
-                },
-                "parameter_accuracy": {
-                    "mean": 0.0,
-                    "median": 0.0,
-                    "std": 0.0,
-                    "min": 0.0,
-                    "max": 0.0
-                },
-                "error": "No valid results to aggregate"
+                "node_accuracy": dict(zero_block),
+                "connection_accuracy": dict(zero_block),
+                "parameter_accuracy": dict(zero_param),
+                "json_validity": json_block,
             }
+            if not json_scores:
+                out["error"] = "No valid results to aggregate"
+            else:
+                out["error"] = (
+                    "No full workflow evaluations for node/connection metrics "
+                    "(json_validity still computed)"
+                )
+            return out
 
-        # Extract metrics
-        node_f1s = [r['metrics']['node_type_f1'] for r in valid_results]
-        conn_f1s = [r['metrics']['connection_f1'] for r in valid_results]
-        param_accs = [r['metrics']['avg_parameter_accuracy'] for r in valid_results]
+        node_f1s = [r["metrics"]["node_type_f1"] for r in full_eval]
+        conn_f1s = [r["metrics"]["connection_f1"] for r in full_eval]
+        param_accs = [r["metrics"]["avg_parameter_accuracy"] for r in full_eval]
 
         return {
             "total_templates": len(results),
-            "successful_evaluations": len(valid_results),
-            "failed_evaluations": len(results) - len(valid_results),
+            "successful_evaluations": len(full_eval),
+            "failed_evaluations": len(results) - len(full_eval),
             "node_accuracy": {
                 "mean_f1": float(np.mean(node_f1s)),
                 "median_f1": float(np.median(node_f1s)),
                 "std_f1": float(np.std(node_f1s)),
                 "min_f1": float(np.min(node_f1s)),
-                "max_f1": float(np.max(node_f1s))
+                "max_f1": float(np.max(node_f1s)),
             },
             "connection_accuracy": {
                 "mean_f1": float(np.mean(conn_f1s)),
                 "median_f1": float(np.median(conn_f1s)),
                 "std_f1": float(np.std(conn_f1s)),
                 "min_f1": float(np.min(conn_f1s)),
-                "max_f1": float(np.max(conn_f1s))
+                "max_f1": float(np.max(conn_f1s)),
             },
             "parameter_accuracy": {
                 "mean": float(np.mean(param_accs)),
                 "median": float(np.median(param_accs)),
                 "std": float(np.std(param_accs)),
                 "min": float(np.min(param_accs)),
-                "max": float(np.max(param_accs))
-            }
+                "max": float(np.max(param_accs)),
+            },
+            "json_validity": json_block,
         }
 
     def _compute_cost_report(self, results: List[Dict]) -> Dict:
@@ -349,7 +419,12 @@ class EvaluationPipeline:
         Returns:
             Cost report dictionary
         """
-        results_with_usage = [r for r in results if r.get('metrics') and r['metrics'].get('usage')]
+        results_with_usage = [
+            r for r in results
+            if r.get('metrics')
+            and r['metrics'].get('usage') is not None
+            and 'node_type_f1' in r['metrics']
+        ]
 
         return self.cost_tracker.aggregate_costs(results_with_usage)
 
@@ -369,10 +444,14 @@ class EvaluationPipeline:
         print(f"Successful: {summary_stats['successful_evaluations']}")
         print(f"Failed: {summary_stats['failed_evaluations']}")
 
-        # Show error message if no valid results
         if summary_stats.get('error'):
             print(f"\nWarning: {summary_stats['error']}")
-        else:
+
+        jv = summary_stats.get("json_validity") or {}
+        if jv.get("count", 0):
+            print(f"\nLLM output valid JSON (rate): {jv['mean']:.3f}  (n={jv['count']})")
+
+        if summary_stats.get("successful_evaluations", 0) > 0:
             print(f"\nNode Type Accuracy (F1):")
             print(f"  Mean: {summary_stats['node_accuracy']['mean_f1']:.3f}")
             print(f"  Median: {summary_stats['node_accuracy']['median_f1']:.3f}")

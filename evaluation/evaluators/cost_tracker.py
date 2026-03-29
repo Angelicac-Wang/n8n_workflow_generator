@@ -13,17 +13,12 @@ class CostTracker:
     Track and calculate costs for LLM API calls
     """
 
-    # Model pricing (as of 2026-01)
+    # GPT-4o pricing (Standard tier, as of 2026-01)
+    # Source: https://platform.openai.com/docs/pricing
     PRICING = {
-        # GPT-4o (OpenAI) - Source: https://platform.openai.com/docs/pricing
         "gpt-4o": {
             "input": 2.50 / 1_000_000,   # $2.50 per 1M tokens
             "output": 10.0 / 1_000_000   # $10.00 per 1M tokens
-        },
-        # gemini-2.5-pro (Google) - Source: https://ai.google.dev/pricing
-        "gemini-2.5-pro": {
-            "input": 0.0 / 1_000_000,    # Free during preview
-            "output": 0.0 / 1_000_000    # Free during preview
         }
     }
 

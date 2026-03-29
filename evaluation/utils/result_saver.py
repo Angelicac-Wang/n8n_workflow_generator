@@ -49,7 +49,10 @@ class ResultSaver:
         template_id = result['template_id']
         output_file = self.llm_workflows_dir / f"generated_{template_id}.json"
 
-        save_json(result, str(output_file))
+        # Save compactly to keep disk usage low (these files can be large).
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, separators=(",", ":"))
 
     def workflow_exists(self, template_id: str) -> bool:
         """
@@ -120,22 +123,26 @@ class ResultSaver:
         # Extract data for CSV
         rows = []
         for r in results:
-            if r.get('metrics'):
-                rows.append({
-                    "template_id": r['template_id'],
-                    "template_name": r.get('template_name', ''),
-                    "node_type_precision": r['metrics']['node_type_precision'],
-                    "node_type_recall": r['metrics']['node_type_recall'],
-                    "node_type_f1": r['metrics']['node_type_f1'],
-                    "connection_precision": r['metrics']['connection_precision'],
-                    "connection_recall": r['metrics']['connection_recall'],
-                    "connection_f1": r['metrics']['connection_f1'],
-                    "parameter_accuracy": r['metrics']['avg_parameter_accuracy'],
-                    "total_cost_usd": r['metrics']['total_cost'],
-                    "prompt_tokens": r['metrics']['usage']['prompt_tokens'],
-                    "completion_tokens": r['metrics']['usage']['completion_tokens'],
-                    "error": r.get('error', '')
-                })
+            m = r.get('metrics')
+            if not m:
+                continue
+            usage = m.get('usage') or {}
+            rows.append({
+                "template_id": r['template_id'],
+                "template_name": r.get('template_name', ''),
+                "llm_output_valid_json": m.get('llm_output_valid_json', ''),
+                "node_type_precision": m.get('node_type_precision', ''),
+                "node_type_recall": m.get('node_type_recall', ''),
+                "node_type_f1": m.get('node_type_f1', ''),
+                "connection_precision": m.get('connection_precision', ''),
+                "connection_recall": m.get('connection_recall', ''),
+                "connection_f1": m.get('connection_f1', ''),
+                "parameter_accuracy": m.get('avg_parameter_accuracy', ''),
+                "total_cost_usd": m.get('total_cost', ''),
+                "prompt_tokens": usage.get('prompt_tokens', ''),
+                "completion_tokens": usage.get('completion_tokens', ''),
+                "error": r.get('error', ''),
+            })
 
         # Create DataFrame and save
         df = pd.DataFrame(rows)

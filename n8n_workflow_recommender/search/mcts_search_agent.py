@@ -67,6 +67,9 @@ class TaxonomySearchAgent:
         self.use_case_embedding_cache = {}  # {use_case_text: embedding}
         self._prepare_data(taxonomy_path)
         print(" - MCTS Taxonomy data prepared.")
+        
+        # === 新增：儲存 LLM 選擇的目標節點（供 R_category 使用）===
+        self.llm_selected_nodes = set()
     
     def _is_leaf_node(self, node_content: Dict) -> bool:
         """檢查是否為葉子節點（包含 Nodes 或 mapped_nodes）"""
@@ -282,6 +285,41 @@ class TaxonomySearchAgent:
         
         return filtered if filtered else keywords  # 如果過濾後為空，返回原始關鍵字
     
+    def _calculate_node_match_reward(self, db_node: Dict, llm_selected_nodes: Set[str]) -> float:
+        """
+        [NEW] 基於 LLM 直接選擇的 mapped_nodes 計算獎勵。
+        
+        核心邏輯：
+        1. 取得當前 taxonomy 葉節點的 mapped_nodes
+        2. 計算與 LLM 選擇的節點的交集比例
+        
+        Args:
+            db_node: node_database 中的一個條目，包含 'mapped_nodes' 欄位
+            llm_selected_nodes: LLM 選擇的節點集合
+            
+        Returns:
+            float: 匹配分數 (0.0 ~ 1.0)
+        """
+        if not llm_selected_nodes:
+            return 0.0
+        
+        # 取得此 taxonomy 節點對應的具體系統節點
+        node_mapped = set(db_node.get("mapped_nodes", []))
+        
+        if not node_mapped:
+            return 0.0
+        
+        # 計算交集
+        intersection = node_mapped & llm_selected_nodes
+        
+        if not intersection:
+            return 0.0
+        
+        # 計算匹配分數：交集大小 / LLM 選擇的節點數量
+        match_ratio = len(intersection) / len(llm_selected_nodes)
+        
+        return match_ratio
+    
     def _calculate_category_reward(self, node: MCTSNode, categories: List[str]) -> float:
         """
         基於 GPT 識別的功能類別計算獎勵
@@ -327,6 +365,7 @@ class TaxonomySearchAgent:
         semantic_query: str,
         function_categories: List[str],
         extracted_keywords: Optional[Set[str]] = None,
+        llm_selected_nodes: Optional[Set[str]] = None,  # === 新增參數 ===
         iterations: int = 2000,
         top_n: int = 5
     ) -> List[Dict]:
@@ -347,6 +386,12 @@ class TaxonomySearchAgent:
         print(f" - Using function categories from GPT: {function_categories}")
         if extracted_keywords:
             print(f" - Extracted keywords for matching: {extracted_keywords}")
+        # === 新增日誌 ===
+        if llm_selected_nodes:
+            print(f" - LLM selected mapped_nodes for R_category: {llm_selected_nodes}")
+        
+        # === 儲存 LLM 選擇的節點供後續使用 ===
+        self.llm_selected_nodes = llm_selected_nodes if llm_selected_nodes else set()
         
         # 生成查詢 embedding
         query_embedding = self.model.encode(semantic_query, convert_to_tensor=True)
@@ -401,8 +446,32 @@ class TaxonomySearchAgent:
                         node_embedding
                     ).item()
                 
-                # 計算類別匹配獎勵
-                category_reward = self._calculate_category_reward(node, function_categories)
+                # === 修改：計算類別匹配獎勵 (R_category) - 使用新方法 ===
+                category_reward = 0
+                if self.llm_selected_nodes and node.taxonomy_data.get('is_leaf', False):
+                    # 找到對應的 db_node
+                    path_nodes = []
+                    curr = node
+                    while curr is not None:
+                        path_nodes.append(curr.name)
+                        curr = curr.parent
+                    path_str = " -> ".join(reversed(path_nodes))
+                    
+                    # 修復：去掉 "Taxonomy -> " 前綴
+                    search_path = path_str
+                    if path_str.startswith("Taxonomy -> "):
+                        search_path = path_str[len("Taxonomy -> "):]
+                    
+                    db_node = next(
+                        (item for item in self.node_database if item["path_str"] == search_path),
+                        None
+                    )
+                    
+                    if db_node:
+                        category_reward = self._calculate_node_match_reward(db_node, self.llm_selected_nodes)
+                else:
+                    # Fallback: 如果沒有 llm_selected_nodes，使用舊方法
+                    category_reward = self._calculate_category_reward(node, function_categories)
                 
                 # ✅ 計算關鍵字匹配獎勵
                 keyword_reward = 0.0
@@ -445,9 +514,15 @@ class TaxonomySearchAgent:
         
         def collect_visited_leafs(node: MCTSNode):
             """遞歸收集所有訪問過的葉子節點（從已展開的節點）"""
+            # 優先收集標記為 is_leaf 且有訪問次數的節點
             if node.taxonomy_data.get('is_leaf', False):
                 if node.visits > 0:  # 只收集訪問過的節點
                     leaf_nodes_visited.append(node)
+                return
+            
+            # 如果節點有 mapped_nodes 但沒有標記為 is_leaf，也收集（可能是標記錯誤）
+            if node.taxonomy_data.get('mapped_nodes') and node.visits > 0:
+                leaf_nodes_visited.append(node)
                 return
             
             # 遞歸處理子節點
@@ -478,28 +553,32 @@ class TaxonomySearchAgent:
             
             # 如果找到訪問過的節點，嘗試從中找出最接近葉子節點的節點
             if all_visited_nodes:
-                # 找出深度最深的節點（最接近葉子節點）
-                deepest_nodes = []
-                max_depth = 0
-                for n in all_visited_nodes:
-                    depth = 0
-                    curr = n
-                    while curr.parent:
-                        depth += 1
-                        curr = curr.parent
-                    if depth > max_depth:
-                        max_depth = depth
-                        deepest_nodes = [n]
-                    elif depth == max_depth:
-                        deepest_nodes.append(n)
+                # 優先查找有 mapped_nodes 的節點（即使標記為非葉子）
+                nodes_with_mapped = [n for n in all_visited_nodes if n.taxonomy_data.get('mapped_nodes')]
                 
-                # 從最深的節點中，找出有 mapped_nodes 的（即使不是 is_leaf）
-                for n in deepest_nodes:
-                    if n.taxonomy_data.get('mapped_nodes'):
-                        # 這個節點有 mapped_nodes，即使不是 is_leaf，也應該被考慮
-                        leaf_nodes_visited.append(n)
-                
-                print(f"   - Found {len(leaf_nodes_visited)} nodes with mapped_nodes from visited nodes")
+                if nodes_with_mapped:
+                    # 如果找到有 mapped_nodes 的節點，直接使用它們
+                    leaf_nodes_visited.extend(nodes_with_mapped)
+                    print(f"   - Found {len(nodes_with_mapped)} nodes with mapped_nodes from visited nodes")
+                else:
+                    # 如果沒有找到，找出深度最深的節點（最接近葉子節點）
+                    deepest_nodes = []
+                    max_depth = 0
+                    for n in all_visited_nodes:
+                        depth = 0
+                        curr = n
+                        while curr.parent:
+                            depth += 1
+                            curr = curr.parent
+                        if depth > max_depth:
+                            max_depth = depth
+                            deepest_nodes = [n]
+                        elif depth == max_depth:
+                            deepest_nodes.append(n)
+                    
+                    # 使用最深的節點（即使沒有 mapped_nodes）
+                    leaf_nodes_visited.extend(deepest_nodes[:10])  # 限制為前10個
+                    print(f"   - Found {len(deepest_nodes)} deepest nodes (depth={max_depth}), using top 10")
         
         # 移除關鍵字匹配的 fallback（n8n 不需要）
         
@@ -530,10 +609,47 @@ class TaxonomySearchAgent:
             if path_str.startswith("Taxonomy -> "):
                 search_path = path_str[len("Taxonomy -> "):]  # 去掉 "Taxonomy -> " 前綴
             
+            # 嘗試精確匹配
             db_node = next(
                 (item for item in self.node_database if item["path_str"] == search_path),
                 None
             )
+            
+            # 如果精確匹配失敗，嘗試模糊匹配（因為節點名稱可能有差異）
+            if not db_node:
+                # 嘗試匹配路徑的最後部分（葉子節點名稱可能不同）
+                path_parts = search_path.split(" -> ")
+                if len(path_parts) >= 2:
+                    # 嘗試匹配除最後一個節點外的路徑
+                    parent_path = " -> ".join(path_parts[:-1])
+                    # 查找所有以這個父路徑開頭的節點
+                    for item in self.node_database:
+                        item_path_parts = item["path_str"].split(" -> ")
+                        if len(item_path_parts) >= len(path_parts):
+                            item_parent_path = " -> ".join(item_path_parts[:len(path_parts)-1])
+                            # 如果父路徑匹配，且最後一部分相似，則認為匹配
+                            if item_parent_path == parent_path:
+                                # 檢查最後一部分是否有重疊（可能是名稱 vs 編號的差異）
+                                last_part_1 = path_parts[-1].lower()
+                                last_part_2 = item_path_parts[len(path_parts)-1].lower()
+                                if last_part_1 in last_part_2 or last_part_2 in last_part_1 or last_part_1 == last_part_2:
+                                    db_node = item
+                                    print(f"   - Fuzzy match found: '{search_path}' -> '{item['path_str']}'")
+                                    break
+            
+            # 如果還是沒有找到，嘗試使用節點的 mapped_nodes 來反向查找
+            if not db_node and leaf.taxonomy_data.get('mapped_nodes'):
+                mapped_nodes = leaf.taxonomy_data.get('mapped_nodes', [])
+                # 查找所有包含這些 mapped_nodes 的節點
+                for item in self.node_database:
+                    item_mapped = set(item.get('mapped_nodes', []))
+                    if mapped_nodes and item_mapped:
+                        # 如果有交集，可能是同一個節點
+                        intersection = set(mapped_nodes) & item_mapped
+                        if len(intersection) >= min(2, len(mapped_nodes), len(item_mapped)):  # 至少有2個節點匹配，或全部匹配
+                            db_node = item
+                            print(f"   - Matched by mapped_nodes: '{search_path}' -> '{item['path_str']}' (intersection: {len(intersection)} nodes)")
+                            break
             
             if db_node:
                 avg_reward = leaf.total_reward / (leaf.visits + 1e-6)
@@ -568,18 +684,43 @@ class TaxonomySearchAgent:
                     print(f"      Semantic score: {semantic_score:.4f}")
                     print(f"      Query: '{semantic_query[:60]}...'")
                 else:
-                    print(f"   - Warning: No embedding for {path_str}")
-                    # 調試：找出為什麼沒有 embedding
-                    description = db_node.get('description', '')
-                    expected_combined_text = f"{path_str}: {description}"
-                    print(f"      Expected combined_text: '{expected_combined_text[:80]}...'")
-                    print(f"      Available in text_embedding_map: {expected_combined_text in self.text_embedding_map}")
-                    # 檢查是否有類似的 combined_text
-                    similar_texts = [text for text in self.text_embedding_map.keys() if path_str in text]
-                    if similar_texts:
-                        print(f"      Similar texts found: {len(similar_texts)}")
-                        for st in similar_texts[:3]:
-                            print(f"        - '{st[:80]}...'")
+                    # 嘗試使用 db_node 的 combined_text 來查找 embedding
+                    db_combined_text = db_node.get('combined_text', '')
+                    if db_combined_text and db_combined_text in self.text_embedding_map:
+                        leaf_embedding = self.text_embedding_map[db_combined_text]
+                        print(f"   - Found embedding via db_node.combined_text")
+                        # 重新計算 semantic_score
+                        if isinstance(leaf_embedding, list):
+                            leaf_embedding = torch.tensor(leaf_embedding)
+                        semantic_score = util.cos_sim(
+                            query_embedding,
+                            leaf_embedding
+                        ).item()
+                    else:
+                        print(f"   - Warning: No embedding for {path_str}")
+                        # 調試：找出為什麼沒有 embedding
+                        description = db_node.get('description', '')
+                        expected_combined_text = f"{search_path}: {description}"
+                        print(f"      Expected combined_text: '{expected_combined_text[:80]}...'")
+                        print(f"      Available in text_embedding_map: {expected_combined_text in self.text_embedding_map}")
+                        # 檢查是否有類似的 combined_text
+                        path_parts = search_path.split(' -> ')
+                        similar_texts = [text for text in self.text_embedding_map.keys() 
+                                       if path_parts and (path_parts[-1] in text or search_path.split(' -> ')[-1] in text)]
+                        if similar_texts:
+                            print(f"      Similar texts found: {len(similar_texts)}")
+                            for st in similar_texts[:3]:
+                                print(f"        - '{st[:80]}...'")
+                            # 使用第一個相似的 text 的 embedding
+                            if similar_texts:
+                                leaf_embedding = self.text_embedding_map[similar_texts[0]]
+                                if isinstance(leaf_embedding, list):
+                                    leaf_embedding = torch.tensor(leaf_embedding)
+                                semantic_score = util.cos_sim(
+                                    query_embedding,
+                                    leaf_embedding
+                                ).item()
+                                print(f"      Using embedding from similar text, semantic_score={semantic_score:.4f}")
                 
                 # 計算類別分數
                 category_score = self._calculate_category_reward(leaf, function_categories)
@@ -603,7 +744,54 @@ class TaxonomySearchAgent:
                     full_path_str = " ".join(reversed(path_nodes_for_cat)).lower()
                     print(f"   - Debug category: path='{full_path_str[:50]}...', categories={function_categories}")
                 
-                # 記錄語義和類別匹配結果
+                # 檢查 LLM 節點匹配
+                has_node_match = False
+                node_matched = set()
+                if self.llm_selected_nodes:
+                    node_mapped = set(db_node.get("mapped_nodes", []))
+                    node_matched = node_mapped & self.llm_selected_nodes
+                    has_node_match = bool(node_matched)
+                
+                # ===== 舊的複雜閾值邏輯（已註解） =====
+                # # ✅ 改進：使用多種條件來決定是否收集節點
+                # # 不僅僅依賴 avg_reward，還要考慮 semantic_score 和 category_score
+                # has_keyword_match = keyword_score > 0
+                # 
+                # # 動態計算閾值
+                # base_threshold = 0.20 if (has_keyword_match or has_node_match) else 0.35
+                # 
+                # # 計算綜合分數：考慮 semantic 和 category 分數
+                # # 如果 semantic 或 category 分數很高，即使 avg_reward 稍低也應該被收集
+                # semantic_bonus = 1.0 if semantic_score > 0.3 else 0.0  # semantic 高時給予獎勵
+                # category_bonus = 1.0 if category_score > 0.4 else 0.0  # category 高時給予獎勵
+                # 
+                # # 調整閾值：如果有 semantic 或 category 高分，降低閾值
+                # if semantic_bonus > 0 or category_bonus > 0:
+                #     threshold = base_threshold * 0.75  # 降低閾值一半
+                # else:
+                #     threshold = base_threshold
+                # 
+                # # 或者使用綜合分數來決定：avg_reward 或者 semantic/category 分數高都可以
+                # meets_threshold = (
+                #     avg_reward > threshold or 
+                #     semantic_score > 0.3 or  # semantic 分數高
+                #     category_score > 0.4 or  # category 分數高
+                #     (has_keyword_match and avg_reward > 0.15)  # 有關鍵字匹配且 reward > 0.15
+                # )
+                # ===== 舊的複雜閾值邏輯（結束） =====
+                
+                # ✅ 使用 0105_vincent 版本的簡單閾值邏輯
+                has_keyword_match = keyword_score > 0
+                
+                # 動態調整閾值（0105_vincent 的方法）
+                threshold = 0.2
+                if has_keyword_match or has_node_match:
+                    threshold = 0.15
+                
+                # 簡單判斷：只檢查 avg_reward 是否超過閾值
+                meets_threshold = avg_reward > threshold
+                
+                # 記錄語義和類別匹配結果（包含閾值信息）
                 semantic_results.append({
                     'path_str': path_str,
                     'semantic_score': semantic_score,
@@ -613,16 +801,16 @@ class TaxonomySearchAgent:
                 category_results.append({
                     'path_str': path_str,
                     'category_score': category_score,
-                    'avg_reward': avg_reward
+                    'avg_reward': avg_reward,
+                    'keyword_score': keyword_score,
+                    'has_keyword_match': has_keyword_match,
+                    'has_node_match': has_node_match,
+                    'threshold': threshold,
+                    'passed_threshold': meets_threshold
                 })
                 
-                # ✅ 對有關鍵字匹配的節點降低閾值（1222_vincent 的方法）
-                has_keyword_match = keyword_score > 0
-                threshold = 0.20 if has_keyword_match else 0.35
-                
-                if avg_reward > threshold:
-                    # ✅ 將匹配結果也存入（1222_vincent 的方法）
-                    # ✅ 修復：包含所有分數，以便在 "Scoring Process" 中正確顯示
+                if meets_threshold:
+                    # ✅ 將匹配結果也存入
                     db_node_with_match = {
                         **db_node,
                         'avg_reward': avg_reward,
@@ -631,11 +819,82 @@ class TaxonomySearchAgent:
                         'keyword_score': keyword_score,
                         'visits': leaf.visits,
                         'total_reward': leaf.total_reward,
-                        'keyword_matches': keyword_matches if has_keyword_match else []
+                        'keyword_matches': keyword_matches if has_keyword_match else [],
+                        'node_matches': list(node_matched) if has_node_match else []  # === 新增 ===
                     }
                     all_leaf_results.append(db_node_with_match)
             else:
-                print(f"   - Warning: Could not find db_node for path: {path_str}")
+                # 即使找不到 db_node，如果節點有 mapped_nodes，也嘗試使用它
+                if leaf.taxonomy_data.get('mapped_nodes'):
+                    print(f"   - Warning: Could not find db_node for path: {path_str}, but node has mapped_nodes, creating synthetic entry...")
+                    # 創建一個合成條目
+                    synthetic_node = {
+                        "description": leaf.taxonomy_data.get('description', ''),
+                        "path_str": search_path,
+                        "mapped_nodes": leaf.taxonomy_data.get('mapped_nodes', []),
+                        "example_use_cases": [],
+                        "combined_text": f"{search_path}: {leaf.taxonomy_data.get('description', '')}"
+                    }
+                    # 嘗試計算 semantic score
+                    leaf_embedding = leaf.taxonomy_data.get('embedding')
+                    semantic_score = 0.0
+                    if leaf_embedding is not None:
+                        if isinstance(leaf_embedding, list):
+                            leaf_embedding = torch.tensor(leaf_embedding)
+                        semantic_score = util.cos_sim(
+                            query_embedding,
+                            leaf_embedding
+                        ).item()
+                    
+                    avg_reward = leaf.total_reward / (leaf.visits + 1e-6)
+                    
+                    # 計算 category_score
+                    category_score = 0.0
+                    if self.llm_selected_nodes:
+                        category_score = self._calculate_node_match_reward(synthetic_node, self.llm_selected_nodes)
+                    else:
+                        category_score = self._calculate_category_reward(leaf, function_categories)
+                    
+                    # 計算 keyword_score
+                    keyword_score = 0.0
+                    keyword_matches = []
+                    if extracted_keywords:
+                        # 簡單的關鍵字匹配（因為沒有 use_cases）
+                        path_text = f"{search_path} {synthetic_node['description']}".lower()
+                        for kw in extracted_keywords:
+                            if kw.lower() in path_text:
+                                keyword_matches.append(kw)
+                        if keyword_matches:
+                            keyword_score = len(keyword_matches) / len(extracted_keywords)
+                    
+                    # 使用相同的閾值邏輯檢查
+                    has_keyword_match = keyword_score > 0
+                    has_node_match = bool(set(leaf.taxonomy_data.get('mapped_nodes', [])) & self.llm_selected_nodes) if self.llm_selected_nodes else False
+                    
+                    base_threshold = 0.15 if (has_keyword_match or has_node_match) else 0.2
+                    meets_threshold = (
+                        avg_reward > base_threshold * 0.5 or 
+                        semantic_score > 0.3 or
+                        category_score > 0.4 or
+                        (has_keyword_match and avg_reward > 0.15)
+                    )
+                    
+                    if meets_threshold:
+                        # 使用合成的節點
+                        synthetic_node_with_match = {
+                            **synthetic_node,
+                            'avg_reward': avg_reward,
+                            'semantic_score': semantic_score,
+                            'category_score': category_score,
+                            'keyword_score': keyword_score,
+                            'visits': leaf.visits,
+                            'total_reward': leaf.total_reward,
+                            'keyword_matches': keyword_matches,
+                            'node_matches': list(set(leaf.taxonomy_data.get('mapped_nodes', [])) & self.llm_selected_nodes) if self.llm_selected_nodes else []
+                        }
+                        all_leaf_results.append(synthetic_node_with_match)
+                else:
+                    print(f"   - Warning: Could not find db_node for path: {path_str} (and no mapped_nodes)")
         
         # 輸出語義匹配結果（MCTS 找到的節點）
         print(f"\n   📊 Semantic Matching Results (MCTS found {len(semantic_results)} nodes):")
@@ -665,6 +924,24 @@ class TaxonomySearchAgent:
             path_preview = result['path_str'][:70] + "..." if len(result['path_str']) > 70 else result['path_str']
             print(f"      {i+1}. {path_preview}")
             print(f"         Category Score: {result['category_score']:.4f} | Avg Reward: {result['avg_reward']:.4f}")
+            
+            # 顯示閾值信息（0105_vincent 版本的簡單邏輯）
+            threshold = result.get('threshold', 0.2)
+            has_keyword_match = result.get('has_keyword_match', False)
+            has_node_match = result.get('has_node_match', False)
+            passed_threshold = result.get('passed_threshold', False)
+            keyword_score = result.get('keyword_score', 0.0)
+            
+            # 構建閾值描述（0105_vincent 版本）
+            if has_keyword_match or has_node_match:
+                threshold_type = "0.15 (with keyword/node match)"
+            else:
+                threshold_type = "0.2 (no keyword/node match)"
+            
+            status = "✅ PASSED" if passed_threshold else "❌ FILTERED"
+            print(f"         Keyword Score: {keyword_score:.4f} | Node Match: {has_node_match} | Threshold: {threshold_type} | {status}")
+            if not passed_threshold:
+                print(f"         Reason: avg_reward {result['avg_reward']:.4f} <= threshold {threshold:.2f}")
             
             # 顯示匹配的 categories
             path_lower = result['path_str'].lower()
